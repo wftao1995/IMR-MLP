@@ -1,0 +1,46 @@
+cmake_minimum_required(VERSION 3.22)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    project(mtp_gpu_direct LANGUAGES CXX)
+endif()
+set(MTP_GPU_BACKEND "CUDA" CACHE STRING "GPU backend: CUDA or HIP")
+set_property(CACHE MTP_GPU_BACKEND PROPERTY STRINGS CUDA HIP)
+string(TOUPPER "${MTP_GPU_BACKEND}" MTP_GPU_BACKEND)
+option(MTP_GPU_ENABLE_NVTX "Enable NVTX ranges in the CUDA core" OFF)
+if(MTP_GPU_BACKEND STREQUAL "HIP")
+    enable_language(HIP)
+    set_source_files_properties(mtp_gpu_direct.cu sog_gpu.cu PROPERTIES LANGUAGE HIP)
+    if(MTP_GPU_ENABLE_NVTX)
+        message(FATAL_ERROR "NVTX requires MTP_GPU_BACKEND=CUDA")
+    endif()
+elseif(MTP_GPU_BACKEND STREQUAL "CUDA")
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+else()
+    message(FATAL_ERROR "MTP_GPU_BACKEND must be CUDA or HIP")
+endif()
+
+find_package(Eigen3 REQUIRED NO_MODULE)
+add_library(mtp_gpu_direct STATIC mtp_gpu_direct.cu sog_gpu.cu ../mlip.cpp ../radial_basis_setup.cpp)
+add_library(IMRMLP::mtp_gpu_direct ALIAS mtp_gpu_direct)
+target_include_directories(mtp_gpu_direct PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/../..
+    ${CMAKE_CURRENT_LIST_DIR}/..)
+target_link_libraries(mtp_gpu_direct PRIVATE Eigen3::Eigen)
+target_compile_definitions(mtp_gpu_direct PUBLIC IMRMLP_GPU IMRMLP_${MTP_GPU_BACKEND})
+if(MTP_GPU_BACKEND STREQUAL "CUDA")
+    target_link_libraries(mtp_gpu_direct PUBLIC CUDA::cudart)
+    target_compile_options(mtp_gpu_direct PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>)
+    if(MTP_GPU_ENABLE_NVTX)
+        target_compile_definitions(mtp_gpu_direct PRIVATE MTP_GPU_ENABLE_NVTX=1)
+        target_link_libraries(mtp_gpu_direct PUBLIC CUDA::nvToolsExt)
+    endif()
+else()
+    find_package(hip REQUIRED CONFIG)
+    target_link_libraries(mtp_gpu_direct PUBLIC hip::host)
+endif()
+set_target_properties(mtp_gpu_direct PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES
+    CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED YES
+    HIP_STANDARD 17 HIP_STANDARD_REQUIRED YES
+    POSITION_INDEPENDENT_CODE YES)

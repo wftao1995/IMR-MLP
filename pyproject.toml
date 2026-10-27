@@ -1,0 +1,43 @@
+[build-system]
+requires = ["scikit-build-core>=0.9", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "imrmlp"
+version = "1.2.4"
+description = "Python bindings for IMR-MLP MLIP simulation framework"
+requires-python = ">=3.10"
+authors = [
+    {name = "IMR-MLP contributors"},
+]
+license = {file = "LICENSE"}
+readme = "README-python.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+ase = ["ase>=3.22"]
+phonopy = ["ase>=3.22", "phonopy>=4.4"]
+pymatgen = ["pymatgen>=2023.8"]
+interop = ["ase>=3.22", "pymatgen>=2023.8"]
+dev = ["pytest>=7.0", "pytest-cov"]
+
+[tool.scikit-build]
+cmake.source-dir = "."
+cmake.build-type = "Release"
+sdist.reproducible = true
+
+[tool.pytest.ini_options]
+testpaths = ["unitest/python"]
+pythonpath = ["."]
+markers = ["extended: extended numerical and integration coverage excluded from the fast suite"]

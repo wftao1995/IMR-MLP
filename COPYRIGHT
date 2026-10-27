@@ -1,0 +1,11 @@
+IMR-MLP
+Copyright (c) 2026 IMR-MLP contributors
+
+The MIT license in LICENSE applies to original IMR-MLP code. Copyright
+ownership remains with the respective contributors; this notice does not
+transfer ownership or relicense third-party material.
+
+Bundled third-party code and data retain their original copyright notices
+and licenses. See THIRD_PARTY_NOTICES.md and the licenses under deplibs/.
+External dependencies and linked binaries are not covered solely by this
+project's MIT license.

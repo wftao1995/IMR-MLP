@@ -1,0 +1,555 @@
+{
+  "categories": [
+    {
+      "id": "guides",
+      "title": {
+        "zh": "使用指南",
+        "en": "User guides"
+      },
+      "description": {
+        "zh": "按任务完成安装、单点、弛豫、NEB、性质计算、训练与选样。",
+        "en": "Task-based installation, evaluation, relaxation, NEB, properties, training and selection."
+      },
+      "page_id": "p01_guide",
+      "source": "docs/guides/index.md",
+      "groups": [
+        {
+          "id": "start",
+          "title": {
+            "zh": "1. 第一次使用",
+            "en": "1. First steps"
+          },
+          "pages": [
+            {
+              "source": "docs/guides/getting-started.md",
+              "slug": "guides/getting-started",
+              "render": true
+            },
+            {
+              "source": "docs/guides/installation.md",
+              "slug": "guides/installation",
+              "render": true
+            },
+            {
+              "source": "examples/quickstart/README.md",
+              "slug": "guides/quickstart",
+              "render": true
+            },
+            {
+              "source": "examples/basic-calculations/README.md",
+              "slug": "guides/basic-calculations",
+              "render": true
+            },
+            {
+              "source": "examples/mtp-workflow/README.md",
+              "slug": "guides/mtp-workflow",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "calculations",
+          "title": {
+            "zh": "2. 使用已有模型做计算",
+            "en": "2. Calculate with an existing model"
+          },
+          "pages": [
+            {
+              "source": "docs/guides/relaxation.md",
+              "slug": "guides/relaxation",
+              "render": true
+            },
+            {
+              "source": "docs/guides/neb.md",
+              "slug": "guides/neb",
+              "render": true
+            },
+            {
+              "source": "docs/guides/properties.md",
+              "slug": "guides/properties",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "training",
+          "title": {
+            "zh": "3. 训练与主动学习",
+            "en": "3. Training and active learning"
+          },
+          "pages": [
+            {
+              "source": "docs/guides/workflows.md",
+              "slug": "guides/workflows",
+              "render": true
+            },
+            {
+              "source": "docs/guides/active-learning.md",
+              "slug": "guides/active-learning",
+              "render": true
+            },
+            {
+              "source": "examples/active-learning/README.md",
+              "slug": "guides/active-learning-example",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "interfaces",
+          "title": {
+            "zh": "4. Python 与 LAMMPS",
+            "en": "4. Python and LAMMPS"
+          },
+          "pages": [
+            {
+              "source": "README-python.md",
+              "slug": "guides/python-installation",
+              "render": true
+            },
+            {
+              "source": "LAMMPS/README.md",
+              "slug": "guides/lammps",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "help",
+          "title": {
+            "zh": "5. 问题与排查",
+            "en": "5. Questions and troubleshooting"
+          },
+          "pages": [
+            {
+              "source": "docs/guides/faq.md",
+              "slug": "guides/faq",
+              "render": true
+            },
+            {
+              "source": "docs/guides/troubleshooting.md",
+              "slug": "guides/troubleshooting",
+              "render": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "title": {
+        "zh": "参考手册",
+        "en": "Reference"
+      },
+      "description": {
+        "en": "Commands, configuration, Python and model formats.",
+        "zh": "查询命令、配置、Python 和模型格式。"
+      },
+      "page_id": "reference_manual",
+      "source": "docs/reference/index.md",
+      "groups": [
+        {
+          "id": "cli",
+          "title": {
+            "zh": "命令与配置",
+            "en": "Commands and configuration"
+          },
+          "pages": [
+            {
+              "source": "docs/reference/cheatsheet.md",
+              "slug": "reference/cheatsheet",
+              "render": true
+            },
+            {
+              "source": "docs/reference/configuration.md",
+              "slug": "reference/configuration",
+              "render": true
+            },
+            {
+              "source": "docs/reference/commands.md",
+              "slug": "reference/commands",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "python",
+          "title": {
+            "zh": "Python API",
+            "en": "Python API"
+          },
+          "pages": [
+            {
+              "source": "docs/reference/python.md",
+              "slug": "reference/python",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "models",
+          "title": {
+            "zh": "模型与文件格式",
+            "en": "Models and file formats"
+          },
+          "pages": [
+            {
+              "source": "docs/reference/radial-basis.md",
+              "slug": "reference/radial-basis",
+              "render": true
+            },
+            {
+              "source": "docs/reference/les-v2.md",
+              "slug": "reference/les-v2",
+              "render": true
+            },
+            {
+              "source": "docs/reference/sog.md",
+              "slug": "reference/sog",
+              "render": true
+            },
+            {
+              "source": "docs/reference/potential-types.md",
+              "slug": "reference/potential-types",
+              "render": true
+            },
+            {
+              "source": "docs/reference/gpm-v1.md",
+              "slug": "reference/gpm-v1",
+              "render": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "advanced",
+      "title": {
+        "zh": "进阶使用",
+        "en": "Advanced usage"
+      },
+      "description": {
+        "en": "Basis selection, HVP, variable projection, long-range models and saddle searches.",
+        "zh": "选基、HVP、variable projection、长程模型与鞍点搜索。"
+      },
+      "page_id": "advanced_usage",
+      "source": "docs/advanced/index.md",
+      "groups": [
+        {
+          "id": "training",
+          "title": {
+            "zh": "进阶训练",
+            "en": "Advanced training"
+          },
+          "pages": [
+            {
+              "source": "docs/advanced/basis-generation-selection.md",
+              "slug": "advanced/basis-generation-selection",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/mtp-native-varpro_zh.md",
+              "slug": "advanced/mtp-native-varpro",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/linear-refit_zh.md",
+              "slug": "advanced/linear-refit",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/hvp-training.md",
+              "slug": "advanced/hvp-training",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/fastfit-cost-selection.md",
+              "slug": "advanced/fastfit-cost-selection",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/shared-workflows.md",
+              "slug": "advanced/shared-workflows",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "long-range",
+          "title": {
+            "zh": "长程模型",
+            "en": "Long-range models"
+          },
+          "pages": [
+            {
+              "source": "docs/advanced/sog-multichannel_zh.md",
+              "slug": "advanced/sog-multichannel",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "workflows",
+          "title": {
+            "zh": "专题工作流",
+            "en": "Specialized workflows"
+          },
+          "pages": [
+            {
+              "source": "docs/advanced/saddle-numerics.md",
+              "slug": "advanced/saddle-numerics",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/relax-symmetry.md",
+              "slug": "advanced/relax-symmetry",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/convstr-scalar-labels.md",
+              "slug": "advanced/convstr-scalar-labels",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/ha-selected-indices.md",
+              "slug": "advanced/ha-selected-indices",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/neb-parallel-symmetry.md",
+              "slug": "advanced/neb-parallel-symmetry",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/harmonic-ti.md",
+              "slug": "advanced/harmonic-ti",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "examples",
+          "title": {
+            "zh": "领域示例与复现实验",
+            "en": "Domain examples and reproducibility"
+          },
+          "pages": [
+            {
+              "source": "examples/README.md",
+              "slug": "advanced/examples",
+              "render": true
+            },
+            {
+              "source": "examples/les-response/README.md",
+              "slug": "advanced/examples-les-response",
+              "render": true
+            },
+            {
+              "source": "examples/mtp-gpu-alni/README.md",
+              "slug": "advanced/examples-mtp-gpu-alni",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/saddle-workflows.md",
+              "slug": "advanced/saddle-workflows",
+              "render": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "theory",
+      "title": {
+        "zh": "理论与算法",
+        "en": "Theory and algorithms"
+      },
+      "description": {
+        "en": "MTP and MTP_M models, energy derivatives, fitting and active learning.",
+        "zh": "MTP 与 MTP_M 模型、能量导数、拟合及主动学习。"
+      },
+      "page_id": "p03_theory",
+      "source": "docs/theory/index.md",
+      "groups": [
+        {
+          "id": "models",
+          "title": {
+            "zh": "1. 势与描述符",
+            "en": "1. Potentials and descriptors"
+          },
+          "pages": [
+            {
+              "source": "docs/theory/mtp.md",
+              "slug": "theory/mtp",
+              "render": true
+            },
+            {
+              "source": "docs/theory/mtp-m.md",
+              "slug": "theory/mtp-m",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "training",
+          "title": {
+            "zh": "2. 训练目标与优化",
+            "en": "2. Training objectives and optimization"
+          },
+          "pages": [
+            {
+              "source": "docs/theory/linear.md",
+              "slug": "theory/linear",
+              "render": true
+            },
+            {
+              "source": "docs/theory/training.md",
+              "slug": "theory/training",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "active",
+          "title": {
+            "zh": "3. 主动学习",
+            "en": "3. Active learning"
+          },
+          "pages": [
+            {
+              "source": "docs/theory/maxvol.md",
+              "slug": "theory/maxvol",
+              "render": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "development",
+      "title": {
+        "zh": "开发文档",
+        "en": "Development"
+      },
+      "description": {
+        "en": "C++ architecture, APIs and integration modules.",
+        "zh": "C++ 架构、API 与集成模块。"
+      },
+      "page_id": "development_manual",
+      "source": "docs/development/index.md",
+      "groups": [
+        {
+          "id": "start",
+          "title": {
+            "zh": "架构与开发入口",
+            "en": "Architecture and development entry points"
+          },
+          "pages": [
+            {
+              "source": "docs/development/architecture.md",
+              "slug": "development/architecture",
+              "render": true
+            },
+            {
+              "source": "README.md",
+              "slug": "development/readme",
+              "render": false
+            },
+            {
+              "source": "docs/README.md",
+              "slug": "development/docs",
+              "render": false
+            }
+          ]
+        },
+        {
+          "id": "cpp",
+          "title": {
+            "zh": "C++ 接口示例",
+            "en": "C++ API examples"
+          },
+          "pages": [
+            {
+              "source": "docs/development/cpp-examples.md",
+              "slug": "development/cpp-examples",
+              "render": true
+            },
+            {
+              "source": "docs/development/api-core.md",
+              "slug": "development/api-core",
+              "render": true
+            },
+            {
+              "source": "docs/development/api-io.md",
+              "slug": "development/api-io",
+              "render": true
+            },
+            {
+              "source": "docs/development/api-potential.md",
+              "slug": "development/api-potential",
+              "render": true
+            },
+            {
+              "source": "docs/development/api-analysis.md",
+              "slug": "development/api-analysis",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "implementation",
+          "title": {
+            "zh": "实现说明",
+            "en": "Implementation notes"
+          },
+          "pages": [
+            {
+              "source": "docs/development/cuda.md",
+              "slug": "development/cuda",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "integration",
+          "title": {
+            "zh": "集成模块",
+            "en": "Integration modules"
+          },
+          "pages": [
+            {
+              "source": "LAMMPS/USER-MLIP/maxvol/README.md",
+              "slug": "development/lammps-user-mlip-maxvol",
+              "render": false
+            },
+            {
+              "source": "LAMMPS/USER-MLIP/opt-les/README.md",
+              "slug": "development/lammps-user-mlip-opt-les",
+              "render": false
+            },
+            {
+              "source": "LAMMPS/USER-MLIP/transport/README.md",
+              "slug": "development/lammps-user-mlip-transport",
+              "render": false
+            },
+            {
+              "source": "LAMMPS/USER-MLIP/native/README.md",
+              "slug": "development/lammps-user-mlip-native",
+              "render": false
+            },
+            {
+              "source": "LAMMPS/USER-MLIP/standalone/README.md",
+              "slug": "development/lammps-user-mlip-standalone",
+              "render": false
+            },
+            {
+              "source": "LAMMPS/USER-MLIP/native/lammps/README.md",
+              "slug": "development/lammps-native-cmake",
+              "render": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

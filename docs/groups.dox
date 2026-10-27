@@ -1,0 +1,46 @@
+/**
+ * @defgroup active_learn Active Learning
+ * @brief MaxVol extrapolation grading, ALPotential, ALModifier, and online relaxation
+ *
+ * @defgroup core Core Data Types
+ * @brief Fundamental data structures: Atoms, Neighborhoods, masks, etc.
+ *
+ * @defgroup potentials Potentials
+ * @brief Interatomic potential implementations (MTP, EAM, LJ, etc.)
+ *
+ * @defgroup descriptors Descriptors
+ * @brief Machine-learning descriptors: ACSF/Behler, Bond Order, MTM
+ *
+ * @defgroup io Input/Output
+ * @brief File format readers and writers for atomic structures
+ *
+ * @defgroup analyse Analysis
+ * @brief Structure analysis tools: RDF, bond angles, HA index, Voronoi, MSD, SRO, force constants
+ *
+ * @defgroup mindriver Minimization Drivers
+ * @brief Optimization and transition-state search: L-BFGS, FIRE, CG, SD, NEB
+ *
+ * @defgroup basis Basis Functions
+ * @brief Radial basis functions, cutoff functions, coordinate transforms
+ *
+ * @defgroup symmetry Symmetry
+ * @brief Space group analysis via spglib
+ *
+ * @defgroup tools Utilities
+ * @brief Chemistry helpers, physical constants, string processing, CLI parsing
+ *
+ * @defgroup apps Commands
+ * @brief Subcommand implementations for the imrmlp CLI
+ *
+ * @defgroup maxvol MAXVOL
+ * @brief MAXVOL algorithm for active-set selection of training structures
+ *
+ * @defgroup train Training
+ * @brief Training algorithms for MTP and nonlinear potentials
+ *
+ * @defgroup nnbase Neural Network Primitives
+ * @brief NN layer primitives (single/multi-hidden-layer, activation functions)
+ *
+ * @defgroup trajectory Trajectory
+ * @brief Trajectory smoothing and unwrapping
+ */

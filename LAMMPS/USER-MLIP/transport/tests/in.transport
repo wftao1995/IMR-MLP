@@ -1,0 +1,44 @@
+units metal
+atom_style atomic
+boundary p p p
+newton on
+
+package omp ${threads}
+suffix off
+lattice fcc 4.05
+region box block 0 2 0 2 0 2
+create_box 1 box
+create_atoms 1 box
+mass 1 26.9815385
+velocity all create 425.0 918273 mom no rot no dist gaussian
+displace_atoms all random 0.031 0.027 0.019 77291 units box
+
+group left id 1:16
+group right subtract all left
+
+pair_style ${style} ${potential} 0
+pair_coeff * *
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check no
+
+compute eatom all pe/atom
+compute satom all stress/atom NULL pair
+compute ssum all reduce sum c_satom[1] c_satom[2] c_satom[3] &
+  c_satom[4] c_satom[5] c_satom[6]
+compute pressure all pressure NULL virial
+compute heat all mlip/heat/flux
+compute qlr left mlip/heat/current right
+compute qrl right mlip/heat/current left
+
+thermo 1
+thermo_style custom step atoms pe vol c_pressure[1] c_pressure[2] &
+  c_pressure[3] c_pressure[4] c_pressure[5] c_pressure[6] &
+  c_ssum[1] c_ssum[2] c_ssum[3] c_ssum[4] c_ssum[5] c_ssum[6] &
+  c_heat[1] c_heat[2] c_heat[3] c_heat[4] c_heat[5] c_heat[6] c_qlr c_qrl
+thermo_modify format float %.17g
+
+dump diagnostic all custom 1 ${dump_file} id type x y z vx vy vz fx fy fz &
+  c_eatom c_satom[1] c_satom[2] c_satom[3] c_satom[4] c_satom[5] c_satom[6] &
+  c_qlr[1] c_qlr[2] c_qlr[3] c_qrl[1] c_qrl[2] c_qrl[3]
+dump_modify diagnostic sort id format float %.17g
+run 0

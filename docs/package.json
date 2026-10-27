@@ -1,0 +1,7 @@
+{
+  "name": "imr-mlp-docs-assets",
+  "private": true,
+  "dependencies": {
+    "mathjax": "3.2.2"
+  }
+}

@@ -1,0 +1,39 @@
+# msd — Mean-squared displacement calculation
+# NOTE: This file uses the .inp extension but follows the key naming of calc_prop.
+# Usage: imrmlp calc_prop msd.inp
+#
+# ===== Input/Output =====
+input               dump.xyz             # [string] Input trajectory file
+input-format        extxyz              # [string] Input format
+index               index.map           # [string] Index file (2 columns: atomic symbol, atomic radius)
+framestart          10                  # [int] Starting frame
+
+# ===== MSD Settings =====
+msd                 true                # [bool] Compute MSD
+msd:total           true                # [bool] Compute total MSD
+msd:timestep        1.0                 # [real] Raw-frame timestep (ps); skip stride is applied automatically
+msd:fft             true                # [bool] Use FFT algorithm
+msd:drift_cm        true                # [bool] Remove center-of-mass drift
+msd:drift_vm        false               # [bool] Remove integrated COM-velocity drift; exclusive with drift_cm
+msd:tacavg          false               # [bool] Time-averaged correlation
+msd:projection      false               # [bool] Project along direction
+msd:total           true                # [bool] Compute total MSD
+msd:types           false               # [bool] Compute per-type MSD
+msd:track           false               # [bool] Track specific atoms
+msd:groups          false               # [bool] Compute per-group MSD
+msd:der             true                # [bool] Compute 1st derivative
+msd:smooth          true                # [bool] Smooth curve
+msd:reg             1.0                 # [real] Smoothing regularization
+msd:bsize           6                   # [int] Spline basis size
+msd:max_length      -1                  # [int] Maximum lag samples (-1=all frames)
+msd:do_lfit         false               # [bool] Enable only with explicit fit_start and fit_end
+msd:fit_start       0.0                 # [real] Diffusive-window start (ps)
+msd:fit_end         0.0                 # [real] Diffusive-window end (ps)
+
+# ===== MSD Output =====
+msd:output_total    msd_total           # [string] Total MSD output prefix
+msd:output_types    msd_type            # [string] Type MSD output prefix
+msd:output_track    msd_track           # [string] Tracked MSD output prefix
+msd:output_group    msd_group           # [string] Group MSD output prefix
+msd:trackid         track.ind           # [string] Track index file
+msd:groupid         groups.ind          # [string] Group definition file

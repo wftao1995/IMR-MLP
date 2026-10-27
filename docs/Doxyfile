@@ -1,0 +1,132 @@
+# ── Project ───────────────────────────────────────────────────────────────
+PROJECT_NAME           = "IMR-MLP"
+PROJECT_BRIEF          = "Moment Tensor Machine Learning Potential Framework"
+OUTPUT_DIRECTORY       = build
+IMAGE_PATH             = .
+OUTPUT_LANGUAGE        = English
+
+# ── Input ─────────────────────────────────────────────────────────────────
+INPUT                  = ../runtime/mtp/gpu-direct/README.md \
+                         ./groups.dox \
+                         ../utils \
+                         ../base \
+                         ../io \
+                         ../tools \
+                         ../apps \
+                         ../external \
+                         ../basis \
+                         ../symmetry \
+                         ../potentials \
+                         ../analyse \
+                         ../descriptors \
+                         ../mathextra \
+                         ../mindriver \
+                         ../train \
+                         ../NNBase \
+                         ../mtmbasis \
+                         ../maxvol \
+                         ../LAMMPS \
+                         ../mma \
+                         ../active_learn \
+                         ../basis_analysis \
+                         ../CONTRIBUTING.md \
+                         ../LAMMPS/README.md \
+                         ../LAMMPS/USER-MLIP/opt-les/README.md \
+                         ../LAMMPS/USER-MLIP/transport/README.md \
+                         ../README-python.md \
+                         ../README.md \
+                         ../THIRD_PARTY_NOTICES.md \
+                         ../docs/00_mainpage.md \
+                         ../docs/README.md \
+                         ../examples/README.md \
+                         ../examples/les-response/README.md \
+                         ../examples/mtp-gpu-alni/README.md \
+                         ../examples/quickstart/README.md
+@INCLUDE = catalog.en.doxy
+
+FILE_PATTERNS          = *.h *.hpp *.dox *.md
+RECURSIVE              = NO
+EXCLUDE                = ../deplibs
+EXCLUDE_PATTERNS       = */deplibs/* */build/* */build_zh/* */.git/* */unitest/* */testcodes/* */apps-extra/* */oldcodes/* */template_apps/*
+
+# ── Extraction ────────────────────────────────────────────────────────────
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_ANON_NSPACES   = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = NO
+SORT_MEMBER_DOCS       = YES
+SORT_BRIEF_DOCS        = YES
+
+# ── Preprocessing ─────────────────────────────────────────────────────────
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+INCLUDE_PATH           = /usr/include/eigen3
+PREDEFINED             = USE_OMP HASHED_VORO USEXML EIGEN_USE_MKL_ALL
+
+# ── HTML ──────────────────────────────────────────────────────────────────
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_TREEVIEW      = YES
+FULL_SIDEBAR           = YES
+DISABLE_INDEX          = NO
+HTML_DYNAMIC_MENUS     = YES
+HTML_EXTRA_STYLESHEET  = custom.css
+HTML_COLORSTYLE_HUE    = 210
+HTML_COLORSTYLE_SAT    = 55
+HTML_COLORSTYLE_GAMMA  = 105
+
+# ── LaTeX / PDF ───────────────────────────────────────────────────────────
+GENERATE_LATEX         = YES
+LATEX_OUTPUT           = latex
+USE_PDFLATEX           = NO
+LATEX_CMD_NAME         = xelatex
+PDF_HYPERLINKS         = YES
+LATEX_BATCHMODE        = YES
+COMPACT_LATEX          = NO
+USE_MDFILE_AS_MAINPAGE  = 00_mainpage.md
+
+# ── Graphs / Diagrams ─────────────────────────────────────────────────────
+HAVE_DOT               = YES
+DOT_NUM_THREADS        = 0
+DOT_IMAGE_FORMAT       = svg
+CALL_GRAPH             = YES
+CALLER_GRAPH           = NO
+COLLABORATION_GRAPH    = YES
+INCLUDED_BY_GRAPH      = YES
+GRAPHICAL_HIERARCHY    = YES
+
+# ── Math ──────────────────────────────────────────────────────────────────
+USE_MATHJAX            = YES
+MATHJAX_FORMAT         = HTML-CSS
+MATHJAX_RELPATH        = https://cdn.jsdelivr.net/npm/mathjax@2
+MATHJAX_EXTENSIONS     = TeX/AMSmath TeX/AMSsymbols
+
+# ── Source Browser ────────────────────────────────────────────────────────
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+VERBATIM_HEADERS       = YES
+
+# ── Misc ──────────────────────────────────────────────────────────────────
+GENERATE_TODOLIST      = YES
+GENERATE_TESTLIST      = NO
+GENERATE_BUGLIST       = YES
+GENERATE_DEPRECATEDLIST = YES
+ALPHABETICAL_INDEX     = YES
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MARKDOWN_SUPPORT       = YES
+TOC_INCLUDE_HEADINGS   = 3
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+
+# Keep README pages and translated cross-links navigable in generated HTML.
+IMPLICIT_DIR_DOCS      = NO
+FILTER_PATTERNS        = *.md="python3 tools/doxygen_markdown.py en"

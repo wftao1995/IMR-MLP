@@ -1,0 +1,11 @@
+!tests/
+tests/*
+!tests/generate_models.cpp
+!tests/run_regression.py
+!tests/run_gpm_standalone.py
+!tests/run_dynamics.py
+!tests/run_workspace_regression.py
+!tests/test_neighbor_order.cpp
+!tests/test_neighbor_geometry.cpp
+!tests/test_candidate_geometry.cpp
+!tests/test_lammps_build.py

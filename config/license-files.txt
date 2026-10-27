@@ -1,0 +1,10 @@
+LICENSE
+COPYRIGHT
+THIRD_PARTY_NOTICES.md
+tools/picojson.LICENSE
+deplibs/LBFGSpp/LICENSE.md
+deplibs/fmt/LICENSE
+deplibs/spglib/LICENSE
+deplibs/tinyxml2/LICENSE.txt
+deplibs/voro++/LICENSE
+LAMMPS/USER-MLIP/standalone/vendor/eigen3/COPYING.MPL2

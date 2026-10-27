@@ -1,0 +1,25 @@
+units metal
+atom_style atomic
+boundary p p p
+newton on
+
+lattice fcc 4.05
+region box block 0 2 0 2 0 2
+create_box 1 box
+create_atoms 1 box
+mass 1 26.9815385
+velocity all create 425.0 918273 mom no rot no dist gaussian
+displace_atoms all random 0.031 0.027 0.019 77291 units box
+
+pair_style ${style} ${potential} 0
+pair_coeff * *
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check no
+
+compute eatom all pe/atom
+thermo 1
+thermo_style custom step atoms pe press pxx pyy pzz pxy pxz pyz
+thermo_modify format float %.17g
+dump result all custom 1 ${dump_file} id type x y z fx fy fz c_eatom
+dump_modify result sort id format float %.17g
+run 0

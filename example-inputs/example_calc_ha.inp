@@ -1,0 +1,27 @@
+# example_calc_ha — HA index and Voronoi index analysis
+# NOTE: This file uses the .inp extension but follows the key naming of calc_prop.
+# Usage: imrmlp calc_prop example_calc_ha.inp
+#
+# ===== Input/Output =====
+input               XDATCAR             # [string] Input trajectory file
+input-format        XDATCAR             # [string] Input format (XDATCAR, lammpstrj, mlpcfg, extxyz)
+index               index.map           # [string] Index file (2 columns: atomic symbol, atomic radius)
+cutoff              5.0                 # [real] Neighborhood cutoff (A)
+skip-every          1                   # [int] Load every N frames
+framestart          1                   # [int] Starting frame
+frameend            1                   # [int] Ending frame
+#use ha_index:store_str true             # [bool] Write sample structures per HA index
+
+# ===== Voronoi Index =====
+voro-index          true                # [bool] Compute Voronoi indices
+voro-num-print      10                  # [int] Number of most frequent Voronoi indices to print
+voro_index:mode     rad                 # [string] Voronoi mode: rad (radical) or dir (direct)
+voro_index:num_edges 7                  # [int] Number of edges per polyhedron
+voro_index:strip_surf_tol -0.02         # [real] Strip small faces (positive=absolute, negative=fraction)
+voro_index:strip_edge_tol -0.02         # [real] Strip small edges
+voro_index:min_neighbor 0               # [int] Minimum neighbor count
+
+# ===== HA Index =====
+ha-index            true                # [bool] Compute HA indices (depends on Voronoi settings)
+ha_index:unbond     false               # [bool] Count non-bonded pairs
+ 

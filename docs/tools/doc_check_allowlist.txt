@@ -1,0 +1,10 @@
+# Reviewed exceptions for docs/tools/check_doc_commands.py.
+#
+# Syntax (one entry per line, '#' starts a comment):
+#   command:option        option is intentionally undocumented for this command
+#   command:-             the whole command may lack a dedicated section
+#   command:!option       the documented option is intentionally not registered here
+#
+# Keep entries narrow and add a reason.  Prefer fixing the reference; this file
+# exists for options that are internal, deprecated, or documented elsewhere.
+

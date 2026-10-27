@@ -1,0 +1,1889 @@
+{
+  "format": 1,
+  "files": [
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/lammps/CMakeLists.txt",
+      "destination": "standalone/lammps/CMakeLists.txt"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/mlip_pair_metadata.h",
+      "destination": "mlip_pair_metadata.h"
+    },
+    {
+      "source": "runtime/mtp/mlip.cpp",
+      "destination": "mlip-core/mlip.cpp"
+    },
+    {
+      "source": "runtime/mtp/mlip.h",
+      "destination": "mlip-core/mlip.h"
+    },
+    {
+      "source": "runtime/mtp/cpu/mtp_cpu.cpp",
+      "destination": "mlip-core/cpu/mtp_cpu.cpp"
+    },
+    {
+      "source": "runtime/mtp/cpu/mtp_cpu.h",
+      "destination": "mlip-core/cpu/mtp_cpu.h"
+    },
+    {
+      "source": "runtime/mtp/cpu/tests/test_mtp_cpu.cpp",
+      "destination": "mlip-core/cpu/tests/test_mtp_cpu.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/pair_MLIP_gpu_direct.cpp",
+      "destination": "pair_MLIP_gpu_direct.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/pair_MLIP_gpu_direct.h",
+      "destination": "pair_MLIP_gpu_direct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/opt/pair_MLIP_opt.cpp",
+      "destination": "opt/pair_MLIP_opt.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/opt/pair_MLIP_opt.h",
+      "destination": "opt/pair_MLIP_opt.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/opt/pair_MLIP_omp.cpp",
+      "destination": "opt/pair_MLIP_omp.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/opt/pair_MLIP_omp.h",
+      "destination": "opt/pair_MLIP_omp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/opt/radial_basis_opt.h",
+      "destination": "opt/radial_basis_opt.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/opt/mlip_opt_virial.h",
+      "destination": "opt/mlip_opt_virial.h"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/mtp_gpu_direct.cu",
+      "destination": "mlip-core/gpu-direct/mtp_gpu_direct.cu"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/mtp_gpu_direct.h",
+      "destination": "mlip-core/gpu-direct/mtp_gpu_direct.h"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/sog_gpu.cu",
+      "destination": "mlip-core/gpu-direct/sog_gpu.cu"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/sog_gpu.h",
+      "destination": "mlip-core/gpu-direct/sog_gpu.h"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/radial_gpu_math.h",
+      "destination": "mlip-core/gpu-direct/radial_gpu_math.h"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/gpu_backend.h",
+      "destination": "mlip-core/gpu-direct/gpu_backend.h"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/gpu_cache.h",
+      "destination": "mlip-core/gpu-direct/gpu_cache.h"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/gpu_runtime.h",
+      "destination": "mlip-core/gpu-direct/gpu_runtime.h"
+    },
+    {
+      "source": "runtime/mtp/gpu-direct/gpu_mpi.h",
+      "destination": "mlip-core/gpu-direct/gpu_mpi.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/CMakeLists.txt",
+      "destination": "standalone/CMakeLists.txt"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/README.md",
+      "destination": "standalone/README.md"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/manifest.json",
+      "destination": "standalone/manifest.json"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/package.py",
+      "destination": "standalone/package.py"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/plugin.cpp",
+      "destination": "standalone/plugin.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/register.cpp",
+      "destination": "standalone/register.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/register.h",
+      "destination": "standalone/register.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/lammps_runner.cpp",
+      "destination": "standalone/tests/lammps_runner.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/fixtures.py",
+      "destination": "standalone/tests/fixtures.py"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/run_regression.py",
+      "destination": "standalone/tests/run_regression.py"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/benchmarks/run_benchmark.py",
+      "destination": "standalone/benchmarks/run_benchmark.py"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/benchmarks/in.example",
+      "destination": "standalone/benchmarks/in.example"
+    },
+    {
+      "source": "tools/mtp_metadata.h",
+      "destination": "standalone/vendor/mtp_metadata.h"
+    },
+    {
+      "source": "tools/gpm_container.h",
+      "destination": "standalone/vendor/gpm_container.h"
+    },
+    {
+      "source": "tools/gpm_mtp.h",
+      "destination": "standalone/vendor/gpm_mtp.h"
+    },
+    {
+      "source": "tools/picojson.h",
+      "destination": "standalone/vendor/picojson.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/mlip_model_mpi.h",
+      "destination": "mlip_model_mpi.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/model_probe.cpp",
+      "destination": "standalone/tests/model_probe.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/test_reader.py",
+      "destination": "standalone/tests/test_reader.py"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/mlip_restart.h",
+      "destination": "mlip_restart.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/test_model_mpi.cpp",
+      "destination": "standalone/tests/test_model_mpi.cpp"
+    },
+    {
+      "source": "unitest/ut_standalone_gpu.cpp",
+      "destination": "standalone/tests/test_standalone_gpu.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/benchmarks/prepare_cases.py",
+      "destination": "standalone/benchmarks/prepare_cases.py"
+    },
+    {
+      "source": "runtime/mtp/radial_basis.h",
+      "destination": "mlip-core/radial_basis.h"
+    },
+    {
+      "source": "runtime/mtp/radial_cache.h",
+      "destination": "mlip-core/radial_cache.h"
+    },
+    {
+      "source": "runtime/mtp/radial_basis_setup.cpp",
+      "destination": "mlip-core/radial_basis_setup.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/COPYING.APACHE",
+      "destination": "standalone/vendor/eigen3/COPYING.APACHE"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/COPYING.BSD",
+      "destination": "standalone/vendor/eigen3/COPYING.BSD"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/COPYING.MINPACK",
+      "destination": "standalone/vendor/eigen3/COPYING.MINPACK"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/COPYING.MPL2",
+      "destination": "standalone/vendor/eigen3/COPYING.MPL2"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/COPYING.README",
+      "destination": "standalone/vendor/eigen3/COPYING.README"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/AccelerateSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/AccelerateSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Cholesky",
+      "destination": "standalone/vendor/eigen3/Eigen/Cholesky"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/CholmodSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/CholmodSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Core",
+      "destination": "standalone/vendor/eigen3/Eigen/Core"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Dense",
+      "destination": "standalone/vendor/eigen3/Eigen/Dense"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Eigen",
+      "destination": "standalone/vendor/eigen3/Eigen/Eigen"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Eigenvalues",
+      "destination": "standalone/vendor/eigen3/Eigen/Eigenvalues"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Geometry",
+      "destination": "standalone/vendor/eigen3/Eigen/Geometry"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Householder",
+      "destination": "standalone/vendor/eigen3/Eigen/Householder"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/IterativeLinearSolvers",
+      "destination": "standalone/vendor/eigen3/Eigen/IterativeLinearSolvers"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Jacobi",
+      "destination": "standalone/vendor/eigen3/Eigen/Jacobi"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/KLUSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/KLUSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/LU",
+      "destination": "standalone/vendor/eigen3/Eigen/LU"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/MetisSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/MetisSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/OrderingMethods",
+      "destination": "standalone/vendor/eigen3/Eigen/OrderingMethods"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/PaStiXSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/PaStiXSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/PardisoSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/PardisoSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/QR",
+      "destination": "standalone/vendor/eigen3/Eigen/QR"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/QtAlignedMalloc",
+      "destination": "standalone/vendor/eigen3/Eigen/QtAlignedMalloc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/SPQRSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/SPQRSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/SVD",
+      "destination": "standalone/vendor/eigen3/Eigen/SVD"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Sparse",
+      "destination": "standalone/vendor/eigen3/Eigen/Sparse"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/SparseCholesky",
+      "destination": "standalone/vendor/eigen3/Eigen/SparseCholesky"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/SparseCore",
+      "destination": "standalone/vendor/eigen3/Eigen/SparseCore"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/SparseLU",
+      "destination": "standalone/vendor/eigen3/Eigen/SparseLU"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/SparseQR",
+      "destination": "standalone/vendor/eigen3/Eigen/SparseQR"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/StdDeque",
+      "destination": "standalone/vendor/eigen3/Eigen/StdDeque"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/StdList",
+      "destination": "standalone/vendor/eigen3/Eigen/StdList"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/StdVector",
+      "destination": "standalone/vendor/eigen3/Eigen/StdVector"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/SuperLUSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/SuperLUSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/ThreadPool",
+      "destination": "standalone/vendor/eigen3/Eigen/ThreadPool"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/UmfPackSupport",
+      "destination": "standalone/vendor/eigen3/Eigen/UmfPackSupport"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/Version",
+      "destination": "standalone/vendor/eigen3/Eigen/Version"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/AccelerateSupport/AccelerateSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/AccelerateSupport/AccelerateSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/AccelerateSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/AccelerateSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Cholesky/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Cholesky/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Cholesky/LDLT.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Cholesky/LDLT.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Cholesky/LLT.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Cholesky/LLT.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Cholesky/LLT_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Cholesky/LLT_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/CholmodSupport/CholmodSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/CholmodSupport/CholmodSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/CholmodSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/CholmodSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/ArithmeticSequence.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/ArithmeticSequence.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Array.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Array.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/ArrayBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/ArrayBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/ArrayWrapper.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/ArrayWrapper.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Assign.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Assign.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/AssignEvaluator.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/AssignEvaluator.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Assign_MKL.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Assign_MKL.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/BandMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/BandMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Block.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Block.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CommaInitializer.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CommaInitializer.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/ConditionEstimator.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/ConditionEstimator.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CoreEvaluators.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CoreEvaluators.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CoreIterators.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CoreIterators.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CwiseBinaryOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CwiseBinaryOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CwiseNullaryOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CwiseNullaryOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CwiseTernaryOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CwiseTernaryOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CwiseUnaryOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CwiseUnaryOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/CwiseUnaryView.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/CwiseUnaryView.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/DenseBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/DenseBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/DenseCoeffsBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/DenseCoeffsBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/DenseStorage.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/DenseStorage.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/DeviceWrapper.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/DeviceWrapper.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Diagonal.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Diagonal.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/DiagonalMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/DiagonalMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/DiagonalProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/DiagonalProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Dot.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Dot.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/EigenBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/EigenBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Fill.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Fill.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/FindCoeff.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/FindCoeff.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/ForceAlignedAccess.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/ForceAlignedAccess.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Fuzzy.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Fuzzy.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/GeneralProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/GeneralProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/GenericPacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/GenericPacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/GlobalFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/GlobalFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/IO.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/IO.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/IndexedView.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/IndexedView.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/InnerProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/InnerProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Inverse.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Inverse.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Map.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Map.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/MapBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/MapBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/MathFunctionsImpl.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/MathFunctionsImpl.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Matrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Matrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/MatrixBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/MatrixBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/NestByValue.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/NestByValue.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/NoAlias.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/NoAlias.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/NumTraits.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/NumTraits.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/PartialReduxEvaluator.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/PartialReduxEvaluator.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/PermutationMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/PermutationMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/PlainObjectBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/PlainObjectBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Product.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Product.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/ProductEvaluators.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/ProductEvaluators.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Random.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Random.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/RandomImpl.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/RandomImpl.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/RealView.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/RealView.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Redux.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Redux.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Ref.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Ref.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Replicate.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Replicate.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Reshaped.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Reshaped.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/ReturnByValue.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/ReturnByValue.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Reverse.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Reverse.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Select.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Select.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/SelfAdjointView.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/SelfAdjointView.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/SelfCwiseBinaryOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/SelfCwiseBinaryOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/SkewSymmetricMatrix3.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/SkewSymmetricMatrix3.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Solve.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Solve.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/SolveTriangular.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/SolveTriangular.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/SolverBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/SolverBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/StableNorm.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/StableNorm.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/StlIterators.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/StlIterators.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Stride.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Stride.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Swap.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Swap.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Transpose.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Transpose.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Transpositions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Transpositions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/TriangularMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/TriangularMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/VectorBlock.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/VectorBlock.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/VectorwiseOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/VectorwiseOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/Visitor.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/Visitor.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/Reductions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/Reductions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/GemmKernel.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/GemmKernel.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/MathFunctionsFP16.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/MathFunctionsFP16.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/PacketMathFP16.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/PacketMathFP16.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/Reductions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/Reductions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TrsmKernel.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TrsmKernel.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TrsmUnrolls.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TrsmUnrolls.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TypeCastingFP16.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AVX512/TypeCastingFP16.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductCommon.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductCommon.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductMMA.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductMMA.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductMMAbfloat16.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductMMAbfloat16.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixVectorProduct.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/MatrixVectorProduct.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/AltiVec/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/Default/BFloat16.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/Default/BFloat16.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/Default/ConjHelper.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/Default/ConjHelper.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/Default/GenericPacketMathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/Default/GenericPacketMathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/Default/GenericPacketMathFunctionsFwd.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/Default/GenericPacketMathFunctionsFwd.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/Default/Half.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/Default/Half.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/Default/Settings.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/Default/Settings.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/Tuple.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/Tuple.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/GPU/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/HIP/hcc/math_constants.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/HIP/hcc/math_constants.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/HVX/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/HVX/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/GeneralBlockPanelKernel.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/GeneralBlockPanelKernel.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/LSX/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/MSA/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/MSA/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/MSA/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/MSA/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/MSA/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/MSA/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/GeneralBlockPanelKernel.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/GeneralBlockPanelKernel.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/UnaryFunctors.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/NEON/UnaryFunctors.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/Reductions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/Reductions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SSE/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SVE/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SVE/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SVE/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SVE/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SVE/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SVE/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/InteropHeaders.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/InteropHeaders.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/TypeCasting.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/SYCL/TypeCasting.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/ZVector/Complex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/ZVector/Complex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/ZVector/MathFunctions.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/ZVector/MathFunctions.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/arch/ZVector/PacketMath.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/arch/ZVector/PacketMath.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/functors/AssignmentFunctors.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/functors/AssignmentFunctors.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/functors/BinaryFunctors.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/functors/BinaryFunctors.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/functors/NullaryFunctors.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/functors/NullaryFunctors.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/functors/StlFunctors.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/functors/StlFunctors.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/functors/TernaryFunctors.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/functors/TernaryFunctors.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/functors/UnaryFunctors.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/functors/UnaryFunctors.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/GeneralBlockPanelKernel.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/GeneralBlockPanelKernel.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrixTriangular.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrixTriangular.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrixTriangular_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrixTriangular_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrix_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixMatrix_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixVector_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/GeneralMatrixVector_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/Parallelizer.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/Parallelizer.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixMatrix_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixMatrix_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixVector_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointMatrixVector_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointRank2Update.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/SelfadjointRank2Update.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixMatrix_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixMatrix_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixVector_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/TriangularMatrixVector_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/TriangularSolverMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/TriangularSolverMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/TriangularSolverMatrix_BLAS.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/TriangularSolverMatrix_BLAS.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/products/TriangularSolverVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/products/TriangularSolverVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/Assert.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/Assert.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/BlasUtil.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/BlasUtil.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/ConfigureVectorization.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/ConfigureVectorization.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/Constants.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/Constants.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/DisableStupidWarnings.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/DisableStupidWarnings.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/EmulateArray.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/EmulateArray.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/ForwardDeclarations.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/ForwardDeclarations.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/GpuHipCudaDefines.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/GpuHipCudaDefines.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/GpuHipCudaUndefines.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/GpuHipCudaUndefines.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/IndexedViewHelper.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/IndexedViewHelper.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/IntegralConstant.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/IntegralConstant.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/MKL_support.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/MKL_support.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/Macros.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/Macros.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/MaxSizeVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/MaxSizeVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/Memory.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/Memory.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/Meta.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/Meta.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/MoreMeta.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/MoreMeta.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/ReenableStupidWarnings.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/ReenableStupidWarnings.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/ReshapedHelper.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/ReshapedHelper.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/Serializer.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/Serializer.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/StaticAssert.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/StaticAssert.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/SymbolicIndex.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/SymbolicIndex.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Core/util/XprHelper.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Core/util/XprHelper.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/ComplexEigenSolver.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/ComplexEigenSolver.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/ComplexSchur.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/ComplexSchur.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/ComplexSchur_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/ComplexSchur_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/EigenSolver.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/EigenSolver.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/GeneralizedSelfAdjointEigenSolver.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/GeneralizedSelfAdjointEigenSolver.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/HessenbergDecomposition.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/HessenbergDecomposition.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/RealQZ.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/RealQZ.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/RealSchur.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/RealSchur.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/RealSchur_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/RealSchur_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/SelfAdjointEigenSolver.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/SelfAdjointEigenSolver.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/SelfAdjointEigenSolver_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/SelfAdjointEigenSolver_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Eigenvalues/Tridiagonalization.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Eigenvalues/Tridiagonalization.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/AlignedBox.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/AlignedBox.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/AngleAxis.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/AngleAxis.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/EulerAngles.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/EulerAngles.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Homogeneous.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Homogeneous.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Hyperplane.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Hyperplane.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/OrthoMethods.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/OrthoMethods.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/ParametrizedLine.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/ParametrizedLine.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Quaternion.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Quaternion.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Rotation2D.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Rotation2D.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/RotationBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/RotationBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Scaling.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Scaling.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Transform.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Transform.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Translation.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Translation.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/Umeyama.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/Umeyama.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Geometry/arch/Geometry_SIMD.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Geometry/arch/Geometry_SIMD.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Householder/BlockHouseholder.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Householder/BlockHouseholder.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Householder/Householder.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Householder/Householder.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Householder/HouseholderSequence.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Householder/HouseholderSequence.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Householder/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Householder/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/BasicPreconditioners.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/BasicPreconditioners.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/ConjugateGradient.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/ConjugateGradient.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/IncompleteCholesky.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/IncompleteCholesky.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/IncompleteLUT.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/IncompleteLUT.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/IterativeSolverBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/IterativeSolverBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/LeastSquareConjugateGradient.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/LeastSquareConjugateGradient.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/SolveWithGuess.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/IterativeLinearSolvers/SolveWithGuess.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Jacobi/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Jacobi/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/Jacobi/Jacobi.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/Jacobi/Jacobi.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/KLUSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/KLUSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/KLUSupport/KLUSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/KLUSupport/KLUSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/LU/Determinant.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/LU/Determinant.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/LU/FullPivLU.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/LU/FullPivLU.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/LU/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/LU/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/LU/InverseImpl.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/LU/InverseImpl.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/LU/PartialPivLU.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/LU/PartialPivLU.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/LU/PartialPivLU_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/LU/PartialPivLU_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/LU/arch/InverseSize4.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/LU/arch/InverseSize4.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/MetisSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/MetisSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/MetisSupport/MetisSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/MetisSupport/MetisSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/OrderingMethods/Amd.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/OrderingMethods/Amd.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/OrderingMethods/Eigen_Colamd.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/OrderingMethods/Eigen_Colamd.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/OrderingMethods/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/OrderingMethods/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/OrderingMethods/Ordering.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/OrderingMethods/Ordering.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/PaStiXSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/PaStiXSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/PaStiXSupport/PaStiXSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/PaStiXSupport/PaStiXSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/PardisoSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/PardisoSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/PardisoSupport/PardisoSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/PardisoSupport/PardisoSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/QR/ColPivHouseholderQR.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/QR/ColPivHouseholderQR.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/QR/ColPivHouseholderQR_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/QR/ColPivHouseholderQR_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/QR/CompleteOrthogonalDecomposition.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/QR/CompleteOrthogonalDecomposition.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/QR/FullPivHouseholderQR.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/QR/FullPivHouseholderQR.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/QR/HouseholderQR.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/QR/HouseholderQR.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/QR/HouseholderQR_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/QR/HouseholderQR_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/QR/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/QR/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SPQRSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SPQRSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SPQRSupport/SuiteSparseQRSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SPQRSupport/SuiteSparseQRSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SVD/BDCSVD.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SVD/BDCSVD.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SVD/BDCSVD_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SVD/BDCSVD_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SVD/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SVD/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SVD/JacobiSVD.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SVD/JacobiSVD.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SVD/JacobiSVD_LAPACKE.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SVD/JacobiSVD_LAPACKE.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SVD/SVDBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SVD/SVDBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SVD/UpperBidiagonalization.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SVD/UpperBidiagonalization.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCholesky/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCholesky/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCholesky/SimplicialCholesky.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCholesky/SimplicialCholesky.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCholesky/SimplicialCholesky_impl.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCholesky/SimplicialCholesky_impl.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/AmbiVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/AmbiVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/CompressedStorage.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/CompressedStorage.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/ConservativeSparseSparseProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/ConservativeSparseSparseProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseAssign.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseAssign.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseBlock.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseBlock.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseColEtree.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseColEtree.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseCompressedBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseCompressedBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseCwiseBinaryOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseCwiseBinaryOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseCwiseUnaryOp.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseCwiseUnaryOp.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseDenseProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseDenseProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseDiagonalProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseDiagonalProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseDot.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseDot.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseFuzzy.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseFuzzy.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseMap.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseMap.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseMatrixBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseMatrixBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparsePermutation.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparsePermutation.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseProduct.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseProduct.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseRedux.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseRedux.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseRef.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseRef.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseSelfAdjointView.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseSelfAdjointView.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseSolverBase.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseSolverBase.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseSparseProductWithPruning.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseSparseProductWithPruning.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseTranspose.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseTranspose.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseTriangularView.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseTriangularView.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseUtil.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseUtil.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/SparseView.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/SparseView.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseCore/TriangularSolver.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseCore/TriangularSolver.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLUImpl.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLUImpl.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_Memory.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_Memory.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_Structs.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_Structs.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_SupernodalMatrix.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_SupernodalMatrix.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_Utils.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_Utils.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_column_bmod.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_column_bmod.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_column_dfs.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_column_dfs.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_copy_to_ucol.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_copy_to_ucol.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_heap_relax_snode.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_heap_relax_snode.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_kernel_bmod.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_kernel_bmod.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_panel_bmod.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_panel_bmod.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_panel_dfs.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_panel_dfs.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_pivotL.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_pivotL.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_pruneL.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_pruneL.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_relax_snode.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseLU/SparseLU_relax_snode.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseQR/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseQR/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SparseQR/SparseQR.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SparseQR/SparseQR.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/StlSupport/StdDeque.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/StlSupport/StdDeque.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/StlSupport/StdList.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/StlSupport/StdList.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/StlSupport/StdVector.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/StlSupport/StdVector.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/StlSupport/details.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/StlSupport/details.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SuperLUSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SuperLUSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/SuperLUSupport/SuperLUSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/SuperLUSupport/SuperLUSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/Barrier.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/Barrier.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/CoreThreadPoolDevice.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/CoreThreadPoolDevice.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/EventCount.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/EventCount.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/ForkJoin.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/ForkJoin.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/NonBlockingThreadPool.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/NonBlockingThreadPool.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/RunQueue.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/RunQueue.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadCancel.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadCancel.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadEnvironment.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadEnvironment.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadLocal.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadLocal.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadPoolInterface.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadPoolInterface.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadYield.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/ThreadPool/ThreadYield.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/UmfPackSupport/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/UmfPackSupport/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/UmfPackSupport/UmfPackSupport.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/UmfPackSupport/UmfPackSupport.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/Image.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/Image.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/InternalHeaderCheck.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/InternalHeaderCheck.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/Kernel.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/Kernel.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/RealSvd2x2.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/RealSvd2x2.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/blas.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/blas.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/lapacke.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/lapacke.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/lapacke_helpers.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/lapacke_helpers.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/misc/lapacke_mangling.h",
+      "destination": "standalone/vendor/eigen3/Eigen/src/misc/lapacke_mangling.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/ArrayCwiseBinaryOps.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/ArrayCwiseBinaryOps.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/ArrayCwiseUnaryOps.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/ArrayCwiseUnaryOps.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/BlockMethods.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/BlockMethods.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/CommonCwiseBinaryOps.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/CommonCwiseBinaryOps.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/CommonCwiseUnaryOps.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/CommonCwiseUnaryOps.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/IndexedViewMethods.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/IndexedViewMethods.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/InternalHeaderCheck.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/InternalHeaderCheck.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/MatrixCwiseBinaryOps.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/MatrixCwiseBinaryOps.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/Eigen/src/plugins/ReshapedMethods.inc",
+      "destination": "standalone/vendor/eigen3/Eigen/src/plugins/ReshapedMethods.inc"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/vendor/eigen3/SOURCE.txt",
+      "destination": "standalone/vendor/eigen3/SOURCE.txt"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/radial_fixture.h",
+      "destination": "standalone/tests/radial_fixture.h"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/test_radial.cpp",
+      "destination": "standalone/tests/test_radial.cpp"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/tests/radial_lammps.py",
+      "destination": "standalone/tests/radial_lammps.py"
+    },
+    {
+      "source": "LAMMPS/USER-MLIP/standalone/benchmarks/radial_micro.cpp",
+      "destination": "standalone/benchmarks/radial_micro.cpp"
+    },
+    {
+      "source": "LAMMPS/COPYING.GPL-2.0",
+      "destination": "COPYING.GPL-2.0"
+    },
+    {
+      "source": "LICENSE",
+      "destination": "LICENSE"
+    },
+    {
+      "source": "tools/picojson.LICENSE",
+      "destination": "standalone/vendor/picojson.LICENSE"
+    }
+  ]
+}

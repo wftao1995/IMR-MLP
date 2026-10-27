@@ -1,0 +1,3 @@
+Eigen 5.0.1-dev+bc3b3987
+Snapshot of the Eigen headers used by this checkout (Eigen/Version).
+Used only for host-side PolyB initialization, without BLAS/LAPACK/MKL.

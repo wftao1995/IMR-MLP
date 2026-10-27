@@ -1,0 +1,22 @@
+/build/
+/deplibs/**/*.o
+/deplibs/*.a
+*.so
+*.so.*
+*.o
+*.d
+*.gch
+*.pyc
+__pycache__/
+.pytest_cache/
+/config/version.h
+/tests/
+/unitest/test-data/
+*.egg-info/
+/dist/
+/Makefile.local
+
+# Generated documentation
+/docs/build/
+/docs/build_zh/
+/docs/manual-html/
