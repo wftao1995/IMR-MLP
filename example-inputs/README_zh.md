@@ -11,7 +11,7 @@
 | 能量、力、应力与误差 | `calc-efs*.ini`、`calc-err*.ini`、`testpot*.ini` |
 | 训练 | `fit*.ini`、`fastfit*.ini`、`initmtpm*.ini`、`nnmtp*.ini` |
 | 长程模型训练 | `fit-sog.ini`、`fit-sog-multichannel.ini` |
-| 弛豫与驻点搜索 | `relax*.ini`、`neb*.ini`、`dimer*.ini`、`modefollowing*.ini`、`nroptimize.ini` |
+| 弛豫与鞍点搜索 | `relax*.ini`、`neb*.ini`、`dimer*.ini`、`modefollowing*.ini`、`nroptimize.ini` |
 | 主动学习 | `select*.ini`、`diverse-select*.ini`、`calc-fitness*.ini` |
 | 结构操作 | `convstr*.ini`、`mk-*.ini`、`swap-axis*.ini`、`sameq*.ini`、`findint*.ini`、`trans-reduce*.ini`、`primi-reduce*.ini`、`split-set*.ini`、`remove-duplicate-*.ini`、`smooth-traj*.ini` |
 | 势函数工具 | `adjustmtp*.ini`、`mtp2spline*.ini`、`mtpbasis*.ini`、`mtmbasis*.ini`、`pot2table*.ini` |

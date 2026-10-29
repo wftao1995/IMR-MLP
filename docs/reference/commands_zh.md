@@ -1992,9 +1992,9 @@ imrmlp smooth_traj --input=trajectory.cfg --output=smoothed.cfg --timestep=0.1
 
 ## 驻点与鞍点搜索
 
-### `nroptimize` — Newton–Raphson 驻点精化
+### `nroptimize` — Newton–Raphson 驻点精修
 
-使用 PotMTP 解析 Hessian 精化驻点。固定晶胞时使用 `--no-cell`；
+使用 PotMTP 解析 Hessian 精修驻点。固定晶胞时使用 `--no-cell`；
 退出码 2 表示迭代预算耗尽。[用法与验证](../advanced/saddle-workflows_zh.md)。
 
 | 选项 | 别名 | 默认值 | 描述 |

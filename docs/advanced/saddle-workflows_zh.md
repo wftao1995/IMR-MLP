@@ -2,8 +2,8 @@
 
 [English](saddle-workflows.md)
 
+用 `nroptimize`、Dimer、mode following 与 NEB/CI-NEB/VCNEB 搜索驻点与路径。
 新用户先按[弛豫](../guides/relaxation_zh.md)和 [NEB 引导](../guides/neb_zh.md)完成基础计算。
-本页进一步介绍 `nroptimize`、Dimer、mode following 和 NEB/CI-NEB/VCNEB。
 Dimer 同时提供 Python API。坐标约定与数值测试见 [验证说明](saddle-numerics_zh.md)。
 
 ## 构建和输入
@@ -31,7 +31,7 @@ imrmlp nroptimize --potfile=potential.mtp --input=POSCAR --output=CONTCAR \
 `example-inputs/nroptimize.ini` 是参数参考，不是可直接加载的配置文件。
 
 退出 0 表示达到梯度条件，2 表示迭代耗尽；两者均保存最终结构。NR 可以收敛到极小点
-或任意阶驻点，仍需检查 Hessian 负模数，不能仅以退出 0 宣称找到一阶鞍点。
+或任意阶驻点，仍需检查 Hessian 负模个数，不能仅以退出 0 宣称找到一阶鞍点。
 
 ## MODECAR 和 Dimer
 
@@ -73,7 +73,7 @@ VC 文件还保存参考晶胞，并在格式标识中记录坐标约定。旧�
 Dimer 退出 0 为收敛、1 为未收敛；输入/数值/输出错误会产生错误诊断并非零退出。
 Python 对错误抛出异常，对正常耗尽返回 `converged=False`。
 `dimer.dat` 含停止状态、迭代数、中心能量/焓、中心及旋转梯度、曲率；还输出最终结构、
-端点和 `dimer_modecar_final`。负方向曲率不能单独证明只有一个负模。
+端点和 `dimer_modecar_final`。曲率为负不能单独证明只有一个负模。
 
 ```python
 from imrmlp import Dimer
@@ -86,7 +86,7 @@ saddle = result.saddle_atoms  # 独立副本，可在释放驱动后使用
 ## NEB、VCNEB 与 mode following
 
 NEB 的原有设置和 Python `NEB` 保留；VCNEB 的 `pressure` 单位 GPa，
-镜像能量已经包含 pV，后处理不要再次累加。应对目标材料的模型、晶胞尺寸及图像数
+图像能量已经包含 pV，后处理不要再次累加。应对目标材料的模型、晶胞尺寸及图像数
 做收敛检查。MPI、路径对称性和释放检查见 [NEB 并行与路径对称性](neb-parallel-symmetry_zh.md)。
 
 `modefollowing` 模式 1 是 Hessian/动画，模式 2 才是迭代模式跟随，模式 4 只做单步 NR，
