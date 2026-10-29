@@ -10,6 +10,8 @@ MTP 的 LAMMPS 接口。
 
 主程序为 `imrmlp`，共享库为 `libimrmlp.so`，Python 包为 `imrmlp`。
 
+如果 IMR-MLP 对你的研究工作有帮助，请引用下方[引用](#引用)一节中列出的论文。
+
 ## 编译并运行第一个示例
 
 默认 Linux 构建需要支持 C++23 的编译器、GNU Make 4.3+、Eigen、Intel
@@ -65,6 +67,66 @@ fit:bfgs_maxiteration 1000
 
 ```sh
 build/release/imrmlp trainmtp train.ini --do-lbfgs
+```
+
+## 引用
+
+本仓库实现的方法发表于以下论文。使用 IMR-MLP 时请引用（BibTeX 可直接复制；
+另提供 `CITATION.cff`，对应 GitHub 的 “Cite this repository” 按钮）。
+
+1. J. Wang, P. Liu, H. Zhu, M. Liu, H. Ma, Y. Chen, Y. Sun, X.-Q. Chen，
+   *Efficient moment tensor machine-learning interatomic potential for accurate
+   description of defects in Ni-Al alloys*，Phys. Rev. Materials **9**, 053805
+   (2025)。[doi:10.1103/PhysRevMaterials.9.053805](https://doi.org/10.1103/PhysRevMaterials.9.053805)
+2. Y. Cao, J. Wang, M. Liu, Y. Liu, H. Ma, C. Franchini, Y. Sun, G. Kresse,
+   X.-Q. Chen, P. Liu，*Quantum delocalization enables water dissociation on
+   Ru(0001)*，Phys. Rev. Lett. **134**, 178001 (2025)。
+   [doi:10.1103/PhysRevLett.134.178001](https://doi.org/10.1103/PhysRevLett.134.178001)
+3. 陈星秋，王建韬，刘培涛，*矩张量机器学习势模型的发展与应用*（英文题名
+   *Moment tensor machine-learning potential: Development and applications*），
+   金属学报 **62**(5), 785-802 (2026)。
+   [doi:10.11900/0412.1961.2025.00289](https://doi.org/10.11900/0412.1961.2025.00289)
+
+```bibtex
+@article{wang2025efficient,
+  title   = {Efficient moment tensor machine-learning interatomic potential for
+             accurate description of defects in Ni-Al alloys},
+  author  = {Wang, Jiantao and Liu, Peitao and Zhu, Heyu and Liu, Mingfeng and
+             Ma, Hui and Chen, Yun and Sun, Yan and Chen, Xing-Qiu},
+  journal = {Physical Review Materials},
+  volume  = {9},
+  number  = {5},
+  pages   = {053805},
+  year    = {2025},
+  doi     = {10.1103/PhysRevMaterials.9.053805}
+}
+
+@article{cao2025quantum,
+  title   = {Quantum delocalization enables water dissociation on Ru(0001)},
+  author  = {Cao, Yu and Wang, Jiantao and Liu, Mingfeng and Liu, Yan and
+             Ma, Hui and Franchini, Cesare and Sun, Yan and Kresse, Georg and
+             Chen, Xing-Qiu and Liu, Peitao},
+  journal = {Physical Review Letters},
+  volume  = {134},
+  number  = {17},
+  pages   = {178001},
+  year    = {2025},
+  doi     = {10.1103/PhysRevLett.134.178001}
+}
+
+@article{chen2026momenttensor,
+  title   = {Moment tensor machine-learning potential: Development and
+             applications},
+  author  = {Chen, Xing-Qiu and Wang, Jiantao and Liu, Peitao},
+  journal = {Acta Metallurgica Sinica},
+  volume  = {62},
+  number  = {5},
+  pages   = {785--802},
+  year    = {2026},
+  note    = {In Chinese},
+  doi     = {10.11900/0412.1961.2025.00289},
+  url     = {https://www.ams.org.cn/CN/10.11900/0412.1961.2025.00289}
+}
 ```
 
 ## 许可与数据

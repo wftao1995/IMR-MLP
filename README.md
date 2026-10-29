@@ -12,6 +12,9 @@ Developed by the Division of Materials Artificial Intelligence Research, Institu
 The CLI is `imrmlp`, the shared library is `libimrmlp.so`, and the Python package
 is `imrmlp`.
 
+If IMR-MLP contributes to work you publish, please cite the papers listed under
+[Citation](#citation).
+
 ## Build and try it
 
 The default Linux build needs a C++23 compiler, GNU Make 4.3+, Eigen, Intel
@@ -70,6 +73,67 @@ For nonlinear MTP optimization, explicitly select an optimizer:
 
 ```sh
 build/release/imrmlp trainmtp train.ini --do-lbfgs
+```
+
+## Citation
+
+The methods implemented here are described in the following papers. If you use
+IMR-MLP, please cite them (BibTeX is ready to copy; `CITATION.cff` is also
+provided for GitHub's "Cite this repository" button).
+
+1. J. Wang, P. Liu, H. Zhu, M. Liu, H. Ma, Y. Chen, Y. Sun, X.-Q. Chen,
+   *Efficient moment tensor machine-learning interatomic potential for accurate
+   description of defects in Ni-Al alloys*, Phys. Rev. Materials **9**, 053805
+   (2025). [doi:10.1103/PhysRevMaterials.9.053805](https://doi.org/10.1103/PhysRevMaterials.9.053805)
+2. Y. Cao, J. Wang, M. Liu, Y. Liu, H. Ma, C. Franchini, Y. Sun, G. Kresse,
+   X.-Q. Chen, P. Liu, *Quantum delocalization enables water dissociation on
+   Ru(0001)*, Phys. Rev. Lett. **134**, 178001 (2025).
+   [doi:10.1103/PhysRevLett.134.178001](https://doi.org/10.1103/PhysRevLett.134.178001)
+3. X.-Q. Chen, J. Wang, P. Liu, *Moment tensor machine-learning potential:
+   development and applications* (in Chinese), Acta Metallurgica Sinica **62**(5),
+   785-802 (2026).
+   [doi:10.11900/0412.1961.2025.00289](https://doi.org/10.11900/0412.1961.2025.00289)
+
+```bibtex
+@article{wang2025efficient,
+  title   = {Efficient moment tensor machine-learning interatomic potential for
+             accurate description of defects in Ni-Al alloys},
+  author  = {Wang, Jiantao and Liu, Peitao and Zhu, Heyu and Liu, Mingfeng and
+             Ma, Hui and Chen, Yun and Sun, Yan and Chen, Xing-Qiu},
+  journal = {Physical Review Materials},
+  volume  = {9},
+  number  = {5},
+  pages   = {053805},
+  year    = {2025},
+  doi     = {10.1103/PhysRevMaterials.9.053805}
+}
+
+@article{cao2025quantum,
+  title   = {Quantum delocalization enables water dissociation on Ru(0001)},
+  author  = {Cao, Yu and Wang, Jiantao and Liu, Mingfeng and Liu, Yan and
+             Ma, Hui and Franchini, Cesare and Sun, Yan and Kresse, Georg and
+             Chen, Xing-Qiu and Liu, Peitao},
+  journal = {Physical Review Letters},
+  volume  = {134},
+  number  = {17},
+  pages   = {178001},
+  year    = {2025},
+  doi     = {10.1103/PhysRevLett.134.178001}
+}
+
+@article{chen2026momenttensor,
+  title   = {Moment tensor machine-learning potential: Development and
+             applications},
+  author  = {Chen, Xing-Qiu and Wang, Jiantao and Liu, Peitao},
+  journal = {Acta Metallurgica Sinica},
+  volume  = {62},
+  number  = {5},
+  pages   = {785--802},
+  year    = {2026},
+  note    = {In Chinese},
+  doi     = {10.11900/0412.1961.2025.00289},
+  url     = {https://www.ams.org.cn/CN/10.11900/0412.1961.2025.00289}
+}
 ```
 
 ## License

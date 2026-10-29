@@ -1,0 +1,92 @@
+cff-version: 1.2.0
+message: "If you use IMR-MLP in your research, please cite the papers listed below."
+title: "IMR-MLP: a C++ framework for machine-learning interatomic potentials"
+type: software
+repository-code: "https://github.com/wftao1995/IMR-MLP"
+license: MIT
+keywords:
+  - machine-learning interatomic potential
+  - moment tensor potential
+  - MTP
+  - active learning
+  - LAMMPS
+authors:
+  - family-names: Wang
+    given-names: Jiantao
+  - family-names: Liu
+    given-names: Peitao
+  - family-names: Chen
+    given-names: Xing-Qiu
+references:
+  - type: article
+    title: "Efficient moment tensor machine-learning interatomic potential for accurate description of defects in Ni-Al alloys"
+    authors:
+      - family-names: Wang
+        given-names: Jiantao
+      - family-names: Liu
+        given-names: Peitao
+      - family-names: Zhu
+        given-names: Heyu
+      - family-names: Liu
+        given-names: Mingfeng
+      - family-names: Ma
+        given-names: Hui
+      - family-names: Chen
+        given-names: Yun
+      - family-names: Sun
+        given-names: Yan
+      - family-names: Chen
+        given-names: Xing-Qiu
+    journal: Physical Review Materials
+    volume: 9
+    issue: 5
+    start: 053805
+    year: 2025
+    doi: 10.1103/PhysRevMaterials.9.053805
+  - type: article
+    title: "Quantum delocalization enables water dissociation on Ru(0001)"
+    authors:
+      - family-names: Cao
+        given-names: Yu
+      - family-names: Wang
+        given-names: Jiantao
+      - family-names: Liu
+        given-names: Mingfeng
+      - family-names: Liu
+        given-names: Yan
+      - family-names: Ma
+        given-names: Hui
+      - family-names: Franchini
+        given-names: Cesare
+      - family-names: Sun
+        given-names: Yan
+      - family-names: Kresse
+        given-names: Georg
+      - family-names: Chen
+        given-names: Xing-Qiu
+      - family-names: Liu
+        given-names: Peitao
+    journal: Physical Review Letters
+    volume: 134
+    issue: 17
+    start: 178001
+    year: 2025
+    doi: 10.1103/PhysRevLett.134.178001
+  - type: article
+    title: "Moment tensor machine-learning potential: Development and applications"
+    authors:
+      - family-names: Chen
+        given-names: Xing-Qiu
+      - family-names: Wang
+        given-names: Jiantao
+      - family-names: Liu
+        given-names: Peitao
+    journal: Acta Metallurgica Sinica
+    volume: 62
+    issue: 5
+    start: 785
+    end: 802
+    year: 2026
+    doi: 10.11900/0412.1961.2025.00289
+    url: "https://www.ams.org.cn/CN/10.11900/0412.1961.2025.00289"
+    notes: "In Chinese (金属学报)."
