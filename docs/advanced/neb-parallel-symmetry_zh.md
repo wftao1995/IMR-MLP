@@ -124,8 +124,8 @@ image 数。端点计入 image 数。EFS 时间是本地 OpenMP 批次的墙钟�
 MPI 启动与终止不计入这些阶段。
 
 整体阶段已包含 EFS 和通信，各 rank 的时间又互相重叠，不能相加。
-`batch_wall_seconds` 包含批次内计时分类和调度开销。便宜的 images 或空闲 ranks
-可能使通信占比增大；基准以固定 EFS 预算测量，不预设加速比门槛。
+`batch_wall_seconds` 包含批次内计时分类和调度开销。
+便宜的 images 或空闲 ranks 会使通信占比增大。
 
 ## 保对称计算后自动释放检查（默认关闭）
 

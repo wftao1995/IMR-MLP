@@ -163,8 +163,7 @@ statistics; profile collection/writing and MPI startup/finalization are excluded
 Controller stages already include EFS and communication. Rank timers overlap
 across processes: do not add them to controller time. `batch_wall_seconds`
 includes the measured batch categories and bookkeeping. More ranks can increase
-communication cost when images are cheap or ranks are idle. The benchmark suite
-uses fixed EFS budgets and reports measured times without a speedup assertion.
+communication cost when images are cheap or ranks are idle.
 
 ## Check a constrained path after releasing symmetry (opt in)
 

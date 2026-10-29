@@ -93,7 +93,9 @@ Each path runs for at least `cost-benchmark-seconds` per round (one long evaluat
 
 Mode 6 may select the full basis. In mode 5, the full basis is only a speed baseline and the final scalar count remains the initial count. “Fastest” applies only to the measured candidates, configurations and thread/backend environment; global optimality and speedup for every model are not guaranteed. The fixed-seed structural objective is reproducible; final timing-based selection may depend on machine load.
 
-MPI ranks share load statistics and objective definitions. Rank 0 benchmarks and broadcasts the final choice. Other ranks do not evaluate candidates, but runtime waiting threads may still affect measurements. For formal performance comparisons, use a separate single-process run with fixed CPU affinity and thread count.
+MPI ranks share load statistics and objective definitions. Rank 0 benchmarks and
+broadcasts the final choice. Other ranks do not evaluate candidates, but runtime
+waiting threads may still affect measurements.
 
 ## Outputs and failures
 

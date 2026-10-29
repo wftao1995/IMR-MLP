@@ -181,7 +181,7 @@ imrmlp fastfit fastfit.ini --mode 2 --num_threads 1
 
 可在原选集上执行 `--mode 5 --search-steps 100 --method greedy`，或独立尝试 `--mode 6 --population 16 --generations 10`。模式 5 默认 legacy 分数使用训练损失加可用的验证损失。模式 6 的 legacy 双目标在有验证集时为训练损失／验证损失，没有验证集时为训练损失／标量数；有验证集时不能把它解释为显式“误差与速度”优化。搜索预算只是示例，不保证收敛。
 
-需要在验证误差上限内追求速度，使用模式 5/6 的 `selection-objective error-cost`，见[按 E/F/S 成本选基](fastfit-cost-selection_zh.md)。它要求非空验证集，以估算运算量搜索，再对少量候选实测。不要用标量数量代替实际 CPU/GPU/LAMMPS 时间。
+需要在验证误差上限内追求速度，使用模式 5/6 的 `selection-objective error-cost`，见[按 E/F/S 成本选基](fastfit-cost-selection_zh.md)。它要求非空验证集，以估算运算量搜索，再对少量候选实测。标量数量只是运算量的代理，与实际 CPU/GPU/LAMMPS 时间不成比例。
 
 ## 6. 选集文件、矩阵缓存与可复现性
 
@@ -208,6 +208,6 @@ imrmlp calc_efs --potfile __REDUCED__.mtp --input test.xyz --output test-predict
 imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --index index.map --output-summary test-errors.txt
 ```
 
-保留 E、F、virial 各自误差，检查目标应用中的极端构型、弛豫／MD 稳定性，并在实际部署后端比较吞吐量。缩减后可再做非线性训练，但这会成为新的模型候选，需重新验证。仅重排计算图、要求保持预测的场景使用 `mtpbasis --source ... --target ... --report ...`；发生参数迁移后仍需比较 E/F/virial。
+保留 E、F、virial 各自误差，并检查目标应用中的极端构型与弛豫／MD 稳定性。吞吐量由模型、体系与后端共同决定，不能从标量数量推断。缩减后可再做非线性训练，但这会成为新的模型候选，需重新验证。仅重排计算图、要求保持预测的场景使用 `mtpbasis --source ... --target ... --report ...`；发生参数迁移后仍需比较 E/F/virial。
 
 完整命令参数见[命令参考](../reference/commands_zh.md)。实现核对入口为 `apps/genmtm.cpp`、`mtmbasis/mtm.cpp`、`apps/fastfit.cpp`；回归覆盖包括 `unitest/ut_mtmbasis.cpp`、`unitest/ut_fastfit_regression.cpp` 和 `unitest/ut_fastfit_correlation.cpp`。

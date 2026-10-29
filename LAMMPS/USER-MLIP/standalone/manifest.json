@@ -138,6 +138,10 @@
       "destination": "standalone/tests/run_regression.py"
     },
     {
+      "source": "LAMMPS/USER-MLIP/standalone/benchmarks/README.md",
+      "destination": "standalone/benchmarks/README.md"
+    },
+    {
       "source": "LAMMPS/USER-MLIP/standalone/benchmarks/run_benchmark.py",
       "destination": "standalone/benchmarks/run_benchmark.py"
     },

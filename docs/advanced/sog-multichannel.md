@@ -4,8 +4,9 @@
 
 Multichannel SOG adds several independent long-range latent channels to a shared
 short-range model and descriptor. Each channel has its own latent head, Gaussian
-weights and bandwidths. Use it when a single channel is insufficient, and select
-the channel count using independent validation and cost measurements.
+weights and bandwidths. Use it when a single channel is insufficient. More
+channels raise the cost of the long-range part only; the short-range cost is
+unchanged.
 
 \[
 q_{ic}=b_{s_i,c}+\sum_a h_{ac}B_a(i),\qquad
@@ -108,8 +109,8 @@ The CPU reciprocal sum currently evaluates channels separately, so long-range
 time grows approximately linearly with channel count. Reciprocal grids and
 harmonic recurrences are reused. LAMMPS caches all channel kernels, but computes
 structure factors and MPI reductions separately per channel; IMR-MLP refreshes
-its kernel cache for the current channel. Measure the complete calculation on
-your target cells and backend when choosing C.
+its kernel cache for the current channel. Choosing C therefore trades long-range
+resolution against that cost.
 
 `unitest/ut_sog_channels.cpp` covers independent channel sums, parameter and
 coordinate derivatives, v4 round-trips, invalid layouts, frozen groups and
