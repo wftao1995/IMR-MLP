@@ -16,7 +16,7 @@
 
 ## 1. 在仓库根目录准备环境与输入
 
-先完成[安装指南](../../docs/guides/installation_zh.md)的 CPU 构建和 oneMKL 环境设置。
+先完成[安装指南](../../docs/guides/installation_zh.md)的 CPU 构建，其中也说明了可选的 oneMKL 后端。
 下面第一条命令必须在含 `Makefile` 的仓库根目录执行，路径变量会记录绝对路径：
 
 ```sh

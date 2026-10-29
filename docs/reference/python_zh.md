@@ -31,7 +31,8 @@ python3 -c "import imrmlp; print(imrmlp.__version__)"
 ```
 
 `pip install .` 通过 CMake 调用 Make，构建 release 版扩展并随包安装
-`libimrmlp.so`；它仍然需要系统中的本地依赖，不会自动安装 MKL 等库。
+`libimrmlp.so`；它仍然需要系统中的本地依赖（如 ALGLIB、FFTW），不会自动安装。
+可选的 oneMKL 后端只在该次构建的环境已启用时生效。
 `make python` 把扩展写入源码目录的 `imrmlp/`，默认链接 `build/release` 中的库；
 更换 Python 解释器后应使用相同的 `PYTHON=...` 重新构建。
 `make install` 不安装 Python 包。

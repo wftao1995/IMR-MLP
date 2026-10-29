@@ -44,7 +44,7 @@
 
 ## 2. 准备环境、几何和配置
 
-完成安装与 oneMKL 环境设置后，在含 `Makefile` 的仓库根目录运行：
+完成安装（oneMKL 可选）后，在含 `Makefile` 的仓库根目录运行：
 
 ```sh
 imrmlp_root="$PWD"

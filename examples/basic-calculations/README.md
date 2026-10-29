@@ -19,8 +19,8 @@ potential. The two routes keep their models and inputs separate.
 
 ## 1. Prepare the environment and inputs from the repository root
 
-Complete the CPU build and oneMKL environment setup in the
-[installation guide](../../docs/guides/installation.md). Run the first command
+Complete the CPU build in the [installation guide](../../docs/guides/installation.md),
+which also explains the optional oneMKL backend. Run the first command
 below from the repository root containing `Makefile`; variables retain absolute paths:
 
 ```sh

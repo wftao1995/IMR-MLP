@@ -51,7 +51,7 @@ not extrapolation to unseen phases, temperatures or elements.
 
 ## 2. Prepare environment, geometry and settings
 
-Complete installation and oneMKL setup, then run from the repository root containing `Makefile`:
+Complete the installation (optionally with oneMKL), then run from the repository root containing `Makefile`:
 
 ```sh
 imrmlp_root="$PWD"

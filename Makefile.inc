@@ -6,6 +6,12 @@
 BUILD_MODE ?= release
 CPU_ARCH_FLAGS ?= -march=native
 
+# ── oneMKL: optional BLAS/LAPACK backend for Eigen ───────────────────────
+# Enabled when the oneMKL environment is sourced (MKLROOT points at an
+# installation containing include/mkl.h). Force it with USE_MKL=1, or build
+# with Eigen's own kernels (no oneMKL installation, slower large products)
+# by passing USE_MKL=0.
+USE_MKL ?= $(if $(wildcard $(MKLROOT)/include/mkl.h),1,0)
 MKL_LIBDIR ?= $(if $(wildcard $(MKLROOT)/lib/intel64),$(MKLROOT)/lib/intel64,$(MKLROOT)/lib)
 
 CUDA_HOME ?= /opt/cuda
@@ -17,7 +23,6 @@ HIP_CXXFLAGS ?=
 CUDA_ARCH ?=
 
 IMRMLP_DEFINES_BASE = -DUSE_OMP -DHASHED_VORO -DNO_SAMPLE_STR -DBOXED_NEBH -DUSEXML \
-		-DEIGEN_USE_MKL_ALL \
 		-DAE_CPU=AE_INTEL -DAE_OS=AE_LINUX \
 		-Werror=return-type
 ifeq ($(BUILD_MODE),debug)
@@ -79,17 +84,28 @@ else
 	$(error Unknown BUILD_MODE: $(BUILD_MODE). Valid: debug, release, asan, relwithdebinfo, relwithdebinfo-asan, mpi, mpi-debug, cuda, mpi-cuda, hip, mpi-hip)
 endif
 
+ifeq ($(USE_MKL),1)
+IMRMLP_DEFINES_BASE += -DEIGEN_USE_MKL_ALL
 # MPI modes use sequential MKL (parallelism from multi-process)
+ifneq ($(filter mpi mpi-debug mpi-cuda mpi-hip,$(BUILD_MODE)),)
+MKL_LIBS = -m64 -L$(MKL_LIBDIR) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core
+else
+MKL_LIBS = -m64 -L$(MKL_LIBDIR) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core
+endif
+else
+MKL_LIBS =
+endif
+
 ifneq ($(filter mpi mpi-debug mpi-cuda mpi-hip,$(BUILD_MODE)),)
 LIBS = -fopenmp \
 		-lm -ldl -lpthread \
 		-lfftw3 \
-		-m64 -L$(MKL_LIBDIR) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+		$(MKL_LIBS) -lpthread -lm -ldl
 else
 LIBS = -fopenmp \
 		-lm -ldl -lpthread \
 		-lfftw3 \
-		-m64 -L$(MKL_LIBDIR) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+		$(MKL_LIBS) -lgomp -lpthread -lm -ldl
 endif
 
 # Optional GPM block decompression. Writers default to uncompressed blocks.
@@ -145,7 +161,7 @@ ALGLIB_LIBS ?= -lalglib
 LIBS += $(ALGLIB_LIBS)
 LIBINC += -I$(ALGLIB_INCLUDE_ROOT) -I$(DEPLIB) -I$(DEPLIB)/fmt/include -I$(DEPLIB)/LBFGSpp/include -I$(EIGEN_DIR) \
 	-I$(DEPS_DIR) \
-	$(if $(MKLROOT),-I$(MKLROOT)/include,) \
+	$(if $(and $(MKLROOT),$(filter 1,$(USE_MKL))),-I$(MKLROOT)/include,) \
 	-I$(DEPLIB)/spglib
 PREFIX ?= $(HOME)/.local
 

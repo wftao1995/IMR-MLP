@@ -12,8 +12,9 @@ using the Python API below.
 
 ## Build and inputs
 
-Configure MKL and other dependencies from the repository root as described in
-the [installation guide](../guides/installation.md), then run
+Configure the dependencies from the repository root as described in
+the [installation guide](../guides/installation.md); oneMKL is optional there,
+then run
 `make -j2 imrmlp`. Put this checkout's `build/release` first in
 `LD_LIBRARY_PATH` so an older installed library is not loaded. The examples below use CPU/OpenMP builds.
 

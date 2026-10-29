@@ -47,8 +47,9 @@ export LD_LIBRARY_PATH="$PWD/build/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 ## 缺少依赖或编译内存不足
 
-安装开发头文件和运行库。`MKLROOT` 指向 oneMKL 安装目录；只移除
-`EIGEN_USE_MKL_ALL` 不会移除 MKL 链接选项。`USE_KIM=0` 可关闭可选 KIM 接口。
+安装开发头文件和运行库。`MKLROOT` 指向可选的 oneMKL 安装目录，Make 只在该环境
+提供 `include/mkl.h` 时启用该后端；`USE_MKL=0` 可完全不用 oneMKL，改用 Eigen
+自带内核编译。`USE_KIM=0` 可关闭可选 KIM 接口。
 编译器及标准库需支持本项目的 C++23 特性，详见[安装指南](installation_zh.md)。
 编译进程因内存不足被杀死时，降低并行编译任务数。
 

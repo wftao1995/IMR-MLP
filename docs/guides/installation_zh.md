@@ -21,9 +21,11 @@ Windows/macOS 用户可使用 Linux 计算机或相应 Linux 环境，本文不�
 
 ## 1. 准备依赖
 
-核心 CPU 程序需要 C++23 编译器及配套标准库、GNU Make 4.3+、Eigen、oneMKL、
-ALGLIB、FFTW、OpenMP 和默认启用的 zlib。下面的基础路线关闭可选 OpenKIM，
-避免首次安装额外准备 KIM API。
+核心 CPU 程序需要 C++23 编译器及配套标准库、GNU Make 4.3+、Eigen、
+ALGLIB、FFTW、OpenMP 和默认启用的 zlib。oneMKL 是可选项：启用后 Eigen 的
+稠密线性代数改由 Intel BLAS/LAPACK 执行，终端里 oneMKL 环境就绪时 Make 会自动
+打开它；不启用时改用 Eigen 自带内核，功能相同，只是大规模矩阵运算较慢。
+下面的基础路线关闭可选 OpenKIM，避免首次安装额外准备 KIM API。
 
 ### Ubuntu / Debian 上的系统开发包
 
@@ -41,7 +43,11 @@ sudo apt install build-essential git python3 python3-venv \
 其他 Linux 发行版请使用对应包管理器；集群上先询问管理员是否已有编译器和依赖模块，
 无需为了使用程序修改系统目录。
 
-### oneMKL：安装开发包，再启用环境
+### 可选：用 oneMKL 加速稠密线性代数
+
+不装 oneMKL 时可跳过本节，构建会使用 Eigen 自带内核。只有稠密矩阵运算占主要
+耗时的情况下才需要 oneMKL：`MKLROOT` 能提供头文件时 Make 会自动启用该后端，
+`USE_MKL=0` 可显式关闭，`USE_MKL=1` 可在环境由其他方式提供时强制启用。
 
 按 [Intel 官方安装说明](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-download.html)
 安装 oneMKL **开发包**。已配置 Intel APT 软件源的机器可使用
@@ -87,7 +93,9 @@ make -j2 imrmlp USE_KIM=0
 ```
 
 `-j2` 表示同时运行两个编译任务，内存充足时可提高；它不是程序计算时的线程数。
-产物在 `build/release/`，不是源码根目录。不要运行 `sudo make`。
+产物在 `build/release/`，不是源码根目录。不要运行 `sudo make`。只有在当前终端
+启用了 oneMKL 环境时构建才会启用该后端；否则同一套源码按 Eigen 自带内核编译，
+缺少 oneMKL 不会阻塞首次构建。切换这一选择会重新编译该模式下的全部文件。
 
 将当前构建加入本终端的程序与库搜索路径，再确认能够启动：
 
@@ -100,7 +108,7 @@ imrmlp --help
 
 `PATH` 让终端找到 `imrmlp`，`LD_LIBRARY_PATH` 让它优先找到同一构建的共享库。
 这些设置中的 `$PWD` 此时必须是仓库根目录；之后可以切换到自己的计算目录。
-新开终端时重新启用 oneMKL，并用仓库的绝对路径设置这两项。
+新开终端时，若该构建启用了 oneMKL 需重新启用其环境，并用仓库的绝对路径设置这两项。
 
 ## 3. 跑通随仓库提供的示例
 
@@ -132,9 +140,10 @@ export LD_LIBRARY_PATH="$HOME/.local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 imrmlp --version
 ```
 
-默认安装到个人目录，无需管理员权限。oneMKL 等外部运行库仍须可用。
-Make 安装目标安装 CLI 与库，不安装 Python 包。迁移到其他机器时，除了程序与库，
-还需兼容的系统依赖；跨 CPU 分发前应重新选择 `CPU_ARCH_FLAGS`。
+默认安装到个人目录，无需管理员权限。外部运行库仍须可用：ALGLIB、FFTW，以及在该
+构建启用了 oneMKL 后端时的 oneMKL。Make 安装目标安装 CLI 与库，不安装 Python 包。
+迁移到其他机器时，除了程序与库，还需兼容的系统依赖；跨 CPU 分发前应重新选择
+`CPU_ARCH_FLAGS`。
 
 ## 5. 按需添加 Python、MPI 或 GPU
 
@@ -150,7 +159,7 @@ USE_KIM=0 python -m pip install '.[ase]'
 python -c 'import imrmlp; print(imrmlp.__version__)'
 ```
 
-本地 C++ 依赖必须已准备好；pip 不会提供 oneMKL、ALGLIB 或 FFTW。
+本地 C++ 依赖必须已准备好；pip 不会提供 ALGLIB、FFTW 或可选的 oneMKL 后端。
 安装会通过 CMake 调用源码目录中的 Make release 构建，机器还需可用的 CMake。
 命令沿用基础路线的 `USE_KIM=0`。无需 ASE 时将 `'.[ase]'` 换成 `.`。
 目录外导入、元素映射和计算器示例见
@@ -193,8 +202,9 @@ GPU 架构设置和支持范围见 [GPU 指南](../development/cuda_zh.md)。
 | 症状 | 先检查 |
 | --- | --- |
 | `g++` / `make` 找不到，或不认识 `-std=c++23` | 编译器与 GNU Make 是否安装并在 `PATH` 中 |
-| `Eigen/...`、`mkl.h`、`libalglib/...` 或 `fftw3.h` 缺失 | 是否安装开发包；Eigen、oneMKL、ALGLIB 路径是否匹配 |
-| 链接报 `cannot find -l...` | 对应开发库和链接目录是否存在，是否初始化 oneMKL 环境 |
+| `Eigen/...`、`libalglib/...` 或 `fftw3.h` 缺失 | 是否安装开发包；Eigen、ALGLIB 路径是否匹配 |
+| 已装 oneMKL 但仍报 `mkl.h` 缺失 | `MKLROOT` 与 oneMKL 环境，或改用 `USE_MKL=0` 构建 |
+| 链接报 `cannot find -l...` | 对应开发库和链接目录是否存在；使用该后端时还需初始化 oneMKL 环境 |
 | 启动报动态库找不到 / undefined symbol | 程序与库来自同一构建，当前构建目录在库路径最前 |
 | `cc1plus` 被杀死 | 降到 `-j1` 或 `-j2`，确认机器内存 |
 | pip 构建失败 | 先确认原生依赖齐全，再看 pip 日志中的第一条实际编译/链接错误 |
@@ -212,14 +222,15 @@ make -j2 imrmlp USE_KIM=0 EIGEN_DIR=/path/to/eigen3 \
 ```
 
 `ALGLIB_INCLUDE_ROOT` 是包含 `libalglib/` 的父目录。fmt、spglib、TinyXML-2、
-Voro++ 和 LBFGS++ 随仓库提供；ALGLIB、FFTW 和 oneMKL 为外部依赖。
+Voro++ 和 LBFGS++ 随仓库提供；ALGLIB 和 FFTW 为外部依赖，oneMKL 为可选外部后端。
 
 | 选项 / 目标 | 何时需要 |
 | --- | --- |
 | `USE_KIM=1` | 使用 OpenKIM；需 KIM API，Make 默认开启 |
 | `USE_GZIP=0` | 关闭默认 gzip 支持，否则需要 zlib |
 | `USE_ZSTD=1` | 读取压缩 GPM 数据块，另需 libzstd |
-| `MKL_LIBDIR` | 覆盖 oneMKL 库目录，默认从 `MKLROOT` 查找 |
+| `USE_MKL=1`、`USE_MKL=0` | 强制启用或关闭 oneMKL 后端；默认跟随 `MKLROOT` |
+| `MKL_LIBDIR` | 覆盖 oneMKL 库目录，默认从 `MKLROOT` 查找；仅在该后端启用时使用 |
 | `CPU_ARCH_FLAGS=` | 取消默认 `-march=native`，或设置实际目标 CPU 参数 |
 | `BUILD_MODE=debug`、`asan`、`relwithdebinfo`、`relwithdebinfo-asan`、`mpi-debug` | 调试与错误检查；常规用户使用 release/mpi |
 | `make all` | 库和全部 CLI/辅助程序 |

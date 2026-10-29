@@ -33,8 +33,9 @@ python3 -c "import imrmlp; print(imrmlp.__version__)"
 ```
 
 `pip install .` uses CMake to invoke Make, builds a release extension and installs
-`libimrmlp.so` alongside it. Native dependencies such as MKL must already be
-available. `make python` writes the extension into the source `imrmlp/` directory
+`libimrmlp.so` alongside it. Native dependencies such as ALGLIB and FFTW must
+already be available; the optional oneMKL backend is used only if its
+environment is active during that build. `make python` writes the extension into the source `imrmlp/` directory
 and links to `build/release` by default. After changing Python interpreters,
 rebuild with the matching `PYTHON=...`. `make install` does not install Python.
 

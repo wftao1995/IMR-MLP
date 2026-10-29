@@ -17,14 +17,18 @@ If IMR-MLP contributes to work you publish, please cite the papers listed under
 
 ## Build and try it
 
-The default Linux build needs a C++23 compiler, GNU Make 4.3+, Eigen, Intel
-oneMKL, ALGLIB and FFTW. OpenKIM and gzip support are
-enabled by default. See the [installation guide](docs/guides/installation.md)
+The default Linux build needs a C++23 compiler, GNU Make 4.3+, Eigen, ALGLIB and
+FFTW. Intel oneMKL is optional and speeds up dense linear algebra; it is used
+automatically when its environment is sourced and is not required to build or
+run. OpenKIM and gzip support are enabled by default. See the
+[installation guide](docs/guides/installation.md)
 for dependency paths, optional features and MPI/CUDA/HIP modes.
 
-From the repository root, with dependencies installed, run the following. The
-first line uses the common oneAPI component layout; replace the environment
-script for other installation paths/layouts as explained in the installation guide:
+From the repository root, with dependencies installed, run the following. On the
+first line, `source`-ing the oneAPI environment script only enables the optional
+oneMKL backend; skip it to build against Eigen's own kernels, and replace it with
+the corresponding script for other installation paths/layouts as explained in the
+installation guide:
 
 ```sh
 source /opt/intel/oneapi/setvars.sh

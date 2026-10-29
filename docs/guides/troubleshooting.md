@@ -54,10 +54,12 @@ Rebuild consumers when headers or ABI-affecting compile flags change.
 
 ## Build dependencies and memory
 
-Install development headers, not only runtime packages. Set `MKLROOT` to the
-oneMKL installation. Disabling `EIGEN_USE_MKL_ALL` alone does not remove MKL
-link flags. `USE_KIM=0` disables the optional KIM interface. Use a compatible
-C++23 compiler and standard library; see [build requirements](installation.md).
+Install development headers, not only runtime packages. `MKLROOT` points at the
+optional oneMKL installation; the Make build enables that backend only when the
+environment provides `include/mkl.h`. Build with `USE_MKL=0` to leave oneMKL out
+entirely and compile against Eigen's own kernels. `USE_KIM=0` disables the
+optional KIM interface. Use a compatible C++23 compiler and standard library;
+see [build requirements](installation.md).
 Reduce build parallelism if compiler processes are killed for lack of memory.
 
 ## Species mismatch or unreasonable energy/forces

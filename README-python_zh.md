@@ -3,7 +3,8 @@
 [English](README-python.md) · [API 指南](docs/reference/python_zh.md)
 
 需要 Python 3.10+ 以及[构建指南](docs/guides/installation_zh.md)中的本地依赖。
-先按该指南创建并激活虚拟环境、启用 oneMKL，再在仓库根目录选择一种安装方式。
+先按该指南创建并激活虚拟环境；若希望稠密线性代数更快，再启用可选的 oneMKL，
+然后在仓库根目录选择一种安装方式。
 新用户可直接安装包和 ASE：
 
 ```sh

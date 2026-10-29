@@ -8,7 +8,7 @@ Dimer 同时提供 Python API。坐标约定与数值测试见 [验证说明](sa
 
 ## 构建和输入
 
-在仓库根目录按 [安装说明](../guides/installation_zh.md) 配置 MKL 等依赖，再运行
+在仓库根目录按 [安装说明](../guides/installation_zh.md) 配置依赖（oneMKL 可选），再运行
 `make -j2 imrmlp`。只有使用后面的 Python API 时才另外构建 Python 包。执行时让 `LD_LIBRARY_PATH` 优先指向本次构建的
 `build/release`，防止载入旧共享库。以下示例使用 CPU/OpenMP 构建。
 

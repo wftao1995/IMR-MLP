@@ -36,7 +36,7 @@ replacement implementations; this cleanup does not perform those replacements.
 
 The main library uses system Eigen; the standalone LAMMPS package vendors a pinned header copy with its notices.
 
-Eigen (MPL-2.0), Intel oneMKL, OpenMP, optional OpenKIM, zlib,
+Eigen (MPL-2.0), optional Intel oneMKL, OpenMP, optional OpenKIM, zlib,
 Catch2 and pybind11 are provided by the build environment and keep their own
 licenses. Consult the actual dependency versions and their license files before
 redistributing compiled artifacts.

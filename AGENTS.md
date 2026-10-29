@@ -25,7 +25,8 @@ Add or update Catch2 tests in `unitest` for C++ behavior, naming new files `ut_<
 
 ## Commit & Pull Request Guidelines
 
-Recent commits use short imperative subjects such as `fix bug in maxvol` and `update python interface`; keep subjects concise and focused on the changed area. Pull requests should describe the behavioral change, list build/test commands run, mention required dependencies or environment variables such as `MKLROOT`, and link related issues. Include example command output or screenshots only when user-facing CLI or Python behavior changes.
+Recent commits use short imperative subjects such as `fix bug in maxvol` and `update python interface`; keep subjects concise and focused on the changed area. Pull requests should describe the behavioral change, list build/test commands run, mention required dependencies or environment variables
+such as `MKLROOT` or `USE_MKL`, and link related issues. Include example command output or screenshots only when user-facing CLI or Python behavior changes.
 
 ## Security & Configuration Tips
 

@@ -14,12 +14,14 @@ MTP 的 LAMMPS 接口。
 
 ## 编译并运行第一个示例
 
-默认 Linux 构建需要支持 C++23 的编译器、GNU Make 4.3+、Eigen、Intel
-oneMKL、ALGLIB 和 FFTW。默认开启 OpenKIM 和 gzip；下方首次构建示例用 `USE_KIM=0` 关闭可选 KIM。
+默认 Linux 构建需要支持 C++23 的编译器、GNU Make 4.3+、Eigen、ALGLIB 和 FFTW。
+Intel oneMKL 是可选项，用于加速稠密线性代数：环境就绪时自动启用，并非构建或运行的
+前提。默认开启 OpenKIM 和 gzip；下方首次构建示例用 `USE_KIM=0` 关闭可选 KIM。
 依赖路径、可选开关及 MPI/CUDA/HIP 模式见[安装指南](docs/guides/installation_zh.md)。
 
-安装依赖后，在仓库根目录运行。第一行适用于 oneAPI 常见组件目录布局，
-其他安装路径或统一布局按安装指南替换环境初始化脚本：
+安装依赖后，在仓库根目录运行。第一行 `source` oneAPI 环境脚本只用于启用可选的
+oneMKL 后端，跳过它即使用 Eigen 自带内核；其他安装路径或统一布局按安装指南
+替换该脚本：
 
 ```sh
 source /opt/intel/oneapi/setvars.sh

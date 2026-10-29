@@ -23,7 +23,10 @@ installed once; each new terminal still needs its runtime environment enabled.
 ## 1. Prepare dependencies
 
 The core CPU program needs a C++23 compiler and standard library, GNU Make
-4.3+, Eigen, oneMKL, ALGLIB, FFTW, OpenMP and default-enabled zlib.
+4.3+, Eigen, ALGLIB, FFTW, OpenMP and default-enabled zlib. oneMKL is optional:
+it hands Eigen's dense linear algebra to Intel's BLAS/LAPACK and is enabled
+automatically once its environment is sourced; without it the same program is
+built from Eigen's own kernels, which is slower for large matrix products.
 The basic route below disables optional OpenKIM to avoid another dependency
 at first installation.
 
@@ -45,7 +48,12 @@ On other distributions use the corresponding package manager; on clusters,
 ask whether compiler and dependency modules are already provided rather than
 changing system directories yourself.
 
-### oneMKL: Install development files and enable the environment
+### Optional: oneMKL for faster dense linear algebra
+
+Skip this section to build against Eigen's own kernels. Install oneMKL when
+dense matrix products dominate the workload: the Make build enables the backend
+as soon as `MKLROOT` provides the headers, `USE_MKL=0` disables it again, and
+`USE_MKL=1` forces it when the environment is provided another way.
 
 Follow [Intel's installation instructions](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-download.html)
 to install oneMKL **development files**. With Intel's APT repository already
@@ -95,7 +103,10 @@ make -j2 imrmlp USE_KIM=0
 
 `-j2` runs two compiler tasks concurrently; increase it if memory permits.
 It does not set calculation threads. Output is in `build/release/`, not the
-source root. Do not use `sudo make`.
+source root. Do not use `sudo make`. The build picks the oneMKL backend only
+when the current terminal has the oneMKL environment; otherwise it compiles the
+same sources against Eigen's own kernels, so a missing oneMKL never blocks the
+first build. Changing that choice recompiles every file of that build mode.
 
 Add this build's program and library directories for the current terminal,
 then check startup:
@@ -110,7 +121,8 @@ imrmlp --help
 `PATH` locates the executable; `LD_LIBRARY_PATH` gives priority to its matching
 shared library. `$PWD` must be the repository root when these commands run;
 you may then change to a calculation directory. In a new terminal, re-enable
-oneMKL and use the repository's absolute path for these variables.
+oneMKL if the build used it and use the repository's absolute path for these
+variables.
 
 ## 3. Run the supplied example
 
@@ -147,10 +159,11 @@ export LD_LIBRARY_PATH="$HOME/.local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 imrmlp --version
 ```
 
-The personal prefix needs no administrator access. External runtimes such as
-oneMKL must remain available. Make installs CLI tools and libraries, not the
-Python package. Moving to another machine also requires compatible system
-dependencies; choose `CPU_ARCH_FLAGS` again before distributing across CPUs.
+The personal prefix needs no administrator access. External runtimes must stay
+available: ALGLIB, FFTW and, only if that build enabled the backend, oneMKL.
+Make installs CLI tools and libraries, not the Python package. Moving to another
+machine also requires compatible system dependencies; choose `CPU_ARCH_FLAGS`
+again before distributing across CPUs.
 
 ## 5. Add Python, MPI or GPU support as needed
 
@@ -167,10 +180,10 @@ USE_KIM=0 python -m pip install '.[ase]'
 python -c 'import imrmlp; print(imrmlp.__version__)'
 ```
 
-Native C++ dependencies must already be present: pip does not supply oneMKL,
-ALGLIB or FFTW. Installation uses CMake to invoke the Make release build in
-the source tree. The command retains `USE_KIM=0` from the basic route.
-Replace `'.[ase]'` with `.`
+Native C++ dependencies must already be present: pip does not supply ALGLIB,
+FFTW or an optional oneMKL backend. Installation uses CMake to invoke the Make
+release build in the source tree. The command retains `USE_KIM=0` from the basic
+route. Replace `'.[ase]'` with `.`
 if ASE is unnecessary. See the [Python guide](../../README-python.md) for imports
 outside the checkout, species mapping and calculator examples.
 For source-directory development, another route is
@@ -214,8 +227,9 @@ uses `trainnlpot`.
 | Symptom | First check |
 | --- | --- |
 | Missing `g++` / `make`, or unknown `-std=c++23` | Installed compiler and GNU Make on `PATH` |
-| Missing `Eigen/...`, `mkl.h`, `libalglib/...` or `fftw3.h` | Development packages and matching Eigen/oneMKL/ALGLIB paths |
-| Linker reports `cannot find -l...` | Development library and link directory; initialized oneMKL environment |
+| Missing `Eigen/...`, `libalglib/...` or `fftw3.h` | Development packages and matching Eigen/ALGLIB paths |
+| `mkl.h` missing although oneMKL is installed | `MKLROOT` and the oneMKL environment, or build with `USE_MKL=0` |
+| Linker reports `cannot find -l...` | Development library and link directory; initialized oneMKL environment when that backend is used |
 | Missing runtime library / undefined symbol | Matching program and library; current build first in the loader path |
 | `cc1plus` killed | Reduce to `-j1` or `-j2` and check memory |
 | pip build fails | Check native dependencies, then the first actual compile/link error in its log |
@@ -234,14 +248,16 @@ make -j2 imrmlp USE_KIM=0 EIGEN_DIR=/path/to/eigen3 \
 ```
 
 `ALGLIB_INCLUDE_ROOT` contains the `libalglib/` directory. fmt, spglib,
-TinyXML-2, Voro++ and LBFGS++ are bundled; ALGLIB, FFTW and oneMKL are external.
+TinyXML-2, Voro++ and LBFGS++ are bundled; ALGLIB and FFTW are external, and
+oneMKL is an optional external backend.
 
 | Option / target | When needed |
 | --- | --- |
 | `USE_KIM=1` | OpenKIM use; needs KIM API, enabled by Make by default |
 | `USE_GZIP=0` | Disable default gzip support; otherwise zlib is required |
 | `USE_ZSTD=1` | Compressed GPM blocks; also needs libzstd |
-| `MKL_LIBDIR` | Override oneMKL library directory, otherwise located through `MKLROOT` |
+| `USE_MKL=1`, `USE_MKL=0` | Force or disable the oneMKL backend; by default it follows `MKLROOT` |
+| `MKL_LIBDIR` | Override the oneMKL library directory, otherwise located through `MKLROOT`; used only when the backend is enabled |
 | `CPU_ARCH_FLAGS=` | Clear default `-march=native`, or select actual target-CPU flags |
 | `BUILD_MODE=debug`, `asan`, `relwithdebinfo`, `relwithdebinfo-asan`, `mpi-debug` | Debugging and diagnostics; normal users choose release/mpi |
 | `make all` | Library and all CLI/auxiliary programs |

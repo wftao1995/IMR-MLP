@@ -3,8 +3,9 @@
 [中文](README-python_zh.md) · [API guide](docs/reference/python.md)
 
 Use Python 3.10+ and the native dependencies in the [build guide](docs/guides/installation.md).
-Create/activate its virtual environment and enable oneMKL, then choose one
-installation route from the repository root. New users can install the package and ASE:
+Create/activate its virtual environment and, if you want the faster dense
+linear algebra, enable oneMKL, then choose one installation route from the
+repository root. New users can install the package and ASE:
 
 ```sh
 USE_KIM=0 python3 -m pip install '.[ase]'
