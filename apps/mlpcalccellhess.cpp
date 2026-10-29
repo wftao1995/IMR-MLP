@@ -31,7 +31,7 @@ int calc_elastic(int argc, char *argv[]) {
     double pressure = 0;
     string infile = "POSCAR";
     string informat = "";
-    string potfile = "pot.mtp";
+    string potfile = "potential.mtp";
     string pottype = "mtp";
     string felastic = "elastic.out";
     string feigensys = "eigensys.out";

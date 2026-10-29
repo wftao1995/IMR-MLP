@@ -34,8 +34,8 @@ from a compatible template.
 
 | Goal | Command | Example |
 |------|---------|---------|
-| Compute energy/forces/stress | `imrmlp efs -pot pot.mtp -in str.cfg -out out.cfg` | — |
-| Compare prediction vs reference | `imrmlp err -pot pot.mtp -in ref.cfg` | — |
+| Compute energy/forces/stress | `imrmlp efs -pot potential.mtp -in str.cfg -out out.cfg` | — |
+| Compare prediction vs reference | `imrmlp err -pot potential.mtp -in ref.cfg` | — |
 | Check potential derivatives | `imrmlp testpot --settings=test.ini` | — |
 | Compute descriptors | `imrmlp calc_descriptors --settings=settings.ini` | Top-level `dtype` and type-specific settings |
 
@@ -51,23 +51,23 @@ from a compatible template.
 
 | Goal | Command | Example |
 |------|---------|---------|
-| MaxVol select subset | `imrmlp maxvol_select --pool=pool.cfg --potfile=pot.mtp` | `--threshold=1.001` |
-| MaxVol grade structures | `imrmlp maxvol_sample --potfile=pot.mtp --input=pool.cfg --state-file=pot.mtp.sel` | — |
-| MaxVol augment set | `imrmlp maxvol_extend --potfile=pot.mtp --state-file=pot.mtp.sel --candidates=pool.cfg` | — |
-| FPS / CUR diversity select | `imrmlp diverse_select --n-select=50 --pool=pool.xyz --potfile=pot.mtp` | `--method=cur` |
+| MaxVol select subset | `imrmlp maxvol_select --pool=pool.cfg --potfile=potential.mtp` | `--threshold=1.001` |
+| MaxVol grade structures | `imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.sel` | — |
+| MaxVol augment set | `imrmlp maxvol_extend --potfile=potential.mtp --state-file=potential.mtp.sel --candidates=pool.cfg` | — |
+| FPS / CUR diversity select | `imrmlp diverse_select --n-select=50 --pool=pool.xyz --potfile=potential.mtp` | `--method=cur` |
 
 MaxVol selection writes its reusable active set to
-`pot.mtp.sel`. Diversity selection defaults to MTP-based descriptors and therefore
+`potential.mtp.sel`. Diversity selection defaults to MTP-based descriptors and therefore
 also needs a compatible potential. These selection scores are not error bounds.
 
 ## Elastic Constants & Phonons
 
 | Goal | Command | Example |
 |------|---------|---------|
-| Analytic elastic constants | `imrmlp elastic --method=analytical --potfile=pot.mtp --input=POSCAR` | — |
-| Numerical elastic constants | `imrmlp elastic --method=numerical -pot pot.mtp -in POSCAR` | `--strain-magnitude=0.005` |
-| Force constants | `imrmlp fc -pot pot.mtp -in POSCAR -dim 3 3 3` | `--reduced=false --hessian-method=analytic` |
-| Phonopy FORCE_SETS | `imrmlp mlpphdisp -pot pot.mtp -d phonopy_disp.yaml` | — |
+| Analytic elastic constants | `imrmlp elastic --method=analytical --potfile=potential.mtp --input=POSCAR` | — |
+| Numerical elastic constants | `imrmlp elastic --method=numerical -pot potential.mtp -in POSCAR` | `--strain-magnitude=0.005` |
+| Force constants | `imrmlp fc -pot potential.mtp -in POSCAR -dim 3 3 3` | `--reduced=false --hessian-method=analytic` |
+| Phonopy FORCE_SETS | `imrmlp mlpphdisp -pot potential.mtp -d phonopy_disp.yaml` | — |
 | EOS (energy-volume) | `imrmlp ev --input=POSCAR --settings=eos.ini -ub 0.05 -lb -0.05` | `[pot]`, `[relax]` (or default `input.ini`) |
 
 ## Analysis
@@ -100,7 +100,7 @@ also needs a compatible potential. These selection scores are not error bounds.
 
 | Goal | Command | Example |
 |------|---------|---------|
-| MTP → spline (LAMMPS) | `imrmlp mtp2spline pot.mtp spline_out` | — |
+| MTP → spline (LAMMPS) | `imrmlp mtp2spline potential.mtp spline_out` | — |
 | Reorder species | `imrmlp adjustmtp --input=in.mtp --output=out.mtp --neworder 0 2 1` | — |
 | Compare/remap MTP bases | `imrmlp mtpbasis -s source.mtp -t target.mtp [-o remapped.mtp]` | exact item/span test |
 | Generate MTP basis | `imrmlp mtmbasis --settings=mtmbasis.ini` | writes `potential.mtp_<iteration>` |

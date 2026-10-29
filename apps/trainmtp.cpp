@@ -21,7 +21,7 @@ int trainmtp(int argc, char *argv[]) {
     GPIO iobj;
     std::vector<Atoms> atoms, atoms_valid;
     string indexfile = "index.map"; // can use with formation energy, first is dft, second is mlp
-    string pfile = "pot.mtp";
+    string pfile = "potential.mtp";
     string infile = "train.cfg";
     string infilev = "";
     string informat = "";

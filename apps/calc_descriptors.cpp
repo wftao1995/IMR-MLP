@@ -30,7 +30,7 @@ int calc_descriptors(int argc, char *argv[])
     string outformat = "extxyz";
     string localname = "desc";
     string globalname = "desc";
-    string potfile = "pot.mtp";
+    string potfile = "potential.mtp";
     string outfile = "output-desc.xyz";
     string dtype = "mtp"; // mtp, mtm, biso3, biso4, behler, bondorder
     // biso3 parameters

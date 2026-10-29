@@ -84,7 +84,7 @@ imrmlp efs --settings=calc_efs.ini
 |--------|-------|---------|-------------|
 | `--input` | `-in` | `POSCAR` | 输入结构文件（位置参数，必需） |
 | `--output` | `-out` | `output-efs.cfg` | 附加 EFS 后的输出文件（位置参数，必需） |
-| `--potfile` | `-pot` | `pot.mtp` | 势参数文件 |
+| `--potfile` | `-pot` | `potential.mtp` | 势参数文件 |
 | `--pottype` | `-pt` | `mtp` | 势类型标识符 |
 | `--device` | | `cpu` | 计算后端：`cpu`、`cuda` 或 `hip`（`dcu` 是 `hip` 的别名） |
 | `--gpu-id` | | `-1` | GPU 设备编号；`-1` 使用当前 GPU 设备 |
@@ -165,14 +165,14 @@ CLI 混乱，并使配置可复现。参见 @ref guide_config 了解所有支持
 
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|---------|-------------|
-| `--potfile` | `-pot` | 无 | 势文件 |
+| `--potfile` | `-pot` | — | 势文件 |
 | `--pottype` | `-pt` | `mtp` | 势类型 |
 | `--input` | `-in` | `POSCAR` | 输入结构 |
 | `--output` | `-out` | `output-relaxed.cfg` | 输出结构 |
 | `--input-format` | `-if` | 自动检测 | 输入格式 |
 | `--output-format` | `-of` | 根据文件名推断 | 输出格式 |
 | `--index` | `-id` | `index.map` | 物种索引映射 |
-| `--settings` | | 无 | 设置文件 |
+| `--settings` | | — | 设置文件 |
 | `--gtol` | | — | 力收敛容差 |
 | `--pressure` | `-p` | `0` | 外部压力（GPa） |
 | `--isif` | | — | 晶胞/变胞弛豫模式 |
@@ -211,7 +211,7 @@ imrmlp modefollowing --settings=modefollowing.ini --potfile=potential.mtp --inpu
 | `--settings` | | `modefollowing.ini` | 设置文件（必填） |
 | `--potfile` | `-pot` | `potential.mtp` | 势文件（MTP 类型） |
 | `--input` | `-in` | `POSCAR` | 输入结构 |
-| `--input2` | `-in2` | | 可选第二结构，用于双结构模式/重叠比较 |
+| `--input2` | `-in2` | `POSCAR_LAM` | 可选第二结构，用于双结构模式/重叠比较 |
 | `--input-format` | `-if` | `POSCAR` | 输入结构格式 |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--max-loop` | | `100` | 每个模式跟随阶段的最大迭代次数，必须非负 |
@@ -326,7 +326,7 @@ imrmlp trainmtp --trainset=train.cfg --validset=valid.cfg --potfile=init.mtp --d
 | `--validset` | `-valid` | | 验证数据集文件 |
 | `--trainset-format` | `-if` | | 训练数据集格式（空 = 自动检测） |
 | `--validset-format` | `-vf` | | 验证数据集格式（空 = 自动检测） |
-| `--potfile` | `-pot` | `pot.mtp` | 势文件 |
+| `--potfile` | `-pot` | `potential.mtp` | 势文件 |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--linear-fit` | `-lf` | `false` | 仅线性拟合，固定径向（布尔标志） |
 | `--do-rescale` | `-rs` | `false` | 在线性拟合中搜索径向缩放；须同时指定 `--linear-fit` |
@@ -359,7 +359,7 @@ imrmlp trainmtp --trainset=train.cfg --validset=valid.cfg --potfile=init.mtp --d
 这里仅包含张量分量的几何权重，不包含训练配置中的权重及按原子数归一化。
 
 训练超参数从 `[fit]` 部分读取；势文件由扁平 `potfile` 键给出（默认
-`pot.mtp`，`trainmtp` 不读取 `[pot]` 部分——那是 `trainnlpot` 的行为）。
+`potential.mtp`，`trainmtp` 不读取 `[pot]` 部分——那是 `trainnlpot` 的行为）。
 
 ### `trainnlpot` — 训练非线性势
 
@@ -563,7 +563,7 @@ imrmlp initmtpm -pot initial.mtp --dataset=train.cfg
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|---------|-------------|
 | `--settings` | | `settings.ini` | 设置文件（位置参数，必需） |
-| `--potfile` | `-pot` | `pot.mtp` | 输出势文件 |
+| `--potfile` | `-pot` | `potential.mtp` | 输出势文件 |
 | `--dataset` | `-d` | `train.cfg` | 用于基组检测的参考数据 |
 | `--format` | `-f` | | 数据格式（空 = 自动检测） |
 | `--index` | `-id` | `index.map` | 索引文件 |
@@ -609,40 +609,40 @@ imrmlp initmtpm -pot initial.mtp --dataset=train.cfg
 imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 ```
 
-| 选项 | 描述 |
-|--------|-------------|
-| `--pool` | 输入结构池（默认：`pool.xyz`） |
-| `--potfile` | 势文件用于 B-矩阵（默认：`potential.mtp`） |
-| `--pottype` | 势类型：mtp、eampoly、lj612...（默认：`mtp`） |
-| `--dtype` | 描述符类型：mtm、pot_efs、behler、bondorder（默认：`mtm`） |
-| `--index` / `-id` | 索引文件（默认：`index.map`） |
-| `--input-format` / `-if` | 输入池文件格式（默认：自动检测） |
-| `--output-format` / `-of` | 输出格式（默认：自动检测） |
-| `--output` / `-o` | 输出选中的结构（默认：`selected.xyz`） |
-| `--score-file` | 输出每个结构的 MaxVol 评分 |
-| `--threshold` | 选择阈值（默认：1.001） |
-| `--max-swaps` | 交换限制（默认：0 = 无限制） |
-| `--weight` | B-矩阵行权重（默认：1.0） |
-| `--pow-scale` | 原子计数缩放指数（默认：0.5） |
-| `--init-mode` | 活动集初始化：`auto`、MLIP 兼容虚拟单位阵 `mlip`，或旧的真实行初始化 `data` |
-| `--init-value` | `mlip` 模式的虚拟单位行尺度（默认：`1e-6`） |
-| `--verbose` / `-v` | 详细输出（布尔值） |
-| `--all-coeffs` | 使用 ALL 系数（不仅是线性系数，布尔值） |
-| `--row-scaling` | 行缩放：`uniform`，或仅对能量/应力做原子数缩放的 `mlip` |
-| `--select-mode` | 选择后端：`stream`、`full` 或与输入顺序相关的近似 `online` |
-| `--stream-mode` | `exact` 扫描缓存的完整候选池直至收敛；`fast` 使用有界的全局 shortlist |
-| `--stream-chunk-size` | 每个并行构建/缓存分块包含的结构数 |
-| `--stream-fast-passes` | `fast` 流式模式的最大全局扫描轮数 |
-| `--stream-fast-shortlist` | `fast` 模式的全局 shortlist 大小；0 表示自动选择 |
-| `--stream-cache-mode` | 行缓存后端：`auto`、`memory`、`mmap` 或旧实现 `off` |
-| `--stream-memory-limit-mb` | 每进程常驻行缓存上限，默认 3072 MiB；`auto` 会把后续分块转为 mmap |
-| `--stream-cache-dir` | 临时 mmap 目录；默认依次使用 `TMPDIR` 和 `/tmp` |
-| `--mode` | 行模式：`nbh`（逐原子）或 `cfg`（逐结构） |
-| `--w-energy` | 能量 B-矩阵权重（默认：1.0） |
-| `--w-site` | 位点能量权重（默认：0.0） |
-| `--w-force` | 力 B-矩阵权重（默认：0.0） |
-| `--w-stress` | 应力 B-矩阵权重（默认：0.0） |
-| `--settings` | 设置文件（默认：`select.ini`，必需） |
+| 选项 | 别名 | 默认值 | 描述 |
+|--------|-------|---------|-------------|
+| `--pool` |  | `pool.xyz` | 输入结构池 |
+| `--potfile` |  | `potential.mtp` | 势文件用于 B-矩阵 |
+| `--pottype` |  | `mtp` | 势类型：mtp、eampoly、lj612... |
+| `--dtype` |  | `mtm` | 描述符类型：mtm、pot_efs、behler、bondorder |
+| `--index` | `-id` | `index.map` | 索引文件 |
+| `--input-format` | `-if` | auto | 输入池文件格式 |
+| `--output-format` | `-of` | auto | 输出格式 |
+| `--output` | `-o` | `selected.xyz` | 输出选中的结构 |
+| `--score-file` |  | — | 输出每个结构的 MaxVol 评分 |
+| `--threshold` |  | `1.001` | 选择阈值 |
+| `--max-swaps` |  | `0` | 交换限制（0 = 无限制） |
+| `--weight` |  | `1.0` | B-矩阵行权重 |
+| `--pow-scale` |  | `0.5` | 原子计数缩放指数 |
+| `--init-mode` |  | `auto` | 活动集初始化：`auto`、MLIP 兼容虚拟单位阵 `mlip`，或旧的真实行初始化 `data` |
+| `--init-value` |  | `1e-6` | `mlip` 模式的虚拟单位行尺度 |
+| `--verbose` | `-v` | `false` | 详细输出（布尔值） |
+| `--all-coeffs` |  | `false` | 使用 ALL 系数（不仅是线性系数，布尔值） |
+| `--row-scaling` |  | `uniform` | 行缩放：`uniform`，或仅对能量/应力做原子数缩放的 `mlip` |
+| `--select-mode` |  | `stream` | 选择后端：`stream`、`full` 或与输入顺序相关的近似 `online` |
+| `--stream-mode` |  | `exact` | `exact` 扫描缓存的完整候选池直至收敛；`fast` 使用有界的全局 shortlist |
+| `--stream-chunk-size` |  | `32` | 每个并行构建/缓存分块包含的结构数 |
+| `--stream-fast-passes` |  | `2` | `fast` 流式模式的最大全局扫描轮数 |
+| `--stream-fast-shortlist` |  | `0` | `fast` 模式的全局 shortlist 大小；0 表示自动选择 |
+| `--stream-cache-mode` |  | `auto` | 行缓存后端：`auto`、`memory`、`mmap` 或旧实现 `off` |
+| `--stream-memory-limit-mb` |  | `3072` | 每进程常驻行缓存上限；`auto` 会把后续分块转为 mmap |
+| `--stream-cache-dir` |  | — | 临时 mmap 目录；默认依次使用 `TMPDIR` 和 `/tmp` |
+| `--mode` |  | `nbh` | 行模式：`nbh`（逐原子）或 `cfg`（逐结构） |
+| `--w-energy` |  | `1.0` | 能量 B-矩阵权重 |
+| `--w-site` |  | `0.0` | 位点能量权重 |
+| `--w-force` |  | `0.0` | 力 B-矩阵权重 |
+| `--w-stress` |  | `0.0` | 应力 B-矩阵权重 |
+| `--settings` |  | `select.ini` | 设置文件（必需） |
 
 MaxVol 状态文件（`.sel`）使用 v10 格式，模型元数据解析独立于该状态格式。
 
@@ -764,41 +764,41 @@ imrmlp maxvol_extend --potfile=potential.mtp \
 从 `--train` 构建初始 Active Set，评估候选结构，合并且重新稳定。
 适用于一次性训练集构建。
 
-| 选项 | 描述 |
-|--------|-------------|
-| `--potfile` | 势文件用于 B-矩阵（默认：`potential.mtp`） |
-| `--pottype` | 势类型：mtp、eampoly、lj612...（默认：`mtp`） |
-| `--state-file` | 主动集 state 文件 (`.sel`) — 跳过 Stage 1，加载已有 Active Set |
-| `--train` | 训练集文件 |
-| `--candidates` | 候选结构文件 |
-| `--output` / `-o` | 输出新入选的候选结构（默认：`new_selected.xyz`） |
-| `--dtype` | 描述符类型：mtm、pot_efs、behler、bondorder（默认：`mtm`） |
-| `--index` / `-id` | 索引文件（默认：`index.map`） |
-| `--input-format` / `-if` | 输入文件格式（默认：自动检测） |
-| `--output-format` / `-of` | 输出格式（默认：extxyz） |
-| `--mode` | 行模式：`nbh`（逐原子）或 `cfg`（逐结构） |
-| `--threshold` | 选择阈值（默认：1.001） |
-| `--weight` | B-矩阵行权重（默认：1.0） |
-| `--pow-scale` | 原子计数缩放指数（默认：0.5） |
-| `--w-energy` | 能量 B-矩阵权重（默认：1.0） |
-| `--w-site` | 位点能量权重（默认：0.0） |
-| `--w-force` | 力 B-矩阵权重（默认：0.0） |
-| `--w-stress` | 应力 B-矩阵权重（默认：0.0） |
-| `--max-swaps` | 交换限制（默认：0 = 无限制） |
-| `--verbose` / `-v` | 详细输出（布尔值） |
-| `--all-coeffs` | 使用 ALL 系数（不仅是线性系数，布尔值） |
-| `--row-scaling` | 行缩放：`uniform` 或 `mlip` |
-| `--init-mode` | 活动集初始化：`auto`、`mlip` 或 `data` |
-| `--init-value` | MLIP 虚拟单位行尺度 |
-| `--select-mode` | 选择后端：`stream`、`full` 或 `online` |
-| `--stream-mode` | 流式后端：`exact` 或 `fast` |
-| `--stream-chunk-size` | 流式构型分块大小 |
-| `--stream-fast-passes` | fast 模式最大扫描轮数 |
-| `--stream-fast-shortlist` | fast 模式全局 shortlist 大小（0 = 自动） |
-| `--stream-cache-mode` | 流式缓存：`auto`、`memory`、`mmap` 或 `off` |
-| `--stream-memory-limit-mb` | 每进程常驻流式缓存上限（MiB） |
-| `--stream-cache-dir` | 流式 mmap 临时文件目录 |
-| `--settings` | 设置文件（旧版默认名：`select_add.ini`，必需） |
+| 选项 | 别名 | 默认值 | 描述 |
+|--------|-------|---------|-------------|
+| `--potfile` |  | `potential.mtp` | 势文件用于 B-矩阵 |
+| `--pottype` |  | `mtp` | 势类型：mtp、eampoly、lj612... |
+| `--state-file` |  | — | 主动集 state 文件 (`.sel`) — 跳过 Stage 1，加载已有 Active Set |
+| `--train` |  | — | 训练集文件 |
+| `--candidates` |  | `candidates.xyz` | 候选结构文件 |
+| `--output` | `-o` | `new_selected.xyz` | 输出新入选的候选结构 |
+| `--dtype` |  | `mtm` | 描述符类型：mtm、pot_efs、behler、bondorder |
+| `--index` | `-id` | `index.map` | 索引文件 |
+| `--input-format` | `-if` | auto | 输入文件格式 |
+| `--output-format` | `-of` | `extxyz` | 输出格式 |
+| `--mode` |  | `nbh` | 行模式：`nbh`（逐原子）或 `cfg`（逐结构） |
+| `--threshold` |  | `1.001` | 选择阈值 |
+| `--weight` |  | `1.0` | B-矩阵行权重 |
+| `--pow-scale` |  | `0.5` | 原子计数缩放指数 |
+| `--w-energy` |  | `1.0` | 能量 B-矩阵权重 |
+| `--w-site` |  | `0.0` | 位点能量权重 |
+| `--w-force` |  | `0.0` | 力 B-矩阵权重 |
+| `--w-stress` |  | `0.0` | 应力 B-矩阵权重 |
+| `--max-swaps` |  | `0` | 交换限制（0 = 无限制） |
+| `--verbose` | `-v` | `false` | 详细输出（布尔值） |
+| `--all-coeffs` |  | `false` | 使用 ALL 系数（不仅是线性系数，布尔值） |
+| `--row-scaling` |  | `uniform` | 行缩放：`uniform` 或 `mlip` |
+| `--init-mode` |  | `auto` | 活动集初始化：`auto`、`mlip` 或 `data` |
+| `--init-value` |  | `1e-6` | MLIP 虚拟单位行尺度 |
+| `--select-mode` |  | `stream` | 选择后端：`stream`、`full` 或 `online` |
+| `--stream-mode` |  | `exact` | 流式后端：`exact` 或 `fast` |
+| `--stream-chunk-size` |  | `32` | 流式构型分块大小 |
+| `--stream-fast-passes` |  | `2` | fast 模式最大扫描轮数 |
+| `--stream-fast-shortlist` |  | `0` | fast 模式全局 shortlist 大小（0 = 自动） |
+| `--stream-cache-mode` |  | `auto` | 流式缓存：`auto`、`memory`、`mmap` 或 `off` |
+| `--stream-memory-limit-mb` |  | `3072` | 每进程常驻流式缓存上限（MiB） |
+| `--stream-cache-dir` |  | — | 流式 mmap 临时文件目录 |
+| `--settings` |  | `select_add.ini` | 设置文件（旧版默认名：`select_add.ini`，必需） |
 
 `maxvol_extend` 使用与 `maxvol_select` 相同的 `builder:*` 和
 `selector:*` 配置块；训练集、候选集和 state 路径仍是命令级顶层 key。
@@ -1192,20 +1192,20 @@ imrmlp calc_descriptors --settings=settings.ini -pot potential.mtp -in POSCAR -o
 
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|---------|-------------|
-| `--settings` | | | 可选设置文件（位置参数） |
-| `--input` | `-in` | | 输入结构文件（必需） |
+| `--settings` | | `input.inp` | 设置文件（位置参数，可选） |
+| `--input` | `-in` | `POSCAR` | 输入结构文件（位置参数，必需） |
 | `--output` | `-out` | `output-desc.xyz` | 输出描述符文件 |
 | `--input-format` | `-if` | | 输入格式（空 = 自动检测） |
 | `--output-format` | `-of` | `extxyz` | 输出格式 |
 | `--index` | `-id` | `index.map` | 索引文件 |
-| `--potfile` | `-pot` | | 势文件 |
-| `--dtype` | | | 描述符类型：`mtp`、`mtm`、`biso3`、`biso4`、`behler`、`bondorder` |
+| `--potfile` | `-pot` | `potential.mtp` | 势文件 |
+| `--dtype` | | `mtp` | 描述符类型：`mtp`、`mtm`、`biso3`、`biso4`、`behler`、`bondorder` |
 | `--biso3-lmax` | | `4` | biso3：最大角动量 L |
 | `--biso3-rmin` | | `0.0` | biso3：最小径向距离 |
 | `--biso3-rmax` | | `5.0` | biso3：截断半径 |
 | `--biso3-rsize` | | `8` | biso3：径向基大小 |
 | `--biso3-real-harmonics` | | `false` | biso3：选择实谐函数后端 |
-| `--cutoff` | `-c` | | 描述符计算的截断半径 |
+| `--cutoff` | `-c` | `5.0` | 描述符计算的截断半径 |
 | `--fuse-species-info` | `-fs` | `false` | 融合种类信息（布尔值） |
 | `--discard-local-components` | `-d` | `false` | 不输出逐原子局域描述符分量（布尔） |
 | `--local-name` | | `desc` | 局域描述符数组名 |
@@ -1620,36 +1620,36 @@ imrmlp convstr trajectory.lammpstrj output.cfg
 
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|--------|------|
-| `--inputfiles` | `-in` | | 输入结构文件（位置参数，必需，多文件） |
-| `--outputfile` | `-out` | | 输出文件（位置参数，必需） |
+| `--inputfiles` | `-in` | — | 输入结构文件（位置参数，必需，多文件） |
+| `--outputfile` | `-out` | — | 输出文件（位置参数，必需） |
 | `--input-format` | `-if` | 自动检测 | 输入格式 |
 | `--detect-format` | | `false` | 省略 `--input-format` 时根据内容检测输入格式（布尔） |
-| `--input-unit-system` | | | 显式指定 EXTXYZ 源单位：`canonical`、`metal`、`atomic` 或 `real` |
+| `--input-unit-system` | | — | 显式指定 EXTXYZ 源单位：`canonical`、`metal`、`atomic` 或 `real` |
 | `--output-format` | `-of` | 自动检测 | 输出格式 |
 | `--index` | `-id` | `index.map` | 索引文件 |
-| `--wrap` | `-w` | | 坐标环绕到周期性边界内（布尔值） |
+| `--wrap` | `-w` | `false` | 坐标环绕到周期性边界内（布尔值） |
 | `--resetid` | `-rid` | `true` | 原子类型 ID 重置为 0,1,2,... |
 | `--start` | `-st` | `0` | 起始镜像索引 |
-| `--end` | `-ed` | | 结束镜像索引 |
+| `--end` | `-ed` | `INT_MAX` | 结束镜像索引 |
 | `--outrate` | `-or` | `0`（全部） | 每 N 帧写入一次 |
-| `--shuffle` | | | 随机打乱镜像顺序（布尔值） |
-| `--sort-by` | | | 逗号分隔的排序键：`energy`、`fenergy`、`fitness`、`volume`、`size`、`id` 或全局属性 |
+| `--shuffle` | | `false` | 随机打乱镜像顺序（布尔值） |
+| `--sort-by` | | — | 逗号分隔的排序键：`energy`、`fenergy`、`fitness`、`volume`、`size`、`id` 或全局属性 |
 | `--sort-order` | | `asc` | 排序方向，单个值或逗号分隔 |
-| `--reverse` | `-r` | | 反转镜像顺序（布尔值） |
-| `--last` | `-last` | | 仅输出最后一帧（布尔值） |
-| `--drop` | `-d` | | 跳过未收敛的 OUTCAR 帧（布尔值） |
-| `--overwrite` | `-ov` | | 覆盖现有文件（布尔值） |
-| `--append` | `-a` | | 追加到现有文件（布尔值） |
-| `--select` | `-s` | | 选择特定镜像索引（可变参数） |
-| `--loadrate` | `-lr` | | 每 N 个结构读取镜像到内存 |
-| `--ostart` | `-ost` | | 输出起始镜像索引 |
-| `--oend` | `-oed` | | 输出结束镜像索引 |
+| `--reverse` | `-r` | `false` | 反转镜像顺序（布尔值） |
+| `--last` | `-last` | `false` | 仅输出最后一帧（布尔值） |
+| `--drop` | `-d` | `false` | 跳过未收敛的 OUTCAR 帧（布尔值） |
+| `--overwrite` | `-ov` | `false` | 覆盖现有文件（布尔值） |
+| `--append` | `-a` | `false` | 追加到现有文件（布尔值） |
+| `--select` | `-s` | — | 选择特定镜像索引（可变参数） |
+| `--loadrate` | `-lr` | `0` | 每 N 个结构读取镜像到内存 |
+| `--ostart` | `-ost` | `0` | 输出起始镜像索引 |
+| `--oend` | `-oed` | `INT_MAX` | 输出结束镜像索引 |
 | `--bstart` | `-b` | `true` | 从零开始 ID（布尔值） |
-| `--outsuffix` | `-suff` | | 附加到输出文件名的后缀 |
-| `--separator` | `-sep` | | 文件名与 ID 之间的分隔符 |
-| `--magnetic` | `-mag` | | 读取磁矩（布尔值） |
-| `--magnetic-non-colinear` | `-mncl` | | 假设非共线磁性（布尔值） |
-| `--discard` | | | 丢弃特定属性（可变参数） |
+| `--outsuffix` | `-suff` | — | 附加到输出文件名的后缀 |
+| `--separator` | `-sep` | — | 文件名与 ID 之间的分隔符 |
+| `--magnetic` | `-mag` | `false` | 读取磁矩（布尔值） |
+| `--magnetic-non-colinear` | `-mncl` | `false` | 假设非共线磁性（布尔值） |
+| `--discard` | | — | 丢弃特定属性（可变参数） |
 | `--rextent` | | `5.0` | 非 PBC 结构的晶胞扩展 |
 | `--force-one` | | `false` | 全部写入单个文件（布尔值） |
 | `--force-tilt` | | `false` | 即使正交也强制倾斜晶胞格式（布尔值） |

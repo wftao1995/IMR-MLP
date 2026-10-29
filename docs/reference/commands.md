@@ -95,7 +95,7 @@ imrmlp efs --settings=calc_efs.ini
 |--------|-------|---------|-------------|
 | `--input` | `-in` | `POSCAR` | Input structure file (positional, required) |
 | `--output` | `-out` | `output-efs.cfg` | Output file with EFS appended (positional, required) |
-| `--potfile` | `-pot` | `pot.mtp` | Potential parameter file |
+| `--potfile` | `-pot` | `potential.mtp` | Potential parameter file |
 | `--pottype` | `-pt` | `mtp` | Potential type identifier |
 | `--device` | | `cpu` | Evaluation backend: `cpu`, `cuda`, or `hip` (`dcu` is an alias for `hip`) |
 | `--gpu-id` | | `-1` | GPU device id; `-1` uses the current GPU device |
@@ -186,14 +186,14 @@ and `--discard-all` (drop extra properties on output).
 
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
-| `--potfile` | `-pot` | none | Potential file |
+| `--potfile` | `-pot` | — | Potential file |
 | `--pottype` | `-pt` | `mtp` | Potential type |
 | `--input` | `-in` | `POSCAR` | Input structure |
 | `--output` | `-out` | `output-relaxed.cfg` | Output structure |
 | `--input-format` | `-if` | auto | Input format |
 | `--output-format` | `-of` | from filename | Output format |
 | `--index` | `-id` | `index.map` | Species index map |
-| `--settings` | | none | Settings file |
+| `--settings` | | — | Settings file |
 | `--gtol` | | — | Force convergence tolerance |
 | `--pressure` | `-p` | `0` | External pressure (GPa) |
 | `--isif` | | — | Cell/variable relaxation mode |
@@ -232,7 +232,7 @@ imrmlp modefollowing --settings=modefollowing.ini --potfile=potential.mtp --inpu
 | `--settings` | | `modefollowing.ini` | Settings file (required) |
 | `--potfile` | `-pot` | `potential.mtp` | Potential file (should be MTP-based) |
 | `--input` | `-in` | `POSCAR` | Input structure |
-| `--input2` | `-in2` | | Optional second structure for two-structure mode/overlap comparisons |
+| `--input2` | `-in2` | `POSCAR_LAM` | Optional second structure for two-structure mode/overlap comparisons |
 | `--input-format` | `-if` | `POSCAR` | Input structure format |
 | `--index` | `-id` | `index.map` | Index file |
 | `--max-loop` | | `100` | Maximum iterations per mode-following stage; must be nonnegative |
@@ -354,7 +354,7 @@ imrmlp trainmtp --trainset=train.cfg --validset=valid.cfg --potfile=init.mtp --d
 | `--validset` | `-valid` | | Validation dataset file |
 | `--trainset-format` | `-if` | | Training dataset file format (empty = auto-detect) |
 | `--validset-format` | `-vf` | | Validation dataset file format (empty = auto-detect) |
-| `--potfile` | `-pot` | `pot.mtp` | Potential file |
+| `--potfile` | `-pot` | `potential.mtp` | Potential file |
 | `--index` | `-id` | `index.map` | Index file |
 | `--linear-fit` | `-lf` | `false` | Linear fit only, fix radial (bool flag) |
 | `--do-rescale` | `-rs` | `false` | Search radial rescaling during linear fitting; requires `--linear-fit` |
@@ -391,7 +391,7 @@ remains `int configuration_id`, followed by the coefficients and target as
 weights only, not the configured training weights or atom-count normalization.
 
 Training hyperparameters are read from the `[fit]` section, while the
-potential file is given by the flat `potfile` key (default `pot.mtp`; the
+potential file is given by the flat `potfile` key (default `potential.mtp`; the
 `[pot]` section is not consulted by `trainmtp` — that is `trainnlpot`'s
 behavior).
 
@@ -606,7 +606,7 @@ imrmlp initmtpm -pot initial.mtp --dataset=train.cfg
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
 | `--settings` | | `settings.ini` | Settings file (positional, required) |
-| `--potfile` | `-pot` | `pot.mtp` | Output potential file |
+| `--potfile` | `-pot` | `potential.mtp` | Output potential file |
 | `--dataset` | `-d` | `train.cfg` | Reference dataset for basis detection |
 | `--format` | `-f` | | Dataset format (empty = auto-detect) |
 | `--index` | `-id` | `index.map` | Index file |
@@ -668,7 +668,7 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--input-format` | `-if` | auto | Input pool file format |
 | `--output-format` | `-of` | auto | Output format |
 | `--output` | `-o` | `selected.xyz` | Output selected structures |
-| `--score-file` | | | Output per-structure MaxVol scores |
+| `--score-file` |  | — | Output per-structure MaxVol scores |
 | `--threshold` | | `1.001` | Selection threshold |
 | `--max-swaps` | | `0` | Swap limit (0 = unlimited) |
 | `--weight` | | `1.0` | B-matrix row weight |
@@ -685,7 +685,7 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--stream-fast-shortlist` | | `0` | Global shortlist size in `fast` mode; 0 selects an automatic size |
 | `--stream-cache-mode` | | `auto` | Row cache backend: `auto`, `memory`, `mmap`, or legacy `off` |
 | `--stream-memory-limit-mb` | | `3072` | Maximum resident row-cache size per process; `auto` spills later chunks to mmap |
-| `--stream-cache-dir` | | | Temporary mmap directory; defaults to `TMPDIR`, then `/tmp` |
+| `--stream-cache-dir` |  | — | Temporary mmap directory; defaults to `TMPDIR`, then `/tmp` |
 | `--mode` | | `nbh` | Row mode: `nbh` (per-atom) or `cfg` (per-structure) |
 | `--w-energy` | | `1.0` | Energy weight for B-matrix |
 | `--w-site` | | `0.0` | Site energy weight for B-matrix |
@@ -828,8 +828,8 @@ the combined pool.  Suitable for one-shot training set construction.
 |--------|-------|---------|-------------|
 | `--potfile` | | `potential.mtp` | Potential file for B-matrix |
 | `--pottype` | | `mtp` | Potential type: mtp, eampoly, lj612, ... |
-| `--state-file` | | | Active-set state file (`.sel`) — skip Stage 1 |
-| `--train` | | | Training set file |
+| `--state-file` |  | — | Active-set state file (`.sel`) — skip Stage 1 |
+| `--train` |  | — | Training set file |
 | `--candidates` | | `candidates.xyz` | Candidate structures to evaluate |
 | `--output` | `-o` | `new_selected.xyz` | Output newly selected structures |
 | `--dtype` | | `mtm` | Descriptor type: mtm, pot_efs, behler, bondorder |
@@ -849,15 +849,15 @@ the combined pool.  Suitable for one-shot training set construction.
 | `--all-coeffs` | | `false` | Use ALL coefficients, not just linear (bool) |
 | `--row-scaling` | | `uniform` | Row scaling: `uniform` or `mlip` |
 | `--init-mode` | | `auto` | Active initialization: `auto`, `mlip`, or `data` |
-| `--init-value` | | | MLIP virtual identity scale |
+| `--init-value` |  | `1e-6` | MLIP virtual identity scale |
 | `--select-mode` | | `stream` | Selection backend: `stream`, `full`, or `online` |
 | `--stream-mode` | | `exact` | Stream backend: `exact` or `fast` |
-| `--stream-chunk-size` | | | Streaming configuration chunk size |
-| `--stream-fast-passes` | | | Maximum passes in stream fast mode |
+| `--stream-chunk-size` |  | `32` | Streaming configuration chunk size |
+| `--stream-fast-passes` |  | `2` | Maximum passes in stream fast mode |
 | `--stream-fast-shortlist` | | `0` | Fast-mode global shortlist size (0 = auto) |
 | `--stream-cache-mode` | | `auto` | Stream cache: `auto`, `memory`, `mmap`, or `off` |
 | `--stream-memory-limit-mb` | | `3072` | Per-process resident stream-cache limit (MiB) |
-| `--stream-cache-dir` | | | Directory for temporary stream mmap files |
+| `--stream-cache-dir` |  | — | Directory for temporary stream mmap files |
 | `--settings` | | `select_add.ini` | Settings file (legacy default name; positional, required) |
 
 `maxvol_extend` uses the same `builder:*` and `selector:*` settings-file
@@ -1275,20 +1275,20 @@ imrmlp calc_descriptors --settings=settings.ini -pot potential.mtp -in POSCAR -o
 
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
-| `--settings` | | | Optional settings file (positional) |
-| `--input` | `-in` | | Input structure file (required) |
+| `--settings` | | `input.inp` | Settings file (positional, optional) |
+| `--input` | `-in` | `POSCAR` | Input structure file (positional, required) |
 | `--output` | `-out` | `output-desc.xyz` | Output descriptor file |
 | `--input-format` | `-if` | | Input format (empty = auto-detect) |
 | `--output-format` | `-of` | `extxyz` | Output format |
 | `--index` | `-id` | `index.map` | Index file |
-| `--potfile` | `-pot` | | Potential file |
-| `--dtype` | | | Descriptor type: mtp, mtm, biso3, biso4, behler, bondorder |
+| `--potfile` | `-pot` | `potential.mtp` | Potential file |
+| `--dtype` | | `mtp` | Descriptor type: mtp, mtm, biso3, biso4, behler, bondorder |
 | `--biso3-lmax` | | `4` | biso3: max angular L |
 | `--biso3-rmin` | | `0.0` | biso3: minimum radial distance |
 | `--biso3-rmax` | | `5.0` | biso3: cutoff radius |
 | `--biso3-rsize` | | `8` | biso3: radial basis size |
 | `--biso3-real-harmonics` | | `false` | biso3: opt-in real harmonic backend |
-| `--cutoff` | `-c` | | Cutoff radius for descriptor computation |
+| `--cutoff` | `-c` | `5.0` | Cutoff radius for descriptor computation |
 | `--fuse-species-info` | `-fs` | `false` | Fuse species information (bool) |
 | `--discard-local-components` | `-d` | `false` | Omit per-atom local descriptor components (bool) |
 | `--local-name` | | `desc` | Name of the local descriptor array |
@@ -1737,36 +1737,36 @@ imrmlp convstr trajectory.lammpstrj output.cfg
 
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
-| `--inputfiles` | `-in` | | Input structure file(s) (positional, required, multi-file) |
-| `--outputfile` | `-out` | | Output file (positional, required) |
+| `--inputfiles` | `-in` | — | Input structure file(s) (positional, required, multi-file) |
+| `--outputfile` | `-out` | — | Output file (positional, required) |
 | `--input-format` | `-if` | auto-detect | Input format |
 | `--detect-format` | | `false` | Detect input content when `--input-format` is omitted (bool) |
-| `--input-unit-system` | | | Explicit EXTXYZ source units: `canonical`, `metal`, `atomic`, or `real` |
+| `--input-unit-system` | | — | Explicit EXTXYZ source units: `canonical`, `metal`, `atomic`, or `real` |
 | `--output-format` | `-of` | auto-detect | Output format |
 | `--index` | `-id` | `index.map` | Index file |
-| `--wrap` | `-w` | | Wrap coordinates to periodic boundaries (bool) |
+| `--wrap` | `-w` | `false` | Wrap coordinates to periodic boundaries (bool) |
 | `--resetid` | `-rid` | `true` | Reset atom type IDs to 0,1,2,... |
 | `--start` | `-st` | `0` | Starting image index |
-| `--end` | `-ed` | | Ending image index |
+| `--end` | `-ed` | `INT_MAX` | Ending image index |
 | `--outrate` | `-or` | `0` (all) | Write every Nth frame |
-| `--shuffle` | | | Randomly shuffle image order (bool) |
-| `--sort-by` | | | Comma-separated sort keys: `energy`, `fenergy`, `fitness`, `volume`, `size`, `id`, or global attributes |
+| `--shuffle` | | `false` | Randomly shuffle image order (bool) |
+| `--sort-by` | | — | Comma-separated sort keys: `energy`, `fenergy`, `fitness`, `volume`, `size`, `id`, or global attributes |
 | `--sort-order` | | `asc` | Sort direction per key; single value or comma-separated |
-| `--reverse` | `-r` | | Reverse image order (bool) |
-| `--last` | `-last` | | Output only the final frame (bool) |
-| `--drop` | `-d` | | Skip non-converged OUTCAR frames (bool) |
-| `--overwrite` | `-ov` | | Overwrite existing file (bool) |
-| `--append` | `-a` | | Append to existing file (bool) |
-| `--select` | `-s` | | Select specific image indices (variable args) |
-| `--loadrate` | `-lr` | | Read images to memory every Nth structure |
-| `--ostart` | `-ost` | | Output starting image index |
-| `--oend` | `-oed` | | Output ending image index |
+| `--reverse` | `-r` | `false` | Reverse image order (bool) |
+| `--last` | `-last` | `false` | Output only the final frame (bool) |
+| `--drop` | `-d` | `false` | Skip non-converged OUTCAR frames (bool) |
+| `--overwrite` | `-ov` | `false` | Overwrite existing file (bool) |
+| `--append` | `-a` | `false` | Append to existing file (bool) |
+| `--select` | `-s` | — | Select specific image indices (variable args) |
+| `--loadrate` | `-lr` | `0` | Read images to memory every Nth structure |
+| `--ostart` | `-ost` | `0` | Output starting image index |
+| `--oend` | `-oed` | `INT_MAX` | Output ending image index |
 | `--bstart` | `-b` | `true` | Start IDs from zero (bool) |
-| `--outsuffix` | `-suff` | | Suffix appended to output filenames |
-| `--separator` | `-sep` | | Separator between filename and ID |
-| `--magnetic` | `-mag` | | Read magnetic moments (bool) |
-| `--magnetic-non-colinear` | `-mncl` | | Assume non-collinear magnetism (bool) |
-| `--discard` | | | Discard specific properties (variable args) |
+| `--outsuffix` | `-suff` | — | Suffix appended to output filenames |
+| `--separator` | `-sep` | — | Separator between filename and ID |
+| `--magnetic` | `-mag` | `false` | Read magnetic moments (bool) |
+| `--magnetic-non-colinear` | `-mncl` | `false` | Assume non-collinear magnetism (bool) |
+| `--discard` | | — | Discard specific properties (variable args) |
 | `--rextent` | | `5.0` | Cell padding for non-PBC structures |
 | `--force-one` | | `false` | Write all frames to single file (bool) |
 | `--force-tilt` | | `false` | Force tilted cell format even for orthogonal (bool) |

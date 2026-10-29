@@ -248,7 +248,7 @@ output                   CONTCAR         # Output relaxed structure in this file
 # input-format           POSCAR          # Input file format, will be guessed if not present\n\
 # output-format          POSCAR          # Output file format, will be gussed if not present\n\n\
 pot:pottype              mtp             # Potential type\n\
-pot:potfile              pot.mtp         # Potential file\n\
+pot:potfile              potential.mtp   # Potential file\n\
 index                    index.map       # Type mapping file\n\n\
 isif                     3               # Same as VASP, support 2 - 8, will overwrite other settings like relax_cell, relax_atom, fix_vol, fix_shape, etc\n\
 relax:pressure           0               # External hydrostatic pressure (GPa). Positive values means compressed\n\

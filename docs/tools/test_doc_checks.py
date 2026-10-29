@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import check_doc_commands
+import check_doc_consistency
 import check_doc_locale
 import doc_source_scan
 from doxygen_markdown import LINK
@@ -52,6 +53,42 @@ class CommandChecks(unittest.TestCase):
         for document in ('### `run` (alias: `r`)\n', '### `other`\n'):
             with self.subTest(document=document):
                 self.assertEqual(self.run_check(document), 1)
+
+
+class ConsistencyChecks(unittest.TestCase):
+    def run_check(self, en_document, zh_document):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            en_path, zh_path = root / 'commands.md', root / 'commands_zh.md'
+            en_path.write_text(en_document)
+            zh_path.write_text(zh_document)
+            with (patch.object(check_doc_consistency, 'DOC_EN', en_path),
+                  patch.object(check_doc_consistency, 'DOC_ZH', zh_path),
+                  redirect_stdout(StringIO())):
+                return check_doc_consistency.main()
+
+    EN = ('### `run` — Run\n\n'
+          '| Option | Alias | Default | Description |\n'
+          '|--------|-------|---------|-------------|\n'
+          '| `--input` | `-in` | `POSCAR` | Input file |\n')
+    ZH = ('### `run` — \u8fd0\u884c\n\n'
+          '| \u9009\u9879 | \u522b\u540d | \u9ed8\u8ba4\u503c | \u63cf\u8ff0 |\n'
+          '|--------|-------|---------|-------------|\n'
+          '| `--input` | `-in` | `POSCAR` | \u8f93\u5165\u6587\u4ef6 |\n')
+
+    def test_matching_tables_pass(self):
+        self.assertEqual(self.run_check(self.EN, self.ZH), 0)
+
+    def test_dropped_default_and_alias_columns_fail(self):
+        narrow = ('### `run` — \u8fd0\u884c\n\n'
+                  '| \u9009\u9879 | \u63cf\u8ff0 |\n'
+                  '|--------|-------------|\n'
+                  '| `--input` | \u8f93\u5165\u6587\u4ef6 |\n')
+        self.assertEqual(self.run_check(self.EN, narrow), 1)
+
+    def test_missing_option_still_fails(self):
+        zh = self.ZH.replace('| `--input` | `-in` | `POSCAR` | \u8f93\u5165\u6587\u4ef6 |\n', '')
+        self.assertEqual(self.run_check(self.EN, zh), 1)
 
 
 class LocaleChecks(unittest.TestCase):

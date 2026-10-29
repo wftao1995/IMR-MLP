@@ -32,7 +32,7 @@ section:key value
 ```text
 [pot]
 pottype    mtp
-potfile    pot.mtp
+potfile    potential.mtp
 
 [relax]
 driver         lbfgs

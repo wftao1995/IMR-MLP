@@ -37,7 +37,7 @@ cd build/my-efs-run
 ../release/imrmlp calc_efs --settings=calc-efs.ini --input POSCAR --output output-efs.cfg
 ```
 
-The simple EFS template expects `POSCAR`, `pot.mtp` and `index.map` by default and
+The simple EFS template expects `POSCAR`, `potential.mtp` and `index.map` by default and
 writes `output-efs.cfg`. For a first calculation with supplied inputs, use the
 [self-contained quickstart](../examples/quickstart/README.md).
 For relaxation, NEB and property calculations with complete inputs, use the

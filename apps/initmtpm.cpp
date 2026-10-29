@@ -12,7 +12,7 @@ int initmtpm(int argc, char** argv)
     using namespace std;
     GPSettings settings;
     auto &cmdopts = CMDOption::global_cmdopts;
-    string potfile = "pot.mtp";
+    string potfile = "potential.mtp";
     string settingfile = "settings.ini";
     string dataset = "train.cfg";
     string format = "";

@@ -248,12 +248,12 @@
               "render": true
             },
             {
-              "source": "docs/advanced/mtp-native-varpro_zh.md",
+              "source": "docs/advanced/mtp-native-varpro.md",
               "slug": "advanced/mtp-native-varpro",
               "render": true
             },
             {
-              "source": "docs/advanced/linear-refit_zh.md",
+              "source": "docs/advanced/linear-refit.md",
               "slug": "advanced/linear-refit",
               "render": true
             },
@@ -282,7 +282,7 @@
           },
           "pages": [
             {
-              "source": "docs/advanced/sog-multichannel_zh.md",
+              "source": "docs/advanced/sog-multichannel.md",
               "slug": "advanced/sog-multichannel",
               "render": true
             }

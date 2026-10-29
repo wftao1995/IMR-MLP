@@ -34,7 +34,7 @@ cd build/my-efs-run
 ../release/imrmlp calc_efs --settings=calc-efs.ini --input POSCAR --output output-efs.cfg
 ```
 
-精简 EFS 模板默认读取 `POSCAR`、`pot.mtp`、`index.map`，写入 `output-efs.cfg`。
+精简 EFS 模板默认读取 `POSCAR`、`potential.mtp`、`index.map`，写入 `output-efs.cfg`。
 需要附带输入、可直接运行的首个计算时，请使用[快速入门](../examples/quickstart/README_zh.md)。
 弛豫、NEB 和物性需要完整输入时，使用[连续计算练习](../examples/basic-calculations/README_zh.md)，
 其中会自动生成模型、结构与对应配置，并说明输出如何传给下一步。

@@ -25,7 +25,7 @@ bool supports_frame_local_efs(const AnyPotential &pot);
 /// @brief Factory wrapper that creates an AnyPotential from a type string.
 ///
 /// Usage:
-///   potential_wrapper pot("pot.mtp", "mtp");
+///   potential_wrapper pot("potential.mtp", "mtp");
 ///   pot.pot->getEFS(atom, nbhs);
 class potential_wrapper : public ConnectSettings {
 public:

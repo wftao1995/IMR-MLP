@@ -31,8 +31,8 @@
 
 | 目标 | 命令 | 示例 |
 |------|------|---------|
-| 计算能量、力和应力 | `imrmlp efs -pot pot.mtp -in str.cfg -out out.cfg` | — |
-| 对比预测值与参考值 | `imrmlp err -pot pot.mtp -in ref.cfg` | — |
+| 计算能量、力和应力 | `imrmlp efs -pot potential.mtp -in str.cfg -out out.cfg` | — |
+| 对比预测值与参考值 | `imrmlp err -pot potential.mtp -in ref.cfg` | — |
 | 检查势函数导数 | `imrmlp testpot --settings=test.ini` | — |
 | 计算描述符 | `imrmlp calc_descriptors --settings=settings.ini` | 顶层 `dtype` 和各描述符专用设置 |
 
@@ -48,22 +48,22 @@
 
 | 目标 | 命令 | 示例 |
 |------|------|---------|
-| MaxVol 选择子集 | `imrmlp maxvol_select --pool=pool.cfg --potfile=pot.mtp` | `--threshold=1.001` |
-| MaxVol 对结构评分 | `imrmlp maxvol_sample --potfile=pot.mtp --input=pool.cfg --state-file=pot.mtp.sel` | — |
-| MaxVol 扩充主动集 | `imrmlp maxvol_extend --potfile=pot.mtp --state-file=pot.mtp.sel --candidates=pool.cfg` | — |
-| FPS / CUR 多样性选择 | `imrmlp diverse_select --n-select=50 --pool=pool.xyz --potfile=pot.mtp` | `--method=cur` |
+| MaxVol 选择子集 | `imrmlp maxvol_select --pool=pool.cfg --potfile=potential.mtp` | `--threshold=1.001` |
+| MaxVol 对结构评分 | `imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.sel` | — |
+| MaxVol 扩充主动集 | `imrmlp maxvol_extend --potfile=potential.mtp --state-file=potential.mtp.sel --candidates=pool.cfg` | — |
+| FPS / CUR 多样性选择 | `imrmlp diverse_select --n-select=50 --pool=pool.xyz --potfile=potential.mtp` | `--method=cur` |
 
-MaxVol 选择将可复用的主动集写到 `pot.mtp.sel`。多样性选择默认使用 MTP 描述符，因此也需要匹配的势文件。
+MaxVol 选择将可复用的主动集写到 `potential.mtp.sel`。多样性选择默认使用 MTP 描述符，因此也需要匹配的势文件。
 选择分数不能当作误差上界。
 
 ## 弹性常数与声子
 
 | 目标 | 命令 | 示例 |
 |------|------|---------|
-| 解析计算弹性常数 | `imrmlp elastic --method=analytical --potfile=pot.mtp --input=POSCAR` | — |
-| 数值计算弹性常数 | `imrmlp elastic --method=numerical -pot pot.mtp -in POSCAR` | `--strain-magnitude=0.005` |
-| 力常数 | `imrmlp fc -pot pot.mtp -in POSCAR -dim 3 3 3` | `--reduced=false --hessian-method=analytic` |
-| Phonopy FORCE_SETS | `imrmlp mlpphdisp -pot pot.mtp -d phonopy_disp.yaml` | — |
+| 解析计算弹性常数 | `imrmlp elastic --method=analytical --potfile=potential.mtp --input=POSCAR` | — |
+| 数值计算弹性常数 | `imrmlp elastic --method=numerical -pot potential.mtp -in POSCAR` | `--strain-magnitude=0.005` |
+| 力常数 | `imrmlp fc -pot potential.mtp -in POSCAR -dim 3 3 3` | `--reduced=false --hessian-method=analytic` |
+| Phonopy FORCE_SETS | `imrmlp mlpphdisp -pot potential.mtp -d phonopy_disp.yaml` | — |
 | EOS（能量-体积） | `imrmlp ev --input=POSCAR --settings=eos.ini -ub 0.05 -lb -0.05` | `[pot]`、`[relax]`（或默认 `input.ini`） |
 
 ## 分析
@@ -96,7 +96,7 @@ MaxVol 选择将可复用的主动集写到 `pot.mtp.sel`。多样性选择默�
 
 | 目标 | 命令 | 示例 |
 |------|------|---------|
-| MTP → 样条势（LAMMPS） | `imrmlp mtp2spline pot.mtp spline_out` | — |
+| MTP → 样条势（LAMMPS） | `imrmlp mtp2spline potential.mtp spline_out` | — |
 | 重排物种顺序 | `imrmlp adjustmtp --input=in.mtp --output=out.mtp --neworder 0 2 1` | — |
 | 比较/映射 MTP 基组 | `imrmlp mtpbasis -s source.mtp -t target.mtp [-o remapped.mtp]` | 精确逐项/空间判等 |
 | 生成 MTP 基组 | `imrmlp mtmbasis --settings=mtmbasis.ini` | 写入 `potential.mtp_<iteration>` |

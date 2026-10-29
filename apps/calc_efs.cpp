@@ -64,7 +64,7 @@ int calc_efs(int argc, char *argv[]) {
     string outfile = "output-efs.cfg";
     string outformat = "";
     string indexfile = "index.map";
-    string pfile = "pot.mtp";
+    string pfile = "potential.mtp";
     string ptype = "mtp";
     string device = "cpu";
     int gpu_id = -1;

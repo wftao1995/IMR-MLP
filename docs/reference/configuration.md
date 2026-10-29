@@ -32,7 +32,7 @@ to set a namespace prefix for all keys that follow:
 ```text
 [pot]
 pottype    mtp
-potfile    pot.mtp
+potfile    potential.mtp
 
 [relax]
 driver         lbfgs
