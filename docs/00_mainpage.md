@@ -25,16 +25,16 @@ Developed by the Division of Materials Artificial Intelligence Research, Institu
 
 ---
 
-## Getting started
+## Entry points
 
-Choose a route in [getting started](guides/getting-started.md). Without a model,
-run the [self-contained example](../examples/quickstart/README.md); with a model,
-start with a single-point calculation. [Installation](guides/installation.md)
-explains a basic CPU build and verification; add Python, MPI or GPUs as needed.
+The complete classification is in the [user guides](guides/index.md), with the four
+runnable examples listed at the end.
 
-| Task | User guide |
+| Task | Page |
 | --- | --- |
-| Prepare inputs, species mapping and E/F/stress evaluation | [Getting started](guides/getting-started.md) |
+| Build the program; add Python, MPI or GPU support | [Installation and build](guides/installation.md) |
+| Input files, species mapping, settings syntax and units | [Input files and settings conventions](guides/conventions.md) |
+| Evaluate E/F/stress and quantify errors | [Single-point calculation](guides/single-point.md) |
 | Optimize atoms or cell | [Structure relaxation](guides/relaxation.md) |
 | Migration or reaction barriers | [NEB paths](guides/neb.md) |
 | Phonons, elasticity and equation of state | [Crystal properties](guides/properties.md) |
@@ -43,8 +43,7 @@ explains a basic CPU build and verification; add Python, MPI or GPUs as needed.
 | Run a model in LAMMPS / Python | [LAMMPS](../LAMMPS/README.md) / [Python](../README-python.md) |
 
 Use the [command reference](reference/commands.md) for options and
-[troubleshooting](guides/troubleshooting.md) for problems. Ordinary calculations
-do not require the C++ module/API indexes below.
+[troubleshooting](guides/troubleshooting.md) for problems.
 
 ---
 

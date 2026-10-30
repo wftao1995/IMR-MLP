@@ -167,11 +167,23 @@ def build_manual(output, python=sys.executable):
                 path=source/(page['slug']+'.md');path.parent.mkdir(parents=True,exist_ok=True)
                 content=convert(ROOT/page['source'],language,page['slug'])
                 if 'groups' in page:
+                    # Sphinx only renders a toctree caption at the top level, so a
+                    # hidden toctree nested in a category page loses its caption and
+                    # the sidebar flattens into one list. Give every group its own
+                    # index page instead; the sidebar then nests pages under it.
+                    group_slugs=[]
                     for group in page['groups']:
                         children=[p['slug'] for p in group['pages'] if p['render']]
-                        if children:
-                            content+='\n```{toctree}\n:hidden:\n:maxdepth: 1\n:caption: '+group['title'][language]+'\n\n'
-                            content+='\n'.join('/'+child for child in children)+'\n```\n'
+                        if not children:continue
+                        slug=page['id']+'/group-'+group['id'];group_slugs.append(slug)
+                        group_page=source/(slug+'.md');group_page.parent.mkdir(parents=True,exist_ok=True)
+                        group_page.write_text(
+                            f'# {group["title"][language]}\n\n'
+                            '```{toctree}\n:maxdepth: 1\n\n'
+                            +'\n'.join('/'+child for child in children)+'\n```\n')
+                    if group_slugs:
+                        content+='\n```{toctree}\n:hidden:\n:maxdepth: 1\n\n'
+                        content+='\n'.join('/'+slug for slug in group_slugs)+'\n```\n'
                 path.write_text(content)
             shutil.copy2(ROOT/'docs/manual'/f'index_{language}.md',source/'index.md')
             static=source/'_static';static.mkdir()

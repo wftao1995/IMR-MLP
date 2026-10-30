@@ -9,7 +9,7 @@ snapshot. Model-specific research notes may be available in only one language.
 C++ API 参考由 Doxygen 生成。
 中英文用户指南面向同一份源码；部分模型专题目前仅有一种语言。
 
-## Reading order / 阅读顺序
+## Scope of each section / 各分区的范围
 
 | Section / 分区 | English | 中文 |
 |---|---|---|
@@ -19,24 +19,15 @@ C++ API 参考由 Doxygen 生成。
 | Theory and algorithms / 理论与算法 | [Theory and algorithms](theory/index.md) | [理论与算法](theory/index_zh.md) |
 | Development / 开发文档 | [Development](development/index.md) | [开发文档](development/index_zh.md) |
 
-Start with [getting started](guides/getting-started.md) to choose between using
-an existing model and training one. [Installation](guides/installation.md) and
-the [self-contained quickstart](../examples/quickstart/README.md) verify the setup.
-The [calculation walkthrough](../examples/basic-calculations/README.md) supplies
-inputs and explicitly passes outputs between relaxation, NEB and property tasks.
-The [MTP walkthrough](../examples/mtp-workflow/README.md) adds basis generation,
-reference labeling, model selection and final testing before those calculations.
-For calculations, follow [relaxation](guides/relaxation.md), [NEB](guides/neb.md),
-[crystal properties](guides/properties.md) or [active learning](guides/active-learning.md).
-Use the [FAQ](guides/faq.md) for choices and [troubleshooting](guides/troubleshooting.md) for symptoms.
+The user guides answer "how do I complete this task": environment and inputs,
+single-command calculations, training, and interfaces and troubleshooting, with the
+runnable examples collected at the end. The reference lists definitions for commands,
+configuration, Python and model formats; advanced usage and theory cover
+method-specific material and derivations.
 
-先读[开始使用](guides/getting-started_zh.md)，区分已有模型做计算与自行训练两条路线。
-[安装](guides/installation_zh.md)和[自包含示例](../examples/quickstart/README_zh.md)用于验证环境；
-[连续计算练习](../examples/basic-calculations/README_zh.md)提供完整输入，明确衔接弛豫、NEB 与物性的输出。
-[MTP 连续练习](../examples/mtp-workflow/README_zh.md)还串起基组生成、参考标注、训练选型与最终测试。
-日常任务按[弛豫](guides/relaxation_zh.md)、[NEB](guides/neb_zh.md)、
-[晶体性质](guides/properties_zh.md)或[主动学习](guides/active-learning_zh.md)的步骤运行。
-“该用哪个”见 [FAQ](guides/faq_zh.md)，按症状排错见[故障排查](guides/troubleshooting_zh.md)。
+中文：使用指南回答"怎样完成某个任务"，按环境与输入、单任务计算、训练、接口与排错
+四组并列，可运行示例集中列在末尾。参考手册给出命令、配置、Python 与模型格式的定义；
+进阶使用与理论分别覆盖专题方法和算法推导。
 
 ## Build the HTML manual / 生成 HTML 手册
 

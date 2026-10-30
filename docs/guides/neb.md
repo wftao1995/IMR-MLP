@@ -1,45 +1,45 @@
-# NEB: From Two Endpoints to a Minimum-Energy Path {#guide_neb}
+# NEB minimum-energy paths {#guide_neb}
 
 [中文](neb_zh.md)
 
-NEB (nudged elastic band) finds migration, reaction or transformation paths
-between known initial and final states. It optimizes a sequence of images
-(structural copies along a path), not an MD trajectory. Prepare endpoints with
-the [relaxation guide](relaxation.md), then start with fixed-cell NEB.
-Variable cells and path symmetry can be added after the basic workflow works.
+NEB (nudged elastic band) finds migration, reaction or transformation paths between
+known initial and final states. It optimizes a sequence of images (structural
+copies along a path), not an MD trajectory.
 
-**No endpoints or model yet?** [Walkthrough step 4](../../examples/basic-calculations/README.md)
-supplies both guesses, endpoint-relaxation settings and NEB settings for an LJ
-vacancy hop. Complete its environment/input preparation first. This page's main
-example uses your ordinary MTP and migration problem.
-To train before calculating the path, use the [MTP walkthrough](../../examples/mtp-workflow/README.md).
+Out of scope: obtaining the endpoint structures (see
+[structure relaxation](relaxation.md)) and advanced variable-cell or symmetry
+settings (see [parallelism and path symmetry](../advanced/neb-parallel-symmetry.md)).
+Numerical convergence does not establish material barrier accuracy.
 
-## 1. Prepare endpoints and atom correspondence
+## Required inputs
 
-Put `initial.vasp`, `final.vasp`, `model.mtp` and `index.map` in a new task
-directory. Endpoints must have the same atom count, species and **atom identity
-on every corresponding row**. Fixed-cell NEB also needs the same cell,
-coordinate frame and boundary conditions. Relax both endpoints with the same
-cell, model and constraints; do not directly use different independently
-relaxed cells for fixed-cell NEB.
-Export each endpoint relaxation's final output to POSCAR with `convstr`, then
-copy them into the NEB directory as `initial.vasp` and `final.vasp`.
-These are inputs you supply, not inputs automatically created by `neb`.
+| File | Content | Source |
+| --- | --- | --- |
+| `initial.vasp` | Initial state | POSCAR exported with `convstr` after relaxing the initial state |
+| `final.vasp` | Final state | POSCAR exported with `convstr` after relaxing the final state |
+| `model.mtp` | Trained ordinary MTP model | Training output or a model provider |
+| `index.map` | Model species order | The model or its training records |
 
-NEB does not automatically match equivalent atoms. In vacancy migration an
-atom may move between endpoints, but reordering one endpoint's rows for a
-neater POSCAR changes the mapping. Under periodic boundaries, check that the
-displacement branch represents the intended mechanism: the minimum-image
-path is not always the desired path.
+Endpoints must have the same atom count, species and **atom identity on every
+corresponding row**. Fixed-cell NEB also needs the same cell, coordinate frame and
+boundary conditions: relax both endpoints with the same cell, model and
+constraints, and do not use different independently relaxed cells for fixed-cell
+NEB. You supply `initial.vasp` and `final.vasp`; `neb` does not create them.
 
-For example, in a 10 Å orthogonal periodic box, the same atom moving along x
-from 9.8 to 0.2 Å has a direct coordinate difference of −9.6 Å but a shortest
-boundary-crossing displacement of +0.4 Å. For that short hop, inspect that
-initialization crosses the boundary in +x and that the atom keeps its row
-identity. Reordering atoms does not repair a path. A deliberately long path
-around the box needs explicit unwrapping or intermediate images.
+NEB does not automatically match equivalent atoms. In vacancy migration an atom may
+move between endpoints, but reordering one endpoint's rows for a neater POSCAR
+changes the mapping. Under periodic boundaries, check that the displacement branch
+represents the intended mechanism; the minimum-image path is not always the
+desired path:
 
-## 2. Save a minimal fixed-cell configuration
+> In a 10 Å orthogonal periodic box, the same atom moving along x from 9.8 to
+> 0.2 Å has a direct coordinate difference of −9.6 Å but a shortest
+> boundary-crossing displacement of +0.4 Å. For that short hop, confirm that
+> initialization crosses the boundary in +x and that the atom keeps its row
+> identity; reordering atoms does not repair a path. A deliberately long path
+> around the box needs explicit unwrapping or intermediate images.
+
+## Commands and settings
 
 Use 7 images **including endpoints**, numbered 0 through 6. Missing interior
 images are initialized automatically. Save as `neb.ini`:
@@ -67,14 +67,13 @@ echo $?
 tail -n 20 neb.log
 ```
 
-`neb` aliases `calc_neb`. This explicitly selects the `stable-v1` numerical
-policy, FIRE and a fixed image count as a starting point. `gtol` tests the
-complete active NEB residual; fixed-cell atomic forces use eV/Å. Image count,
-tolerance, spring and step size are illustrative and need convergence checks
-for the target mechanism. NEB does not read `relax:` settings; top-level
-`gtol` overrides `neb:gtol`.
+`neb` aliases `calc_neb`. This explicitly selects the `stable-v1` numerical policy,
+FIRE and a fixed image count. `gtol` tests the complete active NEB residual;
+fixed-cell atomic forces use eV/Å. Image count, tolerance, spring and step size are
+illustrative and need convergence checks for the target mechanism. NEB does not
+read `relax:` settings; top-level `gtol` overrides `neb:gtol`.
 
-## 3. Understand initialization and climbing images
+### Initialization and climbing images
 
 | Choice | Purpose | Consideration |
 | --- | --- | --- |
@@ -83,13 +82,13 @@ for the target mechanism. NEB does not read `relax:` settings; top-level
 | `neb:climb true` | Apply climbing forces to the selected high-energy image to refine the saddle region | Still requires whole-path convergence and independent saddle checks |
 | Minimum-image unwrapping (enabled by default) | Unwrap adjacent supplied images using minimum-image displacement | Define the unwrapping deliberately for long or prescribed detour paths |
 
-Inspect initialized structures such as `nebimage_0.vasp` before interpreting
-barriers. If a better path is available, supply interior structures as
-`image:1`, etc., instead of relying only on endpoint interpolation.
-To start with ordinary NEB, use `neb:climb false` in a separate run, then retain
-the full path for refinement.
+The program writes initialized structures such as `nebimage_0.vasp`; inspect them
+before interpreting barriers. If a better path is available, supply interior
+structures as `image:1`, etc., instead of relying only on endpoint interpolation.
+To run ordinary NEB only, use `neb:climb false` in a separate run, then retain the
+full path for refinement.
 
-## 4. Read outputs and check convergence
+## Output and criteria
 
 | Output | Purpose |
 | --- | --- |
@@ -99,11 +98,11 @@ the full path for refinement.
 | `nebimage_N_final.vasp` | Final images; `N` is a zero-based integer |
 | `neb.dat.iterations.csv` | Iteration diagnostics separating accepted states from trial/budget issues |
 
-Exit code 0 means convergence, 2 normal termination without convergence and
-1 an error; the existing missing-settings status is 128. Final paths may still
-be written on iteration or evaluation-budget exhaustion. File existence is
-not convergence. Check the complete NEB residual, not just small perpendicular
-forces or image-energy changes.
+Exit code 0 means convergence, 2 normal termination without convergence and 1 an
+error; the existing missing-settings status is 128. Final paths may still be
+written on iteration or evaluation-budget exhaustion: file existence is not
+convergence. Check the complete NEB residual, not just small perpendicular forces
+or image-energy changes.
 
 For fixed cells, the `enthalpy` column in `neb.dat` is model total energy and
 `ent_diff` is relative to the initial state. The forward barrier is the highest
@@ -112,7 +111,7 @@ energy. These are total eV for the simulated system, not automatically eV/atom.
 A smooth interpolated curve is for presentation and does not replace an actual
 saddle evaluation.
 
-### Small example: read barriers from path energies
+### Reading barriers from path energies
 
 Suppose a converged fixed-cell path has these illustrative relative energies:
 
@@ -124,45 +123,59 @@ Suppose a converged fixed-cell path has these illustrative relative energies:
 
 The forward barrier is `0.46 − 0.00 = 0.46 eV`; the reverse barrier is
 `0.46 − (−0.05) = 0.51 eV`. The final state is `0.05 eV` lower than the initial
-state. Do not substitute the difference between the highest image and its
-neighbor or divide by the atom count. When adding images, compare the maximum
-energy, full NEB residual and mechanism for stability.
+state. Do not substitute the difference between the highest image and its neighbor
+or divide by the atom count. When adding images, compare the maximum energy, full
+NEB residual and mechanism for stability.
 
-## 5. Improve reliability and restart
+## Restart and reliability
 
 Check the mechanism, distances and endpoint convergence before comparing more
 images, tighter tolerances and alternative initial paths. Independently check
 whether the highest-energy image is a first-order saddle; exactly one negative
-Hessian mode after excluding translations is one necessary check. Numerical
-convergence does not establish material barrier accuracy.
+Hessian mode after excluding translations is one necessary check.
 
-Retain the original model, map, `neb.dat` and every `nebimage_N_final.vasp`.
-In a backed-up run directory, increase the budget and continue:
+Retain the original model, map, `neb.dat` and every `nebimage_N_final.vasp`. In a
+backed-up run directory, increase the budget and continue:
 
 ```sh
 imrmlp neb neb.ini --next_step > neb-restart.log 2>&1
 ```
 
-The default fixed image count keeps `nimgs` unchanged in this example.
-Continuation updates outputs with the same names; retain the original results
-first. Path/stage information is restored but optimizer history is rebuilt;
-step-by-step agreement with an uninterrupted run is not guaranteed.
-Variable-cell restart also needs `neb_reference_cell.data`. Changing models,
-adding constraints or perturbing the path should be an explicit new calculation.
+The default fixed image count keeps `nimgs` unchanged. Continuation updates outputs
+with the same names, so retain the original results first. Path/stage information
+is restored but optimizer history is rebuilt; step-by-step agreement with an
+uninterrupted run is not guaranteed. Variable-cell restart also needs
+`neb_reference_cell.data`. Changing models, adding constraints or perturbing the
+path should be an explicit new calculation, not a no-change continuation.
 
-## 6. Add MPI, variable cells or path symmetry as needed
+## Extensions: MPI, variable cells and path symmetry
 
-- **MPI/OpenMP:** Distribute images across ranks; `--num_threads` is per rank.
-  Match rank × thread count to allocated CPU cores and control BLAS threads
-  separately. See [parallelism and path symmetry](../advanced/neb-parallel-symmetry.md).
+- **MPI/OpenMP:** Distribute images across ranks; `--num_threads` is per rank. Match
+  rank × thread count to allocated CPU cores and control BLAS threads separately.
 - **VCNEB:** Use variable-cell paths for different endpoint cells or pressure-driven
-  transformations. Cell metrics, stress and enthalpy enter the problem.
-  Pressure is in GPa; output includes pV already. Fixed-cell `gtol` is not a
-  uniform force tolerance in variable-cell coordinates.
+  transformations; cell metrics, stress and enthalpy enter the problem. Pressure is
+  in GPa and the output includes pV already. Fixed-cell `gtol` is not a uniform
+  force tolerance in variable-cell coordinates.
 - **Symmetry:** Common-subgroup constraints may reduce cost while excluding lower
-  paths. Compare perturbation/release checks; the same space-group number does
-  not establish symmetry of an entire labeled path.
+  paths; compare perturbation/release checks. The same space-group number does not
+  establish symmetry of an entire labeled path.
 
-See the [stationary-point and path guide](../advanced/saddle-workflows.md) for
-these settings and alternatives such as Dimer/mode following. Complete options
-are in the [command reference](../reference/commands.md).
+See the [stationary-point and path guide](../advanced/saddle-workflows.md) for Dimer
+and mode-following alternatives.
+
+## Common errors
+
+| Symptom | Cause | Action |
+| --- | --- | --- |
+| Atoms cross or overlap along the path | Endpoint rows do not share atom identity | Keep the same row order for each atom in both endpoints; do not reorder for presentation |
+| The mechanism differs from the intended direction | A minimum-image branch was used instead of the intended unwrapping | Prepare explicit unwrapped or intermediate images, or combine `neb:init_method linear` with manual images |
+| `nebimage_*` files exist but the path did not converge | The budget ran out and a final path was still written | Check `# converged`, `# status` and the complete NEB residual |
+| Barrier off by an order of magnitude | Total eV treated as eV/atom, or divided by the atom count | Fixed-cell barriers are total energy differences of the system |
+| Convergence criteria fail in variable-cell runs | Fixed-cell meaning of `gtol` reused | Variable-cell coordinates are generalized; use a separate tolerance check |
+| Results after changing model or constraints are not comparable | Treated as a no-change continuation | Rerun as a new calculation and keep a backup of the original results |
+
+## Related
+
+- [Structure relaxation](relaxation.md): endpoint preparation
+- [Parallelism and path symmetry](../advanced/neb-parallel-symmetry.md), [stationary points and paths](../advanced/saddle-workflows.md)
+- [Command reference](../reference/commands.md)

@@ -1,8 +1,8 @@
 # 故障排查 {#guide_troubleshooting}
 
-[English](troubleshooting.md) · [配置语法](../reference/configuration_zh.md)
+[English](troubleshooting.md)
 
-## 按教程运行，却找不到模型、POSCAR 或示例目录
+## 找不到模型、POSCAR 或示例目录
 
 先确认当前目录（`pwd`）和上一阶段是否成功。`model.mtp`、`POSCAR` 等是自备输入的
 占位名，不会由任意命令自动下载；没有自己的输入时走

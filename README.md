@@ -49,12 +49,12 @@ See the [walkthrough](examples/quickstart/README.md).
 
 | Task | Start here |
 | --- | --- |
-| First use: choose a task, prepare files and evaluate a structure | [Getting started](docs/guides/getting-started.md) |
-| Fixed-cell or variable-cell structure optimization | [Relaxation guide](docs/guides/relaxation.md) |
-| Migration or reaction barriers between endpoints | [NEB guide](docs/guides/neb.md) |
+| Prepare input files, evaluate a structure and quantify errors | [Single-point calculation](docs/guides/single-point.md) |
+| Fixed-cell or variable-cell structure optimization | [Structure relaxation](docs/guides/relaxation.md) |
+| Migration or reaction barriers between endpoints | [NEB minimum-energy paths](docs/guides/neb.md) |
 | Phonons, elasticity and equation of state | [Crystal properties](docs/guides/properties.md) |
-| Install CPU, MPI or GPU builds | [Build guide](docs/guides/installation.md) |
-| Learn configuration syntax and species mapping | [Configuration](docs/reference/configuration.md) |
+| Install CPU, MPI or GPU builds | [Installation and build](docs/guides/installation.md) |
+| Input files, settings syntax and species mapping | [Input conventions](docs/guides/conventions.md), [configuration reference](docs/reference/configuration.md) |
 | Prepare data, train and validate an MTP | [Workflows](docs/guides/workflows.md) |
 | Find command arguments | [Command reference](docs/reference/commands.md), `imrmlp COMMAND --help` |
 | Deploy MTP in LAMMPS | [CPU/OpenMP, spline, GPU and transport](LAMMPS/README.md) |

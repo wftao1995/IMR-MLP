@@ -1,9 +1,9 @@
 # 常见问题 {#guide_faq}
 
-[English](faq.md) · [命令参考](../reference/commands_zh.md) · [配置说明](../reference/configuration_zh.md)
+[English](faq.md)
 
-这里回答第一次运行前最常见的问题，偏“该用哪个”“如何定义”。
-按症状排错请见[故障排查](troubleshooting_zh.md)；第一次计算先看[任务引导](getting-started_zh.md)。
+按"该用哪个"与"如何定义"组织。按症状排错见[故障排查](troubleshooting_zh.md)，
+完整选项见[命令参考](../reference/commands_zh.md)与[配置参考](../reference/configuration_zh.md)。
 
 ## 训练势函数用哪个命令？
 

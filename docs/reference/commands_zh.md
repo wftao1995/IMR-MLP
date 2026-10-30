@@ -5,7 +5,8 @@
 @tableofcontents
 
 
-首次使用请先按[任务引导](../guides/getting-started_zh.md)准备输入。
+输入文件与配置语法见[输入文件与配置约定](../guides/conventions_zh.md)，
+单点计算见[单点计算](../guides/single-point_zh.md)。
 [弛豫](../guides/relaxation_zh.md)、[NEB](../guides/neb_zh.md)、
 [晶体性质](../guides/properties_zh.md)和[选样](../guides/active-learning_zh.md)
 提供完整流程；本页用于查命令和选项。
@@ -1664,13 +1665,13 @@ imrmlp convstr trajectory.lammpstrj output.cfg
 
 ### `split_set` — 分割数据集
 
-将结构数据集分割为 N 个相等的子集或训练/测试集。
+将结构数据集按比例分割，或等分为 N 个子集。
 
 ```bash
-imrmlp split_set --input=dataset.cfg --nsplit=2 --shuffle yes --output-prefix=split_
-# 生成 split_0.xyz, split_1.xyz（输出一律为 extxyz 格式）
 imrmlp split_set dataset.cfg split_ --ratios=8,1,1 --shuffle yes
 # 生成约 80% / 10% / 10% 的子集
+imrmlp split_set --input=dataset.cfg --output-prefix=split_ --nsplit=2 --shuffle yes
+# 生成 split_0.xyz, split_1.xyz（输出一律为 extxyz 格式）
 ```
 
 | 选项 | 别名 | 描述 |
@@ -1681,8 +1682,8 @@ imrmlp split_set dataset.cfg split_ --ratios=8,1,1 --shuffle yes
 | `--input` | | 输入结构集（必需） |
 | `--output-prefix` | | 输出文件前缀（必需） |
 
-等分模式在可选打乱后轮转分配。比例模式以最大余数法取整子集大小（余数相同
-时优先前面的子集），然后连续分段；零大小子集会生成空输出文件。
+比例模式以最大余数法取整子集大小（余数相同时优先前面的子集），然后连续分段；
+零大小子集会生成空输出文件。等分模式按轮转分配，空子集直接跳过。
 若同时显式提供 `--nsplit` 和 `--ratios`，前者必须等于比例项数。
 没有随机种子选项，复现时应保存实际划分结果。
 

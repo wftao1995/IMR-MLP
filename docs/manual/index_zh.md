@@ -9,7 +9,7 @@
     <p class="imr-home-tagline">矩张量机器学习势框架</p>
     <p>用机器学习原子间势开展原子尺度计算：训练与验证模型，完成结构弛豫、迁移路径和晶体性质计算，并通过 Python、ASE 或 LAMMPS 使用模型。</p>
     <div class="imr-home-actions">
-      <a class="imr-home-primary" href="guides/getting-started.html">开始使用</a>
+      <a class="imr-home-primary" href="guides/index.html">使用指南</a>
       <a href="guides/quickstart.html">运行示例</a>
       <a href="reference/index.html">参考手册</a>
     </div>
@@ -20,20 +20,21 @@
 </div>
 ```
 
-## 第一次使用
+## 使用入口
 
-1. [先选任务、了解需要哪些输入](guides/getting-started.html)
-2. [安装 CPU 程序并验证环境](guides/installation.html)
-3. [没有模型时，运行自包含示例](guides/quickstart.html)
-4. 选择连续练习：[LJ 直接计算](guides/basic-calculations.html)，或 [MTP 从基组、训练到计算](guides/mtp-workflow.html)
+| 要做的事 | 页面 |
+| --- | --- |
+| 构建 CPU 程序并验证环境 | [安装与构建](guides/installation.html) |
+| 了解输入文件、元素映射、配置语法与单位 | [输入文件与配置约定](guides/conventions.html) |
+| 计算能量、力和应力，评估误差 | [单点计算](guides/single-point.html) |
+| 没有自备模型与数据时核验流程 | [自包含示例](guides/quickstart.html) |
 
-已有可用模型时，可以从[单点计算](guides/getting-started.html)直接开始，不必先训练。
+完整的任务分类见[使用指南](guides/index.html)，可运行示例列在其末尾。
 
 ## 我想完成一个计算
 
 | 目标 | 从这里开始 |
 | --- | --- |
-| 结构转换、元素映射、能量/力/应力 | [首次计算与输入准备](guides/getting-started.html) |
 | 固定胞 / 变胞结构优化 | [结构弛豫](guides/relaxation.html) |
 | 扩散、反应或相变势垒 | [NEB 最小能量路径](guides/neb.html) |
 | 声子、弹性、体模量 | [晶体性质](guides/properties.html) |
@@ -57,7 +58,7 @@ C++ 符号与源码索引见[API 站点](../../build_zh/html/annotated.html)。
 
 ```{toctree}
 :hidden:
-:maxdepth: 2
+:maxdepth: 3
 
 guides/index
 reference/index

@@ -9,7 +9,7 @@
     <p class="imr-home-tagline">Moment tensor machine-learning potentials</p>
     <p>Use machine-learning interatomic potentials for atomistic calculations: train and validate models, relax structures, find transition paths, calculate crystal properties, and run models through Python, ASE or LAMMPS.</p>
     <div class="imr-home-actions">
-      <a class="imr-home-primary" href="guides/getting-started.html">Get started</a>
+      <a class="imr-home-primary" href="guides/index.html">User guides</a>
       <a href="guides/quickstart.html">Run an example</a>
       <a href="reference/index.html">Reference</a>
     </div>
@@ -20,21 +20,22 @@
 </div>
 ```
 
-## First steps
+## Entry points
 
-1. [Choose a task and learn which inputs you need](guides/getting-started.html)
-2. [Install the CPU program and verify the environment](guides/installation.html)
-3. [Without a model, run the self-contained example](guides/quickstart.html)
-4. Choose a walkthrough: [direct LJ calculations](guides/basic-calculations.html), or [MTP from basis generation and fitting to calculations](guides/mtp-workflow.html)
+| What you need | Page |
+| --- | --- |
+| Build the CPU program and verify the environment | [Installation and build](guides/installation.html) |
+| Input files, species mapping, settings syntax and units | [Input files and settings conventions](guides/conventions.html) |
+| Energy, forces and stress, with error evaluation | [Single-point calculation](guides/single-point.html) |
+| Verify the workflow without your own model and data | [Self-contained example](guides/quickstart.html) |
 
-With a suitable existing model, start with a [single-point calculation](guides/getting-started.html)
-without training a model first.
+The complete task classification is in the [user guides](guides/index.html), with the
+runnable examples listed at the end.
 
 ## Complete a calculation
 
 | Goal | Start here |
 | --- | --- |
-| Structure formats, species mapping, energy/forces/stress | [First calculation and inputs](guides/getting-started.html) |
 | Fixed-cell / variable-cell optimization | [Structure relaxation](guides/relaxation.html) |
 | Diffusion, reaction or transformation barriers | [NEB minimum-energy paths](guides/neb.html) |
 | Phonons, elasticity or bulk modulus | [Crystal properties](guides/properties.html) |
@@ -59,7 +60,7 @@ C++ symbols and source indexes are available in the [API site](../../build/html/
 
 ```{toctree}
 :hidden:
-:maxdepth: 2
+:maxdepth: 3
 
 guides/index
 reference/index

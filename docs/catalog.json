@@ -7,42 +7,27 @@
         "en": "User guides"
       },
       "description": {
-        "zh": "按任务完成安装、单点、弛豫、NEB、性质计算、训练与选样。",
-        "en": "Task-based installation, evaluation, relaxation, NEB, properties, training and selection."
+        "zh": "环境与输入约定、单任务计算、训练、接口与排错，以及可运行示例。",
+        "en": "Environment and input conventions, single-command calculations, training, interfaces and troubleshooting, plus runnable examples."
       },
       "page_id": "p01_guide",
       "source": "docs/guides/index.md",
       "groups": [
         {
-          "id": "start",
+          "id": "environment",
           "title": {
-            "zh": "1. 第一次使用",
-            "en": "1. First steps"
+            "zh": "环境与输入",
+            "en": "Environment and inputs"
           },
           "pages": [
-            {
-              "source": "docs/guides/getting-started.md",
-              "slug": "guides/getting-started",
-              "render": true
-            },
             {
               "source": "docs/guides/installation.md",
               "slug": "guides/installation",
               "render": true
             },
             {
-              "source": "examples/quickstart/README.md",
-              "slug": "guides/quickstart",
-              "render": true
-            },
-            {
-              "source": "examples/basic-calculations/README.md",
-              "slug": "guides/basic-calculations",
-              "render": true
-            },
-            {
-              "source": "examples/mtp-workflow/README.md",
-              "slug": "guides/mtp-workflow",
+              "source": "docs/guides/conventions.md",
+              "slug": "guides/conventions",
               "render": true
             }
           ]
@@ -50,10 +35,15 @@
         {
           "id": "calculations",
           "title": {
-            "zh": "2. 使用已有模型做计算",
-            "en": "2. Calculate with an existing model"
+            "zh": "单任务计算",
+            "en": "Single-command calculations"
           },
           "pages": [
+            {
+              "source": "docs/guides/single-point.md",
+              "slug": "guides/single-point",
+              "render": true
+            },
             {
               "source": "docs/guides/relaxation.md",
               "slug": "guides/relaxation",
@@ -74,8 +64,8 @@
         {
           "id": "training",
           "title": {
-            "zh": "3. 训练与主动学习",
-            "en": "3. Training and active learning"
+            "zh": "训练",
+            "en": "Training"
           },
           "pages": [
             {
@@ -92,19 +82,14 @@
               "source": "docs/guides/active-learning.md",
               "slug": "guides/active-learning",
               "render": true
-            },
-            {
-              "source": "examples/active-learning/README.md",
-              "slug": "guides/active-learning-example",
-              "render": true
             }
           ]
         },
         {
           "id": "interfaces",
           "title": {
-            "zh": "4. Python 与 LAMMPS",
-            "en": "4. Python and LAMMPS"
+            "zh": "接口与排错",
+            "en": "Interfaces and troubleshooting"
           },
           "pages": [
             {
@@ -116,16 +101,7 @@
               "source": "LAMMPS/README.md",
               "slug": "guides/lammps",
               "render": true
-            }
-          ]
-        },
-        {
-          "id": "help",
-          "title": {
-            "zh": "5. 问题与排查",
-            "en": "5. Questions and troubleshooting"
-          },
-          "pages": [
+            },
             {
               "source": "docs/guides/faq.md",
               "slug": "guides/faq",
@@ -134,6 +110,35 @@
             {
               "source": "docs/guides/troubleshooting.md",
               "slug": "guides/troubleshooting",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "examples",
+          "title": {
+            "zh": "可运行示例",
+            "en": "Runnable examples"
+          },
+          "pages": [
+            {
+              "source": "examples/quickstart/README.md",
+              "slug": "guides/quickstart",
+              "render": true
+            },
+            {
+              "source": "examples/basic-calculations/README.md",
+              "slug": "guides/basic-calculations",
+              "render": true
+            },
+            {
+              "source": "examples/mtp-workflow/README.md",
+              "slug": "guides/mtp-workflow",
+              "render": true
+            },
+            {
+              "source": "examples/active-learning/README.md",
+              "slug": "guides/active-learning-example",
               "render": true
             }
           ]

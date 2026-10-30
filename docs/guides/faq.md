@@ -1,10 +1,11 @@
 # Frequently asked questions {#guide_faq}
 
-[中文](faq_zh.md) · [Command reference](../reference/commands.md) · [Configuration](../reference/configuration.md)
+[中文](faq_zh.md)
 
-Short answers to the questions that come up before a first run. Symptom-oriented
-diagnostics live in [troubleshooting](troubleshooting.md); this page answers
-"which one should I use" and "how is it defined" questions.
+Organized around "which one should I use" and "how is it defined". Symptom-oriented
+diagnostics are in [troubleshooting](troubleshooting.md); the full option lists are
+in the [command reference](../reference/commands.md) and the
+[configuration reference](../reference/configuration.md).
 
 ## Which command trains a potential?
 

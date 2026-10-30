@@ -6,7 +6,7 @@
 下列文件名是用户输入的占位，应在输入所在目录运行，并始终使用同一份 `index.map`。
 各命令支持的选项和短别名不同，修改示例前先查看 `imrmlp COMMAND --help`。
 
-完整输入和结果解读见[开始使用](../guides/getting-started_zh.md)、
+完整输入和结果解读见[单点计算](../guides/single-point_zh.md)、
 [弛豫](../guides/relaxation_zh.md)、[NEB](../guides/neb_zh.md)、
 [性质计算](../guides/properties_zh.md)与[主动学习](../guides/active-learning_zh.md)。
 
@@ -88,7 +88,7 @@ MaxVol 选择将可复用的主动集写到 `potential.mtp.sel`。多样性选�
 | 约化平移多重性 | `imrmlp trans_reduce --input=POSCAR` | `--tol=1e-4` |
 | 交换晶格轴 | `imrmlp swap_axis --order=132 --input=POSCAR` | — |
 | 检查结构等价性 | `imrmlp sameq --input1=s1.cfg --input2=s2.cfg` | `--tol=0.1` |
-| 划分数据集 | `imrmlp split_set ds.cfg split_ --nsplit=2 --shuffle yes` | — |
+| 划分数据集 | `imrmlp split_set ds.cfg split_ --ratios=8,1,1 --shuffle yes` | `--nsplit=2`（等分） |
 | 删除重叠原子 | `imrmlp rmdups --input=overlap.cfg --rtol=0.5` | — |
 | 删除重复结构 | `imrmlp unique --input=ds.cfg --sym-prec=1e-3` | — |
 

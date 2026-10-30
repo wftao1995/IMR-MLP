@@ -69,7 +69,7 @@ tail -n 5 relax.log
 the optimized fixed-cell structure. Both should contain four atoms and E/F
 properties. Inspect the sequence in `relax-trajectory.xyz`. Only atoms move:
 cell edges remain 3.9 Å, so this is not yet the zero-pressure equilibrium cell.
-See [single-point output](../../docs/guides/getting-started.md) for columns and
+See [single-point output](../../docs/guides/single-point.md) for columns and
 [relaxation](../../docs/guides/relaxation.md) for convergence.
 
 ## 3. Relax the zero-pressure cell and pass it to property calculations
@@ -198,7 +198,7 @@ negative frequency grid points at the file's start do not alone establish imagin
 | --- | --- | --- |
 | Training and error evaluation | Self-contained script generates template, labels and validation data | [Training quickstart](../quickstart/README.md), [training guide](../../docs/guides/workflows.md) |
 | Candidate selection | Separate script generates model, coverage and candidate pool | [Active-learning exercise](../active-learning/README.md) |
-| Real material calculations | Obtain/train a suitable model and prepare target structures/mapping | [Getting started](../../docs/guides/getting-started.md) and task guides |
+| Real material calculations | Obtain/train a suitable model and prepare target structures/mapping | [Single-point calculation](../../docs/guides/single-point.md) and task guides |
 | Python/ASE or LAMMPS | Generate `fitted.mtp` with the training quickstart, then follow the interface page for the same geometry | [Python](../../README-python.md), [LAMMPS](../../LAMMPS/README.md) |
 
 You do not need to convert the teaching LJ potential to MTP. For real tasks,

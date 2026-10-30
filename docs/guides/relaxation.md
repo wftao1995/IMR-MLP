@@ -1,37 +1,44 @@
-# Structure Relaxation: From Input to Convergence {#guide_relaxation}
+# Structure relaxation {#guide_relaxation}
 
 [中文](relaxation_zh.md)
 
 Relaxation uses an existing potential to optimize atomic positions or the cell,
-finding a local minimum under the chosen constraints. It does not train the
-model or guarantee the global minimum. Complete a [single-point calculation](getting-started.md)
-first. For a transition path between two states, use [NEB](neb.md).
+finding a local minimum under the chosen constraints. It does not train the model
+or guarantee the global minimum.
 
-**No inputs yet?** Use [steps 1–3 of the calculation walkthrough](../../examples/basic-calculations/README.md).
-Its script supplies structures, a potential and both relaxation settings, then
-passes the result to property calculations. This page's main example uses your ordinary MTP.
-For the complete route starting with basis generation and training, use the
-[MTP walkthrough](../../examples/mtp-workflow/README.md).
+Out of scope: energies and errors at a fixed geometry (see
+[single-point calculation](single-point.md)) and paths between two states
+(see [NEB](neb.md)).
 
-## 1. Decide what may move
+## Required inputs
 
-| Goal | Atomic positions | Cell | Starting point |
+| File | Content | Source |
+| --- | --- | --- |
+| `model.mtp` | Trained ordinary MTP model | Training output such as `fitted.mtp`, or a model provider |
+| `POSCAR` | Initial structure including element symbols | Structure preparation or reference calculations |
+| `index.map` | Model species order | The model or its training records |
+
+Use one directory per task and keep settings and logs there; relative paths resolve
+from the working directory, see [input files and settings conventions](conventions.md).
+The examples below assume an ordinary MTP and a valid cell. Check support before
+using other model types or boundary conditions.
+
+## Commands and settings
+
+### Degrees of freedom
+
+| Goal | Atomic positions | Cell | Settings to use |
 | --- | --- | --- | --- |
-| Defect or atomic optimization at fixed cell and volume | Free | Fixed | Fixed-cell example below |
-| Equilibrium bulk cell at zero or specified pressure | Free | Free | Check single-point and fixed-cell runs before variable-cell settings |
-| Optimize lattice while retaining fractional positions | Fixed | Free | Account for affine atomic motion with the cell |
-| Surface with fixed bottom layers or a constrained local optimization | Partially free | Depends on the physical question | Selective dynamics or constraints; inspect frozen components |
+| Defect or atomic optimization at fixed cell and volume | Free | Fixed | Fixed-cell relaxation (default) |
+| Equilibrium bulk cell at zero or specified pressure | Free | Free | Variable-cell relaxation plus optional `relax:pressure` |
+| Optimize the lattice while retaining fractional positions | Fixed | Free | Disable atomic updates, then enable cell relaxation |
+| Surface with fixed bottom layers or a constrained local optimization | Partially free | Depends on the physical question | Selective dynamics or constraints; confirm frozen components first |
 
-Prepare a suitable `model.mtp`, `POSCAR` and `index.map` in a new task directory.
-The model may be a training output such as `fitted.mtp`; prepare the structure
-from your modeling/reference calculation and update filenames accordingly.
-The example uses ordinary MTP and a valid cell. Check support before using
-other model types or boundary conditions.
+### Fixed-cell relaxation
 
-## 2. Optimize atoms with the cell fixed
-
-Save as `relax.ini`. Input is POSCAR; output is EXTXYZ retaining E/F/stress.
-The defaults already optimize atoms at fixed cell with L-BFGS.
+Save this as `relax.ini`. Input is POSCAR; output is EXTXYZ retaining E/F/stress.
+The defaults already optimize atoms at a fixed cell with L-BFGS, so those switches
+need not be written explicitly.
 
 ```text
 input POSCAR
@@ -51,14 +58,46 @@ echo $?
 tail -n 20 relax.log
 ```
 
-Run `echo $?` immediately after the calculation. In these fixed-cell Cartesian
-coordinates, `gtol` tests the largest absolute active gradient component;
-without constraints this means every force component is below `0.001 eV/Å`.
+Run `echo $?` immediately after the calculation. In fixed-cell Cartesian
+coordinates, `gtol` tests the largest absolute active gradient component; without
+constraints this means every force component is below `0.001 eV/Å`.
 `maxiteration` is the iteration budget and `stepmax` limits optimizer updates;
 neither specifies convergence accuracy. Values are illustrative; converge
 tolerances for production calculations.
 
-## 3. Check success
+### Variable-cell relaxation
+
+Copy the settings above and **replace** `relax:cartesian true` with:
+
+```text
+relax:relax_cell true
+relax:cartesian false
+```
+
+This optimizes atoms and cell together at zero pressure by default. Add
+`relax:pressure` only for a specified external pressure, in GPa, positive for
+compression. Variable-cell optimization uses generalized atomic and cell
+coordinates, so `gtol` is not a uniform eV/Å force threshold. Alongside logged
+convergence, check final stress/target pressure, volume and lattice parameters.
+Surfaces or vacuum-containing cells need deliberate cell freedoms along periodic
+directions rather than an unchanged fully free bulk-cell configuration.
+
+### Constraints, symmetry and optimizer choice
+
+POSCAR `Selective dynamics` flags require `relax:selective_dynamics true`.
+Component meaning depends on optimizer coordinates; do not automatically interpret
+any T/F mask as laboratory Cartesian directions. `relax:keep_symm true` restricts
+the initial space-group subspace, can exclude real symmetry-breaking distortions,
+and has compatibility restrictions with other constraints; see
+[constraints and symmetry](../advanced/relax-symmetry.md) and the
+[configuration reference](../reference/configuration.md).
+
+`lbfgs` is a starting point for ordinary tasks; `fire`, `lbfgspp` and `cg` are
+alternatives, and final energy and gradients should be compared after changing the
+optimizer. Avoid copying both `isif` and separate freedom flags: top-level `isif`
+overrides related settings such as `relax_atom` and `relax_cell`.
+
+## Output and criteria
 
 | Check | Interpretation |
 | --- | --- |
@@ -76,10 +115,7 @@ frozen directions may still have forces. Export a final POSCAR when needed:
 imrmlp convstr relaxed.xyz relaxed.vasp --index index.map
 ```
 
-A fresh `calc_efs` can independently check final forces, especially after
-changing the model, coordinates or constraints.
-
-### Small exercise: recheck final forces
+### Recheck final forces
 
 Evaluate the final geometry with the same model:
 
@@ -87,54 +123,26 @@ Evaluate the final geometry with the same model:
 imrmlp calc_efs relaxed.xyz checked.xyz --potfile model.mtp --index index.map
 ```
 
-Inspect the `forces` columns in `checked.xyz`. For the **unconstrained fixed-cell**
-settings on this page, a largest absolute force component of `0.0008 eV/Å`
-meets `gtol=0.001`, while `0.0046 eV/Å` does not. Compare components, not
+Inspect the `forces` columns in `checked.xyz`. For the unconstrained fixed-cell
+settings above, a largest absolute force component of `0.0008 eV/Å` meets
+`gtol=0.001`, while `0.0046 eV/Å` does not. Compare components, not
 three-dimensional force norms. If logged convergence disagrees substantially,
-check that the model and final frame match, then inspect effective constraints
-and settings. For a tighter run, copy the settings, change input to `relaxed.xyz`,
-replace `gtol` and choose a new output filename.
-Compare final energy, geometry and forces for stability.
+check that the model and final frame match, then inspect effective constraints and
+settings. For a tighter run, copy the settings, change input to `relaxed.xyz`,
+replace `gtol` and choose a new output filename; compare final energy, geometry and
+forces for stability.
 
-## 4. Enable cell relaxation when needed
+## Common errors
 
-Copy the configuration above and **replace** `relax:cartesian true` with:
+| Symptom | Cause | Action |
+| --- | --- | --- |
+| Huge forces or line-search failure | Species map, units, distances or model scope do not match | Check those first, then adjust `stepmax` |
+| Iteration exhausted without convergence | Budget too small, or initialization/optimizer unsuitable | Inspect whether the trajectory is still improving before raising the budget or changing initialization/optimizer |
+| Structure remains highly symmetric | Symmetry or constraints exclude the distortion of interest | Check `relax:keep_symm` and selective-dynamics settings |
+| Inconsistent results across input structures | Frames ended in different states | Inspect each frame's output and stopping status, not just the last frame |
 
-```text
-relax:relax_cell true
-relax:cartesian false
-```
+## Related
 
-This optimizes both atoms and cell at zero pressure by default. Add
-`relax:pressure` only for a specified external pressure, in GPa, positive for compression.
-Variable-cell optimization uses generalized atomic and cell coordinates;
-`gtol` is not a uniform eV/Å force threshold. Alongside logged convergence,
-check final stress/target pressure, volume and lattice parameters. Surfaces or
-vacuum-containing cells need deliberate cell freedoms along periodic directions
-rather than an unchanged fully free bulk-cell configuration.
-
-## 5. Constraints, symmetry and optimizer choice
-
-POSCAR `Selective dynamics` flags require `relax:selective_dynamics true`.
-Component meaning depends on optimizer coordinates; do not automatically
-interpret any T/F mask as laboratory Cartesian directions.
-`relax:keep_symm true` restricts the initial space-group subspace and can exclude
-real symmetry-breaking distortions. It has compatibility restrictions with
-other constraints; see [constraints and symmetry](../advanced/relax-symmetry.md)
-and the [configuration reference](../reference/configuration.md).
-
-`lbfgs` is a starting point for ordinary tasks; `fire`, `lbfgspp` and `cg` are
-alternatives. Compare final energy and gradients after changing the optimizer.
-Avoid copying both `isif` and separate freedom flags: top-level `isif` overrides
-related settings such as `relax_atom` and `relax_cell`.
-
-## Common obstacles and next steps
-
-- Huge forces or line-search failure: check species, units, distances and model scope before changing steps.
-- Iteration exhaustion: inspect whether the trajectory is improving before increasing the budget or changing initialization/optimizer.
-- A structure remains highly symmetric: check whether symmetry or constraints exclude the distortion of interest.
-- Multiple input structures: inspect each frame's output and stopping status, not just the last frame.
-
-With a reliable equilibrium structure, continue to [crystal properties](properties.md).
-Relax both endpoints before [NEB](neb.md). All CLI options are in the
-[command reference](../reference/commands.md).
+- [Crystal properties](properties.md): phonons, elasticity and equation of state once the equilibrium structure is fixed
+- [NEB](neb.md): paths, after both endpoints are relaxed
+- [Input files and settings conventions](conventions.md), [command reference](../reference/commands.md)

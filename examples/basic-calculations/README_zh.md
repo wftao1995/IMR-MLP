@@ -60,7 +60,7 @@ tail -n 5 relax.log
 `initial.xyz` 是原始扰动结构的预测，`relaxed.xyz` 是固定胞优化后的结构；
 两者都应有四个原子和 E/F 属性。`relax-trajectory.xyz` 可逐帧检查优化过程。
 本例仅优化原子，晶胞边长仍为 3.9 Å，暂时不是零压平衡晶胞。
-输出列的含义见[单点指南](../../docs/guides/getting-started_zh.md)，
+输出列的含义见[单点计算](../../docs/guides/single-point_zh.md)，
 收敛判断见[弛豫指南](../../docs/guides/relaxation_zh.md)。
 
 ## 3. 优化零压晶胞，并交给物性计算
@@ -179,7 +179,7 @@ head -n 5 total_dos.dat
 | --- | --- | --- |
 | 学习训练与误差评估 | 自包含脚本生成模板、参考标签和验证集 | [训练入门](../quickstart/README_zh.md)、[训练指南](../../docs/guides/workflows_zh.md) |
 | 学习选样 | 独立脚本生成模型、已有覆盖与候选池 | [主动学习练习](../active-learning/README_zh.md) |
-| 使用真实材料模型 | 自己取得或训练模型，准备目标结构和元素映射 | [开始使用](../../docs/guides/getting-started_zh.md)及各任务指南 |
+| 使用真实材料模型 | 自己取得或训练模型，准备目标结构和元素映射 | [单点计算](../../docs/guides/single-point_zh.md)及各任务指南 |
 | 换用 Python / ASE 或 LAMMPS | 先用训练入门生成 `fitted.mtp`，再按接口页准备同一构型 | [Python](../../README-python_zh.md)、[LAMMPS](../../LAMMPS/README_zh.md) |
 
 不用把教学 LJ 势转换成 MTP。换成真实任务时，成套替换模型、势类型、元素映射和

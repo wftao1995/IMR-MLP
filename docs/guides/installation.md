@@ -1,15 +1,15 @@
-# Installation and Build {#guide_install}
+# Installation and build {#guide_install}
 
-[中文](installation_zh.md) · [Getting started](getting-started.md)
+[中文](installation_zh.md)
 
-First obtain a working CPU command-line program, then add Python, MPI or GPU
-support if needed. Using IMR-MLP does not require changing C++ code. The
-provided Make build targets Linux x86_64. Windows/macOS users can use a Linux
-machine or Linux environment; native installation is not covered here.
+Build a working CPU command-line program and add Python, MPI or GPU support when
+needed. Using IMR-MLP does not require changing C++ code. The provided Make build
+targets Linux x86_64; Windows and macOS have no native installation route here and
+should use a Linux machine or environment.
 
-## Choose what to install
+## Installation scope
 
-| Goal | Choose | Not needed yet |
+| Purpose | Install | Not needed |
 | --- | --- | --- |
 | Energy/forces, relaxation, NEB or ordinary MTP training | CPU CLI using the steps below | Python extension, MPI, GPU and documentation tools |
 | An administrator already provides an executable | Run `imrmlp --version`, then the [quickstart](../../examples/quickstart/README.md) | Rebuilding it yourself |
@@ -20,7 +20,7 @@ machine or Linux environment; native installation is not covered here.
 Replace `/path/to/...` with real paths. System dependencies are normally
 installed once; each new terminal still needs its runtime environment enabled.
 
-## 1. Prepare dependencies
+## Dependencies
 
 The core CPU program needs a C++23 compiler and standard library, GNU Make
 4.3+, Eigen, ALGLIB, FFTW, OpenMP and default-enabled zlib. oneMKL is optional:
@@ -86,7 +86,7 @@ compiler. For standard-library or language-option errors on an older system,
 use a compiler/library combination supporting the required features rather
 than removing the language-standard option.
 
-## 2. Obtain sources and build the CPU program
+## Sources and build
 
 If sources are already available, enter the repository root. Otherwise:
 
@@ -124,7 +124,7 @@ you may then change to a calculation directory. In a new terminal, re-enable
 oneMKL if the build used it and use the repository's absolute path for these
 variables.
 
-## 3. Run the supplied example
+## Self-contained example
 
 Still from the repository root:
 
@@ -134,20 +134,18 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/quickstart/run.py \
 ```
 
 Only Python's standard library and the compiled CLI are needed. The example
-generates synthetic data and a model, fits and validates it. Each stage should
-show `OK`; outputs are in `build/quickstart/`, matching later pages. Use a new `--work` directory on
-subsequent runs; nonempty directories are not overwritten. Interpretation is
-in the [quickstart guide](../../examples/quickstart/README.md).
+generates synthetic data and a model, fits and validates it. Each stage should show
+`OK`; outputs are in `build/quickstart/`, matching later pages. Use a new `--work`
+directory on subsequent runs, since nonempty directories are not overwritten.
+Interpretation is in the [quickstart guide](../../examples/quickstart/README.md).
 
-Then inspect the quickstart's single-point outputs using
-[getting started](getting-started.md), without rerunning training in the same directory.
-For calculations without your own inputs, continue with the
-[walkthrough with all inputs supplied](../../examples/basic-calculations/README.md)
-for relaxation, NEB and properties. With a suitable model, prepare your own
-structures and mapping using the task guides. Test and documentation tools are
-not prerequisites for this example.
+Single-point output in that directory can be inspected with the commands in
+[single-point calculation](single-point.md), without rerunning the training script.
+Without your own inputs, the [walkthrough with all inputs supplied](../../examples/basic-calculations/README.md)
+provides complete files for relaxation, NEB and properties. Test and documentation
+tools are not prerequisites for this example.
 
-## 4. Optional: Install into your user directory
+## Installing into a user directory
 
 Running from the build directory is sufficient. To use an installed copy from
 any calculation directory, retain the same build options:
@@ -165,7 +163,7 @@ Make installs CLI tools and libraries, not the Python package. Moving to another
 machine also requires compatible system dependencies; choose `CPU_ARCH_FLAGS`
 again before distributing across CPUs.
 
-## 5. Add Python, MPI or GPU support as needed
+## Optional components: Python, MPI and GPU
 
 ### Python / ASE
 
@@ -222,7 +220,7 @@ for architectures and supported paths. A GPU build does not automatically put
 all commands on the GPU: `trainmtp` still runs on CPU; supported GPU fitting
 uses `trainnlpot`.
 
-## If installation stops here
+## Common build problems
 
 | Symptom | First check |
 | --- | --- |
@@ -236,7 +234,7 @@ uses `trainnlpot`.
 
 See [troubleshooting](troubleshooting.md) for more explanations.
 
-## Build options and maintenance references
+## Build options and maintenance targets
 
 Ordinary installation does not require editing Makefiles. Override non-system
 dependency paths on the command line:

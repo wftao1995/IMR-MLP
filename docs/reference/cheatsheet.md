@@ -8,7 +8,7 @@ for your own inputs. Run from the directory containing those files and keep the
 same `index.map` throughout. Options and short aliases differ by command; check
 `imrmlp COMMAND --help` before adapting an example.
 
-For complete inputs and interpretation, use [getting started](../guides/getting-started.md),
+For complete inputs and interpretation, use [single-point calculation](../guides/single-point.md),
 [relaxation](../guides/relaxation.md), [NEB](../guides/neb.md),
 [properties](../guides/properties.md) and [active learning](../guides/active-learning.md).
 
@@ -92,7 +92,7 @@ also needs a compatible potential. These selection scores are not error bounds.
 | Reduce translational mult. | `imrmlp trans_reduce --input=POSCAR` | `--tol=1e-4` |
 | Swap lattice axes | `imrmlp swap_axis --order=132 --input=POSCAR` | — |
 | Check equivalence | `imrmlp sameq --input1=s1.cfg --input2=s2.cfg` | `--tol=0.1` |
-| Split dataset | `imrmlp split_set ds.cfg split_ --nsplit=2 --shuffle yes` | — |
+| Split dataset | `imrmlp split_set ds.cfg split_ --ratios=8,1,1 --shuffle yes` | `--nsplit=2` (equal) |
 | Remove duplicate atoms | `imrmlp rmdups --input=overlap.cfg --rtol=0.5` | — |
 | Remove duplicate structures | `imrmlp unique --input=ds.cfg --sym-prec=1e-3` | — |
 

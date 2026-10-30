@@ -5,7 +5,8 @@
 
 @tableofcontents
 
-For a first calculation, prepare inputs with [getting started](../guides/getting-started.md).
+Input files and settings syntax are described in [input files and settings conventions](../guides/conventions.md);
+a first calculation is in [single-point calculation](../guides/single-point.md).
 [Relaxation](../guides/relaxation.md), [NEB](../guides/neb.md),
 [properties](../guides/properties.md) and [selection](../guides/active-learning.md)
 provide workflows; this page defines commands and options.
@@ -1781,13 +1782,13 @@ imrmlp convstr trajectory.lammpstrj output.cfg
 
 ### `split_set` — Split Dataset
 
-Split a structure dataset into N equal subsets or train/test.
+Split a structure dataset into subsets by relative ratio, or into N equal subsets.
 
 ```bash
-imrmlp split_set --nsplit=2 --shuffle yes --input=dataset.cfg --output-prefix=split_
-# produces split_0.xyz, split_1.xyz (outputs are always in extxyz format)
 imrmlp split_set dataset.cfg split_ --ratios=8,1,1 --shuffle yes
 # produces approximately 80% / 10% / 10% subsets
+imrmlp split_set --input=dataset.cfg --output-prefix=split_ --nsplit=2 --shuffle yes
+# produces split_0.xyz, split_1.xyz (outputs are always in extxyz format)
 ```
 
 | Option | Alias | Description |
@@ -1798,9 +1799,9 @@ imrmlp split_set dataset.cfg split_ --ratios=8,1,1 --shuffle yes
 | `--input` | | Input structure set (positional, required) |
 | `--output-prefix` | | Output file prefix (positional, required) |
 
-Equal mode distributes structures round-robin after any shuffle. Ratio mode
-rounds subset sizes by largest remainder (ties favor earlier subsets), then
-takes consecutive segments. Zero-sized subsets produce empty output files.
+Ratio mode rounds subset sizes by largest remainder (ties favor earlier subsets),
+then takes consecutive segments; zero-sized subsets are written as empty files.
+Equal mode distributes structures round-robin and skips empty subsets.
 If `--nsplit` is explicitly supplied with `--ratios`, it must equal the number
 of ratios. There is no shuffle seed option; save the split files for reproducibility.
 

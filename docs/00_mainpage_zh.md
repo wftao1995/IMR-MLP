@@ -25,15 +25,15 @@
 
 ---
 
-## 开始使用
+## 使用入口
 
-第一次使用请按[任务引导](guides/getting-started_zh.md)选择路线：没有模型时先跑
-[自包含示例](../examples/quickstart/README_zh.md)，已有模型时从单点计算开始。
-[安装指南](guides/installation_zh.md)解释基础 CPU 构建及验证，Python、MPI 和 GPU 按需添加。
+完整分类见[使用指南](guides/index_zh.md)，四个可运行示例列在其末尾。
 
-| 任务 | 使用引导 |
+| 任务 | 页面 |
 | --- | --- |
-| 准备输入、理解元素映射并计算 E/F/应力 | [开始使用](guides/getting-started_zh.md) |
+| 构建程序，按需添加 Python、MPI 或 GPU | [安装与构建](guides/installation_zh.md) |
+| 输入文件、元素映射、配置语法与单位 | [输入文件与配置约定](guides/conventions_zh.md) |
+| 计算 E/F/应力并评估误差 | [单点计算](guides/single-point_zh.md) |
 | 优化原子或晶胞 | [结构弛豫](guides/relaxation_zh.md) |
 | 计算迁移或反应势垒 | [NEB 路径](guides/neb_zh.md) |
 | 声子、弹性、状态方程 | [晶体性质](guides/properties_zh.md) |
@@ -42,7 +42,6 @@
 | 在 LAMMPS / Python 中运行模型 | [LAMMPS](../LAMMPS/README_zh.md) / [Python](../README-python_zh.md) |
 
 完整选项见[命令参考](reference/commands_zh.md)，遇到问题见[故障排查](guides/troubleshooting_zh.md)。
-普通计算无需先阅读以下 C++ 模块与 API 索引。
 
 ---
 

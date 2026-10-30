@@ -41,12 +41,12 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/quickstart/run.py
 
 | 任务 | 文档 |
 | --- | --- |
-| 第一次使用：选任务、准备文件并做单点计算 | [开始使用](docs/guides/getting-started_zh.md) |
-| 固定胞或变胞结构优化 | [弛豫引导](docs/guides/relaxation_zh.md) |
-| 两个端点之间的迁移或反应势垒 | [NEB 引导](docs/guides/neb_zh.md) |
-| 声子、弹性与状态方程 | [晶体性质引导](docs/guides/properties_zh.md) |
+| 准备输入文件并做单点计算、评估误差 | [单点计算](docs/guides/single-point_zh.md) |
+| 固定胞或变胞结构优化 | [结构弛豫](docs/guides/relaxation_zh.md) |
+| 两个端点之间的迁移或反应势垒 | [NEB 最小能量路径](docs/guides/neb_zh.md) |
+| 声子、弹性与状态方程 | [晶体性质](docs/guides/properties_zh.md) |
 | 安装 CPU、MPI 或 GPU 版本 | [安装与构建](docs/guides/installation_zh.md) |
-| 配置语法与物种映射 | [配置说明](docs/reference/configuration_zh.md) |
+| 输入文件、配置语法与物种映射 | [输入文件与配置约定](docs/guides/conventions_zh.md)、[配置参考](docs/reference/configuration_zh.md) |
 | 准备数据、训练并验证势函数 | [工作流程](docs/guides/workflows_zh.md) |
 | 查询命令参数 | [命令参考](docs/reference/commands_zh.md)、`imrmlp COMMAND --help` |
 | 在 LAMMPS 中使用 MTP | [接口安装与使用](LAMMPS/README_zh.md) |

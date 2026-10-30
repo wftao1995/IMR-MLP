@@ -1,14 +1,14 @@
 # 安装与构建 {#guide_install}
 
-[English](installation.md) · [开始使用](getting-started_zh.md)
+[English](installation.md)
 
-本页先带你获得可运行的 CPU 命令行程序，再按需要安装 Python、MPI 或 GPU 版本。
-不修改 C++ 源码也可以使用 IMR-MLP。当前提供的 Make 构建面向 Linux x86_64；
-Windows/macOS 用户可使用 Linux 计算机或相应 Linux 环境，本文不提供原生安装流程。
+构建出一份可运行的 CPU 命令行程序，需要时再加装 Python、MPI 或 GPU 部分。
+使用 IMR-MLP 不需要修改 C++ 源码；提供的 Make 构建面向 Linux x86_64，
+Windows/macOS 没有原生安装流程，可在 Linux 机器或相应环境中构建。
 
-## 先选需要安装的部分
+## 安装范围
 
-| 想做什么 | 选择 | 暂时不需要 |
+| 用途 | 需要安装 | 不需要 |
 | --- | --- | --- |
 | 求能量/力、弛豫、NEB，或训练普通 MTP | CPU CLI：按下面步骤安装 | Python 扩展、MPI、GPU、文档编译工具 |
 | 已有管理员提供的可执行程序 | 先运行 `imrmlp --version`，再做[入门示例](../../examples/quickstart/README_zh.md) | 自行重编译 |
@@ -19,7 +19,7 @@ Windows/macOS 用户可使用 Linux 计算机或相应 Linux 环境，本文不�
 命令中的 `/path/to/...` 是要替换的路径，不是原样执行的目录。
 系统依赖通常只安装一次；每次新开终端还需要启用相应的运行环境。
 
-## 1. 准备依赖
+## 依赖准备
 
 核心 CPU 程序需要 C++23 编译器及配套标准库、GNU Make 4.3+、Eigen、
 ALGLIB、FFTW、OpenMP 和默认启用的 zlib。oneMKL 是可选项：启用后 Eigen 的
@@ -77,7 +77,7 @@ make --version
 所有旧版编译器的最低兼容版本。旧系统若报标准库特性或编译选项错误，应使用
 支持所需 C++23 特性的编译器与标准库组合，不要只去掉标准选项。
 
-## 2. 获取源码并构建 CPU 程序
+## 获取源码并构建
 
 已有源码时直接进入仓库根目录；尚未下载时：
 
@@ -110,7 +110,7 @@ imrmlp --help
 这些设置中的 `$PWD` 此时必须是仓库根目录；之后可以切换到自己的计算目录。
 新开终端时，若该构建启用了 oneMKL 需重新启用其环境，并用仓库的绝对路径设置这两项。
 
-## 3. 跑通随仓库提供的示例
+## 运行自包含示例
 
 仍在仓库根目录运行：
 
@@ -119,17 +119,16 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/quickstart/run.py \
   --work build/quickstart
 ```
 
-示例只需要 Python 标准库和刚编好的 CLI，会自行生成合成模型与数据，完成拟合和
-验证。各阶段应显示 `OK`，输出在 `build/quickstart/`，与后续页面的默认路径一致。再次运行请换一个新的 `--work`
-目录，脚本会拒绝覆盖非空目录。示例用途及结果解释见[快速入门](../../examples/quickstart/README_zh.md)。
+示例只需要 Python 标准库和刚编好的 CLI，会自行生成合成模型与数据，完成拟合和验证。
+各阶段应显示 `OK`，输出在 `build/quickstart/`，与后续页面的默认路径一致。再次运行请换
+一个新的 `--work` 目录，脚本会拒绝覆盖非空目录。示例用途及结果解释见
+[快速入门](../../examples/quickstart/README_zh.md)。
 
-完成后，先按[开始使用](getting-started_zh.md)中的入门数据练习查看单点输出；
-无需重跑同一目录的训练脚本。还没有自己的计算输入时，可继续
-[附带全部输入的连续计算练习](../../examples/basic-calculations/README_zh.md)，完成弛豫、NEB 和物性。
-已有适用模型时，再按各任务页准备自己的结构与映射。
-测试和文档构建工具不属于运行该示例的前提。
+该目录中的单点输出可用[单点计算](single-point_zh.md)的命令查看，无需重跑训练脚本。
+没有自己的输入时，[附带全部输入的连续计算练习](../../examples/basic-calculations/README_zh.md)
+提供弛豫、NEB 和物性的完整文件。测试与文档构建工具不是运行该示例的前提。
 
-## 4. 可选：安装到用户目录
+## 安装到用户目录
 
 也可以一直从构建目录运行。若希望在任意工作目录直接使用，保持相同构建选项：
 
@@ -145,7 +144,7 @@ imrmlp --version
 迁移到其他机器时，除了程序与库，还需兼容的系统依赖；跨 CPU 分发前应重新选择
 `CPU_ARCH_FLAGS`。
 
-## 5. 按需添加 Python、MPI 或 GPU
+## 可选组件：Python、MPI 与 GPU
 
 ### Python / ASE
 
@@ -197,7 +196,7 @@ GPU 架构设置和支持范围见 [GPU 指南](../development/cuda_zh.md)。
 仅构建 GPU 版本不会让所有命令自动使用 GPU；例如 `trainmtp` 仍在 CPU 运行，
 受支持的 GPU 拟合入口是 `trainnlpot`。
 
-## 安装卡住时先查这里
+## 常见构建问题
 
 | 症状 | 先检查 |
 | --- | --- |
@@ -211,7 +210,7 @@ GPU 架构设置和支持范围见 [GPU 指南](../development/cuda_zh.md)。
 
 更多按症状解释见[故障排查](troubleshooting_zh.md)。
 
-## 构建参数与维护资料（按需查阅）
+## 构建参数与维护目标
 
 普通安装不需要修改 Makefile。非系统依赖路径可在命令行指定：
 

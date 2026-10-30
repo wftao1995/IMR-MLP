@@ -1,22 +1,29 @@
-# Crystal Properties: Phonons, Elasticity and Equation of State {#guide_properties}
+# Crystal properties {#guide_properties}
 
 [中文](properties_zh.md)
 
-Use this page after obtaining a model and completing [structure relaxation](relaxation.md).
-Small single-point errors do not establish accurate force constants, elasticity
-or volume response; validate each target property. Examples need your own
-`model.mtp`, `relaxed.vasp` and `index.map` in separate calculation directories.
+Compute force constants, phonons, elastic constants and equations of state with a
+trained model. Small single-point errors for a material do not establish accurate
+force constants, elasticity or volume response; each property needs its own check.
 
-**No matching inputs yet?** The [calculation walkthrough](../../examples/basic-calculations/README.md)
-generates and relaxes a teaching LJ crystal, then explicitly copies `bulk.vasp`
-to each property directory as `relaxed.vasp`. Use its LJ settings there; this
-page's main example uses your ordinary MTP. For real tasks, export the final
-[relaxation](relaxation.md) result to POSCAR. EOS/zero-pressure elasticity also
-require the corresponding cell optimization.
-For basis generation and fitting followed by property checks with the same
-model, use the [MTP walkthrough](../../examples/mtp-workflow/README.md).
+Out of scope: obtaining the equilibrium structure (see
+[structure relaxation](relaxation.md)) and model training (see
+[training, evaluation and deployment](workflows.md)).
 
-## Choose the quantity
+## Required inputs
+
+| File | Content | Source |
+| --- | --- | --- |
+| `model.mtp` | Trained ordinary MTP model | Training output or a model provider |
+| `relaxed.vasp` | Equilibrium structure | POSCAR exported with `convstr` from the relaxation result |
+| `index.map` | Model species order | The model or its training records |
+
+Run each calculation in its own directory. Phonons additionally need Phonopy
+installed for postprocessing. Path and naming rules are in
+[input files and settings conventions](conventions.md). EOS and zero-pressure
+elasticity also require the corresponding cell optimization first.
+
+## Quantities and tools
 
 | Goal | Tool | Check first |
 | --- | --- | --- |
@@ -25,7 +32,7 @@ model, use the [MTP walkthrough](../../examples/mtp-workflow/README.md).
 | Stiffness and strain response | `calc_elastic` | Equilibrium stress, ionic-relaxation convention and strain amplitude |
 | Equilibrium volume, bulk modulus and E–V curve | `calc_eos` | Stable volume interval in one phase and relaxation settings |
 
-## 1. Export force constants
+## Force constants
 
 Build a 2×2×2 supercell from the input cell and export full force constants:
 
@@ -36,23 +43,23 @@ imrmlp calc_fc --potfile model.mtp \
 ```
 
 Inspect `FORCE_CONSTANTS`, `supercell_created.xsf` and `sup_debug_efs.xyz`.
-Blocks use eV/Å² and follow the **actual exported supercell** order.
-`2 2 2` is a starting point; increase the supercell to check convergence.
-The default analytic backend errors for unsupported models. `--hessian-method auto`
-uses analytic derivatives when available and force finite differences otherwise.
-You can select `force_fd` explicitly and converge `--hessian-nudge-pos`.
+Blocks use eV/Å² and follow the **actual exported supercell** order. `2 2 2` is a
+starting point; increase the supercell to check convergence. The default analytic
+backend errors for unsupported models; `--hessian-method auto` uses analytic
+derivatives when available and force finite differences otherwise, or select
+`force_fd` explicitly and converge `--hessian-nudge-pos`.
 
-`--lowest-modes N` is a separate matrix-free lowest-Gamma-mode diagnostic:
-it exports eigenmodes, not full `FORCE_CONSTANTS`, and does not replace
-whole-Brillouin-zone phonon dispersion. More backends and outputs are defined
-in the [command reference](../reference/commands.md).
+`--lowest-modes N` is a separate matrix-free lowest-Gamma-mode diagnostic: it
+exports eigenmodes, not full `FORCE_CONSTANTS`, and does not replace
+whole-Brillouin-zone phonon dispersion. More backends and outputs are defined in
+the [command reference](../reference/commands.md).
 
-## 2. Use Phonopy for dispersion or DOS
+## Phonons: dispersion and DOS
 
-As an alternative to the previous section, let Phonopy generate displacements
-and IMR-MLP evaluate forces. Copy the same equilibrium structure, model and map
-into a fresh directory to avoid mixing in another `FORCE_CONSTANTS`.
-The following uses Phonopy 4 command separation:
+Alternative to the previous section. To let Phonopy generate displacements and
+IMR-MLP evaluate forces, copy the same equilibrium structure, model and map into a
+fresh directory to avoid mixing in another `FORCE_CONSTANTS`. The following uses
+Phonopy 4 command separation:
 
 ```sh
 phonopy-init -d --dim="2 2 2" -c relaxed.vasp
@@ -60,29 +67,28 @@ imrmlp phonopyfc --potfile model.mtp --disp phonopy_disp.yaml \
   --index-file index.map
 ```
 
-This ordinary-MTP example requires a separate Phonopy installation.
-`phonopy-init` creates `phonopy_disp.yaml`; `phonopyfc` writes `FORCE_SETS`.
-Then calculate an illustrative DOS mesh:
+`phonopy-init` creates `phonopy_disp.yaml`; `phonopyfc` writes `FORCE_SETS`. Then
+calculate an illustrative DOS mesh:
 
 ```sh
 phonopy --mesh="10 10 10" --dos phonopy_disp.yaml
 ```
 
 Check `total_dos.dat` and the log, then vary the mesh or choose a material-specific
-band path. Older Phonopy 3 tutorials use `phonopy -d`. Phonopy 4 moves setup to
-`phonopy-init`; postprocessing reads YAML without repeating `-c` / `--dim`.
-See the [official migration guide](https://phonopy.github.io/phonopy/migration-v4.html).
- `phonopyfc` uses `--index-file`, rather than the common `--index`.
-If `settings.ini` exists in the directory, check its `pot:` settings against
-the current model. Meshes, band paths and plotting are covered by Phonopy's
+band path. Phonopy 3 uses `phonopy -d`; Phonopy 4 moves setup to `phonopy-init` and
+reads YAML during postprocessing without repeating `-c` / `--dim`, see the
+[official migration guide](https://phonopy.github.io/phonopy/migration-v4.html).
+`phonopyfc` uses `--index-file`, not the common `--index`. If `settings.ini` exists
+in the directory, check its `pot:` settings against the current model. Meshes, band
+paths and plotting are covered by Phonopy's
 [command options](https://phonopy.github.io/phonopy/command-options.html) and
 [setting tags](https://phonopy.github.io/phonopy/setting-tags.html).
 
-The [Python Phonopy adapter](../reference/python.md#phonopy-integration) can
-instead evaluate displaced-supercell forces in memory. For direct import of
-analytic `FORCE_CONSTANTS`, use Phonopy's own supercell as `calc_fc` input,
-without expanding it again. Both atom axes must match `phonon.supercell`
-exactly; matching atom counts is insufficient.
+The [Python Phonopy adapter](../reference/python.md#phonopy-integration) can instead
+evaluate displaced-supercell forces in memory. For direct import of analytic
+`FORCE_CONSTANTS`, use Phonopy's own supercell as `calc_fc` input without expanding
+it again, and match both atom axes to `phonon.supercell` exactly; matching atom
+counts is insufficient.
 
 Imaginary modes can reflect physical instability, incomplete relaxation,
 displacement/supercell errors, or model/unit/order problems. Check equilibrium
@@ -90,7 +96,7 @@ forces, acoustic modes and numerical convergence before physical interpretation.
 Phonon force constants differ from finite-temperature effective force constants;
 see [harmonic references and TI](../advanced/harmonic-ti.md) for the latter.
 
-## 3. Calculate elastic constants
+## Elastic constants
 
 For ordinary MTP, start with the default automatic backend:
 
@@ -99,8 +105,8 @@ imrmlp calc_elastic --potfile model.mtp --input relaxed.vasp \
   --index index.map --elastic-output elastic.out > elastic.log 2>&1
 ```
 
-The default `auto` chooses a supported method. Use `--method analytical` when needed and
-check atomic/cell-Hessian support. For a finite-difference comparison, create
+The default `auto` chooses a supported method. Use `--method analytical` when needed
+and confirm atomic/cell-Hessian support. For a finite-difference comparison, create
 `elastic.ini`:
 
 ```text
@@ -117,17 +123,17 @@ imrmlp calc_elastic --potfile model.mtp \
 
 Compare strain amplitudes and tighter ionic tolerances. Distinguish clamped-ion
 stiffness from stiffness with relaxed internal coordinates; analytic
-`--relax-correction` controls the related correction. Read stiffness/modulus
-units from output headers. At nonzero pressure, distinguish material stiffness
-from the Born/Wallace tangent used for mechanical stability. For internal soft-mode
-or singular-stiffness errors, check structural/model stability first. Disabling
+`--relax-correction` controls the related correction. Read stiffness/modulus units
+from output headers. At nonzero pressure, distinguish material stiffness from the
+Born/Wallace tangent used for mechanical stability. For internal soft-mode or
+singular-stiffness errors, check structural and model stability first; disabling
 ionic correction changes the physical quantity and is not a general repair. See the
-[elastic command reference](../reference/commands.md) for complete definitions.
+[command reference](../reference/commands.md) for complete definitions.
 
-### Small exercise: halve the strain amplitude
+### Strain-amplitude check
 
-Keep `elastic-numerical.out` from the `0.005` (0.5%) calculation above and
-repeat with the same input and internal-coordinate relaxation settings:
+Keep `elastic-numerical.out` from the `0.005` (0.5%) calculation and repeat with the
+same input and internal-coordinate relaxation settings:
 
 ```sh
 imrmlp calc_elastic --potfile model.mtp \
@@ -136,16 +142,15 @@ imrmlp calc_elastic --potfile model.mtp \
   --elastic-output elastic-half-strain.out > elastic-half-strain.log 2>&1
 ```
 
-For example, `C11` values of `162.4` and `162.3 GPa` differ by `0.1 GPa`,
-about 0.06%. These illustrate comparison, not expected material values or a
-universal acceptance criterion. Also compare other independent components,
-moduli and ionic convergence at strained points. Substantial drift on halving
-the step calls for checking relaxation tolerances and finite-difference
-stability; smaller steps are not always more accurate. Apply the same approach
-to phonon supercells or DOS meshes: change one numerical setting at a time
-and retain separate results.
+For example, `C11` values of `162.4` and `162.3 GPa` differ by `0.1 GPa`, about
+0.06%. These illustrate comparison, not expected material values or a universal
+acceptance criterion. Also compare other independent components, moduli and ionic
+convergence at strained points. Substantial drift on halving the step calls for
+checking relaxation tolerances and finite-difference stability; smaller steps are
+not always more accurate. Apply the same approach to phonon supercells or DOS
+meshes: change one numerical setting at a time and retain separate results.
 
-## 4. Calculate an equation of state
+## Equation of state
 
 Save `eos.ini` with the equilibrium structure's model and relaxation accuracy:
 
@@ -160,9 +165,9 @@ imrmlp calc_eos --settings eos.ini --input relaxed.vasp --index index.map \
   --output ev.dat --output-eos eos.dat
 ```
 
-The default window spans roughly ±5% around the reference volume, producing curve data and
-EOS parameters. Check that points remain in one phase, bracket an energy
-minimum and give sensible fitted volume/bulk modulus. Vary the volume interval
+The default window spans roughly ±5% around the reference volume, producing curve
+data and EOS parameters. Check that points remain in one phase, bracket an energy
+minimum and give sensible fitted volume and bulk modulus. Vary the volume interval
 and sample count to assess stability. A fit without a stable positive-volume
 minimum is not an equilibrium property. Pressure scans use `--curve pv` with
 different options from the E–V route.
@@ -177,15 +182,29 @@ different options from the E–V route.
 | `eos.dat`: `B0` | eV/Å³; multiply by 160.217662 for GPa |
 | `eos.dat`: `B0'` | Pressure derivative of bulk modulus, dimensionless |
 
-These apply to the structure-scanning E–V command on this page. When fitting
-an external curve, volume/energy normalization follows its input data and is
-not automatically per atom. Do not directly compare `calc_efs` total energy
-with `Energy/at`.
+These apply to the structure-scanning E–V command. When fitting an external curve,
+volume/energy normalization follows its input data and is not automatically per
+atom. Do not directly compare `calc_efs` total energy with `Energy/at`.
 
-## Record and compare results
+## Recording results
 
 Retain the equilibrium structure, model, map, settings and logs, recording
-supercell, displacement/strain amplitude, pressure and ionic-relaxation
-convention. Converge numerics before comparison with reference properties.
-No C++ API reading is needed; specialized higher derivatives, HVP and
-finite-temperature workflows are in [advanced usage](../advanced/index.md).
+supercell, displacement/strain amplitude, pressure and ionic-relaxation convention.
+Converge numerics before comparison with reference properties.
+
+## Common errors
+
+| Symptom | Cause | Action |
+| --- | --- | --- |
+| Imaginary phonon modes | Physical instability, incomplete relaxation, displacement/supercell error or model problem | Check equilibrium forces, acoustic modes and supercell convergence before interpreting |
+| Stiffness off by an order of magnitude | Clamped-ion and relaxed-internal-coordinate conventions mixed | Establish the meaning of `--method` and `--relax-correction` before comparing |
+| Internal soft mode or singular stiffness | Structure or model is unstable | Check stability first; disabling the ionic correction is not a repair |
+| Results drift when the strain step is halved | Relaxation tolerance too loose or finite differences unstable | Tighten `relax:gtol` and recheck one setting at a time |
+| Unreasonable EOS fit | Sampling crosses a phase boundary or lacks a positive-volume minimum | Narrow the volume window, add points and confirm a single phase |
+| `Energy/at` disagrees with single-point energy | Total and per-atom energies mixed | Convert by atom count before comparing |
+
+## Related
+
+- [Structure relaxation](relaxation.md): source of the equilibrium structure
+- [Command reference](../reference/commands.md), [Python Phonopy adapter](../reference/python.md#phonopy-integration)
+- [Harmonic references and TI](../advanced/harmonic-ti.md)

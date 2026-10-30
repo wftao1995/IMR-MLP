@@ -1,8 +1,8 @@
 # Troubleshooting {#guide_troubleshooting}
 
-[中文](troubleshooting_zh.md) · [Configuration](../reference/configuration.md)
+[中文](troubleshooting_zh.md)
 
-## A tutorial cannot find a model, POSCAR or example directory
+## A model, POSCAR or example directory is missing
 
 Check the working directory (`pwd`) and the preceding stage's success first.
 `model.mtp` and `POSCAR` are placeholders for supplied inputs, not automatically
