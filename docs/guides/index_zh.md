@@ -23,6 +23,7 @@
 ## 3. 训练与主动学习
 
 - [训练、评估与部署](workflows_zh.md)
+- [mtmbasis 与 fastfit：MTP 基组的生成、优化与选择](basis-selection_zh.md)
 - [主动学习与候选选样](active-learning_zh.md)
 - [自包含的 MaxVol 选样练习](../../examples/active-learning/README_zh.md)
 

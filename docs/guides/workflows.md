@@ -93,9 +93,10 @@ based format detection.
 Start from a template with the intended species count/order, radial basis,
 cutoff and moment basis. Keep an untouched copy. The
 [quickstart](../../examples/quickstart/README.md) ships a tiny synthetic template
-for learning the workflow. The `mtmbasis` generator and radial-basis settings
-are documented in [configuration](../reference/configuration.md); generation settings are
-not a substitute for a complete deployable model.
+for learning the workflow. The [basis guide](basis-selection.md) covers
+generating a pool with `mtmbasis` and trimming it with `fastfit`; generator and
+radial-basis settings are in [configuration](../reference/configuration.md).
+Generation settings are not a substitute for a complete deployable model.
 
 `initmtpm` initializes the MTP-M nonlinear-head model; it is not a required
 initialization step for ordinary MTP training. Do not use it blindly on a
@@ -223,6 +224,7 @@ projected NEB force alone does not establish a transition state.
 
 ## Additional fitting and basis selection
 
+- [Basis generation, fitting and selection](basis-selection.md)
 - [fastfit cost selection](../advanced/fastfit-cost-selection.md)
 - [HVP labels and fitting](../advanced/hvp-training.md)
 - [MTP variable projection](../advanced/mtp-native-varpro.md)

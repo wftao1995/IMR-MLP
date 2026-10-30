@@ -23,6 +23,7 @@ Task-based installation, evaluation, relaxation, NEB, properties, training and s
 ## 3. Training and active learning
 
 - [Training, evaluation and deployment](workflows.md)
+- [mtmbasis and fastfit: Generating, Optimizing and Selecting an MTP Basis](basis-selection.md)
 - [Active Learning and Candidate Selection](active-learning.md)
 - [A self-contained MaxVol selection exercise](../../examples/active-learning/README.md)
 

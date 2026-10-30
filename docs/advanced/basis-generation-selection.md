@@ -2,7 +2,7 @@
 
 [中文](basis-generation-selection_zh.md)
 
-This page connects `mtmbasis → trainmtp/trainnlpot → fastfit → calc_efs/calc_err` for MTP with an ordinary linear head. First complete the [training workflow](../guides/workflows.md) and prepare `train.xyz`, `valid.xyz` and an independent `test.xyz` with consistent species mapping. See structure formats for data conventions and MTP formats for model layouts.
+This page connects `mtmbasis → trainmtp/trainnlpot → fastfit → calc_efs/calc_err` for MTP with an ordinary linear head. For the shortest path through that chain and the decisions between the steps, start with the [basis guide](../guides/basis-selection.md); this page adds the full settings, search modes and output files. First complete the [training workflow](../guides/workflows.md) and prepare `train.xyz`, `valid.xyz` and an independent `test.xyz` with consistent species mapping. See structure formats for data conventions and MTP formats for model layouts.
 
 For a complete script requiring no external data, run the basis generation and selection example. Initialization, fitting and reload for other heads and long-range models are covered in model-family workflows.
 

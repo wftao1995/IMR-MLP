@@ -2,7 +2,7 @@
 
 [English](basis-generation-selection.md)
 
-本页串联 `mtmbasis → trainmtp/trainnlpot → fastfit → calc_efs/calc_err`，适用于普通线性头 MTP。先完成[基本训练流程](../guides/workflows_zh.md)，准备元素映射一致的 `train.xyz`、`valid.xyz` 和独立的 `test.xyz`。数据约定见结构文件格式，模型布局见MTP 文件格式。
+本页串联 `mtmbasis → trainmtp/trainnlpot → fastfit → calc_efs/calc_err`，适用于普通线性头 MTP。只走最短路径、看步骤之间的取舍，见[基组指南](../guides/basis-selection_zh.md)；本页补充全部设置、搜索模式与输出文件。先完成[基本训练流程](../guides/workflows_zh.md)，准备元素映射一致的 `train.xyz`、`valid.xyz` 和独立的 `test.xyz`。数据约定见结构文件格式，模型布局见MTP 文件格式。
 
 无需外部数据即可运行的完整脚本见基组生成与筛选示例。其他头和长程模型的初始化、训练、重载见模型家族流程。
 

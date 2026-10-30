@@ -81,7 +81,8 @@ cp split_2.xyz test.xyz
 
 模板应包含预期的元素数与顺序、径向基、截断和矩基，并保留未经修改的副本。
 [快速入门](../../examples/quickstart/README_zh.md)提供用于学习流程的小型合成模板。
-`mtmbasis` 与径向基设置见[配置说明](../reference/configuration_zh.md)；生成器配置本身不是
+用 `mtmbasis` 生成候选池、再用 `fastfit` 精简的过程见[基组指南](basis-selection_zh.md)；
+生成器与径向基设置见[配置说明](../reference/configuration_zh.md)。生成器配置本身不是
 完整可部署的模型。
 
 `initmtpm` 用于 MTP-M 非线性头初始化，不是普通 MTP 训练必需的初始化步骤，
@@ -191,6 +192,7 @@ NEB 投影力很小本身不能证明找到了过渡态。
 
 ## 更多训练与选基方式
 
+- [基组生成、拟合与选择](basis-selection_zh.md)
 - [fastfit 成本选基](../advanced/fastfit-cost-selection_zh.md)
 - [HVP 标签与拟合](../advanced/hvp-training_zh.md)
 - [MTP 变量投影](../advanced/mtp-native-varpro_zh.md)

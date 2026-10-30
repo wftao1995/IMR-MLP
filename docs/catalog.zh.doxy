@@ -33,6 +33,7 @@ INPUT += ../docs/development/cpp-examples_zh.md
 INPUT += ../docs/development/cuda_zh.md
 INPUT += ../docs/development/index_zh.md
 INPUT += ../docs/guides/active-learning_zh.md
+INPUT += ../docs/guides/basis-selection_zh.md
 INPUT += ../docs/guides/faq_zh.md
 INPUT += ../docs/guides/getting-started_zh.md
 INPUT += ../docs/guides/index_zh.md

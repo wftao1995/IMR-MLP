@@ -84,6 +84,11 @@
               "render": true
             },
             {
+              "source": "docs/guides/basis-selection.md",
+              "slug": "guides/basis-selection",
+              "render": true
+            },
+            {
               "source": "docs/guides/active-learning.md",
               "slug": "guides/active-learning",
               "render": true

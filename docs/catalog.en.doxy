@@ -33,6 +33,7 @@ INPUT += ../docs/development/cpp-examples.md
 INPUT += ../docs/development/cuda.md
 INPUT += ../docs/development/index.md
 INPUT += ../docs/guides/active-learning.md
+INPUT += ../docs/guides/basis-selection.md
 INPUT += ../docs/guides/faq.md
 INPUT += ../docs/guides/getting-started.md
 INPUT += ../docs/guides/index.md

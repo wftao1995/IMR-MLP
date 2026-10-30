@@ -1890,7 +1890,7 @@ imrmlp mtmbasis --settings=mtmbasis.ini --alphapool=alphapool.dat
 | `--sample` | `-s` | false | 对当前池采样并保存 `sampled_alphas.dat`。 |
 | `--sample-rate` | `-rate` | 1.0 | `--sample` 的随机采样比例；超出 `[0,1]` 的值会被重置为 1。 |
 | `--advanced-sample` | `-as` | false | 由 `sample_rates` 控制的按维度采样。 |
-| `--potfile` | `-pot` | `potential.mtp` | CLI 会解析该选项，但当前搜索输出路径固定为 `potential.mtp_<iteration>`。 |
+| `--potfile` | `-pot` | `potential.mtp` | 候选基组的输出前缀，每个被接受的候选写成 `<前缀>_<编号>`。 |
 | `--convert` | | false | 旧格式转换路径；实现中标记为“not working”。 |
 
 ---

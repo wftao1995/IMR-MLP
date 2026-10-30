@@ -2021,7 +2021,7 @@ Pool-only modes are useful for staging expensive basis enumeration:
 | `--sample` | `-s` | false | Sample the current pool and save `sampled_alphas.dat`. |
 | `--sample-rate` | `-rate` | 1.0 | Random sampling fraction for `--sample`; values outside `[0,1]` are reset to 1. |
 | `--advanced-sample` | `-as` | false | Dimension-aware sampling controlled by `sample_rates`. |
-| `--potfile` | `-pot` | `potential.mtp` | Parsed by the CLI, but the current search output path is hard-coded as `potential.mtp_<iteration>`. |
+| `--potfile` | `-pot` | `potential.mtp` | Output prefix for candidate bases; each accepted candidate is written as `<prefix>_<iteration>`. |
 | `--convert` | | false | Legacy conversion path; marked "not working" in the implementation. |
 
 ---
