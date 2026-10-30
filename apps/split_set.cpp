@@ -80,8 +80,8 @@ int split_set(int argc, char *argv[])
            .addop(shuffle, "shuffle", "s", "random shuffle configurations before split")
            .addop(inputfile, "input", "", "input structure sets", true)
            .addop(outputfile, "output-prefix", "", "output file prefix", true)
-           .set_usage("Examples:\n  split_set dataset.cfg split_ --nsplit 2\n"
-                      "  split_set dataset.cfg split_ --ratios=8,1,1 --shuffle yes\n"
+           .set_usage("Examples:\n  split_set dataset.cfg split_ --ratios=8,1,1 --shuffle yes\n"
+                      "  split_set dataset.cfg split_ --nsplit 2\n"
                       "Ratio mode takes consecutive segments after any shuffle; equal mode distributes round-robin.\n");
     cmdopts.phrase_options(argc, argv);
     if (cmdopts.displayhelp) return 0;
