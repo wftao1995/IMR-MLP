@@ -1619,6 +1619,10 @@ imrmlp convstr POSCAR output.lammps
 imrmlp convstr trajectory.lammpstrj output.cfg
 ```
 
+NetCDF（`.nc`）不在支持范围内。显式给出 `--input-format nc` 时读不到任何结构，
+报 `no structures were read`；不给格式时 `.nc` 无法被识别。两种情况都不会写出或
+覆盖目标文件。需要处理 NetCDF 数据时，先用其他工具导出为 extxyz、cfg 或 POSCAR。
+
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|--------|------|
 | `--inputfiles` | `-in` | — | 输入结构文件（位置参数，必需，多文件） |

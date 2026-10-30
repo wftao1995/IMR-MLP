@@ -30,6 +30,17 @@ built from Eigen's own kernels, which is slower for large matrix products.
 The basic route below disables optional OpenKIM to avoid another dependency
 at first installation.
 
+Two further libraries come up often and neither belongs in that list. tinyxml2
+ships with the sources (`deplibs/tinyxml2/`) and is compiled and linked
+statically by `make`, so there is no need to install `libtinyxml2-dev` and the
+vendored copy takes precedence over a system one. It is used for `.xsd`
+structures and for `vasprun.xml`, the latter also being gated by `-DUSEXML`,
+which is on by default. NetCDF is the opposite case: nothing needs installing
+because the current version does not support `.nc` at all and such requests are
+rejected outright. To use NetCDF data with this program, export it to extxyz,
+cfg or POSCAR first; see `convstr` in the
+[command reference](../reference/commands.md).
+
 ### Ubuntu / Debian development packages
 
 With administrator access, start with common development packages:

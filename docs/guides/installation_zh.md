@@ -27,6 +27,14 @@ ALGLIB、FFTW、OpenMP 和默认启用的 zlib。oneMKL 是可选项：启用后
 打开它；不启用时改用 Eigen 自带内核，功能相同，只是大规模矩阵运算较慢。
 下面的基础路线关闭可选 OpenKIM，避免首次安装额外准备 KIM API。
 
+还有两个库常被问到，都不在上面这份清单里。XML 解析用的 tinyxml2 随源码提供
+（`deplibs/tinyxml2/`），`make` 会自行编译并静态链接，不需要安装
+`libtinyxml2-dev`，构建时也优先使用仓库内的副本。读取 `.xsd` 结构和
+`vasprun.xml` 依赖它，其中 `vasprun.xml` 另受 `-DUSEXML` 控制，该选项默认已开启。
+NetCDF 则相反：不需要安装任何东西，因为当前版本不支持 `.nc` 格式，请求会被
+直接拒绝。要把 NetCDF 数据用于本程序，请先用其他工具导出为 extxyz、cfg 或
+POSCAR，见[命令参考](../reference/commands_zh.md)中的 `convstr`。
+
 ### Ubuntu / Debian 上的系统开发包
 
 有管理员权限时，可先安装常用开发包：

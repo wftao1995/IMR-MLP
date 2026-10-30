@@ -1736,6 +1736,12 @@ imrmlp convstr POSCAR output.lammps
 imrmlp convstr trajectory.lammpstrj output.cfg
 ```
 
+NetCDF (`.nc`) is not among the supported formats. With an explicit
+`--input-format nc` no structures are read and the command reports
+`no structures were read`; without a format, `.nc` is not recognized. Neither
+case writes or overwrites the output file. To work with NetCDF data, export it
+to extxyz, cfg or POSCAR first.
+
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
 | `--inputfiles` | `-in` | — | Input structure file(s) (positional, required, multi-file) |
