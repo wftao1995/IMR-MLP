@@ -1055,3 +1055,5 @@ CURResult cur_select_rows(
 - `apps/maxvol_select.cpp`；
 - @ref theory_training （训练理论）；
 - @ref theory_mtp （MTP 理论）。
+
+**参见：** @ref maxvol, @ref theory_training

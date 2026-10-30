@@ -18,8 +18,8 @@
 
 XSF 标量网格通过独立的 `read_xsf_fields()`、`write_xsf_fields()` 以及
 `ScalarField`、`DataGridBlock` 读写，保留网格布局与跨距矢量。
-转换时的派生标签见[标量表达式（英文）](convstr-scalar-labels.md)，
-选择性 HA 分类见[HA 类别（英文）](ha-selected-indices.md)。
+转换时的派生标签见[标量表达式](convstr-scalar-labels_zh.md)，
+选择性 HA 分类见 [HA 类别](ha-selected-indices_zh.md)。
 
 ## 训练
 

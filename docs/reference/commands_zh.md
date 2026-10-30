@@ -504,7 +504,7 @@ imrmlp fastfit --settings=settings.ini --potfile=init.mtp --trainset=train.cfg -
 
 ```bash
 imrmlp train_linear --settings=training.ini
-imrmlp train_linear -in train.cfg -inv valid.cfg -o fitted_potential
+imrmlp train_linear --trainset=train.cfg --validset=valid.cfg -o fitted_potential
 ```
 
 | 选项 | 别名 | 默认值 | 描述 |
