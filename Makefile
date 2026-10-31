@@ -457,7 +457,7 @@ check-doc-html:
 	node docs/tools/check_doc_search.cjs $(DOCS_DIR)/manual-html/en $(DOCS_DIR)/manual-html/zh
 	python3 docs/tools/check_doc_math.py $(DOCS_DIR)/manual-html/en $(DOCS_DIR)/manual-html/zh
 
-doc: doc-html doc-pdf
+doc: doc-manual doc-pdf
 
 doc-html: doc-catalog
 	python3 docs/tools/build_docs.py --all --doxygen $(DOXYGEN)
@@ -465,9 +465,12 @@ doc-html: doc-catalog
 doc-pdf: doc-html
 	cd $(DOCS_DIR)/build/latex && $(MAKE) 2>/dev/null || true
 
+# doc-html always emits both API languages, so the -zh targets are aliases that
+# only differ in what they advertise; the Chinese site lands in docs/build_zh.
 doc-zh: doc-zh-html
 
 doc-zh-html: doc-html
+	@echo "note: doc-html builds both API languages; Chinese output is $(DOCS_DIR)/build_zh/html"
 
 doc-clean:
 	rm -rf $(DOCS_DIR)/build $(DOCS_DIR)/build_zh $(DOCS_DIR)/manual-html

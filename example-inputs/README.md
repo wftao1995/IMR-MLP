@@ -7,6 +7,16 @@ Settings templates and command-line references for `imrmlp` subcommands. Each co
 whitespace-separated keys (no `=`), with subsystem prefixes such as `fit:`,
 `relax:`, `pot:`, `neb:`, or `builder:`.
 
+Every deck is cut into blocks separated by one blank line: input and output,
+potential, parallelism, images or frames, optimizer, convergence, then the blocks
+specific to the command. `# ===== ... =====` headers name each block and values
+sit in one column, so a key can be found without reading the whole file. The order
+does not affect parsing, and a deck of a handful of keys is left undivided.
+
+A commented-out key marks an option that stays at its default. Write either a key
+with a value or a commented key, never a bare key: the loader reports
+`missing setting value` and stops.
+
 | Area | Decks |
 |---|---|
 | EFS and validation | `calc-efs*.ini`, `calc-err*.ini`, `testpot*.ini` |
