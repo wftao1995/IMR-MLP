@@ -7,7 +7,6 @@ NEB（弹性带方法）在已知初态与终态之间求迁移、反应或相�
 
 不涉及：端点结构的求解（见[结构弛豫](relaxation_zh.md)）、变胞与路径对称性的
 进阶设置（见[并行与路径对称性](../advanced/neb-parallel-symmetry_zh.md)）。
-数值收敛不保证模型能准确预测真实材料的势垒。
 
 ## 前置输入
 
@@ -38,20 +37,33 @@ POSCAR 看起来整齐而重排其中一个端点的原子行。周期边界下�
 保存为 `neb.ini`：
 
 ```text
-index index.map
-pot:potfile model.mtp
-nimgs 7
-image:0 initial.vasp
-image:6 final.vasp
-driver fire
-maxiteration 500
-gtol 0.02
-max_move 0.05
-num_threads 1
-neb:solver_policy stable-v1
-neb:init_method idpp
-neb:spring 1
-neb:climb true
+# ===== Input/Output =====
+index               index.map
+
+# ===== Potential =====
+pot:potfile         model.mtp
+
+# ===== Parallel =====
+num_threads         1
+
+# ===== Images =====
+nimgs               7
+image:0             initial.vasp
+image:6             final.vasp
+
+# ===== Optimizer =====
+driver              fire
+max_move            0.05
+
+# ===== Convergence =====
+gtol                0.02
+maxiteration        500
+
+# ===== NEB =====
+neb:solver_policy   stable-v1
+neb:init_method     idpp
+neb:spring          1
+neb:climb           true
 ```
 
 ```sh
@@ -70,7 +82,7 @@ tail -n 20 neb.log
 | 选择 | 作用 | 注意 |
 | --- | --- | --- |
 | `neb:init_method linear` | 在已提供图像之间插值 | 交换原子或复杂迁移时可能穿过重叠构型 |
-| `neb:init_method idpp` | 通过插值的原子对距离改善初始路径 | 不能替代正确的原子匹配，也不保证找到目标机制 |
+| `neb:init_method idpp` | 通过插值的原子对距离改善初始路径 | 需要正确的原子匹配；它只优化距离，找不到目标机制时仍要手工提供中间图像 |
 | `neb:climb true` | 对选中的高能图像使用爬升力，细化鞍点附近路径 | 仍需整条路径收敛及独立鞍点检查 |
 | 最小镜像展开（默认启用） | 以最小镜像位移展开相邻输入图像 | 长距离或指定绕行路径应先明确自己的展开方式 |
 
@@ -89,12 +101,13 @@ tail -n 20 neb.log
 | `neb.dat.iterations.csv` | 迭代诊断，区分接受步与试探/预算问题 |
 
 退出码 0 表示收敛，2 表示正常结束但未收敛，1 表示错误；缺少设置文件的既有状态为
-128。达到最大迭代或求值预算时仍可能写出最终路径，图像文件存在不等于收敛。
-收敛要检查完整 NEB 残差，不能仅凭小的垂直力或图像能量变化判断。
+128。达到最大迭代或求值预算时仍会写出最终路径，所以判据是 `neb.dat` 的 `# converged`
+与 `# status`，不是 `mep.xyz` 是否存在。收敛看完整 NEB 残差（如 `# max_neb_force`），
+垂直力和图像能量变化不参与判定。
 
 固定胞下，`neb.dat` 的 `enthalpy` 列就是模型总能量，`ent_diff` 相对初态归零。
 前向势垒为路径最高能量减初态能量，反向势垒减终态能量；这是该模拟体系的总 eV，
-不是默认的每原子 eV。平滑插值曲线用于展示，不能替代实际鞍点求值。
+不是默认的每原子 eV。平滑插值曲线只用于展示；鞍点性质要用最高能量图像单独求值。
 
 ### 从路径能量读势垒
 
@@ -110,23 +123,52 @@ tail -n 20 neb.log
 终态比初态低 `0.05 eV`。不要用最高图像与其相邻图像的能量差代替势垒，也不要再除以
 原子数。增加图像数后应同时比较最高能量、完整 NEB 残差和路径机制是否稳定。
 
-## 续算与可信度
+## 复核与续算
 
-先检查路径的物理机制、原子距离和端点收敛，再比较更多图像、更紧容差及不同初始路径。
-应独立核验最高能量图像是否为一阶鞍点：排除平移后 Hessian 恰有一个负模，是必要检查
-之一。
+### 路径是否可信
 
-保留原模型、元素映射、`neb.dat` 和全部 `nebimage_N_final.vasp` 后，可在备份的运行
-目录中增加预算并续算：
+按顺序逐条确认，前一条不成立时，后面的结论都没有意义。
+
+1. **机制。** 逐帧翻 `mep.xyz`：哪些原子在动、往哪个方向动、有没有原子互相穿过或绕过
+   盒子一圈。
+2. **端点。** 两端都必须是在同一晶胞、同一模型、同一约束下收敛的极小值。端点没收敛，
+   中间的势垒没有意义。
+3. **收敛。** 看 `neb.dat` 里的 `# converged`、`# status` 和完整 NEB 残差；垂直力与
+   图像能量变化不参与判定。
+4. **稳定性。** 只有前三步都通过，才去增加图像、收紧 `gtol` 或换一条初始路径。若势垒
+   或机制随之改变，说明前一次并没有收敛。
+
+四项都通过只说明这条带自洽；要把最高能量图像称为过渡态，再算一次 Hessian。
+把命令里的 `3` 换成最高能量图像的编号：
+
+```sh
+imrmlp calc_fc --potfile model.mtp --input nebimage_3_final.vasp --lowest-modes 5
+```
+
+`EIGENVALS` 给出扣掉三个平移模之后最低的几个内部模式。恰好一个负本征值与一阶鞍点
+相符；出现两个以上，说明这是高阶驻点，或者整条带还没收敛。
+
+### 续算
+
+`--next_step` 从上一次运行写出的图像接着算：它读取每张 `nebimage_<i>_final.vasp`，
+以及 `neb.dat` 里以 `#` 开头的行。因此 `nimgs` 要保持不变，这些文件也不能缺。
 
 ```sh
 imrmlp neb neb.ini --next_step > neb-restart.log 2>&1
 ```
 
-示例沿用默认的固定图像数，因此 `nimgs` 保持不变。续算会更新同名输出，先保留原结果。
-它恢复路径/阶段信息，但重建优化器历史，不保证与不中断运行逐步一致。变胞续算还需要
-`neb_reference_cell.data`。更换模型、开启新约束或添加扰动时，应建立一份明确的新计算，
-不能当成原计算的无变化续算。
+输出会以同名文件重写，先把原来的 `neb.dat`、`mep.xyz` 和 `nebimage_*_final.vasp`
+备份到别处。
+
+保留下来的是路径本身和所处阶段：爬升或谷底图像、被钉住的图像、已接受的步数计数。
+不保留的是优化器自己的记忆，它按续算时的几何重建。所以续算走的是同一条路径，但
+不会与不中断的运行逐步相同。
+
+变胞续算还需要 `neb_reference_cell.data`，缺少它时 `stable-v1` 会拒绝续算。
+
+只有问题本身没变时才谈得上续算。换了模型、重新插值路径或改了设置，都属于新的计算。
+启用对称性约束或扰动的路径根本不能用 `--next_step`。程序不会比对势函数文件与上次
+是否相同，这一点需要自己确认。
 
 ## 扩展：MPI、变胞与路径对称性
 
@@ -136,7 +178,8 @@ imrmlp neb neb.ini --next_step > neb-restart.log 2>&1
   及焓。压力单位 GPa，输出已含 pV，不要重复加入；固定胞 `gtol` 不能原样解释为变胞的
   统一力容差。
 - **对称性：** 约束共同子群可能降低成本，也可能排除更低路径，可用扰动和释放检查比较。
-  空间群编号相同并不等于原子标签对应的整条路径具有相同对称性。
+  空间群编号相同只说明两端点属于同一群；整条路径的对称性看 `neb-symmetry.dat` 列出的
+  共同操作索引。
 
 Dimer 与 mode following 的选择见[驻点与路径专题](../advanced/saddle-workflows_zh.md)。
 

@@ -3,8 +3,8 @@
 [中文](relaxation_zh.md)
 
 Relaxation uses an existing potential to optimize atomic positions or the cell,
-finding a local minimum under the chosen constraints. It does not train the model
-or guarantee the global minimum.
+finding a local minimum under the chosen constraints; which minimum it reaches
+follows from the starting structure.
 
 Out of scope: energies and errors at a fixed geometry (see
 [single-point calculation](single-point.md)) and paths between two states
@@ -27,12 +27,20 @@ using other model types or boundary conditions.
 
 ### Degrees of freedom
 
-| Goal | Atomic positions | Cell | Settings to use |
-| --- | --- | --- | --- |
-| Defect or atomic optimization at fixed cell and volume | Free | Fixed | Fixed-cell relaxation (default) |
-| Equilibrium bulk cell at zero or specified pressure | Free | Free | Variable-cell relaxation plus optional `relax:pressure` |
-| Optimize the lattice while retaining fractional positions | Fixed | Free | Disable atomic updates, then enable cell relaxation |
-| Surface with fixed bottom layers or a constrained local optimization | Partially free | Depends on the physical question | Selective dynamics or constraints; confirm frozen components first |
+| Goal | Atomic positions | Cell | Settings to use | `isif` |
+| --- | --- | --- | --- | --- |
+| Defect or atomic optimization at fixed cell and volume | Free | Fixed | Fixed-cell relaxation (default) | `2` |
+| Equilibrium bulk cell at zero or specified pressure | Free | Free | Variable-cell relaxation plus optional `relax:pressure` | `3` |
+| Optimize the lattice while retaining fractional positions | Fixed | Free | Disable atomic updates, then enable cell relaxation | `6` |
+| Surface with fixed bottom layers or a constrained local optimization | Partially free | Depends on the physical question | Selective dynamics or constraints; confirm frozen components first | — |
+
+The `isif` column is the VASP convention, available as the `--isif` flag or the
+top-level `isif` key.
+The remaining values follow VASP as well: `4` frees atoms and cell at fixed volume,
+`5` fixes the atoms and the volume, `7` scales the volume isotropically with fixed
+positions, and `8` combines atoms with isotropic volume changes. `isif` is applied
+after the settings file and overrides `relax_atom`, `relax_cell`, `fix_vol` and
+`fix_shape`, with a warning when both are present; use one style or the other.
 
 ### Fixed-cell relaxation
 
@@ -41,15 +49,22 @@ The defaults already optimize atoms at a fixed cell with L-BFGS, so those switch
 need not be written explicitly.
 
 ```text
-input POSCAR
-output relaxed.xyz
-index index.map
-pot:potfile model.mtp
-relax:cartesian true
-relax:gtol 0.001
-relax:maxiteration 500
-relax:stepmax 0.05
-relax:write_traj true
+# ===== Input/Output =====
+input               POSCAR
+output              relaxed.xyz
+index               index.map
+
+# ===== Potential =====
+pot:potfile         model.mtp
+
+# ===== Relaxation =====
+relax:cartesian     true
+relax:stepmax       0.05
+relax:gtol          0.001
+relax:maxiteration  500
+
+# ===== Trajectory =====
+relax:write_traj    true
 ```
 
 ```sh
@@ -94,8 +109,12 @@ and has compatibility restrictions with other constraints; see
 
 `lbfgs` is a starting point for ordinary tasks; `fire`, `lbfgspp` and `cg` are
 alternatives, and final energy and gradients should be compared after changing the
-optimizer. Avoid copying both `isif` and separate freedom flags: top-level `isif`
-overrides related settings such as `relax_atom` and `relax_cell`.
+optimizer.
+
+The switches on this page cover the ordinary cases. Cell-component masks,
+lattice-vector coupling, external stress tensors, constrained solvers and
+preconditioning are collected in
+[relaxation controls beyond the guide](../advanced/relax-controls.md).
 
 ## Output and criteria
 
@@ -104,33 +123,29 @@ overrides related settings such as `relax_atom` and `relax_cell`.
 | Exit code `0` | All input structures meet relaxation convergence criteria |
 | Exit code `2` | At least one structure stopped normally without convergence; output may still contain its last accepted structure |
 | Exit code `1` | Input, evaluation or output failure; inspect the specific error in `relax.log` |
-| `relaxed.xyz` | Inspect final geometry, species, energy and forces; file existence is not convergence |
+| `relaxed.xyz` | Inspect final geometry, species, energy and forces; it is written even without convergence, so read the exit code |
 | `relax-trajectory.xyz` | Look for overlaps, jumps or unreasonable deformation |
 
-Small energy changes, small steps and iteration exhaustion do not replace
-force/gradient convergence. Constraints test only allowed degrees of freedom;
+Convergence is a force/gradient criterion only: `gtol` compares the largest absolute
+gradient component over the allowed degrees of freedom, and energy changes, step sizes
+and iteration counts do not enter it. Constraints test only allowed degrees of freedom;
 frozen directions may still have forces. Export a final POSCAR when needed:
 
 ```sh
-imrmlp convstr relaxed.xyz relaxed.vasp --index index.map
+imrmlp convstr relaxed.xyz relaxed.vasp
 ```
 
-### Recheck final forces
-
-Evaluate the final geometry with the same model:
+The recheck: evaluate the final structure once more with the same model and compare the
+largest absolute force component against `gtol`:
 
 ```sh
-imrmlp calc_efs relaxed.xyz checked.xyz --potfile model.mtp --index index.map
+imrmlp calc_efs relaxed.xyz checked.xyz --potfile model.mtp
 ```
 
-Inspect the `forces` columns in `checked.xyz`. For the unconstrained fixed-cell
-settings above, a largest absolute force component of `0.0008 eV/Å` meets
-`gtol=0.001`, while `0.0046 eV/Å` does not. Compare components, not
-three-dimensional force norms. If logged convergence disagrees substantially,
-check that the model and final frame match, then inspect effective constraints and
-settings. For a tighter run, copy the settings, change input to `relaxed.xyz`,
-replace `gtol` and choose a new output filename; compare final energy, geometry and
-forces for stability.
+With the unconstrained fixed-cell settings above, `0.0008 eV/Å` meets `gtol=0.001`
+while `0.0046 eV/Å` does not; the comparison is per component, not per-atom norms. A
+clear disagreement usually means another model or frame was evaluated, or that
+constraints are still active.
 
 ## Common errors
 
@@ -145,4 +160,6 @@ forces for stability.
 
 - [Crystal properties](properties.md): phonons, elasticity and equation of state once the equilibrium structure is fixed
 - [NEB](neb.md): paths, after both endpoints are relaxed
+- [Relaxation controls beyond the guide](../advanced/relax-controls.md): masks, coupling, external stress, constrained solvers
+- [Symmetry-constrained relaxation](../advanced/relax-symmetry.md): what `relax:keep_symm` does and excludes
 - [Input files and settings conventions](conventions.md), [command reference](../reference/commands.md)

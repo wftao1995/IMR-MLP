@@ -18,8 +18,9 @@
 - Dimer 平移使用端点平均，转动使用其曲率的导数，并包含方向归一化的 Jacobian。
   静水压变胞目标一致地使用 `E+pV`。对称 VC-Dimer 与 VCNEB 通过 Cholesky
   或对称矩阵平方根使用解析拉回。
-- Dimer 结果描述最终中心点，并包含转动残差、中心梯度与负曲率检查。
-  仅凭负的方向曲率不能证明结构恰好有一个负 Hessian 特征值。
+- Dimer 结果描述最终中心点，并包含转动残差、中心梯度与负曲率检查。负的方向曲率只说明
+  沿当前方向下降；负模个数要用 `calc_fc --lowest-modes` 在最终结构上看 `EIGENVALS`
+  里的负本征值计数。
 - `random_seed=0` 在同一构建下可复现；`-1` 请求非确定性初始化。
   显式给出的非法 MODECAR 会报错。
 - `modefollowing --mode=2` 在预算耗尽或最终力/单一负模检查失败时返回 2。
@@ -50,4 +51,4 @@ python3 -m pytest
 NR 与 mode following 需要 MTP 解析 Hessian。其稠密 Hessian 面向较小的候选结构。
 NR 寻找驻点时不选择 Hessian 索引。测试以 CPU/OpenMP 以及定胞或静水压导数
 为目标，不用于验证各向异性外应力或任意材料迁移路径。
-仅靠导数与 MODECAR 检查不能证明变胞 mode following 已收敛。
+变胞 mode following 是否收敛，看退出码与最终力／单一负模检查的结果，`MODECAR` 只是输入。

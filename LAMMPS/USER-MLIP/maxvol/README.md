@@ -77,7 +77,9 @@ fix ID all mlip/maxvol NEVERY MODEL STATE INDEX TYPE_TO_SPECIES... &
 ```
 
 Provide one zero-based model species index per LAMMPS atom type; use `0` for a
-single-species model. File paths are relative to the LAMMPS working directory.
+single-species model. The `10` in the example is `NEVERY`: the configuration is
+graded, and candidates saved, once every 10 steps. File paths are relative to the
+LAMMPS working directory.
 `save` defaults to `sampled.xyz`; the save and break thresholds default to `2.1`
 and `11.0`, with `0 <= threshold-save <= threshold-break`.
 `threshold-break none` disables automatic stopping. The fix requires `units
@@ -110,7 +112,8 @@ a global LAMMPS error stops the run. This check also runs at initialization, so
 an extrapolative initial configuration is retained. For a controlled stop, use
 `threshold-break none` and LAMMPS `fix halt` with `f_ID`. The `.sel` file is
 read-only: sampling does not extend the active set. Grades describe model/active
-set extrapolation and are not calibrated prediction errors.
+set extrapolation with no conversion to a prediction error; run `calc_err` on the
+same configurations to measure that.
 
 ## Potential types and settings
 

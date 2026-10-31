@@ -70,8 +70,8 @@ fix ID all mlip/maxvol NEVERY MODEL STATE INDEX TYPE_TO_SPECIES... &
     [save FILE] [threshold-save VALUE] [threshold-break VALUE|none]
 ```
 
-每个 LAMMPS atom type 必须有一个从零开始的模型物种索引；单物种传 `0`。
-参数中的文件路径相对于 LAMMPS 的工作目录。`save` 默认为 `sampled.xyz`，
+每个 LAMMPS atom type 必须有一个从零开始的模型物种索引；单物种传 `0`。示例中的 `10`
+即 `NEVERY`：每 10 步评分一次并在采样步保存候选。参数中的文件路径相对于 LAMMPS 的工作目录。`save` 默认为 `sampled.xyz`，
 两个阈值默认分别为 `2.1`、`11.0`，要求 `0 <= threshold-save <= threshold-break`。
 `threshold-break none` 禁用自动停止。只支持 `units metal`、三维、`group all`
 和带唯一正 atom ID 的系统；非连续 ID、MPI 空 rank、正交／restricted triclinic
@@ -97,7 +97,8 @@ LAMMPS boxlo，得到以零为原点的等价晶胞。输出不带预测 EFS 标
 grade **严格大于** `threshold-break` 时，先保存并 flush 触发构型，再用 LAMMPS
 全局错误退出。初始化阶段也执行此检查和保存，因此高风险初始构型不会漏掉。
 需要柔性停止时可设置 `threshold-break none`，再通过 LAMMPS `fix halt` 使用
-`f_ID`。`.sel` 始终只读；采样不扩充 active set。外推等级取决于模型和主动集，不能直接当作预测误差。
+`f_ID`。`.sel` 始终只读；采样不扩充 active set。外推等级取决于模型和主动集，与预测
+误差没有换算关系；要看误差，就在同一批构型上跑 `calc_err`。
 
 ## 势函数类型与设置
 

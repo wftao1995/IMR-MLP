@@ -87,10 +87,13 @@ When a nontrivial common subgroup is available, its invariant part is removed
 before perturbing. Uniform translation is removed for multi-atom systems, and
 selective-dynamics masks are respected. If no displacement survives the filters,
 the input is rejected. P1 and unsupported-symmetry paths receive a smooth seeded
-perturbation without a claim that an additional symmetry has been broken.
+perturbation; for them it is the raw random displacement and the path symmetry is
+unchanged.
 
-Use several seeds and compare converged paths and barriers. A perturbation is a
-new initial guess, not evidence that a lower barrier exists. Amplitude defaults
+Use several seeds and compare converged paths and barriers. A perturbation is a new
+initial guess, and the check is whether barriers from different seeds agree; a
+difference beyond the energy tolerance means the earlier initial path was the problem.
+Amplitude defaults
 to zero and seed defaults to zero. The report preserves both values.
 
 ## Constrain a chosen common subgroup
@@ -116,8 +119,8 @@ this allowed subspace. The selected operations remain fixed during optimization,
 including adaptive image insertion/removal. Endpoints are retained as supplied;
 interior coordinates can be corrected within the detection tolerance. Raw force
 components forbidden by the constraint do not determine constrained convergence.
-A constrained stationary path does not establish stability against modes excluded
-by that constraint; compare with perturbed unconstrained paths.
+To test stability against modes excluded by the constraint, relax `keep_symm` (or
+the subgroup), run a symmetry-broken path and compare its barrier.
 
 Constraints require full PBC and, for VC-NEB, symmetric strain coordinates. They
 support the cell metric weights and either atomic coordinate representation.
@@ -168,7 +171,10 @@ communication cost when images are cheap or ranks are idle.
 ## Check a constrained path after releasing symmetry (opt in)
 
 ```ini
-neb:keep_symm true
+# ===== Path =====
+neb:keep_symm       true
+
+# ===== Symmetry Release Check =====
 neb:symmetry_release release-check
 neb:symmetry_release_trials 3
 neb:symmetry_release_seed 0
@@ -300,7 +306,9 @@ barrier rankings and duplicate groups. Fixed-cell comparisons use total energy;
 VC comparisons use total enthalpy E+pV. Timeouts, exhausted budgets, stalled runs,
 failures and skipped proposals remain listed separately. A lower-than-baseline
 claim requires both paths to converge. Differences close to the energy tolerance
-or residuals close to the force threshold are marked `needs_refinement`.
+or residuals close to the force threshold are marked `needs_refinement`; to claim a
+new mechanism, tighten `gtol` and recompute until those paths lie clearly outside the
+tolerance.
 
 Deduplication preserves atom labels and endpoint correspondence. It permits one
 whole-path origin shift, constant per-atom lattice gauges and a single positive
@@ -313,7 +321,8 @@ complete-link groups require every member pair to pass, preventing chain merges.
 One fixed spatial operation plus one fixed atom mapping can be reported as a
 geometric relation between distinct groups; it never merges their labels.
 
-These are finite local searches, not global minimum-path or saddle certificates.
+These are finite local searches: the conclusions cover only the paths reached from the
+generated seeds and release checks.
 Image-reversing path groups and irreducible-representation seeds require a
 separate group-action implementation and are not included. Translation, labelled
 permutation and unimodular-basis tests compare physical geometry/EFS/projectors;

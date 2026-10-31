@@ -78,8 +78,8 @@ I_* = \arg\max_{|I|=n} |\det A[I,:]|.
 @f]
 
 其中 @f$\sigma_j@f$ 是奇异值。体积大意味着各方向不容易塌缩，通常也意味着
-所选行具有较好的线性独立性。不过，最大体积和“最小条件数”不是完全等价的
-优化问题，文档和日志中不应把二者混为严格等价。
+所选行具有较好的线性独立性。不过，最大体积和“最小条件数”是两个不同的
+优化问题：体积最大不保证条件数最小。
 
 若线性化模型写为
 
@@ -164,9 +164,11 @@ MaxVol 每轮寻找
 - @f$\Gamma>\tau@f$：至少存在一次可显著增大体积的行替换；
 - @f$\Gamma\gg1@f$：相对于当前 B 矩阵定义，构型具有很强的外推性。
 
-grade 没有能量单位。它不直接给出能量/力误差，也不保证 grade 较小就没有模型
-偏差：若描述符、势函数形式或候选池本身遗漏了某种物理状态，MaxVol 无法发现
-这种表示之外的偏差。
+grade 无量纲，也不估计误差：它只衡量相对当前主动集的线性外推程度，与能量或力的
+误差之间没有换算关系。判据是把同一批构型的 grade 与已标注数据的 `calc_err` 并排
+看——grade 高、误差也高的区间才是该补构型的区间；grade 低而误差大，说明问题在
+描述符、截断或势函数形式，补构型不会改善。候选池若没有包含某个物理状态，grade
+也不会提示它的缺失。
 
 ### 3.5 矩形主动矩阵的广义体积
 
@@ -484,8 +486,10 @@ shortlist 中批量交换，再进入下一轮全池扫描。它和 `full` 都�
 可以显式评分整个池来检查结果，或重新执行 `full` / `stream/exact`，得到带全池
 收敛检查的选择结果。在线模式首次使用流式构建时仍报告该次全池检查结果。
 
-达到上限但未收敛的 state 仍会保存；后续 `sample`/`extend` 会发出警告。不要只看
-“已写出 selected.xyz”，还应检查 `Selection status` 和最大剩余 grade。
+达到上限但未收敛的 state 仍会保存，后续 `sample`/`extend` 加载时打印警告。判据是日志
+里 `Selection status:` 那一行：出现 `WARNING: not converged` 或 `max_grade` 高于
+`threshold` 时，用 `full` 或 `stream/exact` 对全池重跑一次再采信结果；只看到
+`selected.xyz` 已写出，说明不了这一条。
 
 当前 `ActiveSelector` state 格式为 v10，扩展名为 .sel 的文件保存紧凑主动矩阵、行元数据、
 训练构型、已选构型、builder 元数据、缩放参数、在线进度和收敛信息。运行时分解
@@ -508,7 +512,7 @@ shortlist 中批量交换，再进入下一轮全池扫描。它和 `full` 都�
 
 - 返回单行交换局部最优，而非组合意义的全局最大体积；
 - 对列尺度敏感；未经物理权重或标准化的列可能主导选择；
-- grade 只能衡量当前表示和当前线性化中的外推，不能检测模型形式误差；
+- grade 只反映当前表示与当前线性化；描述符、截断或势函数形式造成的误差不会出现在 grade 上；
 - 非线性势参数更新后，原梯度矩阵可能失效，需要重建；
 - `online` 与输入顺序相关；`fast` 可能因轮数上限而未收敛；
 - 很大的 @f$n@f$ 会带来二次乃至三次线性代数成本；
@@ -629,23 +633,27 @@ build/release/imrmlp maxvol_extend --help
 一个面向 MTP 标量描述符的 `select.ini` 示例：
 
 ```ini
-builder:dtype mtm
-builder:potfile potential.mtp
-builder:pottype mtp
-builder:mode nbh
+# ===== Descriptor Builder =====
+builder:dtype       mtm
+builder:potfile     potential.mtp
+builder:pottype     mtp
+builder:mode        nbh
 builder:row-scaling uniform
 
-selector:threshold 1.001
-selector:weight 1.0
-selector:pow-scale 0.5
-selector:init-mode auto
-selector:max-swaps 0
+# ===== Selector =====
+selector:threshold  1.001
+selector:weight     1.0
+selector:pow-scale  0.5
+selector:init-mode  auto
+selector:max-swaps  0
 selector:select-mode stream
+selector:verbose    true
+
+# ===== Streaming =====
 selector:stream-mode exact
 selector:stream-cache-mode auto
 selector:stream-memory-limit-mb 3072
 selector:stream-chunk-size 32
-selector:verbose true
 ```
 
 运行：
@@ -669,21 +677,23 @@ build/release/imrmlp maxvol_select select.ini \
 若希望选择与势参数敏感度直接对应，可改用梯度 builder：
 
 ```ini
-builder:dtype pot_efs
-builder:potfile potential.mtp
-builder:pottype mtp
-builder:all-coeffs false
+# ===== Descriptor Builder =====
+builder:dtype       pot_efs
+builder:potfile     potential.mtp
+builder:pottype     mtp
+builder:all-coeffs  false
 builder:row-scaling mlip
-builder:w-energy 1.0
-builder:w-force 0.1
-builder:w-stress 0.0
-builder:w-site 0.0
+builder:w-energy    1.0
+builder:w-force     0.1
+builder:w-stress    0.0
+builder:w-site      0.0
 
-selector:init-mode auto
+# ===== Selector =====
+selector:init-mode  auto
 selector:init-value 1e-6
 selector:select-mode stream
 selector:stream-mode exact
-selector:threshold 1.001
+selector:threshold  1.001
 ```
 
 这里每个构型会产生 1 条能量行和 @f$3N@f$ 条力行。`w-force=0.1` 只是示例，
@@ -914,8 +924,8 @@ MaxVol 选的是行，不是构型。`nbh`、force 或 site 模式下一个构�
 ### 11.5 为什么 `log|det|` 很负？
 
 体积带单位并随行/列缩放指数变化；当行数多、单位尺度小或存在虚拟
-@f$10^{-6}I@f$ 行时，负的 log-volume 很正常。它只适合在相同 @f$k,n@f$、相同
-builder 和相同缩放下比较，不应跨设置当作通用质量分数。
+@f$10^{-6}I@f$ 行时，负的 log-volume 很正常。只有在相同 @f$k,n@f$、相同 builder 和
+相同缩放下，数值高低才对应选择质量；换了其中任一项，改用 grade 和 `calc_err` 比较。
 
 ### 11.6 如何判断 fast/online 结果能否直接使用？
 

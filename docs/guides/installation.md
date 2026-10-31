@@ -51,8 +51,9 @@ sudo apt install build-essential git python3 python3-venv \
   libeigen3-dev libalglib-dev libfftw3-dev zlib1g-dev
 ```
 
-These are distribution package-name examples, not validation of that system's
-default compiler. Development headers and libraries are required; runtime
+These are distribution package-name examples; run `make imrmlp` after installing —
+a successful build is what qualifies that compiler and library combination.
+Development headers and libraries are required; runtime
 packages alone are insufficient. Check ALGLIB in the
 [Ubuntu package directory](https://packages.ubuntu.com/noble/libalglib-dev).
 On other distributions use the corresponding package manager; on clusters,
@@ -91,11 +92,10 @@ make --version
 
 If setting `MKLROOT=/actual/mkl/directory` manually, also configure the oneMKL
 runtime-library search path; `MKLROOT` alone does not enable the runtime.
-Sources use `-std=c++23`. The current CPU validation environment uses GCC
-16.2.1; this does not establish a minimum compatible version for every older
-compiler. For standard-library or language-option errors on an older system,
-use a compiler/library combination supporting the required features rather
-than removing the language-standard option.
+Sources use `-std=c++23`; the CPU validation environment is GCC 16.2.1, and older
+combinations are untested. For standard-library or language-option errors on an
+older system, upgrade the compiler and library rather than removing the
+language-standard option.
 
 ## Sources and build
 

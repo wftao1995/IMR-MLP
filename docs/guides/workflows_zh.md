@@ -30,19 +30,20 @@ Ni
 ```
 
 预处理、训练和部署必须使用同一顺序。LAMMPS atom type 从 1 开始，而模型 species
-索引从 0 开始；新的 LAMMPS 输入推荐按元素名映射。错误映射可能仍给出数值正常但物理
-含义错误的结果。
+索引从 0 开始；新的 LAMMPS 输入推荐按元素名映射。映射写错时数值仍在合理范围，只是
+能量和力整体变差，核对方法见[输入文件与配置约定](conventions_zh.md)。
 
 逐个转换参考计算，再拼接 CFG 记录：
 
 ```sh
-imrmlp convstr OUTCAR reference.cfg --index index.map
-imrmlp convstr vasprun.xml reference-xml.cfg --index index.map
+imrmlp convstr OUTCAR reference.cfg
+imrmlp convstr vasprun.xml reference-xml.cfg
 cat reference.cfg reference-xml.cfg > dataset.cfg
 ```
 
 上述文件名是占位示例。XDATCAR 等仅含几何的轨迹不会因格式转换自动获得能量、力或应力
-标签。应核查参考计算的电子收敛与标签单位，不能把离子优化停止阈值当作电子/力计算精度。
+标签。应核查参考计算的电子收敛与标签单位；离子优化的停止阈值只约束结构弛豫，电子步
+收敛要单独确认。
 
 位置和晶胞使用 Å，总能量为 eV，力为 eV/Å。原生广延应力张量使用 eV；`calc_err` 还会
 报告按体积归一化后的 GPa 应力。从其他代码导入时应遵循 IO 规定的符号、分量次序和
@@ -107,14 +108,21 @@ git clone https://github.com/wftao1995/MTM-new
 保存 `train.ini`，键和值用空白分隔：
 
 ```text
-index index.map
-potfile template.mtp
-trainset train.xyz
-validset valid.xyz
-fit:force_weight 0.05
-fit:stress_weight 0.001
-fit:weight_L2 1e-8
-fit:save_to checkpoint.mtp
+# ===== Input/Output =====
+index               index.map
+trainset            train.xyz
+validset            valid.xyz
+
+# ===== Potential =====
+potfile             template.mtp
+
+# ===== Loss Weights =====
+fit:force_weight    0.05
+fit:stress_weight   0.001
+fit:weight_L2       1e-8
+
+# ===== Output =====
+fit:save_to         checkpoint.mtp
 ```
 
 这些权重以默认能量权重 1 为基准，仅为示例；应结合标签质量、归一化和目标物理量选择。
@@ -141,29 +149,31 @@ cp _Trained_Potential_.mtp fitted-linear.mtp
 ## 评估与复现记录
 
 ```sh
-imrmlp calc_err --input valid.xyz --potfile fitted.mtp --index index.map \
+imrmlp calc_err --input valid.xyz --potfile fitted.mtp \
   --output-summary validation.txt
-imrmlp calc_err --input test.xyz --potfile fitted.mtp --index index.map \
+imrmlp calc_err --input test.xyz --potfile fitted.mtp \
   --output-summary test.txt
-imrmlp calc_efs test.xyz predicted.xyz --potfile fitted.mtp --index index.map
+imrmlp calc_efs test.xyz predicted.xyz --potfile fitted.mtp
 imrmlp --version > version.txt
 sha256sum fitted.mtp template.mtp train.xyz valid.xyz test.xyz > inputs.sha256
 ```
 
 分别报告每原子能量、力和应力误差，检查异常构型、不同相/成分和目标性质。在预期体积、
-温度和缺陷范围验证；静态 E/F 误差不足以证明长时间 MD 稳定性。保留元素映射、配置、
-模型、划分后的数据、日志、构建模式和依赖版本。
+温度和缺陷范围验证；静态 E/F 误差只说明单帧精度，MD 稳定性要在 NVE/NVT 下跑一段，
+看能量漂移和结构是否保持。保留元素映射、配置、模型、划分后的数据、日志、构建模式和
+依赖版本。
 
 ### 误差报告读法
 
 在入门示例的 `errors.txt` 中，能量统计覆盖 4 个验证构型，力统计覆盖 12 个原子；
-误差接近数值精度，是因为这个合成问题能被所选模型精确表示。真实材料不能以“也应全部
-为零”为目标。先核对参与统计的数量和标签是否齐全，再读各类误差。
+误差接近数值精度，是因为这个合成问题能被所选模型精确表示。真实材料的误差反映拟合
+残差与数据覆盖，读到的数字不会接近零。先核对参与统计的数量和标签是否齐全，再读各类误差。
 
 `Energy per atom` 的 RMS 为 `0.004 eV` 即 `4 meV/atom`；`Forces` 的 RMS 为
 `0.08 eV/Å` 即 `80 meV/Å`。报告中的 `Forces` 按力差向量统计，`Forces components`
 按分量统计，比较不同模型时应使用同一行、同一验证集。平均值较低但最大误差很大时，
-还需找出对应的相、缺陷或高温构型，决定是否补充参考数据；降低训练误差不能替代这一步。
+还需找出对应的相、缺陷或高温构型，决定是否补充参考数据；这一步靠数据覆盖，压低训练
+误差解决不了。
 
 ## 部署
 
@@ -187,7 +197,6 @@ pair_coeff * * fitted.mtp Al Ni
 
 使用 [Python 接口](../reference/python_zh.md)，显式指定模型顺序的 `elements`。
 主动学习的选样循环见[主动学习](active-learning_zh.md)，原理见 [MaxVol](../theory/maxvol_zh.md)。
-外推等级依赖具体模型与活动集，本身不是经过校准的误差估计。
 
 ## 常见错误
 

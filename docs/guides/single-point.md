@@ -7,8 +7,7 @@ fixed geometry without optimizing the structure. When labeled data is available,
 `calc_err` quantifies the prediction error for the same geometry.
 
 Out of scope: moving atoms or the cell (see [structure relaxation](relaxation.md))
-and energies along a reaction path (see [NEB](neb.md)). Single-point output
-describes that geometry only; it does not establish accuracy for the material.
+and energies along a reaction path (see [NEB](neb.md)).
 
 ## Required inputs
 
@@ -27,19 +26,21 @@ The prediction command does not create these inputs.
 ### Predict energy, forces and stress
 
 ```sh
-imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp --index index.map
+imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp
 ```
 
-The default is the ordinary MTP type and formats are inferred from filenames.
-Specify explicit options only for another potential type or a filename whose
-format cannot be recognized. Options differ between commands; the full list is
-in the `calc_efs` section of the [command reference](../reference/commands.md).
+The species map defaults to `index.map`, so no flag is needed while the file
+keeps that name; the potential type defaults to ordinary MTP and formats are
+inferred from filenames. Specify explicit options only for another potential
+type, a differently named species map, or a filename whose format cannot be
+recognized. Options differ between commands; the full list is in the `calc_efs`
+section of the [command reference](../reference/commands.md).
 
 ### Evaluate errors
 
 ```sh
 imrmlp calc_err --input reference.xyz --potfile model.mtp \
-  --index index.map --output-summary errors.txt
+  --output-summary errors.txt
 ```
 
 `reference.xyz` must carry reference labels. A POSCAR alone supports prediction,
@@ -56,7 +57,8 @@ atom.
 
 Check: the program exits normally, atom count and species are correct, energies
 and forces are finite, and deviations from reference results for the same
-geometry are acceptable. Producing a file is not evidence of accuracy.
+geometry are acceptable. `calc_err` reports that deviation; without reference
+labels only finiteness can be confirmed.
 
 ## Verify with the quickstart example
 
@@ -65,7 +67,7 @@ creates the default directory `build/quickstart/`. From the repository root:
 
 ```sh
 cd build/quickstart
-imrmlp calc_efs valid-input.cfg my-prediction.xyz --potfile fitted.mtp --index index.map
+imrmlp calc_efs valid-input.cfg my-prediction.xyz --potfile fitted.mtp
 head -n 5 my-prediction.xyz
 ```
 
@@ -81,7 +83,7 @@ If you used a custom `--work`, substitute its actual output path above; run
 
 | Symptom | Cause | Action |
 | --- | --- | --- |
-| Energy or forces are clearly implausible | `index.map` order does not match the model | Recover the order from the model or its training records; a successful run after swapping does not prove correctness |
+| Energy or forces are clearly implausible | `index.map` order does not match the model | Check each line against the model's species order; a run completing says nothing about this |
 | Input files not found | Relative paths resolve from the working directory | Run inside the task directory or use absolute paths |
 | Output overwrites the previous run | Input and output share a name | Use different output filenames |
 | An option is ignored or rejected | `calc_efs` options copied to another command | Check each command in the [command reference](../reference/commands.md) |

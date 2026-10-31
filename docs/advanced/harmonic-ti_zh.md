@@ -24,7 +24,7 @@ IMR-MLP 提供该构造的两个部分：
 ```bash
 imrmlp ti_fit_fc --workflow md-ensemble \
   --traj md.extxyz --traj-format extxyz \
-  --potfile potential.mtp --index index.map \
+  --potfile potential.mtp \
   --temperature 600 --output-prefix BETA_600K
 ```
 
@@ -102,7 +102,7 @@ imrmlp ti_fit_fc --workflow md-ensemble \
 ```bash
 imrmlp ti_fit_fc --workflow export \
   --input REFERENCE.xyz --input-format extxyz \
-  --initial-fc FORCE_CONSTANTS --index index.map \
+  --initial-fc FORCE_CONSTANTS \
   --lammps-fc-source initial --lammps-fc-block-threshold 0.01 \
   --lammps-fc-min-frequency-thz 0.5 \
   --write-validation-ensemble false --output-prefix TI_SPARSE
@@ -192,7 +192,7 @@ python3 LAMMPS/USER-MLIP/hyb-ti/tests/run_regression.py /path/to/lmp --ranks 2
 
 ## 限制
 
-- 参考势在单一温度与晶胞下拟合，不可迁移。
+- 参考势只在该温度与晶胞下拟合，换温度或晶胞要重新拟合。
 - LAMMPS 适配器既不拟合也不稳定化 Hessian；非正定或违反 ASR 的参考文件
   会按原样使用。
 - 不支持 pair 状态的 restart。

@@ -20,14 +20,16 @@ C++ API 参考由 Doxygen 生成。
 | Development / 开发文档 | [Development](development/index.md) | [开发文档](development/index_zh.md) |
 
 The user guides answer "how do I complete this task": environment and inputs,
-single-command calculations, training, and interfaces and troubleshooting, with the
-runnable examples collected at the end. The reference lists definitions for commands,
-configuration, Python and model formats; advanced usage and theory cover
-method-specific material and derivations.
+potential fitting, single-command calculations, and interfaces and troubleshooting,
+with the runnable examples collected at the end. Fitting a potential comes before
+running one, since most calculations start from a trained model. The reference lists
+definitions for commands, configuration, Python and model formats; advanced usage and
+theory cover method-specific material and derivations.
 
-中文：使用指南回答"怎样完成某个任务"，按环境与输入、单任务计算、训练、接口与排错
-四组并列，可运行示例集中列在末尾。参考手册给出命令、配置、Python 与模型格式的定义；
-进阶使用与理论分别覆盖专题方法和算法推导。
+中文：使用指南回答"怎样完成某个任务"，按环境与输入、势函数拟合、单任务计算、接口
+与排错四组并列，可运行示例集中列在末尾。拟合排在计算之前，因为多数计算都以已有
+模型为起点。参考手册给出命令、配置、Python 与模型格式的定义；进阶使用与理论分别
+覆盖专题方法和算法推导。
 
 ## Build the HTML manual / 生成 HTML 手册
 
@@ -44,11 +46,21 @@ repository root. The first command installs documentation tools under `build/`:
 
 | Target / 目标 | Output / 产物 |
 |---|---|
-| `make doc-html` | Doxygen C++ API: `docs/build/html` (English) and `docs/build_zh/html` (Chinese) |
-| `make doc-manual` | Bilingual Sphinx manual (includes the API): `docs/manual-html/{en,zh}` |
-| `make doc-zh-html` | Chinese API Doxygen under `docs/build_zh/html` (depends on `doc-html`) |
+| `make doc-manual` | Bilingual manual and API: `docs/manual-html/{en,zh}` |
+| `make doc-html` | Doxygen C++ API only: `docs/build/html` (English), `docs/build_zh/html` (Chinese) |
+| `make doc` | Manual plus PDF (`doc-manual` + `doc-pdf`) |
+| `make doc-zh`, `make doc-zh-html` | Aliases for `doc-html`; one build emits both languages |
 | `make check-docs` | Catalog, link, command/option and bilingual checks |
 | `make check-doc-html` | Generated HTML, search index and math checks |
+
+Only `doc-manual` writes `docs/manual-html`. After editing Markdown, running
+`doc-html` alone leaves the manual untouched — that is the usual reason a change
+appears missing. The API site keeps both languages in one build, so `doc-zh` and
+`doc-zh-html` add nothing over `doc-html`.
+
+只有 `doc-manual` 会写 `docs/manual-html`。改完 Markdown 只跑 `doc-html`，手册不会
+更新，这是常见改动没生效的原因。API 站点一次构建同时产出中英两套，`doc-zh`、
+`doc-zh-html` 与 `doc-html` 等价。
 
 `check-docs` runs `check_doc_commands.py` and `check_doc_locale.py` in advisory
 mode by default. Run `make check-docs DOC_CHECK_STRICT=1` to fail on command,
@@ -104,6 +116,12 @@ lists stay in version control; build output remains under `docs/build`,
 `docs/manual`. Build instructions in this section are for documentation
 maintainers; reading the Markdown or running IMR-MLP does not require these tools.
 
+Prose states a check, not a caveat: name the file, column, exit code or log field
+that settles the question, say why it can fail, then give the action. A chapter
+introduction says what the page covers; the warning belongs where the reader
+needs it, with the full reasoning on the page that defines the mechanism and one
+sentence plus a link everywhere else.
+
 ```sh
 python3 docs/tools/doc_catalog.py --write
 make check-docs
@@ -113,3 +131,7 @@ make check-doc-html
 
 新增页面后先登记目录，再生成双语索引并检查链接。专题文档进入 `advanced`，
 可运行示例保留在代码目录；手册描述当前行为，测试结果记录在提交或审查说明中。
+
+正文的每条提醒都写成判据、原因、做法：先说看哪个文件、列、退出码或日志字段，再说明为什么
+会失效，最后给出动作。章节开头只写本页覆盖什么；机制定义所在页保留完整说明，其他页一句话
+加链接。

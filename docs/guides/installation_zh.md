@@ -45,7 +45,7 @@ sudo apt install build-essential git python3 python3-venv \
   libeigen3-dev libalglib-dev libfftw3-dev zlib1g-dev
 ```
 
-这些是发行版包名示例，并不意味着该系统默认编译器已经通过本项目验证。
+这些是发行版包名示例；装好后先跑 `make imrmlp`，编译通过才算这套编译器与库的组合可用。
 安装的是开发头文件和库；仅有运行库不够。ALGLIB 包名可在
 [Ubuntu 软件包目录](https://packages.ubuntu.com/noble/libalglib-dev)核对。
 其他 Linux 发行版请使用对应包管理器；集群上先询问管理员是否已有编译器和依赖模块，
@@ -81,9 +81,8 @@ make --version
 
 若自行设置 `MKLROOT=/实际的/mkl/目录`，还需配置 oneMKL 的运行库搜索路径；
 仅设置 `MKLROOT` 不会自动启用运行环境。
-源码采用 `-std=c++23`。当前源码的 CPU 验证环境使用 GCC 16.2.1；尚未据此确定
-所有旧版编译器的最低兼容版本。旧系统若报标准库特性或编译选项错误，应使用
-支持所需 C++23 特性的编译器与标准库组合，不要只去掉标准选项。
+源码采用 `-std=c++23`；CPU 验证环境是 GCC 16.2.1，更旧的版本组合未经验证。旧系统
+报标准库特性或编译选项错误时，升级编译器与标准库，不要只删掉标准选项绕过。
 
 ## 获取源码并构建
 

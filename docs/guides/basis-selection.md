@@ -34,9 +34,10 @@ set, and the final test set is used only for verification.
 | LES/SOG, MTP-M or a separate neural-network head | Outside this page |
 
 Changing the basis normally invalidates the fitted model, so rule out data and radial
-problems first. A smaller basis is not automatically better: fewer tensors from
-`mtmbasis` do not imply lower validation error, and fewer scalars from `fastfit` do
-not imply faster evaluation.
+problems first. A smaller basis brings neither lower validation error nor faster
+evaluation by itself; see
+[MTP basis generation, selection and review](../advanced/basis-generation-selection.md) §1
+for the checks.
 
 ## Generating the candidate pool
 
@@ -45,18 +46,21 @@ under `[pot]` or `[fit]`; the small basis below runs quickly rather than reachin
 production accuracy:
 
 ```ini
-max_lev 8
-max_dim 3
-max_mu 2
-max_nv 2
-max_poly 4
-mu_wei 2
-nv_wei 1
-dim_wei 2
-mode 3
-maxiter 20
-w1 1
-w2 4
+# ===== Topology =====
+max_lev             8
+max_dim             3
+max_mu              2
+max_nv              2
+max_poly            4
+mu_wei              2
+nv_wei              1
+dim_wei             2
+
+# ===== Search =====
+mode                3
+maxiter             20
+w1                  1
+w2                  4
 ```
 
 Generation and the contraction search are separate runs, so an expensive pool can be
@@ -104,16 +108,21 @@ Copy the chosen candidate to `template.mtp` and fit it with the same data used l
 for selection:
 
 ```ini
-trainset train.xyz
-validset valid.xyz
-trainset-format extxyz
-validset-format extxyz
-potfile template.mtp
-index index.map
-fit:energy_weight 1
-fit:force_weight 0.1
-fit:stress_weight 0.001
-fit:weight_L2 1e-8
+# ===== Input/Output =====
+trainset            train.xyz
+validset            valid.xyz
+trainset-format     extxyz
+validset-format     extxyz
+index               index.map
+
+# ===== Potential =====
+potfile             template.mtp
+
+# ===== Loss Weights =====
+fit:energy_weight   1
+fit:force_weight    0.1
+fit:stress_weight   0.001
+fit:weight_L2       1e-8
 ```
 
 ```sh
@@ -132,19 +141,28 @@ selection works within. Select an optimizer or `--linear-fit` explicitly; a bare
 `fastfit` reads a settings file with top-level keys as well:
 
 ```ini
-potfile full.mtp
-trainset train.xyz
-validset valid.xyz
-format extxyz
-index index.map
-weight-energy 1
-weight-force 0.1
-weight-stress 0.001
-weight-l2 1e-8
-energy-power 1
-force-power 0
-stress-power 1
-seed 42
+# ===== Input/Output =====
+trainset            train.xyz
+validset            valid.xyz
+format              extxyz
+index               index.map
+
+# ===== Potential =====
+potfile             full.mtp
+
+# ===== Loss Weights =====
+weight-energy       1
+weight-force        0.1
+weight-stress       0.001
+weight-l2           1e-8
+
+# ===== Normalization =====
+energy-power        1
+force-power         0
+stress-power        1
+
+# ===== Reproducible Search =====
+seed                42
 ```
 
 `format` applies to both sets and defaults to `mlpcfg`, so specify `extxyz`
@@ -185,13 +203,14 @@ Compare the full and reduced models on validation data first, then evaluate the
 chosen model once on the independent test set:
 
 ```sh
-imrmlp calc_efs --potfile __REDUCED__.mtp --input test.xyz --output test-predicted.xyz --index index.map
-imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --index index.map --output-summary test-errors.txt
+imrmlp calc_efs --potfile __REDUCED__.mtp --input test.xyz --output test-predicted.xyz
+imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --output-summary test-errors.txt
 ```
 
 Read energy per atom, force and virial errors separately, and inspect the structures
-behind the largest deviations. Throughput follows from the model, system and backend
-together; it cannot be inferred from the scalar count. If the reduced model is
+behind the largest deviations. Speed follows from the compressed model, the system size
+and the backend together, with the scalar count as one contributor; measure the same set
+of structures before and after compression. If the reduced model is
 trained nonlinearly afterwards, it becomes a new candidate and needs the same
 validation again.
 

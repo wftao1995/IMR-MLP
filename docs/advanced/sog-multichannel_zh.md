@@ -61,13 +61,14 @@ CUDA/HIP 求值与训练见 [GPU 指南](../development/cuda_zh.md)及 [SOG 参�
 CPU `mlip/opt-les` 支持线性 MTP + SOG v4。三通道模型示例：
 
 ```text
-pair_style mlip/opt-les fitted-sog-multichannel.mtp 0 1
-pair_coeff * *
+pair_style mlip/opt-les
+pair_coeff * * fitted-sog-multichannel.mtp 0 1
 compute q all mlip/sog/latent
 dump latent all custom 10 trajectory.lammpstrj id type x y z c_q[1] c_q[2] c_q[3]
 ```
 
-单通道输出仍为向量 `c_q`；多通道输出为逐原子数组 `c_q[1]` 到 `c_q[C]`。更换通道数不同的势时须重新创建 compute 与引用它的 dump。物理电荷 compute `mlip/les/charge` 拒绝 SOG。
+映射按 LAMMPS 原子类型逐个给出；模型带元素元数据时可直接写元素名，旧文件用上例的
+从零开始的索引。单通道输出仍为向量 `c_q`；多通道输出为逐原子数组 `c_q[1]` 到 `c_q[C]`。更换通道数不同的势时须重新创建 compute 与引用它的 dump。物理电荷 compute `mlip/les/charge` 拒绝 SOG。
 
 ## 计算成本与验证范围
 

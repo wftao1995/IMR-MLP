@@ -42,7 +42,7 @@ For example:
 
 ```bash
 build/cuda/imrmlp-cu calc_efs --input=POSCAR --output=efs.cfg \
-  --index=index.map --potfile=potential.mtp --pottype=mtp \
+  --potfile=potential.mtp --pottype=mtp \
   --device=cuda --gpu-id=0 --gpu-memory-fraction=0.75
 ```
 

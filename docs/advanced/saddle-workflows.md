@@ -30,7 +30,7 @@ intermediate files.
 
 ```sh
 imrmlp nroptimize --potfile=potential.mtp --input=POSCAR --output=CONTCAR \
-  --index=index.map --no-cell --gtol=0.001 --max-iteration=100
+  --no-cell --gtol=0.001 --max-iteration=100
 ```
 
 Drop `--no-cell` to optimize symmetric cell strain; `--pressure` is in GPa.
@@ -52,24 +52,31 @@ before claiming a first-order saddle.
 ```sh
 # mode.ini may be empty; add --hessian=hessianfull when a Hessian exists.
 imrmlp modefollowing mode.ini --potfile=potential.mtp --input=POSCAR \
-  --index=index.map --nocell --mode=9 --imode=0 --modecar-out=MODECAR
+  --nocell --mode=9 --imode=0 --modecar-out=MODECAR
 imrmlp dimer dimer.ini
 ```
 
 `dimer.ini` uses whitespace-separated keys; a minimal example is:
 
 ```text
-structure POSCAR
-input-format POSCAR
-index index.map
-output CONTCAR
-pot:pottype mtp
-pot:potfile potential.mtp
-dimer:modecarf MODECAR
-dimer:maxiteration 200
-dimer:gtol 0.001
-dimer:rot_gtol 0.001
-dimer:trn_gtol 0.001
+# ===== Input/Output =====
+structure           POSCAR
+input-format        POSCAR
+output              CONTCAR
+index               index.map
+
+# ===== Potential =====
+pot:pottype         mtp
+pot:potfile         potential.mtp
+
+# ===== Dimer Search =====
+dimer:modecarf      MODECAR
+dimer:maxiteration  200
+
+# ===== Convergence =====
+dimer:gtol          0.001
+dimer:rot_gtol      0.001
+dimer:trn_gtol      0.001
 ```
 
 Without `modecarf`, a random direction is used. `dimer:random_seed 0` is the

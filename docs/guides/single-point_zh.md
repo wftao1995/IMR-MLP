@@ -6,8 +6,7 @@
 有带参考标签的数据时，用 `calc_err` 量化同一几何下的预测误差。
 
 不涉及：改变原子位置或晶胞（见[结构弛豫](relaxation_zh.md)）、沿反应路径的
-能量（见 [NEB](neb_zh.md)）。单点输出只说明该几何下的预测值，不能证明模型在
-目标材料上准确。
+能量（见 [NEB](neb_zh.md)）。
 
 ## 前置输入
 
@@ -25,18 +24,19 @@
 ### 预测能量、力与应力
 
 ```sh
-imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp --index index.map
+imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp
 ```
 
-默认使用普通 MTP 类型，文件格式按文件名识别；只有使用其他势类型或文件命名无法
-识别格式时，才需显式指定相应选项。各命令的选项不完全相同，完整列表见
+元素映射默认读 `index.map`，文件名不变时不必加参数；势类型默认普通 MTP，文件格式
+按文件名识别。只有使用其他势类型、映射文件改了名字，或文件名无法识别格式时，
+才需显式指定相应选项。各命令的选项不完全相同，完整列表见
 [命令参考](../reference/commands_zh.md) 的 `calc_efs` 一节。
 
 ### 评估误差
 
 ```sh
 imrmlp calc_err --input reference.xyz --potfile model.mtp \
-  --index index.map --output-summary errors.txt
+  --output-summary errors.txt
 ```
 
 `reference.xyz` 必须带参考标签。只有 POSCAR 时可以预测，但没有可比较的参考值，
@@ -48,8 +48,8 @@ imrmlp calc_err --input reference.xyz --potfile model.mtp \
 支持 EXTXYZ 的软件检查。每帧第二行的 `energy` 是该结构的**总**能量；
 `Properties` 声明后续列的含义，`forces:R:3` 表示每个原子的三个力分量。
 
-检查项：程序正常退出、原子数与元素正确、能量和力为有限值、与同结构参考结果的
-偏差在可接受范围。生成文件本身不构成精度证据。
+检查项：程序正常退出、原子数与元素正确、能量和力为有限值，且与同结构参考结果的偏差
+在可接受范围。`calc_err` 直接给出这个偏差；没有参考标签时只能确认数值有限。
 
 ## 用入门示例核验
 
@@ -58,7 +58,7 @@ imrmlp calc_err --input reference.xyz --potfile model.mtp \
 
 ```sh
 cd build/quickstart
-imrmlp calc_efs valid-input.cfg my-prediction.xyz --potfile fitted.mtp --index index.map
+imrmlp calc_efs valid-input.cfg my-prediction.xyz --potfile fitted.mtp
 head -n 5 my-prediction.xyz
 ```
 
@@ -73,7 +73,7 @@ head -n 5 my-prediction.xyz
 
 | 症状 | 原因 | 处理 |
 | --- | --- | --- |
-| 能量或力量级明显异常 | `index.map` 元素顺序与模型不一致 | 从模型或其训练记录核对顺序；交换后能运行不代表正确 |
+| 能量或力量级明显异常 | `index.map` 元素顺序与模型不一致 | 按元素名逐行核对模型顺序；“能运行”说明不了这一项 |
 | 找不到输入文件 | 相对路径按当前工作目录解析 | 在任务目录内运行命令，或改用绝对路径 |
 | 输出被上一轮覆盖 | 输入输出同名 | 输出使用不同文件名 |
 | 选项被忽略或报错 | 把 `calc_efs` 的选项套给其他命令 | 按[命令参考](../reference/commands_zh.md)逐条核对 |

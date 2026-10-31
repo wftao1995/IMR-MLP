@@ -58,7 +58,8 @@ from a compatible template.
 
 MaxVol selection writes its reusable active set to
 `potential.mtp.sel`. Diversity selection defaults to MTP-based descriptors and therefore
-also needs a compatible potential. These selection scores are not error bounds.
+also needs a compatible potential. Selection scores rank extrapolation relative to the
+current active set; measure the error with `calc_err` on the same configurations.
 
 ## Elastic Constants & Phonons
 
@@ -83,7 +84,7 @@ also needs a compatible potential. These selection scores are not error bounds.
 
 | Goal | Command | Example |
 |------|---------|---------|
-| Convert formats | `imrmlp convstr POSCAR output.xyz --index=index.map` | `-if POSCAR -of extxyz` |
+| Convert formats | `imrmlp convstr POSCAR output.xyz` | `-if POSCAR -of extxyz` |
 | Make supercell | `imrmlp mk_super --input=POSCAR --supercell 2 2 2 --output=POSCAR-2x2x2` | — |
 | Make lower-triangular cell | `imrmlp mk_lower --input=POSCAR` | — |
 | Find (nearly) orthogonal cell | `imrmlp mk_orth --input=str.cfg` | — |

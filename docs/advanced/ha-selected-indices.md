@@ -13,7 +13,7 @@ then run:
 
 ```sh
 imrmlp calc_prop --settings ha.ini --input trajectory.xyz \
-  --input-format extxyz --index index.map --ha-index
+  --input-format extxyz --ha-index
 ```
 
 These integers are HA categories, not atom IDs or neighbor slots. An omitted or empty
@@ -37,5 +37,6 @@ common-neighbor count cannot match the selected ordinary codes. Pair-cutoff filt
 still applies to the entire bond graph. Periodic images retain their original identity
 and pair ownership; the fourth HA classifier is unchanged. Extended category codes use
 complete classification followed by exact selection, preserving the existing encoding.
-Not every workload becomes faster: selecting the class present on every FCC bond saves
+Not every workload becomes faster: the gain follows the selected class's share of the bond
+graph, and selecting the class present on every FCC bond saves
 little work.

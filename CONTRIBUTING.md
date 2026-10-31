@@ -69,6 +69,13 @@ The checks compare command/option/alias names with source registrations, local
 links and language pairs. They do not verify option semantics or run every example. Check `imrmlp COMMAND --help`
 and the source for any changed command examples. Settings use `key value`.
 
+Write each warning as a check, a reason and an action: name the file, column,
+exit code or log field that settles the question, say briefly why it can fail,
+then give the action. Do not end an introduction with a subjectless disclaimer,
+and do not repeat one warning across pages; keep the full reasoning where the
+mechanism is defined and link to it elsewhere. Definitional contrasts ("channels
+are not levels") and safety instructions stay as written.
+
 ## Review and licensing
 
 Describe the behavior, motivation and validation. Include build mode, required

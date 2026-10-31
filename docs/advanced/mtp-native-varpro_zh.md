@@ -21,44 +21,63 @@ build/release/imrmlp trainnlpot \
 `fit.ini` 示例（将 `/absolute/...` 替换为实际绝对路径）：
 
 ```text
-index /absolute/index.map
-trainset /absolute/train.cfg
-trainset-format mlpcfg
-validset /absolute/valid.cfg
-validset-format mlpcfg
-pot:pottype mtp
-pot:potfile /absolute/initial.mtp
-pot:typemap /absolute/index.map
-fit:device cpu
-fit:random_init false
-fit:force_random false
+# ===== Input/Output =====
+index               /absolute/index.map
+trainset            /absolute/train.cfg
+trainset-format     mlpcfg
+validset            /absolute/valid.cfg
+validset-format     mlpcfg
+
+# ===== Potential =====
+pot:pottype         mtp
+pot:potfile         /absolute/initial.mtp
+pot:typemap         /absolute/index.map
+
+# ===== Runtime =====
+fit:device          cpu
+
+# ===== Initialization =====
+fit:random_init     false
+fit:force_random    false
+
+# ===== Training Schedule =====
 fit:training_schedule single
+
+# ===== Parameter Scaling =====
 fit:parameter_scaling none
 fit:scaled_step_max 0
-fit:energy_weight 1
-fit:force_weight 0.05
-fit:stress_weight 0.001
-fit:energy_pow 1
-fit:force_pow 0
-fit:stress_pow 1
-fit:weight_L2 1e-10
-fit:weight_L1 0
-fit:penalty_weight 1e-6
-fit:bfgs_m 10
+
+# ===== Loss Function =====
+fit:energy_weight   1
+fit:force_weight    0.05
+fit:stress_weight   0.001
+fit:energy_pow      1
+fit:force_pow       0
+fit:stress_pow      1
+fit:weight_L2       1e-10
+fit:weight_L1       0
+fit:penalty_weight  1e-6
+
+# ===== L-BFGS =====
+fit:bfgs_m          10
 fit:bfgs_maxiteration 40
-fit:bfgs_grad_tol 1e-8
-fit:bfgs_conv_tol 1e-12
-fit:bfgs_step_tol 1e-12
-fit:save_to fitted.mtp
-fit:save_every 5
-fit:varpro_report varpro.jsonl
+fit:bfgs_grad_tol   1e-8
+fit:bfgs_conv_tol   1e-12
+fit:bfgs_step_tol   1e-12
+
+# ===== Diagnostics =====
+fit:varpro_report   varpro.jsonl
 fit:validation_interval 5
 fit:validation_metric force
+
+# ===== Output =====
+fit:save_to         fitted.mtp
+fit:save_every      5
 ```
 
-示例权重与容差不保证达到特定精度。不需要额外开启 `linear_refit`；VP 内部总是执行 `sr` 线性求解。现有 `linear_refit_solver/rtol/atol/tolerance` 设置也用于内层求解。默认要求完整梯度中的线性部分无穷范数不超过 `fit:varpro_linear_gradient_tolerance=1e-7`。首次不满足时，在同一径向参数下，以当前线性解为起点重新拟合残差，最多额外执行 `fit:varpro_linear_refinement_steps=2` 次；设置为 `0` 可关闭。修正不改变损失、正则项、秩截断或梯度阈值。超过次数仍不达标就停止并恢复原参数，避免使用精度不足的包络梯度；目标不一致或非有限值直接拒绝，不重试。MPI 用所有进程线性梯度范数的最大值决定是否修正，避免分支不一致。
+示例权重与容差是起点：先用它们跑通，再按报告里的验证 RMSE 调整。不需要额外开启 `linear_refit`；VP 内部总是执行 `sr` 线性求解。现有 `linear_refit_solver/rtol/atol/tolerance` 设置也用于内层求解。默认要求完整梯度中的线性部分无穷范数不超过 `fit:varpro_linear_gradient_tolerance=1e-7`。首次不满足时，在同一径向参数下，以当前线性解为起点重新拟合残差，最多额外执行 `fit:varpro_linear_refinement_steps=2` 次；设置为 `0` 可关闭。修正不改变损失、正则项、秩截断或梯度阈值。超过次数仍不达标就停止并恢复原参数，避免使用精度不足的包络梯度；目标不一致或非有限值直接拒绝，不重试。MPI 用所有进程线性梯度范数的最大值决定是否修正，避免分支不一致。
 
-这里的残差修正是在同一次径向试探中，把线性模型 `A c` 的当前预测误差重新作为右端，求解增量 `δc`，再令 `c ← c + δc`。正则项按更新后的 `c + δc` 计算。这样可以减轻第一次大增量相减留下的浮点误差；不会重启外层 L-BFGS，也不能保证修复秩截断或模型病态导致的所有平稳性问题。它仍受每次线性求解的完整目标检查和最终梯度阈值约束。
+这里的残差修正是在同一次径向试探中，把线性模型 `A c` 的当前预测误差重新作为右端，求解增量 `δc`，再令 `c ← c + δc`。正则项按更新后的 `c + δc` 计算。这样可以减轻第一次大增量相减留下的浮点误差；不会重启外层 L-BFGS，秩截断或模型病态造成的停滞仍要靠外层重启或换模型解决。它仍受每次线性求解的完整目标检查和最终梯度阈值约束。
 
 `bfgs_maxiteration=0` 表示只做初始线性投影和报告。其余三项停止容差分别对应径向梯度范数、相对函数变化、步长。最大步数停止不标记为收敛。
 
@@ -100,7 +119,7 @@ JSONL 包含 `settings`、`initial`、`accepted`、`final`、`termination`，发
 - 训练集及当次验证集的独立物理 RMSE：能量为逐构型每原子误差，力为全部笛卡尔分量，应力为 virial 除以体积后的完整 3×3 张量（与 `calc_err` 的 GPa 分量 RMS 一致）。应力指标为 `sqrt(sum(||预测应力 - 参考应力||_F²) / (9 * N))`，`N` 为有应力标签的构型数，满足整体旋转不变性。单位分别为 eV/atom、eV/Å、GPa，**不施加训练权重**。缺失标签为 `null`。
 - 当前最佳总目标、最佳纯数据损失、最佳验证模型所在的累计迭代编号，分别为 `best_training_iteration`、`best_data_iteration`、`best_validation_iteration`。
 
-`settings` 记录实际生效的数据权重、幂次、力归一化参数、径向惩罚和线性正则权重、内外层求解容差，以及验证选择规则。`termination.type` 采用 ALGLIB 编号；1/2/4 标记停止条件满足，5 表示达到迭代上限。0 表示仅初始投影，不表示收敛。
+`settings` 记录实际生效的数据权重、幂次、力归一化参数、径向惩罚和线性正则权重、内外层求解容差，以及验证选择规则。`termination.type` 采用 ALGLIB 编号；1/2/4 标记停止条件满足，5 表示达到迭代上限。0 表示只做了初始投影，L-BFGS 一步未走；此时判断模型可用性看 JSONL 里的验证 RMSE 与 `best_validation_iteration`。
 
 JSONL 为 `schema_version=3`，保留原字段，并在 `settings` 中记录 `stress_metric="full_tensor_rmse_9"`。此前版本的 `stress_GPa` 按六个独立分量等权计算；旧报告数值和 `validation_max_stress` 阈值需按新口径重新核对，不能用一个固定比例换算。`best-data` 仍使用训练设置中的权重与归一化，不等同于最低未加权力 RMSE。改变正则权重时，可以比较相同数据权重下的 `loss.data`；不同正则权重的 `loss.total` 不适合直接排名。
 
@@ -136,7 +155,7 @@ mpirun --bind-to none -n 4 \
 
 主进程统一运行 L-BFGS，广播试探点、接受点和结束指令。各进程按既有构型分配参与线性拟合与梯度计算；初始系数以主进程为准。验证误差汇总全局平方误差及分量数，再计算 RMSE。没有本地训练或验证构型的进程仍参与通信，不会被当成零误差样本。最佳模型选择、JSONL 和模型写入只在主进程执行。
 
-受控的本地计算异常在下一个通信阶段前同步。主进程的文件写入或优化异常也会通知工作进程退出，保留最近接受的完整系数。内层 QR/SVD 的根进程求解与设计矩阵重新组装仍然存在；这项改动提供数据并行能力，不保证进程数与速度成正比。当前 CLI 仍由每个进程读取输入后分配构型。
+受控的本地计算异常在下一个通信阶段前同步。主进程的文件写入或优化异常也会通知工作进程退出，保留最近接受的完整系数。内层 QR/SVD 的根进程求解与设计矩阵重新组装仍然存在；这项改动提供数据并行能力，加速比随构型规模与通信开销变化，用同一设置在 `-np 1` 与 `-np N` 下各跑一次比较。当前 CLI 仍由每个进程读取输入后分配构型。
 
 MPI 回归测试：
 

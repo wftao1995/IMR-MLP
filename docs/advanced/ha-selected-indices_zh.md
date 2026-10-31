@@ -12,7 +12,7 @@ ha_index:indices 1421 1551 1661
 
 ```sh
 imrmlp calc_prop --settings ha.ini --input trajectory.xyz \
-  --input-format extxyz --index index.map --ha-index
+  --input-format extxyz --ha-index
 ```
 
 这些整数是 HA 类别，不是原子 ID 或近邻槽位。省略 `indices` 或将其置空
@@ -30,5 +30,5 @@ imrmlp calc_prop --settings ha.ini --input trajectory.xyz \
 
 当某个对的成键类别或公共近邻数不可能匹配所选普通类别时，计算器会跳过后续分类
 阶段；对截断过滤仍作用于整个键图。周期镜像保持原有身份与对归属，第四个 HA
-分类器不变。扩展类别码先完整分类再精确选取，以保留原编码。并非所有负载都会变快：
-若选择的类别在 FCC 的每条键上都出现，能省下的计算很少。
+分类器不变。扩展类别码先完整分类再精确选取，以保留原编码。加速取决于所选类别在键图中的
+占比：类别若在每条键上都出现，能省下的计算很少。

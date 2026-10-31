@@ -131,7 +131,8 @@ print(restored.hvp_directions.shape, restored.hvp_targets.shape)
 ```
 
 参考力必须来自同一个结构的 `R ± epsilon*v`，保持晶胞、原子顺序和计算设置一致。
-应移除整体平移方向，避免把方向预算用于零模；方向数少时约束的是采样子空间，不能保证完整 Hessian 都准确。
+应移除整体平移方向，避免把方向预算用于零模；方向数少时约束的只是采样子空间，要让完整
+Hessian 准确，方向数按自由度数取，并用 `calc_fc` 在同一结构上比对。
 
 ## 从已有完整 Hessian 生成标签
 

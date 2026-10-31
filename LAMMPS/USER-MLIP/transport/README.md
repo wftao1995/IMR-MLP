@@ -32,6 +32,19 @@ Include the OpenMP style when the LAMMPS OPENMP package is enabled:
 LAMMPS/USER-MLIP/transport/install.sh --with-omp /path/to/lammps/src
 ```
 
+The OpenMP style also needs an input-side declaration. Put `package omp N` before
+`read_data` and before the pair declaration, where `N` is the number of threads
+per MPI rank, or pass the same setting on the command line:
+
+```sh
+lmp -pk omp 4 -in in.transport    # same as "package omp 4" in the input
+lmp -sf omp -in in.transport      # selects mlip/transport/omp for mlip/transport
+```
+
+Without it LAMMPS stops with `The 'package omp' command is required for /omp
+styles`. The [OpenMP section of the interface guide](../../README.md#21-openmp)
+covers `N = 0`, thread planning and the per-thread memory cost.
+
 The installer has an explicit file manifest and refuses to overwrite any
 existing file. Re-run CMake (or the traditional make package/style generation)
 and rebuild LAMMPS after installation. A guarded uninstall removes files only

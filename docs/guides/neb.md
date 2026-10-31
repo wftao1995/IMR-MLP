@@ -9,7 +9,6 @@ copies along a path), not an MD trajectory.
 Out of scope: obtaining the endpoint structures (see
 [structure relaxation](relaxation.md)) and advanced variable-cell or symmetry
 settings (see [parallelism and path symmetry](../advanced/neb-parallel-symmetry.md)).
-Numerical convergence does not establish material barrier accuracy.
 
 ## Required inputs
 
@@ -45,20 +44,33 @@ Use 7 images **including endpoints**, numbered 0 through 6. Missing interior
 images are initialized automatically. Save as `neb.ini`:
 
 ```text
-index index.map
-pot:potfile model.mtp
-nimgs 7
-image:0 initial.vasp
-image:6 final.vasp
-driver fire
-maxiteration 500
-gtol 0.02
-max_move 0.05
-num_threads 1
-neb:solver_policy stable-v1
-neb:init_method idpp
-neb:spring 1
-neb:climb true
+# ===== Input/Output =====
+index               index.map
+
+# ===== Potential =====
+pot:potfile         model.mtp
+
+# ===== Parallel =====
+num_threads         1
+
+# ===== Images =====
+nimgs               7
+image:0             initial.vasp
+image:6             final.vasp
+
+# ===== Optimizer =====
+driver              fire
+max_move            0.05
+
+# ===== Convergence =====
+gtol                0.02
+maxiteration        500
+
+# ===== NEB =====
+neb:solver_policy   stable-v1
+neb:init_method     idpp
+neb:spring          1
+neb:climb           true
 ```
 
 ```sh
@@ -78,7 +90,7 @@ read `relax:` settings; top-level `gtol` overrides `neb:gtol`.
 | Choice | Purpose | Consideration |
 | --- | --- | --- |
 | `neb:init_method linear` | Interpolate between supplied images | Atom exchange or complex migration may pass through overlaps |
-| `neb:init_method idpp` | Improve the initial path using interpolated pair distances | Does not fix incorrect atom mapping or guarantee the desired mechanism |
+| `neb:init_method idpp` | Improve the initial path using interpolated pair distances | Needs correct atom mapping; it only optimizes distances, so an unhelpful mechanism still needs manual intermediate images |
 | `neb:climb true` | Apply climbing forces to the selected high-energy image to refine the saddle region | Still requires whole-path convergence and independent saddle checks |
 | Minimum-image unwrapping (enabled by default) | Unwrap adjacent supplied images using minimum-image displacement | Define the unwrapping deliberately for long or prescribed detour paths |
 
@@ -99,17 +111,18 @@ full path for refinement.
 | `neb.dat.iterations.csv` | Iteration diagnostics separating accepted states from trial/budget issues |
 
 Exit code 0 means convergence, 2 normal termination without convergence and 1 an
-error; the existing missing-settings status is 128. Final paths may still be
-written on iteration or evaluation-budget exhaustion: file existence is not
-convergence. Check the complete NEB residual, not just small perpendicular forces
-or image-energy changes.
+error; the existing missing-settings status is 128. Final paths are written even on
+iteration or evaluation-budget exhaustion, so the criteria are `# converged` and
+`# status` in `neb.dat`, not the presence of `mep.xyz`. Read the complete NEB residual
+(such as `# max_neb_force`); perpendicular forces and image-energy changes do not enter
+the criterion.
 
 For fixed cells, the `enthalpy` column in `neb.dat` is model total energy and
 `ent_diff` is relative to the initial state. The forward barrier is the highest
 path energy minus the initial energy; the reverse barrier subtracts the final
 energy. These are total eV for the simulated system, not automatically eV/atom.
-A smooth interpolated curve is for presentation and does not replace an actual
-saddle evaluation.
+A smooth interpolated curve is for presentation only; saddle properties need a separate
+evaluation of the highest-energy image.
 
 ### Reading barriers from path energies
 
@@ -127,26 +140,59 @@ state. Do not substitute the difference between the highest image and its neighb
 or divide by the atom count. When adding images, compare the maximum energy, full
 NEB residual and mechanism for stability.
 
-## Restart and reliability
+## Checking the result and restarting
 
-Check the mechanism, distances and endpoint convergence before comparing more
-images, tighter tolerances and alternative initial paths. Independently check
-whether the highest-energy image is a first-order saddle; exactly one negative
-Hessian mode after excluding translations is one necessary check.
+### Is the path trustworthy?
 
-Retain the original model, map, `neb.dat` and every `nebimage_N_final.vasp`. In a
-backed-up run directory, increase the budget and continue:
+Work through these in order; a failure at any step invalidates the ones below it.
+
+1. **Mechanism.** Step through `mep.xyz` frame by frame: which atoms move, in which
+   direction, and whether any pair passes through each other or wraps around the cell.
+2. **Endpoints.** Both ends must be converged minima obtained with the same cell,
+   model and constraints. A path between unconverged endpoints cannot give a barrier.
+3. **Convergence.** Read `# converged`, `# status` and the full NEB residual in
+   `neb.dat`; perpendicular forces and image-energy changes do not enter the criterion.
+4. **Stability.** Only after the three checks above, add images, tighten `gtol` or
+   start from another initial path. If the barrier or the mechanism moves, the
+   earlier path was not converged.
+
+Passing these four checks makes the barrier self-consistent. To call the top image a
+saddle, evaluate its Hessian as well, with `3`
+replaced by the index of the highest-energy image:
+
+```sh
+imrmlp calc_fc --potfile model.mtp --input nebimage_3_final.vasp --lowest-modes 5
+```
+
+`EIGENVALS` then lists the lowest internal modes with the three translations
+removed. One negative eigenvalue is consistent with a first-order saddle; two or
+more point to a higher-order stationary point or to an unconverged band.
+
+### Continuing a run
+
+`--next_step` picks up from the images the previous run wrote: it reads
+`nebimage_<i>_final.vasp` for every image and the `#` lines of `neb.dat`. Keep
+`nimgs` unchanged and those files intact.
 
 ```sh
 imrmlp neb neb.ini --next_step > neb-restart.log 2>&1
 ```
 
-The default fixed image count keeps `nimgs` unchanged. Continuation updates outputs
-with the same names, so retain the original results first. Path/stage information
-is restored but optimizer history is rebuilt; step-by-step agreement with an
-uninterrupted run is not guaranteed. Variable-cell restart also needs
-`neb_reference_cell.data`. Changing models, adding constraints or perturbing the
-path should be an explicit new calculation, not a no-change continuation.
+Outputs are rewritten under the same names, so copy the previous `neb.dat`,
+`mep.xyz` and `nebimage_*_final.vasp` elsewhere first.
+
+What carries over is the path and its stage: climbing or valley images, the pinned
+image and the accepted-step counter. What does not carry over is the optimizer's own
+history, which is rebuilt from the resumed geometry. A continued run follows the same
+path, but not the same step sequence as an uninterrupted one.
+
+Variable-cell restarts also need `neb_reference_cell.data`; without it a `stable-v1`
+run refuses to restart.
+
+Continuation only applies when the problem itself is unchanged. A new model, a
+re-interpolated path or a different setup make it a new calculation. A path with
+symmetry constraints or perturbations cannot use `--next_step` at all. The run does
+not compare the potential file with the previous run, so check that yourself.
 
 ## Extensions: MPI, variable cells and path symmetry
 
@@ -157,8 +203,9 @@ path should be an explicit new calculation, not a no-change continuation.
   in GPa and the output includes pV already. Fixed-cell `gtol` is not a uniform
   force tolerance in variable-cell coordinates.
 - **Symmetry:** Common-subgroup constraints may reduce cost while excluding lower
-  paths; compare perturbation/release checks. The same space-group number does not
-  establish symmetry of an entire labeled path.
+  paths; compare perturbation/release checks. The space-group number only says both
+  endpoints belong to the same group; for the whole path read the common-operation
+  indices listed in `neb-symmetry.dat`.
 
 See the [stationary-point and path guide](../advanced/saddle-workflows.md) for Dimer
 and mode-following alternatives.

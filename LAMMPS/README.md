@@ -98,18 +98,45 @@ Complete model restrictions are given in the
 
 ### 2.1 OpenMP
 
-Add `--with-omp` to the copy installer and `-DPKG_OPENMP=ON` to the CMake
-configuration, then rebuild. Put `package omp 4` before `read_data` in the input
-and change the pair declaration to:
+Add `--with-omp` to the copy installer and `-DPKG_OPENMP=ON -DBUILD_OMP=ON` to the
+CMake configuration, then rebuild. Both flags are needed: with only `PKG_OPENMP`
+enabled and no OpenMP support at compile time, LAMMPS warns and still runs a
+single thread.
+
+Put `package omp N` before `read_data` and `pair_style` in the input, and change
+the pair declaration to:
 
 ```text
 pair_style mlip/opt/omp
 pair_coeff * * model.mtp Al Ni
 ```
 
-Four threads are used per MPI rank here, so ranks and threads must be planned
-against the CPU cores allocated to the job. If the sources were already installed
-by the installer, uninstall before reinstalling, as described in Section 7.
+`N` is the number of threads **per MPI rank**, not a total core count or a rank
+count; the examples below spell it as `4`, which is only a placeholder to be
+replaced by the cores actually allocated. Total parallelism is ranks × `N` and
+should not exceed the physical cores of a node. Each thread keeps its own
+workspace, so more threads cost memory and need not be faster. `N = 0` defers to
+`OMP_NUM_THREADS`.
+
+The same settings can be given on the command line, which satisfies the ordering
+requirement automatically:
+
+```sh
+lmp -pk omp 4 -in in.mtp    # equivalent to "package omp 4" in the input
+lmp -sf omp -in in.mtp      # picks mlip/opt/omp for mlip/opt
+```
+
+Use one form only. With `-sf omp` the thread count comes from
+`OMP_NUM_THREADS`, so an unset variable means a single thread; other styles
+without an `/omp` variant fall back to their plain implementation.
+
+`package omp` cannot move after `pair_style` either: LAMMPS rejects the command
+once the simulation box is defined, and the `/omp` style reads the thread count
+when it is constructed, so a missing declaration is an error rather than a
+silent fallback.
+
+If the sources were already installed by the installer, uninstall before
+reinstalling, as described in Section 7.
 
 ### 2.2 spline
 

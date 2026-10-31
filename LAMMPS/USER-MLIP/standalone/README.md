@@ -133,8 +133,10 @@ pair_coeff * * model.mtp Al Ni
 run 0
 ```
 
-For OpenMP insert `package omp 8` before `read_data` and select
-`pair_style mlip/opt/omp`. For CUDA select
+For OpenMP insert `package omp N` before `read_data` and select
+`pair_style mlip/opt/omp`, where `N` is the number of threads per MPI rank (see
+the [interface guide](../../README.md#21-openmp) for the command-line forms and
+thread planning). For CUDA select
 `pair_style mlip/gpudirect device cuda precision fp64 gpu_id auto`; HIP uses
 `device hip`. All model restrictions and runtime options below apply unchanged.
 
@@ -285,7 +287,8 @@ fixtures supplement, rather than replace, IMR-MLP oracle comparisons on real
 trained potentials. JSON results and every input/log/dump remain in `--work`.
 
 GPU runs add `--device cuda` or `--device hip`. OpenMP runs add
-`--style mlip/opt/omp --threads N`. Explicit GPU selection must fail when no GPU
+`--style mlip/opt/omp --threads 2`, or another positive thread count. Explicit GPU
+selection must fail when no GPU
 is available; a CPU fallback is not a passing GPU test. To test chunks, pass
 `--pair-options 'centers_per_chunk 3'`. Only run MPI/GPU checks on resources
 allocated by the caller.

@@ -30,8 +30,8 @@
 | 数据不足、标签不一致，或径向函数尚未优化 | 不是基组问题，回到[训练流程](workflows_zh.md) |
 | LES/SOG、MTP-M 或独立神经网络头 | 不在本页范围内 |
 
-改基组通常会使已训练的模型作废，因此先排除数据与径向的问题。基组小不等于好：
-`mtmbasis` 给出的张量少，不代表验证误差低；`fastfit` 保留的标量少，也不代表计算更快。
+改基组通常会使已训练的模型作废，因此先排除数据与径向的问题。基组变小不会自动带来更低的
+验证误差或更快的计算，两项的判据见 [MTP 基组生成、筛选与复核](../advanced/basis-generation-selection_zh.md) §1。
 
 ## 生成候选池
 
@@ -39,18 +39,21 @@
 取值小是为了跑得快，不是生产精度推荐值：
 
 ```ini
-max_lev 8
-max_dim 3
-max_mu 2
-max_nv 2
-max_poly 4
-mu_wei 2
-nv_wei 1
-dim_wei 2
-mode 3
-maxiter 20
-w1 1
-w2 4
+# ===== Topology =====
+max_lev             8
+max_dim             3
+max_mu              2
+max_nv              2
+max_poly            4
+mu_wei              2
+nv_wei              1
+dim_wei             2
+
+# ===== Search =====
+mode                3
+maxiter             20
+w1                  1
+w2                  4
 ```
 
 生成与缩并搜索分两次运行，代价高的候选池可以只建一次、反复搜索：
@@ -90,16 +93,21 @@ imrmlp mtmbasis mtmbasis.ini --alphapool alphapool.dat --sample true --sample-ra
 把选中的候选复制为 `template.mtp`，用后面筛选时相同的训练数据拟合：
 
 ```ini
-trainset train.xyz
-validset valid.xyz
-trainset-format extxyz
-validset-format extxyz
-potfile template.mtp
-index index.map
-fit:energy_weight 1
-fit:force_weight 0.1
-fit:stress_weight 0.001
-fit:weight_L2 1e-8
+# ===== Input/Output =====
+trainset            train.xyz
+validset            valid.xyz
+trainset-format     extxyz
+validset-format     extxyz
+index               index.map
+
+# ===== Potential =====
+potfile             template.mtp
+
+# ===== Loss Weights =====
+fit:energy_weight   1
+fit:force_weight    0.1
+fit:stress_weight   0.001
+fit:weight_L2       1e-8
 ```
 
 ```sh
@@ -117,19 +125,28 @@ cp _Trained_Potential_.mtp full.mtp
 `fastfit` 的设置文件同样使用顶层键：
 
 ```ini
-potfile full.mtp
-trainset train.xyz
-validset valid.xyz
-format extxyz
-index index.map
-weight-energy 1
-weight-force 0.1
-weight-stress 0.001
-weight-l2 1e-8
-energy-power 1
-force-power 0
-stress-power 1
-seed 42
+# ===== Input/Output =====
+trainset            train.xyz
+validset            valid.xyz
+format              extxyz
+index               index.map
+
+# ===== Potential =====
+potfile             full.mtp
+
+# ===== Loss Weights =====
+weight-energy       1
+weight-force        0.1
+weight-stress       0.001
+weight-l2           1e-8
+
+# ===== Normalization =====
+energy-power        1
+force-power         0
+stress-power        1
+
+# ===== Reproducible Search =====
+seed                42
 ```
 
 `format` 同时作用于训练集与验证集，默认是 `mlpcfg`，数据为 `extxyz` 时必须显式指定。
@@ -166,13 +183,13 @@ VIF 去除相关标量。
 先在验证集上比较完整模型与缩减模型，再对独立测试集评估选定模型：
 
 ```sh
-imrmlp calc_efs --potfile __REDUCED__.mtp --input test.xyz --output test-predicted.xyz --index index.map
-imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --index index.map --output-summary test-errors.txt
+imrmlp calc_efs --potfile __REDUCED__.mtp --input test.xyz --output test-predicted.xyz
+imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --output-summary test-errors.txt
 ```
 
-分列读取单原子能量、力与 virial 误差，并检查偏差最大的构型。计算速度由模型、体系与
-后端共同决定，不能从标量数量推断。缩减后再做非线性训练会得到新的候选，需要重新走一遍
-验证。
+分列读取单原子能量、力与 virial 误差，并检查偏差最大的构型。速度由压缩后的模型、体系规模
+和后端共同决定，标量数只是其中一项；压缩前后在同一批构型上实测耗时。缩减后再做非线性训练
+会得到新的候选，需要重新走一遍验证。
 
 压缩会重新编号标量，旧的 `selected_ones.dat` 不能用于压缩后的模型；模型、选集与输出应
 一起归档。若只是重排计算图并要求预测不变，使用

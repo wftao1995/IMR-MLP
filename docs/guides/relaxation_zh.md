@@ -2,8 +2,8 @@
 
 [English](relaxation.md)
 
-弛豫用已有势函数优化原子位置或晶胞，在给定约束下寻找局部极小值。
-它不训练模型，也不保证得到全局最低能结构。
+弛豫用已有势函数优化原子位置或晶胞，在给定约束下寻找局部极小值；落到哪个极小值由初始
+结构决定。
 
 不涉及：固定几何下的能量与误差（见[单点计算](single-point_zh.md)）、
 初态与终态之间的过渡路径（见 [NEB](neb_zh.md)）。
@@ -24,12 +24,18 @@
 
 ### 自由度选择
 
-| 目标 | 原子位置 | 晶胞 | 建议配置 |
-| --- | --- | --- | --- |
-| 固定晶胞、固定体积下的缺陷或原子优化 | 放开 | 固定 | 固定晶胞弛豫（默认） |
-| 体相在零压或指定压力下的平衡晶胞 | 放开 | 放开 | 变胞弛豫 + 可选 `relax:pressure` |
-| 只优化晶格、保留分数坐标 | 固定 | 放开 | 关闭原子坐标更新后启用变胞 |
-| 表面固定底层或受约束的局部优化 | 部分放开 | 按物理问题决定 | 选择性动力学或约束；先确认哪些分量被固定 |
+| 目标 | 原子位置 | 晶胞 | 建议配置 | `isif` |
+| --- | --- | --- | --- | --- |
+| 固定晶胞、固定体积下的缺陷或原子优化 | 放开 | 固定 | 固定晶胞弛豫（默认） | `2` |
+| 体相在零压或指定压力下的平衡晶胞 | 放开 | 放开 | 变胞弛豫 + 可选 `relax:pressure` | `3` |
+| 只优化晶格、保留分数坐标 | 固定 | 放开 | 关闭原子坐标更新后启用变胞 | `6` |
+| 表面固定底层或受约束的局部优化 | 部分放开 | 按物理问题决定 | 选择性动力学或约束；先确认哪些分量被固定 | — |
+
+`isif` 一列对应 VASP 的习惯写法，可用 `--isif` 开关或顶层 `isif` 键给出。其余取值
+也与 VASP 一致：`4` 在固定体积下放开原子与晶胞，`5` 固定原子位置并固定体积，`7` 只做
+等比体积缩放，`8` 在原子弛豫的同时改变体积。`isif` 在设置文件之后生效，会覆盖
+`relax_atom`、`relax_cell`、`fix_vol`、`fix_shape`；两者同时出现时会打印警告，
+因此同一份配置里只应保留一种写法。
 
 ### 固定晶胞弛豫
 
@@ -37,15 +43,22 @@
 默认固定晶胞、优化原子，使用 L-BFGS，无需额外写出这些开关。
 
 ```text
-input POSCAR
-output relaxed.xyz
-index index.map
-pot:potfile model.mtp
-relax:cartesian true
-relax:gtol 0.001
-relax:maxiteration 500
-relax:stepmax 0.05
-relax:write_traj true
+# ===== Input/Output =====
+input               POSCAR
+output              relaxed.xyz
+index               index.map
+
+# ===== Potential =====
+pot:potfile         model.mtp
+
+# ===== Relaxation =====
+relax:cartesian     true
+relax:stepmax       0.05
+relax:gtol          0.001
+relax:maxiteration  500
+
+# ===== Trajectory =====
+relax:write_traj    true
 ```
 
 ```sh
@@ -82,8 +95,10 @@ POSCAR 的 `Selective dynamics` 标志需配合 `relax:selective_dynamics true` 
 及[配置参考](../reference/configuration_zh.md)。
 
 `lbfgs` 可作为普通任务的起点，`fire`、`lbfgspp`、`cg` 是其他可选驱动；变更优化器后
-应比较最终能量和梯度。不要同时照抄 `isif` 和一组自由度标志：顶层 `isif` 会覆盖
-`relax_atom`、`relax_cell` 等相关设置。
+应比较最终能量和梯度。
+
+本页的开关覆盖日常情形；晶胞分量掩码、晶格矢量耦合、外应力张量、约束求解器与
+预条件等，集中放在[弛豫的进阶控制](../advanced/relax-controls_zh.md)。
 
 ## 输出与判据
 
@@ -92,29 +107,25 @@ POSCAR 的 `Selective dynamics` 标志需配合 `relax:selective_dynamics true` 
 | 退出码 `0` | 所有输入结构达到弛豫收敛条件 |
 | 退出码 `2` | 至少一个结构正常停止但未收敛；输出仍可能包含最后一个接受的结构 |
 | 退出码 `1` | 输入、求值或写出失败，查看 `relax.log` 中的具体错误 |
-| `relaxed.xyz` | 查看最终结构、元素、能量、力；有文件不等于收敛 |
+| `relaxed.xyz` | 查看最终结构、元素、能量、力；未收敛时同样会写出，是否收敛看退出码 |
 | `relax-trajectory.xyz` | 检查是否发生原子重叠、异常跳跃或不合理变形 |
 
-能量变化很小、步长很小或达到最大迭代数，都不能替代力/梯度收敛。有约束时，只对
-允许的自由度判断收敛，冻结方向仍可能有力。需要后续 POSCAR 文件时转换最终结果：
+收敛只按力/梯度判据：`gtol` 比较允许自由度上最大绝对梯度分量，能量变化、步长和迭代次数
+都不参与判定。有约束时，冻结方向仍可能有力。需要后续 POSCAR 文件时转换最终结果：
 
 ```sh
-imrmlp convstr relaxed.xyz relaxed.vasp --index index.map
+imrmlp convstr relaxed.xyz relaxed.vasp
 ```
 
-### 复核最终受力
-
-用相同模型对最终几何再做单点计算：
+复核做法：用同一模型对最终结构再算一次，把最大绝对力分量与 `gtol` 对照：
 
 ```sh
-imrmlp calc_efs relaxed.xyz checked.xyz --potfile model.mtp --index index.map
+imrmlp calc_efs relaxed.xyz checked.xyz --potfile model.mtp
 ```
 
-查看 `checked.xyz` 的 `forces` 列。对无约束固定胞设置，最大绝对力分量为
-`0.0008 eV/Å` 时满足 `gtol=0.001`，为 `0.0046 eV/Å` 时不满足。这里比较力分量，
-不是每个原子的三维力模长。若日志称收敛而复核值明显不符，应先核对模型、输入是否为
-最终帧，以及实际生效的约束和设置。需要更紧精度时，在副本中把输入改为
-`relaxed.xyz`，替换 `gtol` 并更换输出文件名，再比较最终能量、几何和受力是否稳定。
+对上面无约束的固定胞设置，`0.0008 eV/Å` 满足 `gtol=0.001`，`0.0046 eV/Å` 不满足；
+比较的是单个分量，不是每个原子的三维力模长。若两者明显不符，通常是模型或帧取错了，
+也可能是约束仍在生效。
 
 ## 常见错误
 
@@ -129,4 +140,6 @@ imrmlp calc_efs relaxed.xyz checked.xyz --potfile model.mtp --index index.map
 
 - [晶体性质](properties_zh.md)：平衡结构确定后的声子、弹性与状态方程
 - [NEB](neb_zh.md)：两个端点均弛豫后再计算路径
+- [弛豫的进阶控制](../advanced/relax-controls_zh.md)：掩码、耦合、外应力与约束求解器
+- [约束与对称性](../advanced/relax-symmetry_zh.md)：`relax:keep_symm` 的作用与限制
 - [输入文件与配置约定](conventions_zh.md)、[命令参考](../reference/commands_zh.md)

@@ -21,7 +21,7 @@ Dimer/NEB 经通用势接口计算，具体模型仍须分别核验能量、力�
 
 ```sh
 imrmlp nroptimize --potfile=potential.mtp --input=POSCAR --output=CONTCAR \
-  --index=index.map --no-cell --gtol=0.001 --max-iteration=100
+  --no-cell --gtol=0.001 --max-iteration=100
 ```
 
 去掉 `--no-cell` 可优化对称晶胞应变；`--pressure` 单位为 GPa。
@@ -38,24 +38,31 @@ imrmlp nroptimize --potfile=potential.mtp --input=POSCAR --output=CONTCAR \
 ```sh
 # mode.ini 可以为空；若已有 Hessian，可加 --hessian=hessianfull。
 imrmlp modefollowing mode.ini --potfile=potential.mtp --input=POSCAR \
-  --index=index.map --nocell --mode=9 --imode=0 --modecar-out=MODECAR
+  --nocell --mode=9 --imode=0 --modecar-out=MODECAR
 imrmlp dimer dimer.ini
 ```
 
 `dimer.ini` 使用空白分隔的键值，最小示例如下：
 
 ```text
-structure POSCAR
-input-format POSCAR
-index index.map
-output CONTCAR
-pot:pottype mtp
-pot:potfile potential.mtp
-dimer:modecarf MODECAR
-dimer:maxiteration 200
-dimer:gtol 0.001
-dimer:rot_gtol 0.001
-dimer:trn_gtol 0.001
+# ===== Input/Output =====
+structure           POSCAR
+input-format        POSCAR
+output              CONTCAR
+index               index.map
+
+# ===== Potential =====
+pot:pottype         mtp
+pot:potfile         potential.mtp
+
+# ===== Dimer Search =====
+dimer:modecarf      MODECAR
+dimer:maxiteration  200
+
+# ===== Convergence =====
+dimer:gtol          0.001
+dimer:rot_gtol      0.001
+dimer:trn_gtol      0.001
 ```
 
 不指定 `modecarf` 时用随机方向，`dimer:random_seed 0` 是可复现默认值，-1 为随机种子。

@@ -92,8 +92,8 @@ rows is
 where @f$\sigma_j@f$ are the singular values. A large volume means the
 directions do not collapse, which usually also implies good linear independence
 of the selected rows. However, maximum volume and "minimum condition number"
-are not mathematically equivalent optimization problems; the documentation and
-logs should not treat them as strictly interchangeable.
+are two different optimization problems: the largest volume does not minimize
+the condition number.
 
 If the linearized model is
 
@@ -188,10 +188,13 @@ Engineering interpretation:
 - @f$\Gamma\gg1@f$: the configuration is strongly extrapolative with respect to
   the current B-matrix definition.
 
-The grade has no energy units. It does not directly give an energy/force
-error, and a small grade does not guarantee the absence of model bias: if the
-descriptors, the potential form, or the candidate pool itself miss a physical
-state, MaxVol cannot detect bias outside that representation.
+The grade is dimensionless and not an error estimate: it measures linear
+extrapolation relative to the current active set and has no conversion to an
+energy or force error. The check is to read it beside `calc_err` on the same
+configurations: a range with high grade and high error is the range to add
+configurations to; low grade with large error points at the descriptors, the
+cutoff or the potential form, where adding configurations changes nothing. A
+physical state absent from the candidate pool produces no grade signal either.
 
 ### 3.5 Generalized Volume for Rectangular Active Matrices
 
@@ -558,9 +561,12 @@ grade. Use explicit pool grading to inspect the result, or re-run `full` /
 `stream/exact` to obtain a selection with a global convergence check. The
 initial stream-based online construction still reports its full-pool check.
 
-States that hit a cap without converging are still saved; later
-`sample`/`extend` runs issue a warning. Do not rely only on "selected.xyz was
-written" — check the `Selection status` and the maximum remaining grade.
+States that hit a cap without converging are still saved and later
+`sample`/`extend` runs print a warning when loading them. The check is the
+`Selection status:` line in the log: if it shows `WARNING: not converged` or a
+`max_grade` above `threshold`, re-run `full` or `stream/exact` over the whole
+pool before using the result. A written `selected.xyz` on its own settles
+nothing.
 
 The current `ActiveSelector` state format is v10; `.sel` files store the
 compact active matrix, row metadata, training configurations, selected
@@ -593,8 +599,8 @@ across different potential parameterizations.
   volume;
 - sensitive to column scaling; unphysical or un-normalized columns can
   dominate the selection;
-- the grade only measures extrapolation within the current representation and
-  linearization; it cannot detect model-form errors;
+- the grade reflects the current representation and linearization only; errors
+  from descriptors, the cutoff or the potential form do not appear in it;
 - after nonlinear potential parameters change, the old gradient matrix may be
   invalid and must be rebuilt;
 - `online` is order-dependent; `fast` may not converge because of the pass cap;
@@ -736,23 +742,27 @@ given explicitly, the defaults are `select.ini`, `sample.ini`, and
 A `select.ini` example for MTP scalar descriptors:
 
 ```ini
-builder:dtype mtm
-builder:potfile potential.mtp
-builder:pottype mtp
-builder:mode nbh
+# ===== Descriptor Builder =====
+builder:dtype       mtm
+builder:potfile     potential.mtp
+builder:pottype     mtp
+builder:mode        nbh
 builder:row-scaling uniform
 
-selector:threshold 1.001
-selector:weight 1.0
-selector:pow-scale 0.5
-selector:init-mode auto
-selector:max-swaps 0
+# ===== Selector =====
+selector:threshold  1.001
+selector:weight     1.0
+selector:pow-scale  0.5
+selector:init-mode  auto
+selector:max-swaps  0
 selector:select-mode stream
+selector:verbose    true
+
+# ===== Streaming =====
 selector:stream-mode exact
 selector:stream-cache-mode auto
 selector:stream-memory-limit-mb 3072
 selector:stream-chunk-size 32
-selector:verbose true
 ```
 
 Run:
@@ -781,21 +791,23 @@ To make the selection correspond directly to potential-parameter sensitivity,
 switch to the gradient builder:
 
 ```ini
-builder:dtype pot_efs
-builder:potfile potential.mtp
-builder:pottype mtp
-builder:all-coeffs false
+# ===== Descriptor Builder =====
+builder:dtype       pot_efs
+builder:potfile     potential.mtp
+builder:pottype     mtp
+builder:all-coeffs  false
 builder:row-scaling mlip
-builder:w-energy 1.0
-builder:w-force 0.1
-builder:w-stress 0.0
-builder:w-site 0.0
+builder:w-energy    1.0
+builder:w-force     0.1
+builder:w-stress    0.0
+builder:w-site      0.0
 
-selector:init-mode auto
+# ===== Selector =====
+selector:init-mode  auto
 selector:init-value 1e-6
 selector:select-mode stream
 selector:stream-mode exact
-selector:threshold 1.001
+selector:threshold  1.001
 ```
 
 Here each configuration produces 1 energy row and @f$3N@f$ force rows.
@@ -1053,9 +1065,9 @@ the current potential.
 
 The volume carries units and scales exponentially with the row/column
 scaling; with many rows, small unit scales, or virtual @f$10^{-6}I@f$ rows, a
-negative log-volume is normal. It is only comparable for the same @f$k,n@f$,
-the same builder, and the same scaling — do not use it as a universal quality
-score across settings.
+negative log-volume is normal. The number ranks selections only for the same
+@f$k,n@f$, builder and scaling; after changing any of them, compare grade and
+`calc_err` instead.
 
 ### 11.6 How do I know whether fast/online results can be used directly?
 

@@ -96,12 +96,12 @@ legacy files load as `mtp`; specify other legacy types explicitly. See the [Pyth
 
 ## Relaxation or NEB writes results without convergence
 
-Check the exit code and log first. `relax` returns 2 if a structure is unconverged;
-NEB returns 2 for normal termination without convergence and records
-`# converged` and `# status` in its summary. Last accepted outputs support
-inspection and restart; they do not establish that tolerances were met. Check
-mapping, distances, freedoms and endpoints before changing budgets or
-initialization. Follow [relaxation](relaxation.md) and [NEB](neb.md) step by step.
+Read the exit code first. `relax` returns 2 if a structure is unconverged; NEB returns 2
+for normal termination without convergence and records `# converged` and `# status` in
+its summary, showing which step stopped it. The last written frame is a starting point
+for a restart, so check mapping, distances, freedoms and endpoints before choosing
+between a larger budget and a different initialization. Follow
+[relaxation](relaxation.md) and [NEB](neb.md) step by step.
 
 ## NEB interpolation overlaps atoms or finds an unexpected mechanism
 

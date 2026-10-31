@@ -54,7 +54,7 @@
 | FPS / CUR 多样性选择 | `imrmlp diverse_select --n-select=50 --pool=pool.xyz --potfile=potential.mtp` | `--method=cur` |
 
 MaxVol 选择将可复用的主动集写到 `potential.mtp.sel`。多样性选择默认使用 MTP 描述符，因此也需要匹配的势文件。
-选择分数不能当作误差上界。
+选择分数只排序相对当前主动集的外推程度，误差要用 `calc_err` 在同一批构型上量。
 
 ## 弹性常数与声子
 
@@ -79,7 +79,7 @@ MaxVol 选择将可复用的主动集写到 `potential.mtp.sel`。多样性选�
 
 | 目标 | 命令 | 示例 |
 |------|------|---------|
-| 转换格式 | `imrmlp convstr POSCAR output.xyz --index=index.map` | `-if POSCAR -of extxyz` |
+| 转换格式 | `imrmlp convstr POSCAR output.xyz` | `-if POSCAR -of extxyz` |
 | 创建超胞 | `imrmlp mk_super --input=POSCAR --supercell 2 2 2 --output=POSCAR-2x2x2` | — |
 | 将晶胞变为下三角形式 | `imrmlp mk_lower --input=POSCAR` | — |
 | 寻找近似正交晶胞 | `imrmlp mk_orth --input=str.cfg` | — |

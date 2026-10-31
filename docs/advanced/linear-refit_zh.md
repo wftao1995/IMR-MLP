@@ -12,26 +12,41 @@
 顺序必须与原训练一致；示例权重仅作演示。
 
 ```text
-index /absolute/path/index.map
-trainset /absolute/path/train.xyz
-trainset-format extxyz
-pot:pottype mtp
-pot:potfile /absolute/path/input.mtp
-pot:typemap /absolute/path/index.map
-fit:device cpu
-fit:random_init false
-fit:force_random false
+# ===== Input/Output =====
+index               /absolute/path/index.map
+trainset            /absolute/path/train.xyz
+trainset-format     extxyz
+
+# ===== Potential =====
+pot:pottype         mtp
+pot:potfile         /absolute/path/input.mtp
+pot:typemap         /absolute/path/index.map
+
+# ===== Runtime =====
+fit:device          cpu
+
+# ===== Initialization =====
+fit:random_init     false
+fit:force_random    false
+
+# ===== Training Schedule =====
 fit:training_schedule single
-fit:energy_weight 1
-fit:force_weight 0.05
-fit:stress_weight 0.001
-fit:energy_pow 1
-fit:force_pow 0
-fit:stress_pow 1
-fit:penalty_weight 1e-8
-fit:linear_refit sr
+
+# ===== Loss Function =====
+fit:energy_weight   1
+fit:force_weight    0.05
+fit:stress_weight   0.001
+fit:energy_pow      1
+fit:force_pow       0
+fit:stress_pow      1
+fit:penalty_weight  1e-8
+
+# ===== Linear Refit =====
+fit:linear_refit    sr
 fit:linear_refit_report /absolute/path/output/refit.json
-fit:save_to /absolute/path/output/fitted.mtp
+
+# ===== Output =====
+fit:save_to         /absolute/path/output/fitted.mtp
 ```
 
 ```sh
@@ -113,5 +128,5 @@ LD_LIBRARY_PATH=$PWD/build/mpi:$LD_LIBRARY_PATH \
 | `fit:linear_refit_report` | `linear-refit.json` | 目标、秩、参数增量、正则化及耗时报告 |
 
 固定成分数据不能独立确定所有元素偏置。精修保留无法确定的组合，在其余缩放坐标
-中求最小增量解。秩亏拟合应比较预测值和目标，不应要求不同有效解的系数完全相同。
-独立验证/测试集只用于报告，不参与求解。
+中求最小增量解。秩亏时有效解不唯一，系数会随求解器与阈值变化；比较预测值和目标是
+唯一稳定的判据。独立验证/测试集只用于报告，不参与求解。

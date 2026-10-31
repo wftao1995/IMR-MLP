@@ -11,14 +11,19 @@ See [basis generation, selection and verification](basis-generation-selection.md
 Prepare a potential, training data and validation data with E/F/S labels. Add to the configuration:
 
 ```ini
-selection-objective    error-cost
-max-valid-loss         0.02
-cost-benchmark-topk    8
+# ===== Cost-Aware Selection =====
+selection-objective error-cost
+max-valid-loss      0.02
+
+# ===== Benchmark Budget =====
+cost-benchmark-topk 8
 cost-benchmark-configs 16
-cost-archive-size      128
-cost-benchmark-rounds  5
+cost-benchmark-rounds 5
 cost-benchmark-seconds 0.01
-cost-report           fastfit-cost.tsv
+
+# ===== Archive and Report =====
+cost-archive-size   128
+cost-report         fastfit-cost.tsv
 ```
 
 `0.02` is illustrative; choose the limit for your data, weights and acceptable error. Run:
@@ -42,7 +47,7 @@ population-init stratified
 mutation-rate -1
 ```
 
-`population-init half` (default) retains each scalar with probability 0.5 in random individuals. `stratified` spreads that probability from 0.05 to 0.95 across population positions; existing file seeds and the full-basis `error-cost` seed still take precedence. These are probabilities, not exact cardinalities.
+`population-init half` (default) retains each scalar with probability 0.5 in random individuals. `stratified` spreads that probability from 0.05 to 0.95 across population positions; existing file seeds and the full-basis `error-cost` seed still take precedence. Retention is probabilistic, so individuals differ in size; read the actual counts in `selected_ones*.dat` when comparing.
 
 `mutation-rate` is the independent per-scalar flip probability in `[0,1]`, default `0.05`. The sentinel `-1` uses `1/nscalar`, giving **one expected flip** per offspring, not exactly one flip. At 756 scalars, the default gives 37.8 expected flips. Lower rates can help local refinement but may slow broad exploration; compare with equal population/generation budgets across multiple seeds. Logs and cost reports record the effective rate. Both options affect NSGA-II only.
 
@@ -58,7 +63,7 @@ A dependency group contains **every** scalar output using a particular basic mom
 
 `dependency` initialization starts from the full model and removes one group per individual, in seeded shuffled order. The last individual retains the full model; an existing `selected_ones.dat` still takes precedence for individual zero. Groups cycle when there are more individuals than groups; if no group is available, random individuals fall back to `half`. `group-mutation-rate` defaults to `0` and accepts `[0,1]`: after scalar mutation, each offspring drops a uniformly chosen eligible group with this probability. Eligible groups must remove at least one selected scalar and leave a nonempty model. Crossover and scalar mutation can restore deleted scalars. These operations keep the same number of candidate fits per generation. Logs report the deduplicated group count; saved models still undergo the existing loss and reload checks.
 
-Initialization and mutation are independent switches: use `dependency` with `group-mutation-rate 0` to isolate initialization benefits. They only affect mode 6. A group deletion does not itself guarantee acceptable error or measured acceleration.
+Initialization and mutation are independent switches: use `dependency` with `group-mutation-rate 0` to isolate initialization benefits. They only affect mode 6. A group deletion changes the candidate's scalar set only: whether the error stays within the ceiling is decided by the refit in each round, and the speedup appears in the final measurement.
 
 ## Cost definition
 
@@ -91,7 +96,7 @@ Rank 0 warms up `PotMTP::getEFSOMP` and interleaves model timings, recording `ns
 
 Each path runs for at least `cost-benchmark-seconds` per round (one long evaluation may exceed it), with at least 3 rounds and 5 by default. Reports include medians and the 25%/75% quantiles of total time. Selection starts with the feasible model having the smallest median total time. Models whose interquartile ranges overlap its range are treated as indistinguishable in speed; validation error, then original ID, breaks ties.
 
-Mode 6 may select the full basis. In mode 5, the full basis is only a speed baseline and the final scalar count remains the initial count. “Fastest” applies only to the measured candidates, configurations and thread/backend environment; global optimality and speedup for every model are not guaranteed. The fixed-seed structural objective is reproducible; final timing-based selection may depend on machine load.
+Mode 6 may select the full basis. In mode 5, the full basis is only a speed baseline and the final scalar count remains the initial count. "Fastest" holds only for the candidates, configurations and thread/backend measured here, which `fastfit-cost.tsv` records — re-measure after changing them. The fixed-seed structural objective is reproducible; the measured order shifts with machine load, and models inside the fastest median's interquartile range go to validation error, then original ID.
 
 MPI ranks share load statistics and objective definitions. Rank 0 benchmarks and
 broadcasts the final choice. Other ranks do not evaluate candidates, but runtime
@@ -125,11 +130,11 @@ Regression tests: [`unitest/ut_fastfit_regression.cpp`](../../unitest/ut_fastfit
 
 ## Explicit shared E/F/V objective and L2
 
-`objective-convention legacy` remains the default. Legacy fastfit uses a summed data objective and penalizes all linear coefficients; ordinary MTP nonlinear training uses a frame-mean objective and penalizes only moments. Equal numeric L2 settings therefore do not define equal objectives.
+`objective-convention legacy` remains the default. Legacy fastfit uses a summed data objective and penalizes all linear coefficients; ordinary MTP nonlinear training uses a frame-mean objective and penalizes only moments. Equal numeric L2 settings still leave different objectives, because they penalize different parameter groups; select `objective-convention mean-moments` explicitly and align weights and reference convention as in the next section.
 
 `objective-convention mean-moments` defines weighted E/F/full-nine-component virial squared errors, divided by the global number N of loaded training frames, plus `lambda_mean * ||moment_coeffs||²`. Species biases and radial parameters are excluded from this L2 term. Missing labels do not change the frame denominator. Match weights, atom-count powers and reference-force normalization as well.
 
-`l2-reference mean` (the default interpretation in this convention) takes `lambda_mean`; `l2-reference sum` converts the supplied lambda by the actual global N. Fastfit still solves summed normal equations with diagonal increment `N * lambda_mean`. For N=8410, sum-referenced 1e-8 becomes mean-referenced 1.1890606420927468e-12. Removing legacy fastfit's bias penalty changes that historical objective; label new experiments accordingly.
+`l2-reference mean` (the default interpretation in this convention) takes `lambda_mean`; `l2-reference sum` converts the supplied lambda by the actual global N. Fastfit still solves summed normal equations with diagonal increment `N * lambda_mean`. For N=8410, sum-referenced 1e-8 becomes mean-referenced 1.1890606420927468e-12. Removing legacy fastfit's bias penalty changes that historical objective, so record `mean-moments` in the experiment note; otherwise the numbers are not comparable with older runs.
 
 ```ini
 objective-convention mean-moments
@@ -142,8 +147,8 @@ For `trainnlpot`, use `fit:objective-convention mean-moments`, `fit:l2-reference
 
 ## Deployable model bundles
 
-In error-cost modes 5/6, `cost-archive-rule pareto` enables a capacity-bounded nondominated archive. Default `spread` retains cost-spread exploration and also supports export; it can be preferable when the cost proxy is imperfect. Capacity trimming and shortlisting preserve the cheapest and lowest-loss endpoints, without claiming a complete global front.
+In error-cost modes 5/6, `cost-archive-rule pareto` enables a capacity-bounded nondominated archive. Default `spread` retains cost-spread exploration and also supports export; it can be preferable when the cost proxy is imperfect. Capacity trimming and shortlisting preserve the cheapest and lowest-loss endpoints; candidates beyond the capacity limit stay out of the archive, so the exported front is built from these representatives.
 
 `cost-export-dir pareto-models` publishes a fresh directory only after every shortlisted model has been saved, reloaded and verified with direct full-data EFS evaluation. Neither the directory nor its `.tmp` path may exist. The usual single-winner output remains. The bundle contains exact input bytes in `parent.mtp`, every verified `candidate-*.mtp`, `objective.tsv`, `manifest.tsv`, and raw `rounds.tsv` timing samples.
 
-The manifest separately marks proxy-cost and measured-latency Pareto fronts within this finite shortlist. It records original scalar IDs, compact graph counts, validation errors, cost, latency and IQR. Force errors retain the existing vector-RMSE convention, not component RMSE. IQR and timing-overlap rules are descriptive, not significance tests. Freeze model, dataset and binary SHA256 values in the experiment record; the export does not copy private datasets or commit models.
+The manifest separately marks proxy-cost and measured-latency Pareto fronts within this finite shortlist, and records original scalar IDs, compact graph counts, validation errors, cost, latency and IQR; candidates beyond `cost-archive-size` never enter either front. Force errors keep the per-atom vector-norm convention (square the per-atom Δf, average over atoms, take the root), which is about √3 times the component RMSE for isotropic errors; use the force cmpt columns of `calc_err` for the component convention. Judge speed with the tie rule above (overlap with the fastest median, then validation error, then original ID); the IQR itself only describes the spread of this measurement. Freeze model, dataset and binary SHA256 values in the experiment record; the export does not copy private datasets or commit models.

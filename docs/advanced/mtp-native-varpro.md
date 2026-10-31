@@ -30,42 +30,62 @@ build/release/imrmlp trainnlpot \
 Example `fit.ini` (replace `/absolute/...` with real paths):
 
 ```text
-index /absolute/index.map
-trainset /absolute/train.cfg
-trainset-format mlpcfg
-validset /absolute/valid.cfg
-validset-format mlpcfg
-pot:pottype mtp
-pot:potfile /absolute/initial.mtp
-pot:typemap /absolute/index.map
-fit:device cpu
-fit:random_init false
-fit:force_random false
+# ===== Input/Output =====
+index               /absolute/index.map
+trainset            /absolute/train.cfg
+trainset-format     mlpcfg
+validset            /absolute/valid.cfg
+validset-format     mlpcfg
+
+# ===== Potential =====
+pot:pottype         mtp
+pot:potfile         /absolute/initial.mtp
+pot:typemap         /absolute/index.map
+
+# ===== Runtime =====
+fit:device          cpu
+
+# ===== Initialization =====
+fit:random_init     false
+fit:force_random    false
+
+# ===== Training Schedule =====
 fit:training_schedule single
+
+# ===== Parameter Scaling =====
 fit:parameter_scaling none
 fit:scaled_step_max 0
-fit:energy_weight 1
-fit:force_weight 0.05
-fit:stress_weight 0.001
-fit:energy_pow 1
-fit:force_pow 0
-fit:stress_pow 1
-fit:weight_L2 1e-10
-fit:weight_L1 0
-fit:penalty_weight 1e-6
-fit:bfgs_m 10
+
+# ===== Loss Function =====
+fit:energy_weight   1
+fit:force_weight    0.05
+fit:stress_weight   0.001
+fit:energy_pow      1
+fit:force_pow       0
+fit:stress_pow      1
+fit:weight_L2       1e-10
+fit:weight_L1       0
+fit:penalty_weight  1e-6
+
+# ===== L-BFGS =====
+fit:bfgs_m          10
 fit:bfgs_maxiteration 40
-fit:bfgs_grad_tol 1e-8
-fit:bfgs_conv_tol 1e-12
-fit:bfgs_step_tol 1e-12
-fit:save_to fitted.mtp
-fit:save_every 5
-fit:varpro_report varpro.jsonl
+fit:bfgs_grad_tol   1e-8
+fit:bfgs_conv_tol   1e-12
+fit:bfgs_step_tol   1e-12
+
+# ===== Diagnostics =====
+fit:varpro_report   varpro.jsonl
 fit:validation_interval 5
 fit:validation_metric force
+
+# ===== Output =====
+fit:save_to         fitted.mtp
+fit:save_every      5
 ```
 
-The weights and tolerances are examples, not accuracy guarantees. Do not enable
+The weights and tolerances are starting points: run with them first, then adjust
+against the reported validation RMSE. Do not enable
 `linear_refit` separately: VarPro always solves the `sr` block internally.
 `linear_refit_solver`, `linear_refit_rtol`, `linear_refit_atol` and
 `linear_refit_tolerance` also control this inner solve.
@@ -76,8 +96,8 @@ misses this threshold, the solver refits the residual at the same radial point,
 up to `fit:varpro_linear_refinement_steps` extra times (default 2; 0 disables).
 It solves an increment to the current coefficients and evaluates regularization
 at the updated coefficients. This reduces cancellation error without changing
-the objective, rank cutoff or gradient threshold. It cannot resolve every
-ill-conditioned or rank-truncated problem. If checks still fail, training stops
+the objective, rank cutoff or gradient threshold. Ill-conditioned or rank-truncated
+stalls still need an outer restart or a different model. If checks still fail, training stops
 and restores parameters; inconsistent objectives or nonfinite values fail
 immediately. MPI uses the maximum linear-gradient norm across ranks.
 
@@ -155,7 +175,8 @@ and their stress ceilings need reevaluation; no single conversion factor applies
 `settings` records effective weights, normalization, regularization, tolerances
 and validation rules. `termination.type` uses ALGLIB codes: 1/2/4 indicate a
 stopping criterion was met, 5 is the iteration limit, and 0 is initial projection
-only. `best-data` is weighted and need not have the lowest unweighted force RMSE.
+only, with no L-BFGS step taken; judge usability from the validation RMSE and
+`best_validation_iteration` in the JSONL report. `best-data` is weighted and need not have the lowest unweighted force RMSE.
 Compare `loss.data` across regularization settings only with the same data
 weights; `loss.total` with different regularization weights is not a common
 ranking metric.
@@ -201,8 +222,8 @@ need the same inputs and settings, with relative paths resolved from each
 process's working directory. Root owns L-BFGS, model selection and file output;
 ranks share configuration work. Validation combines global squared errors and
 component counts, including empty local shards correctly. The root QR/SVD solve
-and matrix reassembly remain costs, so speed does not necessarily scale with
-rank count. Current CLI ranks each read the input before distributing frames.
+and matrix reassembly remain costs, so the speedup varies; compare `-np 1` with `-np N`
+on the same settings. Current CLI ranks each read the input before distributing frames.
 
 Numerical and publication failures propagate across ranks. Previously accepted
 snapshots remain available. Regression coverage is in `unitest/ut_varpro.cpp`

@@ -4,7 +4,6 @@
 
 主动学习找出当前训练覆盖不足、值得再做参考计算的结构，减少重复标注。
 一个完整循环是：**训练模型 → 探索结构 → 评分选样 → 参考标注 → 合并数据重训 → 独立验证**。
-MaxVol 评分和 FPS/CUR 选样都不提供 DFT 标签，也不会仅凭选出结构就改善模型。
 
 不涉及：参考计算与拟合本身（见[训练、评估与部署](workflows_zh.md)）、
 MaxVol 的数学推导（见 [MaxVol 理论](../theory/maxvol_zh.md)）。
@@ -44,30 +43,32 @@ builder:potfile model.mtp
 其余沿用普通 MTP 的默认逐原子环境评分和精确流式选样设置：
 
 ```sh
-imrmlp maxvol_select select.ini --pool train.xyz --index index.map \
+imrmlp maxvol_select select.ini --pool train.xyz \
   --output selected.xyz --score-file training-grades.txt
 ```
 
-输出包括选中的结构和 `model.mtp.sel` 主动集状态；它不是新的势函数。检查日志是否完成
-选择、是否仍有虚拟方向或未收敛说明。达到交换/扫描预算时保存 state 不等于选择已收敛；
-小数据或相关参数方向还可能造成秩不足。
+输出是选中的结构和 `model.mtp.sel` 主动集状态，后者不是势函数文件。判据是日志里的
+`Selection status:` 行及同一行末尾的 `virtual_rows`：出现 `WARNING: not converged`
+说明在预算内没有达到阈值，用 `full` 或 `stream/exact` 重跑；`virtual_rows` 非零表示
+仍有未初始化的方向，小数据或相关性强的参数方向会造成秩不足。
 
 ## 筛选探索结构
 
 ```sh
-imrmlp maxvol_sample select.ini --input pool.xyz --index index.map \
+imrmlp maxvol_sample select.ini --input pool.xyz \
   --state-file model.mtp.sel --output candidates.xyz \
   --threshold-save 2.1 --threshold-break 1000000000
 ```
 
 示例提高了**离线输出**的 break 阈值，便于收集较高 grade 的帧；`2.1` 等数值只是初始
-设置，需结合模型、活动集和参考误差校准。查看日志中的保存数量及 `BREAK` 提示。
-CLI 的默认 break 为 11；遇到超过 break 的构型时会提前停止输出，且该极端帧本身不会先
-写入，因此不完整输出不代表整个候选池的结论。LAMMPS fix 的阈值与保存行为按其专用说明处理。
+设置，需结合模型、活动集和参考误差校准。CLI 的默认 break 为 11：遇到超过阈值的构型会
+立即停止，该极端帧本身也不写入，日志随之打印 `BREAK: cfg … grade …` —— 此时
+`candidates.xyz` 只覆盖到中断位置，后面的结构从未被打分。要扫完整个池，调高
+`--threshold-break` 或分块运行。LAMMPS fix 的阈值与保存行为按其专用说明处理。
 
-`candidates.xyz` 可以包含输入中的既有属性和 `MV_grade`，但预测值或原有 MD 属性不是新
-取得的参考标签。grade 衡量相对于特定活动集的外推程度，不是 eV/Å 误差，低 grade 也不能
-单独证明模型可靠。
+`candidates.xyz` 可以包含输入中的既有属性和新增的 `MV_grade`；两者都不是本轮取得的
+参考标签，标注要另做参考计算。grade 与 E/F 误差没有换算关系，怎么把它和 `calc_err`
+并排使用见 [MaxVol 理论 §3.4](../theory/maxvol_zh.md)。
 
 ### 用入门示例核验
 
@@ -88,8 +89,8 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py
 | 3.0 | 2.425 | 是 |
 | 2.5 | 3.445 | 是 |
 
-查看 `grades.tsv`、`candidates.xyz` 和 `sample.log`，应看到 `Saved 2 / 4`。同一主动集下
-不同探索结构会得到不同分数，这不表示间距越短就必然外推。模型是合成教学模型，`Al` 仅
+查看 `grades.tsv`、`candidates.xyz` 和 `sample.log`，应看到 `Saved 2 / 4`。分数由主动集
+和构型共同决定，不是间距的单调函数。模型是合成教学模型，`Al` 仅
 演示映射；候选文件只含几何和评分，尚未完成参考标注或重训。手动命令与调低阈值的做法见
 [完整示例](../../examples/active-learning/README_zh.md)。
 
@@ -107,7 +108,7 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py
 合并为下一轮数据：
 
 ```sh
-imrmlp convstr reference-001/OUTCAR new-reference.xyz --index index.map
+imrmlp convstr reference-001/OUTCAR new-reference.xyz
 cat train.xyz new-reference.xyz > train-next.xyz
 ```
 
@@ -126,8 +127,8 @@ LAMMPS 的 `fix mlip/maxvol` 需要单独安装 MPI 插件，并使用匹配的�
 CLI 中读取 GPM 也不会自动启动采样。
 
 候选池很大时，`stream` + `exact` 可通过缓存行完成全池扫描；`online` 不保留所有历史
-候选，结果与到达顺序有关，不能当作同一种精确选择。内存与 MPI 控制见
-[命令参考](../reference/commands_zh.md)。
+候选，结果与到达顺序有关，需要与全池扫描等价的选择时用 `stream/exact`。内存与 MPI
+控制见[命令参考](../reference/commands_zh.md)。
 
 ## 常见错误
 

@@ -86,15 +86,35 @@ GPU 与 OpenMP 的加速比取决于模型、体系规模与硬件，换接口�
 
 ### 2.1 OpenMP
 
-复制安装时加 `--with-omp`，CMake 配置加 `-DPKG_OPENMP=ON`，然后重新构建。
-在输入文件的 `read_data` 之前添加 `package omp 4`，并将 pair 声明改为：
+复制安装时加 `--with-omp`，CMake 配置加 `-DPKG_OPENMP=ON -DBUILD_OMP=ON`，然后重新构建。
+两个开关都要给：只装 `PKG_OPENMP` 而编译期没有 OpenMP 支持时，LAMMPS 只打一条警告，
+实际仍按单线程运行。
+
+在输入文件中把 `package omp N` 放在 `read_data` 与 `pair_style` 之前，并将 pair 声明改为：
 
 ```text
 pair_style mlip/opt/omp
 pair_coeff * * model.mtp Al Ni
 ```
 
-此处每个 MPI rank 使用 4 个线程，需同时规划 rank 数与分配到的 CPU 核数。
+`N` 是**每个 MPI rank** 的线程数，既不是总核数也不是 rank 数；下文示例统一写成 `4`，那只是
+占位值，应按作业实际分到的核数改写。总并行度是 rank 数乘 `N`，不应超过节点的物理核数。
+每线程各持一份工作区，线程增多会增加内存占用，也不保证更快。`N = 0` 表示沿用
+`OMP_NUM_THREADS` 的设置。
+
+同样的设置也可以从命令行给出，且顺序要求自动满足：
+
+```sh
+lmp -pk omp 4 -in in.mtp    # 等价于输入文件里的 package omp 4
+lmp -sf omp -in in.mtp      # 为 mlip/opt 自动选中 mlip/opt/omp
+```
+
+两种方式只选一种。用 `-sf omp` 时线程数取自 `OMP_NUM_THREADS`，该变量未设置就只有单线程；
+没有 `/omp` 变体的其他样式会自动退回原实现。
+
+`package omp` 也不能挪到 `pair_style` 之后：LAMMPS 在模拟盒子定义之后即拒绝该命令，而
+`/omp` 样式在构造时就要读取线程数，缺这条是报错，不是静默退回单线程。
+
 若源码已由安装脚本安装，需先卸载再重新安装，见第 7 节的安装维护说明。
 
 ### 2.2 spline

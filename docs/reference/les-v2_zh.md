@@ -11,7 +11,7 @@ LES 在局域 MTP 能量之外加入依赖环境电荷的长程项，适用于�
 
 ```sh
 imrmlp calc_efs --pottype mtp_les --potfile model.mtp \
-  --input structure.xyz --input-format extxyz --index index.map --output predicted.xyz
+  --input structure.xyz --input-format extxyz --output predicted.xyz
 ```
 
 输入必须使用模型的元素顺序；输出包含预测能量、力及 virial。

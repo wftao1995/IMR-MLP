@@ -26,9 +26,10 @@ and data supplied for the calculation.
   VC-Dimer and VCNEB use analytic pullbacks through Cholesky or the symmetric
   matrix square root.
 - Dimer results describe the final center and include rotation residual,
-  central gradient and negative curvature checks. Negative directional
-  curvature alone does not establish that a structure has exactly one
-  negative Hessian eigenvalue.
+  central gradient and negative curvature checks. Negative directional curvature
+  only shows descent along the current direction; count the negative Hessian
+  eigenvalues with `calc_fc --lowest-modes` on the final structure and read
+  `EIGENVALS`.
 - `random_seed=0` is reproducible in a given build; `-1` requests nondeterministic
   initialization. An invalid explicit MODECAR raises an error.
 - `modefollowing --mode=2` returns 2 if its budget is exhausted or the final
@@ -61,5 +62,6 @@ NR and mode following require MTP analytical Hessians. Their dense Hessians
 are intended for small candidate structures. NR finds stationary points
 without selecting a Hessian index. The tests target CPU/OpenMP and fixed-cell
 or hydrostatic-pressure derivatives; they do not qualify anisotropic external
-stress or arbitrary material migration paths. Derivative and MODECAR checks
-alone do not establish variable-cell mode-following convergence.
+stress or arbitrary material migration paths. Variable-cell mode-following
+convergence is settled by the exit code and the final force / single-negative-mode
+check, with `MODECAR` as input only.

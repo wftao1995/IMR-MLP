@@ -15,26 +15,41 @@ output directory before running. Data units and the species map must match the
 original training; the example weights are illustrative.
 
 ```text
-index /absolute/path/index.map
-trainset /absolute/path/train.xyz
-trainset-format extxyz
-pot:pottype mtp
-pot:potfile /absolute/path/input.mtp
-pot:typemap /absolute/path/index.map
-fit:device cpu
-fit:random_init false
-fit:force_random false
+# ===== Input/Output =====
+index               /absolute/path/index.map
+trainset            /absolute/path/train.xyz
+trainset-format     extxyz
+
+# ===== Potential =====
+pot:pottype         mtp
+pot:potfile         /absolute/path/input.mtp
+pot:typemap         /absolute/path/index.map
+
+# ===== Runtime =====
+fit:device          cpu
+
+# ===== Initialization =====
+fit:random_init     false
+fit:force_random    false
+
+# ===== Training Schedule =====
 fit:training_schedule single
-fit:energy_weight 1
-fit:force_weight 0.05
-fit:stress_weight 0.001
-fit:energy_pow 1
-fit:force_pow 0
-fit:stress_pow 1
-fit:penalty_weight 1e-8
-fit:linear_refit sr
+
+# ===== Loss Function =====
+fit:energy_weight   1
+fit:force_weight    0.05
+fit:stress_weight   0.001
+fit:energy_pow      1
+fit:force_pow       0
+fit:stress_pow      1
+fit:penalty_weight  1e-8
+
+# ===== Linear Refit =====
+fit:linear_refit    sr
 fit:linear_refit_report /absolute/path/output/refit.json
-fit:save_to /absolute/path/output/fitted.mtp
+
+# ===== Output =====
+fit:save_to         /absolute/path/output/fitted.mtp
 ```
 
 ```sh
@@ -131,6 +146,7 @@ history.
 
 Fixed-composition data cannot determine every species offset independently.
 Refinement preserves the undetermined combinations and solves for a minimum
-increment in the remaining scaled coordinates. Compare predictions and the
-objective, rather than requiring identical coefficients from rank-deficient
-fits. Independent validation/test sets are used for reporting, not solving.
+increment in the remaining scaled coordinates. A rank-deficient fit has many valid
+solutions, and the coefficients move with the solver and thresholds, so comparing
+predictions and the objective is the stable criterion. Independent
+validation/test sets are used for reporting, not solving.

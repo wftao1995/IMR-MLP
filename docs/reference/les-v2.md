@@ -12,7 +12,7 @@ energy for fully periodic three-dimensional systems. Evaluate an existing model:
 
 ```sh
 imrmlp calc_efs --pottype mtp_les --potfile model.mtp \
-  --input structure.xyz --input-format extxyz --index index.map --output predicted.xyz
+  --input structure.xyz --input-format extxyz --output predicted.xyz
 ```
 
 Use the model's species order. Output contains predicted energy, forces and

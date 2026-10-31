@@ -72,8 +72,9 @@ the effective weights are @f$W_{X,s}=w_X/N_s^{p_X}@f$:
 Thus the default energy loss uses @f$(\Delta E_s)^2/N_s@f$; this differs from
 squaring a per-atom energy error, which gives @f$(\Delta E_s)^2/N_s^2@f$.
 Weights balance quantities with different units and observation counts. A larger
-force weight increases the influence of force labels; it is not a requested
-force accuracy. Compare independent validation errors when changing weights.
+force weight gives force labels more influence in the fit; it does not set a force-error
+ceiling. After changing weights, compare energy, force and stress errors on the
+independent validation set to see which weight meets the target.
 
 Structure `fitness` scales energy observations; per-atom `atomic_fitness` scales
 force observations. The optional `fit:force_wgt_*` settings apply additional
@@ -104,7 +105,9 @@ or Hessian-vector-product labels is a separate option; see
 ## Regularization
 
 Regularization discourages unnecessarily large coefficients or irregular radial
-functions. It complements validation; it does not guarantee an accurate model.
+functions; it works with validation rather than replacing it. After raising
+`fit:weight_L2`, check whether the independent validation error falls; a rise means
+the penalty is too strong.
 
 For ordinary MTP, `fit:weight_L1` and `fit:weight_L2` control penalties on the
 linear **moment coefficients**, excluding the per-species constant energy offsets:

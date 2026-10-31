@@ -2,7 +2,9 @@
 
 This directory contains the CPU/MPI interface for Coulomb LES v2 and SOG v3/v4:
 
-- `pair_style mlip/opt-les POTENTIAL TYPE_TO_SPECIES...`
+- `pair_style mlip/opt-les`: CPU/MPI long-range evaluation; the potential and one
+  species mapping per LAMMPS atom type are given either as
+  `pair_coeff * * POTENTIAL MAPPING...` or in the legacy one-line form.
 - `compute ID GROUP mlip/les/charge` exposes the Coulomb LES signed response
   charge using the model's `les_response_parity` convention.
 - `compute ID GROUP mlip/sog/latent` exposes dimensionless SOG latent variables.
@@ -34,11 +36,19 @@ For a two-species Coulomb LES model, use:
 ```text
 units metal
 newton on
-pair_style mlip/opt-les model-v2.mtp 0 1
-pair_coeff * *
+boundary p p p
+pair_style mlip/opt-les
+pair_coeff * * model-v2.mtp 0 1
 compute qmodel all mlip/les/charge
 dump q all custom 10 trajectory.lammpstrj id type x y z c_qmodel
 ```
+
+The mapping holds one entry per LAMMPS atom type. Element names work when the
+model carries element metadata, for example `pair_coeff * * model-v2.mtp Al Ni`;
+older files without it use zero-based species indices as shown. Names and
+indices cannot be mixed, and `NULL` is rejected. The legacy one-line declaration
+(`pair_style mlip/opt-les model-v2.mtp 0 1` followed by `pair_coeff * *`) remains
+supported.
 
 The short-range `mlip/gpudirect` style does not evaluate LES/SOG long-range
 terms. For complete native model graphs, including supported GPU long-range

@@ -29,7 +29,7 @@ The workflow must be selected explicitly — `md`, `ensemble`, `md-ensemble` or
 ```bash
 imrmlp ti_fit_fc --workflow md-ensemble \
   --traj md.extxyz --traj-format extxyz \
-  --potfile potential.mtp --index index.map \
+  --potfile potential.mtp \
   --temperature 600 --output-prefix BETA_600K
 ```
 
@@ -118,7 +118,7 @@ strongly, while `--lammps-fc-source initial` preserves the original local FC.
 ```bash
 imrmlp ti_fit_fc --workflow export \
   --input REFERENCE.xyz --input-format extxyz \
-  --initial-fc FORCE_CONSTANTS --index index.map \
+  --initial-fc FORCE_CONSTANTS \
   --lammps-fc-source initial --lammps-fc-block-threshold 0.01 \
   --lammps-fc-min-frequency-thz 0.5 \
   --write-validation-ensemble false --output-prefix TI_SPARSE
@@ -218,7 +218,8 @@ input.
 
 ## Limits
 
-- The reference is fitted at one temperature and cell; it is not transferable.
+- The reference is fitted at one temperature and cell; another temperature or cell
+  needs its own fit.
 - The LAMMPS adapter neither fits nor stabilizes the Hessian; a non-positive or
   ASR-violating reference is used as given.
 - Restart of the pair state is not supported.

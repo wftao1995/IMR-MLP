@@ -119,8 +119,9 @@ It accepts any real @f$Q_2@f$, with
 @f]
 
 The correction is smooth at zero, avoiding the square-root derivative's
-singularity there. This does not guarantee extrapolation stability of the
-whole potential: radial functions, cutoffs and training coverage still matter.
+singularity there. That fixes the derivative at one point; extrapolation
+stability still follows from the radial functions, cutoffs and training
+coverage, which validation error and grade probe separately.
 
 ### n1 / n2: Neural energy heads
 
@@ -249,9 +250,10 @@ scope and cannot be applied to arbitrary MTP_M models.
 
 `initmtpm` uses training data to initialize radial/projection parameters, fit
 species energy offsets and adjust channel biases to center training-set
-channel means. It does not guarantee unit channel variance or orthogonality.
-Initialization is not completed training; do not estimate these statistics
-from the final test set. Continue with nonlinear optimization such as
+channel means. Channel variance and inter-channel correlation stay unconstrained,
+so do not read the channels as a whitened basis. These statistics come from the
+training set only, never from the final test set. Continue with nonlinear
+optimization such as
 `trainnlpot --do-lbfgs`, comparing model capacity, random initializations and
 errors on independent validation data.
 

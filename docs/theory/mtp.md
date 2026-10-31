@@ -223,8 +223,10 @@ decomposition paths exceeds @f$10^{2195}@f$, making exhaustive search impossible
 
 The top-level `mode` setting selects the `mtmbasis` search method: `0` is the
 default tempering search, `1` is random/local search, `2` is a genetic algorithm
-(GA), and `3` is coordinate descent. These are heuristic searches and do not
-certify a global optimum. The GA follows this outline [Wang et al., 2025]:
+(GA), and `3` is coordinate descent. These are heuristic searches: the layout depends
+on the search budget and the seed, so compare structural counts (scalars and product
+rules) after changing `mode` or increasing the budget. The GA
+follows this outline [Wang et al., 2025]:
 
 1. **Enumeration**: For each scalar function @f$B_\alpha@f$, enumerate all valid
    decomposition trees @f$\{T_i^\alpha\}@f$.

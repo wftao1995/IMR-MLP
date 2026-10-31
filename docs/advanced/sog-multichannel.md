@@ -92,12 +92,14 @@ SOG clears `Atoms::charges_`, since these variables are not physical charges.
 CPU `mlip/opt-les` supports linear MTP + SOG v4. For a three-channel model:
 
 ```text
-pair_style mlip/opt-les fitted-sog-multichannel.mtp 0 1
-pair_coeff * *
+pair_style mlip/opt-les
+pair_coeff * * fitted-sog-multichannel.mtp 0 1
 compute q all mlip/sog/latent
 dump latent all custom 10 trajectory.lammpstrj id type x y z c_q[1] c_q[2] c_q[3]
 ```
 
+The mapping is one entry per LAMMPS atom type; element names work when the model
+carries element metadata, and older files use zero-based indices as shown.
 Single-channel output is a per-atom vector `c_q`; multichannel output is a
 per-atom array `c_q[1]` through `c_q[C]`. Recreate the compute and dependent dump
 when replacing a model with a different channel count. The physical-charge

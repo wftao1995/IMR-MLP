@@ -5,8 +5,6 @@
 Active learning identifies structures poorly covered by current training and worth
 labeling, reducing redundant reference work. A complete cycle is
 **train → explore → score/select → reference-label → merge/retrain → validate**.
-Neither MaxVol nor FPS/CUR supplies DFT labels, and selecting structures alone does
-not improve the model.
 
 Out of scope: reference calculations and fitting themselves (see
 [training, evaluation and deployment](workflows.md)) and the mathematics of MaxVol
@@ -50,35 +48,38 @@ The remaining defaults use per-atom environments for ordinary MTP and exact
 streaming selection:
 
 ```sh
-imrmlp maxvol_select select.ini --pool train.xyz --index index.map \
+imrmlp maxvol_select select.ini --pool train.xyz \
   --output selected.xyz --score-file training-grades.txt
 ```
 
-Outputs include selected structures and the active-set state `model.mtp.sel`; the
-state is not a new potential. Check selection completion, remaining virtual
-directions and unconverged-state messages. Saving after an exchange/scan budget is
-exhausted does not establish convergence; small or correlated datasets can also
-leave parameter directions rank-deficient.
+Outputs are the selected structures and the active-set state `model.mtp.sel`, which is
+not a potential file. The check is the `Selection status:` line and the `virtual_rows`
+count printed with it: `WARNING: not converged` means the threshold was not reached
+within the budget, so rerun with `full` or `stream/exact`; a nonzero `virtual_rows`
+count means directions remain uninitialized, which small or strongly correlated
+datasets produce.
 
 ## Screening exploration structures
 
 ```sh
-imrmlp maxvol_sample select.ini --input pool.xyz --index index.map \
+imrmlp maxvol_sample select.ini --input pool.xyz \
   --state-file model.mtp.sel --output candidates.xyz \
   --threshold-save 2.1 --threshold-break 1000000000
 ```
 
 The example raises the **offline output** break threshold to collect higher-grade
 frames. Values such as `2.1` are starting points to calibrate against the model,
-active set and reference errors. Check saved counts and `BREAK` messages. The CLI
-default break is 11: encountering a configuration above it stops output before
-writing that extreme frame, so partial output is not the result for the whole pool.
-The LAMMPS fix has its own documented save/break behavior.
+active set and reference errors. The CLI default break is 11: a configuration above it
+stops output immediately and that extreme frame is not written either, with
+`BREAK: cfg … grade …` in the log — `candidates.xyz` then covers only the part before
+the stop, and the remaining structures were never scored. Raise `--threshold-break` or
+process the pool in chunks to cover all of it. The LAMMPS fix has its own documented
+save/break behavior.
 
-`candidates.xyz` may retain input properties and add `MV_grade`. Predictions or
-existing MD properties are not newly obtained reference labels. Grade measures
-extrapolation relative to a specific active set, not an eV/Å error; a low grade alone
-does not establish reliability.
+`candidates.xyz` may retain input properties and adds `MV_grade`; neither is a reference
+label obtained this round — that requires a separate reference calculation. Grade has
+no conversion to E/F error; see [MaxVol theory §3.4](../theory/maxvol.md) for reading it
+beside `calc_err`.
 
 ### Verification with the bundled example
 
@@ -100,12 +101,12 @@ coverage spans separations of 3.8–4.0 Å. The exploration pool gives:
 | 3.0 | 2.425 | Yes |
 | 2.5 | 3.445 | Yes |
 
-Inspect `grades.tsv`, `candidates.xyz` and `sample.log`; expect `Saved 2 / 4`.
-Different exploration structures receive different scores against the same active
-set; shorter distances do not imply extrapolation in general. This is a synthetic
-teaching model, with `Al` illustrating mapping only, and candidates contain geometry
-and grades without new reference labels or retraining. Manual commands and a
-lower-threshold variant are in the [complete example](../../examples/active-learning/README.md).
+Inspect `grades.tsv`, `candidates.xyz` and `sample.log`; expect `Saved 2 / 4`. The score
+follows the active set and the structure together rather than the separation alone. This
+is a synthetic teaching model, with `Al` illustrating mapping only, and candidates
+contain geometry and grades without new reference labels or retraining. Manual commands
+and a lower-threshold variant are in the
+[complete example](../../examples/active-learning/README.md).
 
 The exercise's `coverage.cfg` corresponds to `train.xyz` above and `pool.cfg` to
 `pool.xyz`; keep its CFG filenames when repeating it, without changing extensions.
@@ -121,7 +122,7 @@ With a labeled `train.xyz` and a completed reference calculation for one new
 candidate at `reference-001/OUTCAR`, convert and merge:
 
 ```sh
-imrmlp convstr reference-001/OUTCAR new-reference.xyz --index index.map
+imrmlp convstr reference-001/OUTCAR new-reference.xyz
 cat train.xyz new-reference.xyz > train-next.xyz
 ```
 
@@ -143,10 +144,10 @@ builder and state. It scores and saves candidates without changing pair forces.
 Validate GPU pairs combined with the CPU scorer as described by the interface.
 Loading GPM through the CLI does not activate sampling automatically either.
 
-For large pools, `stream` + `exact` caches rows for whole-pool scans. `online` does
-not retain every historical candidate and depends on arrival order; it is not the
-same exact selection. See the [command reference](../reference/commands.md) for
-memory and MPI controls.
+For large pools, `stream` + `exact` caches rows for whole-pool scans. `online` does not
+retain every historical candidate and depends on arrival order; use `stream/exact` when
+the selection has to be equivalent to a whole-pool scan. See the
+[command reference](../reference/commands.md) for memory and MPI controls.
 
 ## Common errors
 

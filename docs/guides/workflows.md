@@ -35,22 +35,23 @@ Ni
 
 Use the same order in all preprocessing, training and deployment steps. LAMMPS
 atom types start at 1, while numeric model species indices start at 0. New LAMMPS
-inputs should prefer element-name mappings. An incorrect map can produce plausible
-but physically wrong results.
+inputs should prefer element-name mappings. A wrong map keeps the numbers plausible
+and shifts energies and forces instead; see
+[input files and settings conventions](conventions.md) for the check.
 
 Convert each reference calculation explicitly, then concatenate CFG records:
 
 ```sh
-imrmlp convstr OUTCAR reference.cfg --index index.map
-imrmlp convstr vasprun.xml reference-xml.cfg --index index.map
+imrmlp convstr OUTCAR reference.cfg
+imrmlp convstr vasprun.xml reference-xml.cfg
 cat reference.cfg reference-xml.cfg > dataset.cfg
 ```
 
 These filenames are placeholders for user-supplied reference calculations.
 Geometry-only trajectories such as XDATCAR do not supply energy, force or stress
 labels merely by conversion. Verify electronic convergence and label units in the
-reference calculations; do not confuse ionic stopping criteria with
-electronic/force accuracy.
+reference calculations; an ionic stopping criterion constrains geometry relaxation
+only, so confirm the electronic steps separately.
 
 Positions and cell vectors use Å, total energy uses eV, and force uses eV/Å. The
 native extensive stress representation is in eV; `calc_err` additionally reports
@@ -128,14 +129,21 @@ template.
 Save `train.ini` using whitespace-separated values:
 
 ```text
-index index.map
-potfile template.mtp
-trainset train.xyz
-validset valid.xyz
-fit:force_weight 0.05
-fit:stress_weight 0.001
-fit:weight_L2 1e-8
-fit:save_to checkpoint.mtp
+# ===== Input/Output =====
+index               index.map
+trainset            train.xyz
+validset            valid.xyz
+
+# ===== Potential =====
+potfile             template.mtp
+
+# ===== Loss Weights =====
+fit:force_weight    0.05
+fit:stress_weight   0.001
+fit:weight_L2       1e-8
+
+# ===== Output =====
+fit:save_to         checkpoint.mtp
 ```
 
 The weights are illustrative, relative to the default energy weight of 1. Choose
@@ -166,19 +174,20 @@ command's `--help` before reusing a configuration.
 ## Evaluation and provenance
 
 ```sh
-imrmlp calc_err --input valid.xyz --potfile fitted.mtp --index index.map \
+imrmlp calc_err --input valid.xyz --potfile fitted.mtp \
   --output-summary validation.txt
-imrmlp calc_err --input test.xyz --potfile fitted.mtp --index index.map \
+imrmlp calc_err --input test.xyz --potfile fitted.mtp \
   --output-summary test.txt
-imrmlp calc_efs test.xyz predicted.xyz --potfile fitted.mtp --index index.map
+imrmlp calc_efs test.xyz predicted.xyz --potfile fitted.mtp
 imrmlp --version > version.txt
 sha256sum fitted.mtp template.mtp train.xyz valid.xyz test.xyz > inputs.sha256
 ```
 
 Report energy per atom, force and stress errors separately; inspect outliers,
 phases, compositions and target properties. Check the model on the intended range
-of volumes, temperatures and defects. Validation E/F errors alone do not establish
-stable long MD trajectories. Retain the mapping, settings, model, split files,
+of volumes, temperatures and defects. Validation E/F errors cover single frames
+only, so MD stability needs a short NVE/NVT run to watch energy drift and whether
+the structure holds. Retain the mapping, settings, model, split files,
 logs, build mode and dependency versions.
 
 ### Reading an error report
@@ -186,7 +195,8 @@ logs, build mode and dependency versions.
 In the quickstart `errors.txt`, energy statistics cover four validation
 configurations and force statistics cover twelve atoms. Errors approach numerical
 precision because the chosen model can represent this synthetic problem exactly;
-real material errors should not be expected to vanish. Check sample counts and
+real material errors reflect fitting residuals and data coverage and stay well above
+zero. Check sample counts and
 label completeness before interpreting the statistics.
 
 An `Energy per atom` RMS of `0.004 eV` means `4 meV/atom`, and a `Forces` RMS of
@@ -194,8 +204,8 @@ An `Energy per atom` RMS of `0.004 eV` means `4 meV/atom`, and a `Forces` RMS of
 `Forces components` summarizes components; compare the same row on the same
 validation set across models. Low averages with a large maximum call for
 inspecting the responsible phase, defect or high-temperature structures and
-deciding whether more reference data are needed; lower training errors do not
-replace this check.
+deciding whether more reference data are needed; that step follows data coverage, which
+a lower training error does not provide.
 
 ## Deployment
 
@@ -223,8 +233,7 @@ observables require the transport pair styles.
 Use the [Python interface](../reference/python.md) and an explicit `elements` list
 in model order. The active-learning selection cycle is described in
 [active learning](active-learning.md); [MaxVol theory](../theory/maxvol.md) explains
-the method. Selection grades describe extrapolation relative to a chosen model and
-active set; they are not a calibrated error estimate by themselves.
+the method.
 
 ## Common errors
 

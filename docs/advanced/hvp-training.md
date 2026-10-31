@@ -132,7 +132,7 @@ print(restored.hvp_directions.shape, restored.hvp_targets.shape)
 ```
 
 Reference forces must come from `R ± epsilon*v` for the same structure, retaining the cell, atom order and calculation settings.
-Remove rigid-translation directions so probe capacity is not spent on zero modes. A small number of probes constrains only a sampled subspace, not the accuracy of the complete Hessian.
+Remove rigid-translation directions so probe capacity is not spent on zero modes. A small number of probes constrains only a sampled subspace; for a complete Hessian, take directions up to the number of degrees of freedom and compare against `calc_fc` on the same structure.
 
 ## Generate labels from an existing full Hessian
 

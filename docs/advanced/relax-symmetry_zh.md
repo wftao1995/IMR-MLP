@@ -7,19 +7,24 @@
 
 ```sh
 imrmlp relax --input POSCAR --output relaxed.cfg --potfile potential.mtp \
-  --pottype mtp --index index.map --settings relax.ini
+  --pottype mtp --settings relax.ini
 ```
 
 ```ini
-relax:keep_symm true
-relax:relax_cell true
-relax:relax_atom true
-relax:driver lbfgs
-relax:gtol 1e-5
-relax:ftol 0
-relax:xtol 0
-relax:stepmax 0.01
-relax:maxiteration 500
+# ===== Relaxation =====
+relax:keep_symm     true
+relax:relax_cell    true
+relax:relax_atom    true
+
+# ===== Optimizer =====
+relax:driver        lbfgs
+relax:stepmax       0.01
+
+# ===== Convergence =====
+relax:gtol          1e-5
+relax:ftol          0
+relax:xtol          0
+relax:maxiteration  500
 ```
 
 ## 严格对称性
