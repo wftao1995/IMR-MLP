@@ -41,7 +41,7 @@ imrmlp relax relax.ini                              # 设置文件
 | `--version` | 显示版本信息（`imrmlp --version`） |
 | `--settings` | 从设置文件加载选项（无 `-i` 别名；许多命令也接受把该文件作为位置参数）。`phonopyfc` 是例外：它使用 `--settings-file` / `-i`。 |
 | `--verbose` | 启用详细日志输出（仅少数命令支持） |
-| `--index` / `-id` | 种类索引文件（通常为 `index.map`） |
+| `--index` / `-id` | 种类索引文件。多数命令默认读工作目录下的 `index.map`，只在改名或换目录时传入（`model_convert` 无默认值） |
 
 ### 压缩输入/输出文件
 
@@ -650,28 +650,32 @@ MaxVol 状态文件（`.sel`）使用 v10 格式，模型元数据解析独立�
 配置文件中，共享的 builder/selector 选项推荐使用命名空间 key：
 
 ```ini
-builder:dtype mtm
-builder:potfile potential.mtp
-builder:pottype mtp
-builder:mode nbh
-builder:all-coeffs false
+# ===== Descriptor Builder =====
+builder:dtype       mtm
+builder:potfile     potential.mtp
+builder:pottype     mtp
+builder:mode        nbh
+builder:all-coeffs  false
 builder:row-scaling uniform
-builder:w-energy 1.0
-builder:w-site 0.0
-builder:w-force 0.0
-builder:w-stress 0.0
+builder:w-energy    1.0
+builder:w-site      0.0
+builder:w-force     0.0
+builder:w-stress    0.0
 
-selector:threshold 1.001
-selector:weight 1.0
-selector:pow-scale 0.5
-selector:init-mode auto
+# ===== Selector =====
+selector:threshold  1.001
+selector:weight     1.0
+selector:pow-scale  0.5
+selector:init-mode  auto
 selector:init-value 1e-6
-selector:max-swaps 0
+selector:max-swaps  0
 selector:select-mode stream
+selector:verbose    false
+
+# ===== Streaming =====
 selector:stream-mode exact
 selector:stream-cache-mode auto
 selector:stream-memory-limit-mb 3072
-selector:verbose false
 ```
 
 `online` 模式只保留当前 active matrix，不保存此前被拒绝的历史候选。后续交换
@@ -1386,7 +1390,7 @@ Phonopy 接入见 [Python 适配器](python_zh.md#phonopy-integration)。导入�
 ```bash
 imrmlp ti_fit_fc --workflow md-ensemble \
   --traj md.extxyz --traj-format extxyz \
-  --potfile potential.mtp --index index.map \
+  --potfile potential.mtp \
   --temperature 600 --output-prefix BETA_600K
 ```
 
@@ -1433,7 +1437,7 @@ LAMMPS 文件可按原子对的 3x3 FC 块稀疏导出。截断后会重新构�
 ```bash
 imrmlp ti_fit_fc --workflow export \
   --input REFERENCE.xyz --input-format extxyz \
-  --initial-fc FORCE_CONSTANTS --index index.map \
+  --initial-fc FORCE_CONSTANTS \
   --lammps-fc-source initial --lammps-fc-block-threshold 0.01 \
   --lammps-fc-min-frequency-thz 0.5 \
   --write-validation-ensemble false --output-prefix TI_SPARSE
@@ -1576,7 +1580,7 @@ imrmlp findint POSCAR --near-elem=O --near-radius=2.0 --local
 |--------|-------|---------|-------------|
 | `--input` | | `POSCAR` | 输入结构（位置参数） |
 | `--output` | `-o` | `POSCAR_INT` | 输出结构 |
-| `--index-file` | `-id` | | 物种映射；原子选择请用 `--near-idx` |
+| `--index-file` | `-id` | `index.map` | 物种映射，每行一个符号对应一个类型索引。文件缺失，或未列出输入中的全部元素时，改用结构自带的元素名。原子选择请用 `--near-idx` |
 | `--input-format` | `-if` | auto | 输入格式 |
 | `--output-format` | `-of` | auto | 输出格式 |
 | `--insert` | | | 在最佳位点插入的元素（空 = 仅列出位点） |
@@ -1749,7 +1753,7 @@ MTP 势文件维护和转换命令。处理格式转换（转为 LAMMPS 样条�
 ### `mtp2spline` — 将 MTP 转换为样条
 
 将 MTP 类型势转换为样条表示。输出径向函数
-的样条系数，用于 LAMMPS 的 `pair_style mlip spline`。
+的样条系数，用于 LAMMPS 的 `pair_style mlip/spline`。
 
 ```bash
 imrmlp mtp2spline potential.mtp spline_output

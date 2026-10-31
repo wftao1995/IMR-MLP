@@ -37,7 +37,21 @@ Ni
 
 顺序取自模型或其训练记录。POSCAR 中元素块的顺序可以不同，读取时借助元素名映射；
 CFG 中的数值类型已经是模型 species 索引，原子序数 13 不等于 species 0。
-交换 `index.map` 后程序仍能运行，不能据此认为映射正确。
+程序按行建立名称→序号，不校验顺序：交换两行后照常运行，只是能量和力都变了。
+判据是在已知结构上跑一次 `calc_efs`，交换两行再跑一次，E/F 改变就说明顺序确实在用，
+此时按元素名逐行核对模型。
+
+读取元素映射的命令，其映射选项和配置里的 `index` 键都默认取 `index.map`；
+`model_convert` 是例外，没有默认值。工作目录下文件名保持 `index.map` 时，
+不必写任何参数：
+
+```sh
+imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp
+```
+
+只有改名或换目录时才需要 `--index`。忘了加通常不会立刻报错：找不到 `index.map`
+时只输出告警（`ERROR: indexfile not found` 或类似信息），程序改用结构文件自带的
+元素顺序继续计算，往往要等能量明显不合理才会察觉。
 
 ## 配置文件语法
 
@@ -54,6 +68,36 @@ pot:potfile model.mtp
 显式前缀，避免 section 与空行规则混淆。重复键保留第一次出现的值，修改时替换原行。
 
 `.mtp` 模型文件有自己的语法，不应按 `.ini` 配置编辑。
+
+## 分块写法
+
+三十个键的配置是写给人读的，不是给程序读的。把相关的键放在一起，块与块之间留一个
+空行：
+
+```text
+# ===== Input/Output =====
+index               index.map
+mepout              mep.xyz
+
+# ===== Potential =====
+pot:potfile         model.mtp
+
+# ===== Images =====
+nimgs               7
+image:0             initial.vasp
+image:6             final.vasp
+
+# ===== Optimizer =====
+driver              fire
+max_move            0.05
+```
+
+`example-inputs` 的模板与本手册中的示例统一按下面的顺序分块：输入输出、势函数、
+并行、图像或帧、优化器、收敛判据，之后是该任务特有的块，`Advanced` 放在最后。
+块标题用于指认分组；只有几个键的文件不需要分块。
+
+解析器按键名读取，分块顺序不影响计算结果；统一顺序只是为了让两份配置可以对照，
+也让改动容易定位。
 
 ## 单位与模型类型
 

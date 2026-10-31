@@ -42,7 +42,7 @@ These options work with most commands:
 | `--version` | Show version information (`imrmlp --version`) |
 | `--settings` | Load options from settings file (no `-i` alias; many commands also accept the file as a positional argument). `phonopyfc` is the exception: it uses `--settings-file` / `-i`. |
 | `--verbose` | Enable verbose logging (a few commands only) |
-| `--index` / `-id` | Species index file (often `index.map`) |
+| `--index` / `-id` | Species index file. Most commands read `index.map` in the working directory by default and take this option only to override the name or location (`model_convert` has no default) |
 
 ### Compressed Input/Output Files
 
@@ -701,28 +701,32 @@ In settings files, shared MaxVol builder and selector options should use
 namespaced keys:
 
 ```ini
-builder:dtype mtm
-builder:potfile potential.mtp
-builder:pottype mtp
-builder:mode nbh
-builder:all-coeffs false
+# ===== Descriptor Builder =====
+builder:dtype       mtm
+builder:potfile     potential.mtp
+builder:pottype     mtp
+builder:mode        nbh
+builder:all-coeffs  false
 builder:row-scaling uniform
-builder:w-energy 1.0
-builder:w-site 0.0
-builder:w-force 0.0
-builder:w-stress 0.0
+builder:w-energy    1.0
+builder:w-site      0.0
+builder:w-force     0.0
+builder:w-stress    0.0
 
-selector:threshold 1.001
-selector:weight 1.0
-selector:pow-scale 0.5
-selector:init-mode auto
+# ===== Selector =====
+selector:threshold  1.001
+selector:weight     1.0
+selector:pow-scale  0.5
+selector:init-mode  auto
 selector:init-value 1e-6
-selector:max-swaps 0
+selector:max-swaps  0
 selector:select-mode stream
+selector:verbose    false
+
+# ===== Streaming =====
 selector:stream-mode exact
 selector:stream-cache-mode auto
 selector:stream-memory-limit-mb 3072
-selector:verbose false
 ```
 
 `online` mode keeps the active matrix but does not retain rejected historical
@@ -1480,7 +1484,7 @@ alone do not establish this correspondence.
 ```bash
 imrmlp ti_fit_fc --workflow md-ensemble \
   --traj md.extxyz --traj-format extxyz \
-  --potfile potential.mtp --index index.map \
+  --potfile potential.mtp \
   --temperature 600 --output-prefix BETA_600K
 ```
 
@@ -1541,7 +1545,7 @@ contains a finite energy; otherwise `ti_fit_fc` evaluates the selected potential
 ```bash
 imrmlp ti_fit_fc --workflow export \
   --input REFERENCE.xyz --input-format extxyz \
-  --initial-fc FORCE_CONSTANTS --index index.map \
+  --initial-fc FORCE_CONSTANTS \
   --lammps-fc-source initial --lammps-fc-block-threshold 0.01 \
   --lammps-fc-min-frequency-thz 0.5 \
   --write-validation-ensemble false --output-prefix TI_SPARSE
@@ -1691,7 +1695,7 @@ imrmlp findint POSCAR --near-elem=O --near-radius=2.0 --local
 |--------|-------|---------|-------------|
 | `--input` | | `POSCAR` | Input structure (positional) |
 | `--output` | `-o` | `POSCAR_INT` | Output structure |
-| `--index-file` | `-id` | | Species map; use `--near-idx` to select atoms |
+| `--index-file` | `-id` | `index.map` | Species map, one symbol per type index. A missing file, or one that does not list every input element, falls back to the element names in the structure. Use `--near-idx` to select atoms |
 | `--input-format` | `-if` | auto | Input format |
 | `--output-format` | `-of` | auto | Output format |
 | `--insert` | | | Element to insert at the best sites (empty = list sites only) |
@@ -1871,7 +1875,7 @@ and basis inspection — all without modifying the trained model's predictions.
 ### `mtp2spline` — Convert MTP to Spline
 
 Convert MTP-type potentials to spline representation. Outputs radial functions
-as spline coefficients for use in LAMMPS `pair_style mlip spline`.
+as spline coefficients for use in LAMMPS `pair_style mlip/spline`.
 
 ```bash
 imrmlp mtp2spline potential.mtp spline_output

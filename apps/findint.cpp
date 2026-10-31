@@ -407,7 +407,7 @@ int findint(int argc, char *argv[])
     string outfile = "POSCAR_INT";
     string outformat = "";
     string insert_elem = "";        // element to insert (empty = list sites only)
-    string indexfile = "";
+    string indexfile = "index.map";
     int top_n = -1;                 // keep top-N sites (-1 = all after filtering)
     double min_dist = 0.4;          // min distance from host (Angstrom)
     double cluster_tol = 0.8;       // cluster tolerance for merging (Angstrom)
@@ -432,7 +432,7 @@ int findint(int argc, char *argv[])
     cmdopts.set_usage("findint <structure> [options]")
         .addop(infile, "input", "", "input structure file", true)
         .addop(informat, "input-format", "if", "input structure format")
-        .addop(indexfile, "index-file", "id", "chemical species map (one symbol per type index); use --near-idx for atom selection")
+        .addop(indexfile, "index-file", "id", "chemical species map, one symbol per type index (default: index.map; skipped when absent or when it does not list every input element); use --near-idx for atom selection")
         .addop(outfile, "output", "o", "output file (default: POSCAR_INT)")
         .addop(outformat, "output-format", "of", "output format")
         .addop(insert_elem, "insert", "", "element to insert at best sites (e.g. H, C, N, O)")
@@ -473,7 +473,21 @@ int findint(int argc, char *argv[])
 
     // ==== Read structure ====
     GPIO iobj;
-    if (indexfile.empty()) {
+    // `index.map` is the species-map name the other commands read by default, so
+    // picking it up here needs no flag. A missing default is not fatal: the run
+    // falls back to the element names carried by the input structure. A file
+    // named explicitly on the command line, however, has to exist.
+    bool use_index_map = !indexfile.empty();
+    if (use_index_map && !GPIO::file_exist(indexfile)) {
+        if (cmdopts.was_provided("index-file")) {
+            cerr << "Error: index file \"" << indexfile << "\" not found" << endl;
+            return 1;
+        }
+        cerr << "Warning: \"" << indexfile
+             << "\" not found; using the element names from the input structure" << endl;
+        use_index_map = false;
+    }
+    if (!use_index_map) {
         iobj.setmap();
     } else {
         if (!iobj.readmap(indexfile)) {
@@ -515,7 +529,29 @@ int findint(int argc, char *argv[])
     }
     Atoms atom;
     vector<Atoms> atoms_tmp;
-    if (!iobj.read(atoms_tmp, infile, informat)) {
+    bool read_ok = iobj.read(atoms_tmp, infile, informat);
+    if (!read_ok && use_index_map) {
+        // A map written for another dataset lists fewer elements than the input
+        // carries, and the reader then cannot name every species. findint only
+        // needs element identities and geometry, so retry with the full periodic
+        // table rather than failing on a map that does not apply to this file.
+        // Skipping the remap below follows from that, since the map is what it
+        // would have driven.
+        atoms_tmp.clear();
+        GPIO fallback;
+        fallback.setmap();
+        if (fallback.read(atoms_tmp, infile, informat)) {
+            cerr << "Warning: chemical species map \"" << indexfile
+                 << "\" does not cover every element of " << infile
+                 << "; reading the structure with its own element names" << endl;
+            use_index_map = false;
+            read_ok = true;
+            // The output writer resolves type indices through this map, so it has
+            // to match the species the fallback reader produced.
+            iobj.setmap();
+        }
+    }
+    if (!read_ok) {
         cerr << "Error: failed to read input structure: " << infile << endl;
         return 1;
     }
@@ -524,7 +560,7 @@ int findint(int argc, char *argv[])
         return 128;
     }
     atom = atoms_tmp[0];
-    if (!indexfile.empty()) {
+    if (use_index_map) {
         // Voronoi radii, element filters and insertion IDs use atomic numbers.
         const auto input_names = iobj.getmap();
         for (int &type : atom.chemmap_) {
