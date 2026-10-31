@@ -129,7 +129,7 @@ void RelaxationDrvV2::InitSettings()
     Connect(control.cell_factor, "cell_factor", "Scaling factor for stress preconditioning, default 1.0", 1, 2);
     Connect(control.pressure, "pressure", "External hydrostatic pressure (in GPa)");
     Connect(control.disp, "disp", "Magnitude of random displacement when apply_disp=True");
-    Connect(control.external_stress_str, "external_stress", "External stress tensor (6 or 9 components, in GPa)");
+    Connect(control.external_stress_str, "external_stress", "External stress tensor in GPa: 3 components (xx yy zz) or 6 components (xx yy zz yz xz xy)");
     Connect(control.stiffness_str, "stiffness", "Stiffness for strain modes, (6 components, in GPa)");
     Connect(control.lattice_mask_str, "lattice_mask", "Finite cell-selection flags: positive=movable, nonpositive=fixed. 6 values (xx yy zz yz xz xy) for symmetric strain, 9 row-major values for raw lattice or nonsymmetric strain; enables selective dynamics");
     Connect(control.lattice_mask_str, "strain_mask", "Finite cell-selection flags: positive=movable, nonpositive=fixed. 6 values (xx yy zz yz xz xy) for symmetric strain, 9 row-major values for raw lattice or nonsymmetric strain; enables selective dynamics");

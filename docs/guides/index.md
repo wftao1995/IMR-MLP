@@ -4,12 +4,18 @@
 
 [中文](index_zh.md)
 
-Environment and input conventions, single-command calculations, training, interfaces and troubleshooting, plus runnable examples.
+Environment and input conventions, potential fitting, single-command calculations, interfaces and troubleshooting, plus runnable examples.
 
 ## Environment and inputs
 
 - [Installation and build](installation.md)
 - [Input files and settings conventions](conventions.md)
+
+## Potential fitting
+
+- [Training, evaluation and deployment](workflows.md)
+- [Generating, optimizing and selecting an MTP basis](basis-selection.md)
+- [Active learning and candidate selection](active-learning.md)
 
 ## Single-command calculations
 
@@ -17,12 +23,6 @@ Environment and input conventions, single-command calculations, training, interf
 - [Structure relaxation](relaxation.md)
 - [NEB minimum-energy paths](neb.md)
 - [Crystal properties](properties.md)
-
-## Training
-
-- [Training, evaluation and deployment](workflows.md)
-- [Generating, optimizing and selecting an MTP basis](basis-selection.md)
-- [Active learning and candidate selection](active-learning.md)
 
 ## Interfaces and troubleshooting
 

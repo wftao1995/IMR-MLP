@@ -7,8 +7,8 @@
         "en": "User guides"
       },
       "description": {
-        "zh": "环境与输入约定、单任务计算、训练、接口与排错，以及可运行示例。",
-        "en": "Environment and input conventions, single-command calculations, training, interfaces and troubleshooting, plus runnable examples."
+        "zh": "环境与输入约定、势函数拟合、单任务计算、接口与排错，以及可运行示例。",
+        "en": "Environment and input conventions, potential fitting, single-command calculations, interfaces and troubleshooting, plus runnable examples."
       },
       "page_id": "p01_guide",
       "source": "docs/guides/index.md",
@@ -28,6 +28,30 @@
             {
               "source": "docs/guides/conventions.md",
               "slug": "guides/conventions",
+              "render": true
+            }
+          ]
+        },
+        {
+          "id": "fitting",
+          "title": {
+            "zh": "势函数拟合",
+            "en": "Potential fitting"
+          },
+          "pages": [
+            {
+              "source": "docs/guides/workflows.md",
+              "slug": "guides/workflows",
+              "render": true
+            },
+            {
+              "source": "docs/guides/basis-selection.md",
+              "slug": "guides/basis-selection",
+              "render": true
+            },
+            {
+              "source": "docs/guides/active-learning.md",
+              "slug": "guides/active-learning",
               "render": true
             }
           ]
@@ -57,30 +81,6 @@
             {
               "source": "docs/guides/properties.md",
               "slug": "guides/properties",
-              "render": true
-            }
-          ]
-        },
-        {
-          "id": "training",
-          "title": {
-            "zh": "训练",
-            "en": "Training"
-          },
-          "pages": [
-            {
-              "source": "docs/guides/workflows.md",
-              "slug": "guides/workflows",
-              "render": true
-            },
-            {
-              "source": "docs/guides/basis-selection.md",
-              "slug": "guides/basis-selection",
-              "render": true
-            },
-            {
-              "source": "docs/guides/active-learning.md",
-              "slug": "guides/active-learning",
               "render": true
             }
           ]
@@ -308,6 +308,11 @@
             {
               "source": "docs/advanced/saddle-numerics.md",
               "slug": "advanced/saddle-numerics",
+              "render": true
+            },
+            {
+              "source": "docs/advanced/relax-controls.md",
+              "slug": "advanced/relax-controls",
               "render": true
             },
             {

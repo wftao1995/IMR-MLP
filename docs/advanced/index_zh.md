@@ -22,6 +22,7 @@
 ## 专题工作流
 
 - [鞍点与路径坐标及数值测试](saddle-numerics_zh.md)
+- [指南之外的弛豫控制](relax-controls_zh.md)
 - [对称性约束弛豫与近邻安全性](relax-symmetry_zh.md)
 - [convstr 中的标量元数据表达式](convstr-scalar-labels_zh.md)
 - [选择 HA 类别](ha-selected-indices_zh.md)

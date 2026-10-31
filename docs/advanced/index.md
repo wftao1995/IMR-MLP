@@ -22,6 +22,7 @@ Basis selection, HVP, variable projection, long-range models and saddle searches
 ## Specialized workflows
 
 - [Saddle and path coordinates and numerical tests](saddle-numerics.md)
+- [Relaxation controls beyond the guide](relax-controls.md)
 - [Symmetry-constrained relaxation and neighbor safety](relax-symmetry.md)
 - [Scalar metadata expressions in convstr](convstr-scalar-labels.md)
 - [Selecting HA categories](ha-selected-indices.md)

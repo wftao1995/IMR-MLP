@@ -19,6 +19,7 @@ INPUT += ../docs/advanced/index_zh.md
 INPUT += ../docs/advanced/linear-refit_zh.md
 INPUT += ../docs/advanced/mtp-native-varpro_zh.md
 INPUT += ../docs/advanced/neb-parallel-symmetry_zh.md
+INPUT += ../docs/advanced/relax-controls_zh.md
 INPUT += ../docs/advanced/relax-symmetry_zh.md
 INPUT += ../docs/advanced/saddle-numerics_zh.md
 INPUT += ../docs/advanced/saddle-workflows_zh.md

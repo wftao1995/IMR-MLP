@@ -4,12 +4,18 @@
 
 [English](index.md)
 
-环境与输入约定、单任务计算、训练、接口与排错，以及可运行示例。
+环境与输入约定、势函数拟合、单任务计算、接口与排错，以及可运行示例。
 
 ## 环境与输入
 
 - [安装与构建](installation_zh.md)
 - [输入文件与配置约定](conventions_zh.md)
+
+## 势函数拟合
+
+- [训练、评估与部署](workflows_zh.md)
+- [MTP 基组的生成、优化与选择](basis-selection_zh.md)
+- [主动学习与候选选样](active-learning_zh.md)
 
 ## 单任务计算
 
@@ -17,12 +23,6 @@
 - [结构弛豫](relaxation_zh.md)
 - [NEB 最小能量路径](neb_zh.md)
 - [晶体性质](properties_zh.md)
-
-## 训练
-
-- [训练、评估与部署](workflows_zh.md)
-- [MTP 基组的生成、优化与选择](basis-selection_zh.md)
-- [主动学习与候选选样](active-learning_zh.md)
 
 ## 接口与排错
 
