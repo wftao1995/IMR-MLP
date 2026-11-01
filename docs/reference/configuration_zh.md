@@ -106,7 +106,7 @@ MaxVol、FPS/CUR 与拥挤度命令从 `builder:` 和 `selector:` 块读取构�
 |-----|------|---------|-------------|
 | `relax:driver` | str | `lbfgs` | 优化算法：`lbfgs`、`lbfgspp`、`fire`、`cg`、`gd`、`mdmin`、`quickmin`、`sqp`、`nlc` |
 | `relax:maxiteration` | int | `1000` | 最大优化迭代次数 |
-| `relax:constraint_loops` | int | `5` | 应用约束时的最大外迭代次数 |
+| `relax:constraint_loops` | int | `5` | AUL 外层乘子更新的轮数（仅 AUL 生效，SQP/NLC 忽略） |
 | `relax:stepmax` | float | `0.1` | 每次变量更新的最大允许步长 |
 | `relax:pressure` | float | 0.0 | 外部静水压 (GPa) |
 | `relax:external_stress` | str | — | 外部应力张量，3 或 6 个分量 (GPa) |
@@ -158,13 +158,15 @@ MaxVol、FPS/CUR 与拥挤度命令从 `builder:` 和 `selector:` 块读取构�
 
 ### 约束文件
 
-| 键 | 类型 | 描述 |
-|-----|------|-------------|
-| `relax:lc_file` | path | 线性约束定义文件 |
-| `relax:lf_file` | path | 线性变换定义文件 |
-| `relax:vib_file` | path | 振动简正模式文件 |
-| `relax:seldyn_file` | path | 选择性动力学配置文件 |
-| `relax:precond_file` | path | 预处理配置文件 |
+| 键 | 类型 | 默认值 | 描述 |
+|-----|------|---------|-------------|
+| `relax:lc_file` | path | `LINEAR_CONSTRAINT` | 线性约束定义文件 |
+| `relax:lf_file` | path | `LINEAR_TRANSFORM` | 线性变换定义文件 |
+| `relax:vib_file` | path | `VIB_CONSTRAINT` | 振动简正模式文件 |
+| `relax:seldyn_file` | path | `SELECTIVE_DYNAMICS` | 选择性动力学配置文件 |
+| `relax:precond_file` | path | 空（不读取） | 预处理配置文件 |
+
+对应的开关为真且文件存在时才会读取；文件格式见[约束下的弛豫计算](../advanced/relax-controls_zh.md)。
 
 ### 轨迹输出
 
@@ -234,12 +236,12 @@ MaxVol、FPS/CUR 与拥挤度命令从 `builder:` 和 `selector:` 块读取构�
 | `relax:sparse_shift` | — | 稀疏预条件对角项偏移 |
 | `relax:precond_floor` | — | 预条件特征值下界 |
 | `relax:fc_update_interval` | — | 力常数预条件更新间隔 |
-| `relax:aul_auto` | — | 自动自适应步长控制 |
+| `relax:aul_auto` | — | 从几何 Jacobian 估计 AUL 初始权重（仅等式；仅 AUL 路径，残差未减半则权重 ×10） |
 | `relax:thin_cell_scaling` | — | 薄/扁平晶胞的步长缩放 |
 | `relax:symmetry_operations` | — | 约束弛豫的显式对称操作 |
 | `relax:symmetry_sites` | — | 对称性位点映射 |
 | `relax:rigid_groups` | — | 保持刚性的原子组 |
-| `relax:gtol0` | — | 分级收敛的初始梯度容差 |
+| `relax:gtol0` | — | AUL 第一轮内层的梯度容差，须不小于 `gtol`（仅 AUL 生效） |
 | `relax:first_step` | — | 首步步长覆盖 |
 | `relax:index` | `index.map` | 弛豫局部物种映射（顶层 `index` 同样生效） |
 

@@ -111,10 +111,9 @@ and has compatibility restrictions with other constraints; see
 alternatives, and final energy and gradients should be compared after changing the
 optimizer.
 
-The switches on this page cover the ordinary cases. Cell-component masks,
-lattice-vector coupling, external stress tensors, constrained solvers and
-preconditioning are collected in
-[relaxation controls beyond the guide](../advanced/relax-controls.md).
+The switches on this page cover the ordinary cases. Masks, cell coupling,
+external stress, constraint file formats and the exclusions between them are
+collected in [relaxation under constraints](../advanced/relax-controls.md).
 
 ## Output and criteria
 
@@ -160,6 +159,6 @@ constraints are still active.
 
 - [Crystal properties](properties.md): phonons, elasticity and equation of state once the equilibrium structure is fixed
 - [NEB](neb.md): paths, after both endpoints are relaxed
-- [Relaxation controls beyond the guide](../advanced/relax-controls.md): masks, coupling, external stress, constrained solvers
+- [Relaxation under constraints](../advanced/relax-controls.md): constraint types, file formats, exclusions and solvers
 - [Symmetry-constrained relaxation](../advanced/relax-symmetry.md): what `relax:keep_symm` does and excludes
 - [Input files and settings conventions](conventions.md), [command reference](../reference/commands.md)

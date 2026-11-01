@@ -97,8 +97,8 @@ POSCAR 的 `Selective dynamics` 标志需配合 `relax:selective_dynamics true` 
 `lbfgs` 可作为普通任务的起点，`fire`、`lbfgspp`、`cg` 是其他可选驱动；变更优化器后
 应比较最终能量和梯度。
 
-本页的开关覆盖日常情形；晶胞分量掩码、晶格矢量耦合、外应力张量、约束求解器与
-预条件等，集中放在[弛豫的进阶控制](../advanced/relax-controls_zh.md)。
+本页的开关覆盖日常情形；掩码、晶胞耦合、外应力、约束文件的格式与互斥关系，
+集中放在[约束下的弛豫计算](../advanced/relax-controls_zh.md)。
 
 ## 输出与判据
 
@@ -140,6 +140,6 @@ imrmlp calc_efs relaxed.xyz checked.xyz --potfile model.mtp
 
 - [晶体性质](properties_zh.md)：平衡结构确定后的声子、弹性与状态方程
 - [NEB](neb_zh.md)：两个端点均弛豫后再计算路径
-- [弛豫的进阶控制](../advanced/relax-controls_zh.md)：掩码、耦合、外应力与约束求解器
+- [约束下的弛豫计算](../advanced/relax-controls_zh.md)：约束类型、文件格式、互斥关系与求解器
 - [约束与对称性](../advanced/relax-symmetry_zh.md)：`relax:keep_symm` 的作用与限制
 - [输入文件与配置约定](conventions_zh.md)、[命令参考](../reference/commands_zh.md)

@@ -110,7 +110,7 @@ Main configuration for `relax`.
 |-----|------|---------|-------------|
 | `relax:driver` | str | `lbfgs` | Optimization algorithm: `lbfgs`, `lbfgspp`, `fire`, `cg`, `gd`, `mdmin`, `quickmin`, `sqp`, `nlc` |
 | `relax:maxiteration` | int | `1000` | Maximum number of optimization iterations |
-| `relax:constraint_loops` | int | `5` | Maximum outer iterations when applying constraints |
+| `relax:constraint_loops` | int | `5` | Number of AUL outer multiplier updates (AUL only; SQP/NLC ignore it) |
 | `relax:stepmax` | float | `0.1` | Maximum allowable step per variable update |
 | `relax:pressure` | float | 0.0 | External hydrostatic pressure (GPa) |
 | `relax:external_stress` | str | — | External stress tensor, 3 or 6 components (GPa) |
@@ -162,13 +162,16 @@ Main configuration for `relax`.
 
 ### Constraint Files
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `relax:lc_file` | path | Linear constraints definition file |
-| `relax:lf_file` | path | Linear transforms definition file |
-| `relax:vib_file` | path | Vibrational normal modes file |
-| `relax:seldyn_file` | path | Selective dynamics config file |
-| `relax:precond_file` | path | Preconditioning config file |
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `relax:lc_file` | path | `LINEAR_CONSTRAINT` | Linear constraints definition file |
+| `relax:lf_file` | path | `LINEAR_TRANSFORM` | Linear transforms definition file |
+| `relax:vib_file` | path | `VIB_CONSTRAINT` | Vibrational normal modes file |
+| `relax:seldyn_file` | path | `SELECTIVE_DYNAMICS` | Selective dynamics config file |
+| `relax:precond_file` | path | empty (unused) | Preconditioning config file |
+
+A file is read only when its switch is on and the file exists; see
+[relaxation under constraints](../advanced/relax-controls.md) for the formats.
 
 ### Trajectory Output
 
@@ -238,12 +241,12 @@ Additional keys accepted by the relaxation drivers:
 | `relax:sparse_shift` | — | Shift added to the sparse preconditioner diagonal |
 | `relax:precond_floor` | — | Lower bound for preconditioner eigenvalues |
 | `relax:fc_update_interval` | — | Iterations between force-constant preconditioner updates |
-| `relax:aul_auto` | — | Automatic adaptive-step control |
+| `relax:aul_auto` | — | Estimate AUL initial weights from the geometry Jacobian (equalities only; AUL path only, weight ×10 when a residual fails to halve) |
 | `relax:thin_cell_scaling` | — | Step scaling for thin/flat cells |
 | `relax:symmetry_operations` | — | Explicit symmetry operations for constrained relaxation |
 | `relax:symmetry_sites` | — | Symmetry site mapping |
 | `relax:rigid_groups` | — | Atom groups kept rigid |
-| `relax:gtol0` | — | Initial gradient tolerance for staged convergence |
+| `relax:gtol0` | — | Inner gradient tolerance of the first AUL round, must not be below `gtol` (AUL only) |
 | `relax:first_step` | — | First step size override |
 | `relax:index` | `index.map` | Relaxation-local species map (top-level `index` also applies) |
 
