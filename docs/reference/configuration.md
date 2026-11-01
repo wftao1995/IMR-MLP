@@ -260,7 +260,10 @@ command's connected settings. Values below are defaults, not a complete
 training recipe; choose label weights and convergence tolerances for your data.
 
 @note The GPU keys (`fit:device`, `fit:gpu_id`, and the `fit:gpu_*` keys below)
-apply to `trainnlpot` only; `trainmtp` and `train_linear` run on the CPU.
+apply to `trainnlpot` only. `trainmtp` and `train_linear` have no GPU path and do
+not read them, so a `fit:device cuda` line in a settings file shared with
+`trainnlpot` is loaded and then silently ignored by these two commands: they keep
+running on the CPU without any warning.
 
 ### Dataset & I/O
 

@@ -314,6 +314,10 @@ imrmlp calc_neb neb_config.ini
 矩张量势的主要训练命令。将径向基系数和线性种类/矩系数同时拟合到
 参考 DFT 数据（能量、力、应力）。
 
+@note **只能在 CPU 上运行。** `trainmtp` 没有 GPU 代码路径，`fit:device`
+也不是它的设置项：共享设置文件里的 `fit:device cuda` 会被读入并在设置清单中
+原样打印，随后被静默忽略，拟合仍在 CPU 上完成且不给出任何警告。GPU 训练请用
+`trainnlpot`，详见 [GPU 指南](../development/cuda_zh.md)。
 
 ```bash
 imrmlp trainmtp training.ini --do-lbfgs

@@ -254,7 +254,9 @@ VarPro 和条件线性精修控制属于 `trainnlpot`。可用 `imrmlp <command>
 查看该命令连接的设置。以下默认值不是完整训练方案；应根据数据选择标签权重和收敛容差。
 
 @note GPU 键（`fit:device`、`fit:gpu_id` 及以下 `fit:gpu_*` 键）仅适用于
-`trainnlpot`；`trainmtp` 和 `train_linear` 在 CPU 上运行。
+`trainnlpot`。`trainmtp` 与 `train_linear` 没有 GPU 路径，也不读取这些键；
+与 `trainnlpot` 共用的设置文件里的 `fit:device cuda` 会被这两个命令读入后
+静默忽略，它们继续在 CPU 上运行且不给出任何警告。
 
 ### 数据集与 I/O
 
