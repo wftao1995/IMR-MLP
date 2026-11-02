@@ -3,6 +3,8 @@
 
 #include "io/gpio.h"
 #include "potentials/potential_mtp.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "descriptors/descriptors.h"
 #include "descriptors/descriptor_BispectrumSO3.h"
 #include "descriptors/descriptor_BispectrumSO4.h"
@@ -90,14 +92,18 @@ int calc_descriptors(int argc, char *argv[])
         if (dtype == "mtp" || dtype == "mtm")
             GPERROR("MTP/MTM descriptors use the potential cutoff; --cutoff is unsupported");
     }
-    if (GPIO::file_exist(indexfile))
-    {
-        iobj.readmap(indexfile);
-    }
-    else
-    {
-        cerr << "ERROR: indexfile not found\n";
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile);
+    // } else {
+    //     cerr << "ERROR: indexfile not found\n";
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, potfile)),
+                             /*require_if_absent=*/false);
 
     if (!iobj.read(atoms, infile, informat))
         GPERROR("Failed to read descriptor input: " + infile);

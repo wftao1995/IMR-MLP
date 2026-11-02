@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include "train/train_linear_potential.h"
 #include "train/collective_error.h"
 #include <memory>
@@ -54,11 +56,18 @@ int train_linear(int argc, char *argv[]) {
         else
             Warning("Failed to open debug output file: DEBUG" + mpi.fnm_ending);
     }
-    if (GPIO::file_exist(indexfile)) {
-        iobj.readmap(indexfile);
-    } else {
-        Warning("ERROR: indexfile not found\n");
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile); // should be with atom radii
+    // } else {
+    //     Warning("ERROR: indexfile not found\n");
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings)),
+                             /*require_if_absent=*/false);
     Message("Reading trajectory file " + infile);
     if (!iobj.read(atoms, infile, informat))
         GPERROR("Failed to read complete training set: " + infile);

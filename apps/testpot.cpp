@@ -3,6 +3,8 @@
 
 #include "io/gpio.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "tools/constants.h"
 
 using namespace std;
@@ -193,7 +195,14 @@ int testpot(int argc, char *argv[]) {
     settings.Load(settingfile);
     apply_settings_to_cmdopts(cmdopts, settings);
 
-    iobj.readmap(indexfile);
+    // Retained for reference.
+    // iobj.readmap(indexfile);
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings)),
+                             /*require_if_absent=*/false);
     Atoms atom;
     if (!iobj.read_one(atom, fname, format)) {
         std::cerr << "Error: failed to read input structure from " << fname << std::endl;

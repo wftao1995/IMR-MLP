@@ -13,6 +13,8 @@
 #include "tools/constants.h"
 #include "deplibs/LBFGSpp/include/LBFGS.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "libalglib/interpolation.h"
 #include "libalglib/ap.h"
 #include "help_utils.h"
@@ -259,10 +261,17 @@ static int calc_neb(int argc, char *argv[], NEBParallel &parallel) {
     }
 
     // init images
-    if (!GPIO::file_exist(params.indexfile)) {
-        throw std::runtime_error("Index file not found: " + params.indexfile);
-    }
-    iobj.readmap(params.indexfile);
+    // Retained for reference.
+    // if (!GPIO::file_exist(params.indexfile)) {
+    //     throw std::runtime_error("Index file not found: " + params.indexfile);
+    // }
+    // iobj.readmap(params.indexfile);
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(params.indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings)),
+                             /*require_if_absent=*/true);
     std::optional<std::array<bool,3>> restart_pbc;
     if (params.rebegin) {
         std::ifstream previous(params.summary);

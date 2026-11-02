@@ -42,6 +42,8 @@ imrmlp trainmtp --help       # 查看单个命令的选项
 
 - 顶层 `index` 指向 `index.map`，每行一个元素；所选势函数需要映射时，
   也应设置 `pot:typemap`。
+- 若模型声明了 `potential_tag.elements`（MTP）或 GPM species 表，加载该模型的
+  命令在找不到映射文件时会使用它；已存在的映射文件仍然优先。
 - CFG 中的 species 是该映射的索引，不是原子序数。
 - LAMMPS 类型从 1 开始；数字模型 species 映射从 0 开始，新输入推荐在 `pair_coeff` 中写元素名。
 - Python/ASE 需要按模型顺序显式传入 `elements` 列表。

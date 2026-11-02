@@ -33,6 +33,10 @@
 | `hybrid` | 子势求和 | `pot1:`、`pot2:` 等配置 | 见 @ref guide_config |
 | `hybrid_scale` | 平滑切换求和的子势 | `pot1:`、`pot2:` 及切换键 | 常用于 MTP + ZBL 核心 |
 
+模型声明元素顺序后——MTP 文件的 `potential_tag.elements`，或 GPM 的 species 表——
+预测命令读 POSCAR/xyz 时不再需要 `index.map`。`trainmtp` 会把物种映射写入该声明，
+`adjustmtp --elements` 可给旧模型补上。
+
 ## 最小示例
 
 下列各段是互相独立的势配置，选其中一段写入设置文件。

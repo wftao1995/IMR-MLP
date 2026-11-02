@@ -4,6 +4,8 @@
 // Newton-Raphson optimization based on force constant
 
 #include "io/gpio.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "apps/nroptimize.h"
 #include "potentials/potential_mtp.h"
 #include "external/spglib_driver.h"
@@ -382,16 +384,22 @@ int nroptimize(int argc, char *argv[])
         alpha_reduce <= 0 || alpha_reduce >= 1 || max_backtracks <= 0 ||
         !std::isfinite(opts.eigzero_tol) || opts.eigzero_tol <= 0 || !std::isfinite(pressure))
         GPERROR("Invalid NR step, backtracking, eigenvalue tolerance or pressure");
-    if (GPIO::file_exist(indexfile))
-    {
-        iobj.readmap(indexfile);
-    }
-    else
-    {
-        std::cerr << "ERROR: no index found\n"
-                  << std::endl;
-        exit(1);
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile))
+    // {
+    //     iobj.readmap(indexfile);
+    // }
+    // else
+    // {
+    //     std::cerr << "ERROR: no index found\n"
+    //               << std::endl;
+    //     exit(1);
+    // }
+    const bool index_explicit = cmdopts.was_provided("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(GPSettings{}, inpot, "mtp")),
+                             /*require_if_absent=*/true);
 
     if (!iobj.read_one(atom, infile) || atom.size() == 0)
         GPERROR("Cannot read a nonempty structure from: " + infile);

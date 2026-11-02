@@ -49,6 +49,9 @@ which structures happen to appear:
 
 - The top-level `index` setting points to an `index.map` file with one element
   per line. Use `pot:typemap` too when the selected potential requires a map.
+- If the model declares `potential_tag.elements` (MTP) or a GPM species table,
+  commands that load that model use it when no map file is present; an existing
+  map still takes precedence.
 - CFG species are indices into that map, not atomic numbers.
 - LAMMPS types are 1-based; numeric model-species mappings are 0-based.
   New inputs should prefer element names in `pair_coeff`.

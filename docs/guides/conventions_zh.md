@@ -49,9 +49,16 @@ CFG 中的数值类型已经是模型 species 索引，原子序数 13 不等于
 imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp
 ```
 
-只有改名或换目录时才需要 `--index`。忘了加通常不会立刻报错：找不到 `index.map`
-时只输出告警（`ERROR: indexfile not found` 或类似信息），程序改用结构文件自带的
-元素顺序继续计算，往往要等能量明显不合理才会察觉。
+需要加载势模型的命令在找不到映射文件时，会改用模型自己声明的元素顺序：
+传统 `.mtp` 的 `potential_tag.elements`，以及 GPM 的 species 表。带这种
+metadata 的 Al/Ni 模型可以直接读 POSCAR 或 xyz，不必提供 `index.map`；
+数字类型的 CFG 也能正常工作并写出正确的元素名。优先级是：已存在的映射文件、
+模型声明、周期表回退。只有改名或换目录时才需要 `--index`；显式指定的文件
+不存在时，除非模型声明了顺序，否则报错。
+
+没有元素 metadata 的旧模型仍然沿用旧行为：找不到 `index.map` 时只告警并
+按周期表继续，往往要等能量明显不合理才会察觉。metadata 只提供元素名和顺序，
+不提供 `index.map` 的半径/质量列；需要这些列的命令仍要提供文件或使用元素默认值。
 
 ## 配置文件语法
 

@@ -4,7 +4,9 @@
 #include "runtime/mtp/gpu-direct/gpu_backend.h"
 #include <exception>
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 
 #ifdef IMRMLP_GPU
 #include "potentials/mtp_gpu_adapter.h"
@@ -128,11 +130,19 @@ int calc_efs(int argc, char *argv[]) {
         GPERROR("--gpu-reuse-topology requires --gpu-batch-structures=1 or zero");
     }
 
-    if (GPIO::file_exist(indexfile)) {
-        iobj.readmap(indexfile); // should be with atom radii
-    } else {
-        cerr << "ERROR: indexfile not found\n";
-    }
+    // Retained for reference; the model-declared element order is now preferred
+    // when no map file is present.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile); // should be with atom radii
+    // } else {
+    //     cerr << "ERROR: indexfile not found\n";
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    const auto pot_settings = make_potential_settings(settings, pfile, ptype);
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(pot_settings),
+                             /*require_if_absent=*/false);
     // read atoms
     Message("Reading trajectory file " + infile);
     if (!iobj.read(atoms, infile, informat))

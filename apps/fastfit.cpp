@@ -5,6 +5,8 @@
 #include "utils/gputils_eigen.h"
 #include "io/gpio.h"
 #include "potentials/potential_mtp.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "libalglib/optimization.h"
 #include "utils/mpi_stubs.h"
 #include "basis_analysis/DescriptorCollector.h"
@@ -408,12 +410,19 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr, boo
     
     // MAIN
     GPIO iobj;
-    if (GPIO::file_exist(params.ix))
-        iobj.readmap(params.ix);
-    else {
-        Warning("index file not found");
-        iobj.setmap();
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(params.ix))
+    //     iobj.readmap(params.ix);
+    // else {
+    //     Warning("index file not found");
+    //     iobj.setmap();
+    // }
+    const bool index_explicit =
+        cmdopt.was_provided("index") || settings.count("index");
+    iobj.install_species_map(params.ix, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, params.pfile, "mtp")),
+                             /*require_if_absent=*/false);
     if (!GPIO::file_exist(params.pfile)) {
         GPERROR("potential file not found: " + params.pfile);
     }

@@ -3,6 +3,8 @@
 
 #include "io/gpio.h"
 #include "potentials/potential_mtp.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "NNBase/nn1hidden.h"
 #include "NNBase/nn2hidden.h"
 #include <algorithm>
@@ -72,7 +74,14 @@ int nnmtp(int argc, char *argv[]) {
         GPERROR("NNMTP --extent must be finite and positive");
 
     vector<Atoms> atoms;
-    iobj.readmap(index);
+    // Retained for reference.
+    // iobj.readmap(index);
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(index, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, mtpfile, "mtp")),
+                             /*require_if_absent=*/false);
     if (!iobj.read(atoms, datafile, dataformat))
         GPERROR("Failed to read NNMTP training data: " + datafile);
     if (atoms.empty() || std::any_of(atoms.begin(), atoms.end(), [](const Atoms &at) { return at.size() == 0; }))

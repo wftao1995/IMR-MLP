@@ -98,7 +98,7 @@ OBJAPP = model_bundle_app.o apps.o convstr.o calc_efs.o calc_err.o \
 
 OBJPOT = potential.o potential_eam_zhou_2004.o potential_mindist.o \
 		potential_mtp.o basis.o cutoff.o xtrans.o ace_lmp.o potential_shell.o \
-		potential_mtpnn1.o potential_hybmtp.o \
+		potential_mtpnn1.o potential_hybmtp.o model_elements.o \
 		potential_hybrid.o potential_hybrid_scale.o potential_hybrid_scale_curvature.o potential_mtp_symmetry.o potential_eamalloy_spline.o potential_lj.o potential_eamfs_spline.o \
 		potential_mtp_m.o les.o quick_mtp.o potential_eam_any.o potential_eam_poly.o \
 		potential_mtp_LES.o potential_descriptor_linear.o potential_descriptor_linear_curvature.o \

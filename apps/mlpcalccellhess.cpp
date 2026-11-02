@@ -18,7 +18,9 @@
  */
 #include "potentials/potential_mtp.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include "external/spglib_driver.h"
 #include "mindriver/relax_new.h"
 #include "utils/algos.h"
@@ -119,7 +121,14 @@ int calc_elastic(int argc, char *argv[]) {
         throw std::invalid_argument("--eigzero-tol must be finite and positive");
 
     // Read structure
-    iobj.readmap(indexfile);
+    // Retained for reference.
+    // iobj.readmap(indexfile);
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, potfile, pottype)),
+                             /*require_if_absent=*/false);
     if (!iobj.read(atoms, infile, informat))
         throw std::runtime_error("Failed to read complete input: " + infile);
     if (atoms.empty())
@@ -154,6 +163,7 @@ int calc_elastic(int argc, char *argv[]) {
             exit(128);
         }
         RelaxationDrvV2 relaxdrv(settings.ExtractSubSettings("relax"));
+        share_species_map(relaxdrv.iobj, iobj, &relaxdrv.control.indexfile);
         relaxdrv.set_isif(2);
 
         // Get symmetry info

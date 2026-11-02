@@ -15,7 +15,7 @@ and energies along a reaction path (see [NEB](neb.md)).
 | --- | --- | --- |
 | `model.mtp` | Trained ordinary MTP model | Model provider or training output |
 | `POSCAR` | Structure to predict, including element symbols | Structure preparation or reference calculations |
-| `index.map` | Model species order | The model or its training records |
+| `index.map` | Model species order | The model or its training records; optional when the model declares `potential_tag.elements` or carries a GPM species table |
 | `reference.xyz` (optional) | Structures with E/F/stress labels | Reference calculations; needed only by `calc_err` |
 
 Naming and path rules are in [input files and settings conventions](conventions.md).
@@ -30,11 +30,13 @@ imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp
 ```
 
 The species map defaults to `index.map`, so no flag is needed while the file
-keeps that name; the potential type defaults to ordinary MTP and formats are
-inferred from filenames. Specify explicit options only for another potential
-type, a differently named species map, or a filename whose format cannot be
-recognized. Options differ between commands; the full list is in the `calc_efs`
-section of the [command reference](../reference/commands.md).
+keeps that name; if the model declares its element order (`potential_tag.elements`
+or a GPM species table) and `index.map` is absent, the model order is used
+directly. The potential type defaults to ordinary MTP and formats are inferred
+from filenames. Specify explicit options only for another potential type, a
+differently named species map, or a filename whose format cannot be recognized.
+Options differ between commands; the full list is in the `calc_efs` section of
+the [command reference](../reference/commands.md).
 
 ### Evaluate errors
 

@@ -34,6 +34,11 @@ artifact each type expects and the dedicated documentation, when one exists.
 | `hybrid` | Sum of sub-potentials | `pot1:`, `pot2:`, ... settings | See @ref guide_config |
 | `hybrid_scale` | Smoothly switched sum | `pot1:`, `pot2:`, ... plus switching keys | Used for MTP + ZBL cores |
 
+Models that declare their element order — `potential_tag.elements` in an MTP
+file, or the species table in a GPM bundle — let prediction commands map
+POSCAR/xyz element names without `index.map`. `trainmtp` writes that declaration
+from the species map, and `adjustmtp --elements` attaches it to a legacy model.
+
 ## Minimal examples
 
 Each block below is a separate potential configuration. Choose one for your

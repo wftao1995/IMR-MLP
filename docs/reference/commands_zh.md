@@ -41,7 +41,7 @@ imrmlp relax relax.ini                              # 设置文件
 | `--version` | 显示版本信息（`imrmlp --version`） |
 | `--settings` | 从设置文件加载选项（无 `-i` 别名；许多命令也接受把该文件作为位置参数）。`phonopyfc` 是例外：它使用 `--settings-file` / `-i`。 |
 | `--verbose` | 启用详细日志输出（仅少数命令支持） |
-| `--index` / `-id` | 种类索引文件。多数命令默认读工作目录下的 `index.map`，只在改名或换目录时传入（`model_convert` 无默认值） |
+| `--index` / `-id` | 种类索引文件。多数命令默认读工作目录下的 `index.map`，只在改名或换目录时传入（`model_convert` 无默认值）。加载 MTP/GPM 模型的命令在找不到映射文件时会使用模型声明的元素顺序；显式指定的文件不存在且模型也没有声明顺序时报错 |
 
 ### 压缩输入/输出文件
 

@@ -3,6 +3,9 @@
 
 #include "mindriver/dimer_new.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
+#include "io/gpio.h"
+#include "species_map_utils.h"
 #include "tools/constants.h"
 #include "deplibs/LBFGSpp/include/LBFGS.h"
 #include "mindriver/fire.h"
@@ -63,9 +66,16 @@ int calc_dimer(int argc, char *argv[]) {
     omp_set_num_threads(omp_num_threads);
 
     // Read index file
-    if (GPIO::file_exist(params.indexfile)) {
-        iobj.readmap(params.indexfile);
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(params.indexfile)) {
+    //     iobj.readmap(params.indexfile);
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(params.indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings)),
+                             /*require_if_absent=*/false);
 
     // Read input structure
     Atoms atom;

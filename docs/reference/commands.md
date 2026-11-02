@@ -42,7 +42,7 @@ These options work with most commands:
 | `--version` | Show version information (`imrmlp --version`) |
 | `--settings` | Load options from settings file (no `-i` alias; many commands also accept the file as a positional argument). `phonopyfc` is the exception: it uses `--settings-file` / `-i`. |
 | `--verbose` | Enable verbose logging (a few commands only) |
-| `--index` / `-id` | Species index file. Most commands read `index.map` in the working directory by default and take this option only to override the name or location (`model_convert` has no default) |
+| `--index` / `-id` | Species index file. Most commands read `index.map` in the working directory by default and take this option only to override the name or location (`model_convert` has no default). Commands that load an MTP/GPM model use its declared element order when no map file is present; a missing explicitly named file is an error unless the model declares that order |
 
 ### Compressed Input/Output Files
 

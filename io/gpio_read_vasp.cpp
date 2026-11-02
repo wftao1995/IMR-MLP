@@ -125,7 +125,12 @@ bool GPIO::read_vasp_outcar_header(std::istream &is)
         toks.next_token();
         toks.next_token();
         auto tok = strip_suffix(toks.next_token());
-        chem.push_back(mapnameid[std::string(tok)]);
+        const auto species = mapnameid.find(std::string(tok));
+        if (species == mapnameid.end()) {
+            std::cerr << "Error: element " << tok << " is not in the species map\n";
+            return false;
+        }
+        chem.push_back(species->second);
     }
     while (!is.eof()) {
         if (!std::getline(is, line_buffer)) return false;
@@ -134,7 +139,12 @@ bool GPIO::read_vasp_outcar_header(std::istream &is)
         if (tok != "POTCAR:") break;
         toks.next_token();
         tok = strip_suffix(toks.next_token());
-        int cid = mapnameid[std::string(tok)];
+        const auto species = mapnameid.find(std::string(tok));
+        if (species == mapnameid.end()) {
+            std::cerr << "Error: element " << tok << " is not in the species map\n";
+            return false;
+        }
+        int cid = species->second;
         if (cid == chem[0]) break;
         chem.push_back(cid);
         chemtypescount += 1;
@@ -948,7 +958,12 @@ bool GPIO::read_vasp_poscar(std::istream &is, Atoms &atom)
         GPIO_LineTokenizer toks{line_buffer};
         auto tok = toks.next_token();
         while (!tok.empty()) {
-            chem.push_back(mapnameid[std::string(tok)]);
+            const auto species = mapnameid.find(std::string(tok));
+            if (species == mapnameid.end()) {
+                std::cerr << "Error: element " << tok << " is not in the species map\n";
+                return false;
+            }
+            chem.push_back(species->second);
             tok = toks.next_token();
         }
     } else return false;
@@ -1059,7 +1074,12 @@ bool GPIO::load_next_from_vasp_ABN(std::istream &is, Atoms &atom)
                 GPIO_LineTokenizer toks{line_buffer};
                 auto tok = toks.next_token();
                 toks.next_numeric(chemcounts[i]);
-                chem[i] = mapnameid[std::string(tok)];
+                const auto species = mapnameid.find(std::string(tok));
+                if (species == mapnameid.end()) {
+                    std::cerr << "Error: element " << tok << " is not in the species map\n";
+                    return false;
+                }
+                chem[i] = species->second;
                 for (int j = 0; j < chemcounts[i]; ++j) {
                     chemmap[ct] = chem[i];
                     ++ct;

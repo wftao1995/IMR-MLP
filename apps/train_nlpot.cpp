@@ -3,10 +3,12 @@
 
 #include "train/training_data.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "potentials/potential_mtp.h"
 #include "potentials/potential_zbl.h"
 #include "tools/tools.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include "train/train_nonlinear_potential.h"
 #include "train/collective_error.h"
 #include "train/fixed_core.h"
@@ -122,11 +124,18 @@ int trainnlpot(int argc, char *argv[]) {
         std::ofstream *debugfs = new std::ofstream("DEBUG" + mpi.fnm_ending);
         SetStreamForDebug(debugfs);
     }
-    if (GPIO::file_exist(indexfile)) {
-        iobj.readmap(indexfile); // should be with atom radii
-    } else {
-        Warning("ERROR: indexfile not found\n");
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile); // should be with atom radii
+    // } else {
+    //     Warning("ERROR: indexfile not found\n");
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings)),
+                             /*require_if_absent=*/false);
     // read atoms
     Message("Loading training set file " + infile);
     const auto load_start = std::chrono::steady_clock::now();

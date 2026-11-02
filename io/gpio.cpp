@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sstream>
+#include <set>
 #include <stdexcept>
 #include <iterator>
 #include <filesystem>
@@ -15,6 +16,19 @@
 #define MAX_PROP_ACCEPT 10
 
 namespace fs = std::filesystem;
+
+static bool remap_absolute_indices(Atoms &atom,
+                                   const std::map<std::string, int> &mapnameid) {
+    for (int i = 0; i < atom.size(); ++i) {
+        const int number = atom.chemmap_[i];
+        if (number < 0 || number >= static_cast<int>(std::size(Chemicals::chemical_symbols)))
+            return false;
+        const auto species = mapnameid.find(Chemicals::chemical_symbols[number]);
+        if (species == mapnameid.end()) return false;
+        atom.chemmap_[i] = species->second;
+    }
+    return true;
+}
 
 std::string_view skipLeadingSpaces(const std::string& input) {
     size_t start = 0;
@@ -106,6 +120,54 @@ bool GPIO::readmap(std::string filename) {
         ++ct;
     }
     return ct > 0 && !ifs->bad();
+}
+
+bool GPIO::install_species_map(const std::string &mapfile,
+                               bool map_explicit,
+                               const std::vector<std::string> &model_elements,
+                               bool require_if_absent) {
+    const auto valid_model_elements = [](const std::vector<std::string> &names) {
+        if (names.empty()) return false;
+        std::set<std::string> seen;
+        for (const auto &name : names) {
+            const auto element = Chemicals::atomic_numbers.find(name);
+            if (element == Chemicals::atomic_numbers.end() || element->second <= 0)
+                return false;
+            if (!seen.insert(name).second) return false;
+        }
+        return true;
+    };
+    const bool have_model_elements = valid_model_elements(model_elements);
+
+    if (!mapfile.empty() && file_exist(mapfile)) {
+        if (!readmap(mapfile))
+            GPERROR("cannot read species map: " + mapfile);
+        return false;
+    }
+
+    if (have_model_elements) {
+        if (map_explicit) {
+            std::cerr << "Warning: index file \"" << mapfile
+                      << "\" not found; using the element order declared by the model"
+                      << std::endl;
+        }
+        setmap(model_elements);
+        return true;
+    }
+
+    if (map_explicit) {
+        GPERROR("index file \"" + mapfile + "\" not found and the model does not "
+                "declare an element order");
+    }
+    if (require_if_absent) {
+        GPERROR("index file \"" + mapfile + "\" is required because the model does "
+                "not declare an element order");
+    }
+
+    std::cerr << "Warning: index file \"" << mapfile
+              << "\" not found; using the periodic table" << std::endl;
+    setmap();
+    return false;
 }
 
 void GPIO::setoutrate(int irate, int start, int end) {
@@ -493,8 +555,7 @@ bool GPIO::read(std::vector<Atoms> &atoms, std::istream& is, supported_format if
             atom.id = ncfgs_;
             discard_properties(atom);
             if (absolute_index_read) {
-                for (int i = 0; i < atom.size(); ++i)
-                    atom.chemmap_[i] = mapnameid[Chemicals::chemical_symbols[atom.chemmap_[i]]];
+                if (!remap_absolute_indices(atom, mapnameid)) return false;
             }
             atoms.push_back(atom);
             if (iformat != MLIPBIN && iformat != CP2KXYZ && iformat != N2P2DAT && iformat != XSF && ncfgs_ >= read_endto) return true;
@@ -566,8 +627,7 @@ bool GPIO::read_one(Atoms &atom, std::istream& is, supported_format iformat)
         atom.id = ncfgs_;
         ncfgs_++;
         if (absolute_index_read) {
-            for (int i = 0; i < atom.size(); ++i)
-                atom.chemmap_[i] = mapnameid[Chemicals::chemical_symbols[atom.chemmap_[i]]];
+            if (!remap_absolute_indices(atom, mapnameid)) status = false;
         }
     }
     return status;
@@ -1012,9 +1072,7 @@ bool GPIO::seq_read(std::istream &is, Atoms &atom) {
         atom.id = ncfgs_;
         ncfgs_++;
         if (absolute_index_read) {
-            for (int i = 0; i < atom.size(); ++i) {
-                atom.chemmap_[i] = mapnameid[Chemicals::chemical_symbols[atom.chemmap_[i]]];
-            }
+            if (!remap_absolute_indices(atom, mapnameid)) status = false;
         }
     }
     return status;

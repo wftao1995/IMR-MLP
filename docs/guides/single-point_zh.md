@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | `model.mtp` | 已训练的普通 MTP 模型 | 模型提供方或训练输出 |
 | `POSCAR` | 待预测结构，含元素符号 | 自己的建模或参考计算 |
-| `index.map` | 模型元素顺序 | 模型或其训练记录 |
+| `index.map` | 模型元素顺序 | 模型或其训练记录；模型带 `potential_tag.elements` 或 GPM species 表时可省略 |
 | `reference.xyz`（可选） | 带 E/F/应力标签的结构 | 参考计算；仅 `calc_err` 需要 |
 
 命名与路径规则见[输入文件与配置约定](conventions_zh.md)。预测命令不会创建上述输入。
@@ -27,9 +27,11 @@
 imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp
 ```
 
-元素映射默认读 `index.map`，文件名不变时不必加参数；势类型默认普通 MTP，文件格式
-按文件名识别。只有使用其他势类型、映射文件改了名字，或文件名无法识别格式时，
-才需显式指定相应选项。各命令的选项不完全相同，完整列表见
+元素映射默认读 `index.map`，文件名不变时不必加参数；若模型自带元素顺序
+（`potential_tag.elements` 或 GPM species 表）且工作目录没有 `index.map`，
+则直接使用模型顺序。势类型默认普通 MTP，文件格式按文件名识别。只有使用其他
+势类型、映射文件改了名字，或文件名无法识别格式时，才需显式指定相应选项。
+各命令的选项不完全相同，完整列表见
 [命令参考](../reference/commands_zh.md) 的 `calc_efs` 一节。
 
 ### 评估误差

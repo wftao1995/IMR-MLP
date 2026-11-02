@@ -5,6 +5,8 @@
 #include "apps/ti_reference_app.h"
 #include "io/gpio.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "tools/chem.h"
 #include "tools/hessian_io.h"
 #include "tools/hessian_utils.h"
@@ -485,8 +487,15 @@ int ti_fit_fc(int argc, char *argv[])
     const auto stabilization = parse_stabilization(initial_stabilization);
 
     GPIO io;
-    if (!io.readmap(index_file))
-        throw std::runtime_error("Cannot read index map: " + index_file);
+    // Retained for reference.
+    // if (!io.readmap(index_file))
+    //     throw std::runtime_error("Cannot read index map: " + index_file);
+    const bool index_explicit = cmdopts.was_provided("index");
+    io.install_species_map(index_file, index_explicit,
+                           Potentials::probe_model_elements(
+                               make_potential_settings(GPSettings{}, potential_file,
+                                                       potential_type)),
+                           /*require_if_absent=*/true);
     std::vector<Atoms> trajectory;
     if (use_md) {
         std::vector<Atoms> all_frames;
@@ -525,7 +534,10 @@ int ti_fit_fc(int argc, char *argv[])
     Potentials::AnyPotential *potential = nullptr;
     if (needs_potential) {
         GPSettings potential_settings;
-        potential_settings.Modify("typemap", index_file);
+        // Retained for reference.
+        // potential_settings.Modify("typemap", index_file);
+        if (GPIO::file_exist(index_file))
+            potential_settings.Modify("typemap", index_file);
         wrapper = std::make_unique<Potentials::potential_wrapper>(
             potential_file, potential_type, potential_settings);
         potential = wrapper->pot;

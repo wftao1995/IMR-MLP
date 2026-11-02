@@ -6,7 +6,9 @@
 #include "mindriver/al_modifier.h"
 #include "active_learn/al_potential.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include "utils/compressed_stream.h"
 #include "tools/procstr.h"
 #include "tools/tools.h"
@@ -376,10 +378,18 @@ int relaxstrv2(int argc, char *argv[]) {
         return 1;
     }
 
-    if (GPIO::file_exist(params.indexfile))
-        iobj.readmap(params.indexfile);
-    else 
-        iobj.setmap();
+    // Retained for reference.
+    // if (GPIO::file_exist(params.indexfile))
+    //     iobj.readmap(params.indexfile);
+    // else
+    //     iobj.setmap();
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(params.indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, params.potfile,
+                                                         params.pottype)),
+                             /*require_if_absent=*/false);
     
     if (params.seq_read) {
         std::error_code error;
@@ -482,6 +492,7 @@ int relaxstrv2(int argc, char *argv[]) {
     if (has_position_mask)
         AppsRelax::apply_position_mask(params.gpm, atoms, relaxdrv);
     relaxdrv.control.indexfile = params.indexfile;
+    share_species_map(relaxdrv.iobj, iobj, &relaxdrv.control.indexfile);
     const auto prepare_frame_constraints = [&](const Atoms &frame, size_t i) {
         try {
             if (frame.size() == 0 || frame.chemmap_.size() != frame.pos_.size())

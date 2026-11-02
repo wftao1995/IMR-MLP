@@ -59,11 +59,21 @@ therefore read without any flag:
 imrmlp calc_efs POSCAR predicted.xyz --potfile model.mtp
 ```
 
-Pass `--index` only when the file has another name or lives elsewhere.
-Forgetting it is quiet rather than fatal: with no `index.map` present, the
-command only warns (`ERROR: indexfile not found`, or a similar message) and
-continues with whatever species order the structure file supplies, so the first
-sign is usually implausible energies rather than an error.
+Commands that load a potential also use the element order the model declares
+when no map file is present: `potential_tag.elements` in a legacy MTP file and
+the species table in a GPM bundle. An Al/Ni model tagged this way reads a POSCAR
+or xyz without `index.map`; numeric CFG works too and still writes the correct
+element names. Precedence is: an existing map file, then the model declaration,
+then the periodic-table fallback. Pass `--index` only when the file has another
+name or lives elsewhere. An explicitly named file that does not exist is an
+error unless the model declares the order.
+
+For a model without element metadata, forgetting the map is still quiet rather
+than fatal: the command warns and continues with the periodic table, so the
+first sign is usually implausible energies rather than an error. Metadata
+supplies names and order only, not the radius/mass columns of `index.map`;
+commands that need those columns still require the file or their elemental
+defaults.
 
 ## Settings file syntax
 

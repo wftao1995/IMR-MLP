@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "potentials/potential_mtp_m.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include <cmath>
 #include <memory>
 
@@ -41,7 +43,14 @@ int initmtpm(int argc, char** argv)
     }
     apply_settings_to_cmdopts(cmdopts, settings);
     vector<Atoms> atoms;
-    iobj.readmap(index);
+    // Retained for reference.
+    // iobj.readmap(index);
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(index, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, potfile)),
+                             /*require_if_absent=*/false);
     if (!iobj.read(atoms, dataset, format))
         GPERROR("Failed to read MTP-M training data: " + dataset);
     if (atoms.empty())

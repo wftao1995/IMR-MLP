@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "io/gpio.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "apps/modefollowing.h"
 #include "tools/tools.h"
 #include "mindriver/relax_new.h"
@@ -445,11 +447,18 @@ int modefollowing(int argc, char *argv[]) {
     }
     apply_settings_to_cmdopts(cmdopts, settings);
     if (maxloop < 0) GPERROR("max-loop must be nonnegative");
-    if (GPIO::file_exist(indexfile)) {
-        iobj.readmap(indexfile);
-    } else {
-        GPERROR("Cannot open mode-following index file: " + indexfile);
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile);
+    // } else {
+    //     GPERROR("Cannot open mode-following index file: " + indexfile);
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, inpot, "mtp")),
+                             /*require_if_absent=*/true);
     if (AppsModeFollowing::car_rep) AppsModeFollowing::offset = 9;
     if (AppsModeFollowing::nocell) AppsModeFollowing::offset = 0;
     auto &offset = AppsModeFollowing::offset;
@@ -490,6 +499,7 @@ int modefollowing(int argc, char *argv[]) {
     auto relax_settings = settings.ExtractSubSettings("relax");
     if (!relax_settings.count("driver")) relax_settings.Modify("driver", "fire");
     RelaxationDrvV2 opt(relax_settings);
+    share_species_map(opt.iobj, iobj, &opt.control.indexfile);
     if (mode == 2 && opt.control.driver != "fire")
         GPERROR("Mode following requires relax:driver fire; energy-decreasing line searches cannot climb a mode");
     if (mode == 2 && (!std::isfinite(opt.tol.gtol) || opt.tol.gtol <= 0))

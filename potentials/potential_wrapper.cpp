@@ -3,6 +3,7 @@
 
 #include "potential_wrapper.h"
 #include "model_bundle.h"
+#include "model_elements.h"
 #include "tools/gpm_mtp.h"
 
 // ── All concrete potential types (moved from header to break recompilation) ──
@@ -137,10 +138,9 @@ void potential_wrapper::init(GPSettings &settings) {
     if (pottype == "auto" || pottype.empty()) pottype = "mtp";
     std::map<std::string, int> mappingtype2id;
     std::map<int, std::string> mappingid2type;
-    if (GPIO::file_exist(typemap)) {
+    const bool have_typemap = GPIO::file_exist(typemap);
+    if (have_typemap) {
         read_map(typemap, mappingid2type, mappingtype2id);
-    } else {
-        std::cerr << "Warning: index file not found" << std::endl;
     }
     if (pottype == "acelmp") {
         #ifdef WITH_ACELMP
@@ -237,6 +237,8 @@ void potential_wrapper::init(GPSettings &settings) {
     // Attach identities only when it is a complete declaration of the model.
     if(!mappingid2type.empty() && (pot->species_count==0 || static_cast<int>(mappingid2type.size())==pot->species_count))
         { pot->set_element_map(mappingid2type); pot->gpm_elements = mappingid2type; }
+    if(!have_typemap && probe_model_elements(settings).empty())
+        std::cerr << "Warning: index file not found" << std::endl;
     // post process, enable openmp
     pot->omp_init();
 }

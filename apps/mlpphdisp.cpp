@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include "io/gpio_tokenizer.h"
 #include "apps/mlpphdisp_utils.h"
 
@@ -49,11 +51,16 @@ void ensure_yaml_open(const std::ifstream &input, const std::string &filename)
     }
 }
 
-map<string, int> read_species_map(const string &filename)
+map<string, int> read_species_map(const string &filename,
+                                  const vector<string> &model_elements,
+                                  bool index_explicit)
 {
     GPIO io;
-    if (!io.readmap(filename))
-        throw std::runtime_error("phonopyfc: Cannot open index file or read species map: " + filename);
+    // Retained for reference.
+    // if (!io.readmap(filename))
+    //     throw std::runtime_error("phonopyfc: Cannot open index file or read species map: " + filename);
+    io.install_species_map(filename, index_explicit, model_elements,
+                           /*require_if_absent=*/true);
     return io.getrevmap();
 }
 
@@ -95,10 +102,12 @@ void mlpphdisp_splitstr(string &instr, vector<string> &vecstr)
         vecstr.push_back(word);
 }
 
-void ReadPhonoYaml(vector<Atoms> &cfgs, vector<int> &dispid, vector<RowVector3d> &dispvec, Potentials::AnyPotential *pot, string indexfilename, string yamlname)
+void ReadPhonoYaml(vector<Atoms> &cfgs, vector<int> &dispid, vector<RowVector3d> &dispvec,
+                   Potentials::AnyPotential *pot, string indexfilename, string yamlname,
+                   const vector<string> &model_elements, bool index_explicit)
 {
     string line;
-    const auto index = read_species_map(indexfilename);
+    const auto index = read_species_map(indexfilename, model_elements, index_explicit);
     vector<string> vecstr0;
     string word0;
 
@@ -216,7 +225,13 @@ int phonopyfc(int argc, char *argv[])
     Potentials::AnyPotential *pot;
     Potentials::potential_wrapper wrapper(potfn, "mtp", settings.ExtractSubSettings("pot"));
     pot = wrapper.pot;
-    ReadPhonoYaml(cfgs, dispid, dispvec, pot, indexfilename, yamlname);
+    const bool index_explicit = cmdopts.was_provided("index-file") ||
+                                settings.count("index") ||
+                                settings.count("index-file");
+    const auto model_elements = Potentials::probe_model_elements(
+        make_potential_settings(settings, potfn, "mtp"));
+    ReadPhonoYaml(cfgs, dispid, dispvec, pot, indexfilename, yamlname,
+                  model_elements, index_explicit);
     SaveForcesSet(cfgs, dispid, dispvec);
     
     return 0;

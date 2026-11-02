@@ -116,7 +116,7 @@ TEST_CASE("phonopyfc reports a missing index without terminating the caller", "[
     const auto potential = std::filesystem::absolute("unitest/test-data/potential.mtp").string();
     Workspace work;
     REQUIRE_THROWS_WITH(run(phonopyfc, {"phonopyfc", potential, "unused.yaml", "--index-file=missing.map"}),
-                        Catch::Matchers::ContainsSubstring("Cannot open index file"));
+                        Catch::Matchers::ContainsSubstring("does not declare an element order"));
 }
 
 TEST_CASE("EOS fitting stops when the fit fails", "[cli][errors]") {

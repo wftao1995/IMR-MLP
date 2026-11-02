@@ -393,6 +393,16 @@ public:
 
     /// @brief Read chemistry map from file
     bool readmap(std::string mapfile);
+    /// @brief Install the species map before reading structures.
+    ///
+    /// Precedence: an existing map file, then the element order declared by the
+    /// model, then the periodic-table fallback. Returns true when the model
+    /// element list was installed. A missing map file is an error when it was
+    /// named explicitly or when require_if_absent is true.
+    bool install_species_map(const std::string &mapfile,
+                             bool map_explicit,
+                             const std::vector<std::string> &model_elements,
+                             bool require_if_absent);
     /// @brief Guess file format from filename extension
     static supported_format guess_format(const std::string &input);
     /// @brief Convert format name string to enum

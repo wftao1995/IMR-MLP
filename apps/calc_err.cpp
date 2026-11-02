@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include "tools/constants.h"
 #include "utils/comm.h"
 #include <algorithm>
@@ -539,14 +541,18 @@ int calc_err(int argc, char *argv[])
         GPERROR("calc_err: mpi-mode must be replicated or frames");
     });
     calc_err_phase("input", [&] {
-    if (GPIO::file_exist(indexfile))
-    {
-        iobj.readmap(indexfile); // should be with atom radii
-    }
-    else
-    {
-        cerr << "ERROR: indexfile not found\n";
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile); // should be with atom radii
+    // } else {
+    //     cerr << "ERROR: indexfile not found\n";
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    const auto pot_settings = make_potential_settings(settings, pfile, ptype);
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(pot_settings),
+                             /*require_if_absent=*/false);
     // read atoms
     Message("Reading trajectory file " + infile);
     if (!iobj.read(atoms, infile, informat) || atoms.empty())

@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
 #include "io/gpio.h"
+#include "species_map_utils.h"
 #include "mindriver/relax_new.h"
 #include <libalglib/stdafx.h>
 #include <libalglib/interpolation.h>
@@ -88,11 +90,18 @@ int calc_eos(int argc, char *argv[]) {
         trjfile = (curve_type == "pv") ? "p-e.cfg" : "e-v.cfg";
     }
 
-    if (GPIO::file_exist(indexfile)) {
-        iobj.readmap(indexfile);
-    } else {
-        cerr << "ERROR: indexfile not found\n";
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile);
+    // } else {
+    //     cerr << "ERROR: indexfile not found\n";
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings)),
+                             /*require_if_absent=*/false);
 
     auto check_relaxation = [](const RelaxationDrvV2 &driver, const string &stage) {
         if (driver.state_vars.converged) return true;
@@ -114,6 +123,7 @@ int calc_eos(int argc, char *argv[]) {
             atom = atoms.back();
             Potentials::potential_wrapper wrapper("", "", settings.ExtractSubSettings("pot"));
             RelaxationDrvV2 optdrv(settings.ExtractSubSettings("relax"));
+            share_species_map(optdrv.iobj, iobj, &optdrv.control.indexfile);
 
             if (!skip_pre_relax) {
                 optdrv.init(wrapper.pot, atom);
@@ -308,6 +318,7 @@ int calc_eos(int argc, char *argv[]) {
     atom = atoms.back();
     Potentials::potential_wrapper wrapper("", "", settings.ExtractSubSettings("pot"));
     RelaxationDrvV2 optdrv(settings.ExtractSubSettings("relax"));
+    share_species_map(optdrv.iobj, iobj, &optdrv.control.indexfile);
 
     if (!skip_pre_relax) {
         optdrv.init(wrapper.pot, atom);

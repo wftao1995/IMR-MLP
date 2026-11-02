@@ -3,6 +3,8 @@
 
 #include "io/gpio.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/model_elements.h"
+#include "species_map_utils.h"
 #include "external/spglib_driver.h"
 #include "tools/chem.h"
 #include "tools/tools.h"
@@ -80,11 +82,18 @@ int calc_fc(int argc, char *argv[]) {
     if (lowest_modes < 0 || !std::isfinite(lowest_mode_tol) ||
         lowest_mode_tol <= 0.0)
         throw std::invalid_argument("Invalid matrix-free lowest-mode option");
-    if (GPIO::file_exist(indexfile)) {
-        iobj.readmap(indexfile);
-    } else {
-        throw std::runtime_error("Cannot open index file: " + indexfile);
-    }
+    // Retained for reference.
+    // if (GPIO::file_exist(indexfile)) {
+    //     iobj.readmap(indexfile);
+    // } else {
+    //     throw std::runtime_error("Cannot open index file: " + indexfile);
+    // }
+    const bool index_explicit =
+        cmdopts.was_provided("index") || settings.count("index");
+    iobj.install_species_map(indexfile, index_explicit,
+                             Potentials::probe_model_elements(
+                                 make_potential_settings(settings, inpot, inpt)),
+                             /*require_if_absent=*/true);
 
     if (dim.size() == 3) {
         for (int a = 0; a < 3; ++a) {
