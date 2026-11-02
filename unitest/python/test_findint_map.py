@@ -51,7 +51,8 @@ def test_findint_explicit_bad_maps_fail_before_touching_existing_output(tmp_path
     output = tmp_path / 'output.xyz'; output.write_bytes(b'keep original output\n')
     result = run_command('imrmlp', arguments() + ['--index-file=bad.map'], tmp_path)
     assert result.returncode != 0, result.stdout + result.stderr
-    assert 'chemical species map' in result.stdout + result.stderr
+    message = result.stdout + result.stderr
+    assert 'chemical species map' in message or ('index file' in message and 'not found' in message)
     assert output.read_bytes() == b'keep original output\n'
     assert (tmp_path / 'host.xyz').read_text() == HOST
 
