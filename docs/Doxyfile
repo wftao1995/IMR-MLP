@@ -88,6 +88,9 @@ LATEX_CMD_NAME         = xelatex
 PDF_HYPERLINKS         = YES
 LATEX_BATCHMODE        = YES
 COMPACT_LATEX          = NO
+# Adds the CJK and symbol fallback fonts; see docs/latex_preamble.sty.
+LATEX_EXTRA_STYLESHEET = latex_preamble.sty
+LATEX_EXTRA_FILES      = latex_preamble.sty
 USE_MDFILE_AS_MAINPAGE  = 00_mainpage.md
 
 # ── Graphs / Diagrams ─────────────────────────────────────────────────────

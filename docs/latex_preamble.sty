@@ -1,0 +1,56 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{latex_preamble}[2026/11/02 PDF fonts for IMR-MLP docs]
+% Extra LaTeX preamble for the Doxygen PDF builds.
+% Selected through LATEX_EXTRA_STYLESHEET in docs/Doxyfile and docs/Doxyfile.zh.
+% The PDF is compiled with XeLaTeX (LATEX_CMD_NAME = xelatex, USE_PDFLATEX = NO).
+%
+% This is a package, so Doxygen adds it with \usepackage{latex_preamble}
+% inside the preamble, after \documentclass.
+
+\RequirePackage{iftex}
+\iftutex
+  % Pages mix English with Chinese, and Latin Modern has no CJK glyphs.
+  \RequirePackage{xeCJK}
+  \setCJKmainfont{Noto Serif CJK SC}
+  \setCJKsansfont{Noto Sans CJK SC}
+  \setCJKmonofont{Noto Sans Mono CJK SC}
+
+  % Latin Modern also lacks the box-drawing, arrow and check-mark glyphs used
+  % in directory trees and option tables. Code blocks and trees need a
+  % monospaced font that has them; the rest are mapped to math or symbol fonts.
+  \AtBeginDocument{\setmonofont{Noto Sans Mono}[Scale=MatchLowercase]}
+  \newfontfamily\symbolfont{Noto Sans Symbols 2}
+  \RequirePackage{newunicodechar}
+  % unicode-math claims some of these characters, so the text-mode
+  % mappings are installed at the end of the preamble.
+  \RequirePackage{etoolbox}
+  \AtEndPreamble{%
+    \newunicodechar{✓}{{\symbolfont\char"2713}}%
+    \newunicodechar{─}{\texttt{\char"2500}}%
+    \newunicodechar{│}{\texttt{\char"2502}}%
+    \newunicodechar{┌}{\texttt{\char"250C}}%
+    \newunicodechar{┐}{\texttt{\char"2510}}%
+    \newunicodechar{└}{\texttt{\char"2514}}%
+    \newunicodechar{┘}{\texttt{\char"2518}}%
+    \newunicodechar{├}{\texttt{\char"251C}}%
+    \newunicodechar{┬}{\texttt{\char"252C}}%
+    \newunicodechar{┼}{\texttt{\char"253C}}%
+    \newunicodechar{▶}{\texttt{\char"25B6}}%
+    \newunicodechar{►}{\texttt{\char"25BA}}%
+    \newunicodechar{▼}{\texttt{\char"25BC}}%
+    \newunicodechar{α}{\ensuremath{\alpha}}%
+    \newunicodechar{δ}{\ensuremath{\delta}}%
+    \newunicodechar{ε}{\ensuremath{\varepsilon}}%
+    \newunicodechar{θ}{\ensuremath{\theta}}%
+    \newunicodechar{λ}{\ensuremath{\lambda}}%
+    \newunicodechar{π}{\ensuremath{\pi}}%
+    \newunicodechar{φ}{\ensuremath{\varphi}}%
+    \newunicodechar{≈}{\ensuremath{\approx}}%
+    \newunicodechar{≤}{\ensuremath{\leq}}%
+    \newunicodechar{≥}{\ensuremath{\geq}}%
+    \newunicodechar{∂}{\ensuremath{\partial}}%
+    \newunicodechar{₂}{\ensuremath{_2}}%
+    \newunicodechar{⁻}{\ensuremath{^{-}}}%
+    \newunicodechar{ᵀ}{\ensuremath{^{\mathrm{T}}}}%
+  }
+\fi

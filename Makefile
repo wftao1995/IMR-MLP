@@ -440,6 +440,8 @@ DOCS_PYTHON ?= build/docs-env/bin/python
 # 0 = report command/locale drift without failing; 1 = fail on command,
 # option and alias differences and cross-language links.
 DOC_CHECK_STRICT ?= 0
+# Manual PDF languages: en, zh or all. Output lands in docs/manual-pdf.
+DOC_PDF_LANG ?= all
 
 .PHONY: doc-deps doc-manual check-doc-html
 doc-deps:
@@ -462,8 +464,10 @@ doc: doc-manual doc-pdf
 doc-html: doc-catalog
 	python3 docs/tools/build_docs.py --all --doxygen $(DOXYGEN)
 
+# Manual-only PDF: the Markdown manual without the generated API chapters.
+# Needs xelatex, makeindex and the fonts named in docs/latex_preamble.sty.
 doc-pdf: doc-html
-	cd $(DOCS_DIR)/build/latex && $(MAKE) 2>/dev/null || true
+	python3 docs/tools/build_pdf.py --lang $(DOC_PDF_LANG)
 
 # doc-html always emits both API languages, so the -zh targets are aliases that
 # only differ in what they advertise; the Chinese site lands in docs/build_zh.

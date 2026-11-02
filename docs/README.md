@@ -48,7 +48,8 @@ repository root. The first command installs documentation tools under `build/`:
 |---|---|
 | `make doc-manual` | Bilingual manual and API: `docs/manual-html/{en,zh}` |
 | `make doc-html` | Doxygen C++ API only: `docs/build/html` (English), `docs/build_zh/html` (Chinese) |
-| `make doc` | Manual plus PDF (`doc-manual` + `doc-pdf`) |
+| `make doc-pdf` | Manual PDF: `docs/manual-pdf/imrmlp-manual-{en,zh}.pdf` |
+| `make doc` | Manual HTML and PDF (`doc-manual` + `doc-pdf`) |
 | `make doc-zh`, `make doc-zh-html` | Aliases for `doc-html`; one build emits both languages |
 | `make check-docs` | Catalog, link, command/option and bilingual checks |
 | `make check-doc-html` | Generated HTML, search index and math checks |
@@ -100,9 +101,19 @@ make doc-html
 
 This command builds both API languages. Open `docs/build/html/index.html` or `docs/build_zh/html/index.html`.
 C++ API cross-references such as `@ref` are resolved in the generated manual;
-ordinary Markdown links work directly in the repository. `make doc-pdf` also
-requires a suitable TeX installation; verify the resulting PDF and build log,
-since that legacy target does not propagate every LaTeX failure.
+ordinary Markdown links work directly in the repository.
+
+`make doc-pdf` writes `docs/manual-pdf/imrmlp-manual-{en,zh}.pdf`: the Markdown
+manual only, without the generated class, file and namespace reference. It needs
+XeLaTeX, makeindex and the fonts named in `docs/latex_preamble.sty` (Noto CJK,
+Noto Sans Mono, Noto Sans Symbols 2). The target fails and points at the LaTeX
+log when a page reports an error; pass `DOC_PDF_LANG=zh` to build one language.
+
+`make doc-pdf` 生成 `docs/manual-pdf/imrmlp-manual-{en,zh}.pdf`：只含 Markdown
+手册，不含自动生成的类、文件与命名空间参考。需要 XeLaTeX、makeindex 以及
+`docs/latex_preamble.sty` 引用的字体（Noto CJK、Noto Sans Mono、Noto Sans
+Symbols 2）。任一页报错时命令失败并给出 LaTeX 日志路径；用 `DOC_PDF_LANG=zh`
+可只生成中文。
 
 HTML 文档不需要先编译主程序。文档生成目录不应提交。
 文档与示例检查见[开发说明](../CONTRIBUTING.md)。
