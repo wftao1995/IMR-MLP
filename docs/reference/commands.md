@@ -602,7 +602,7 @@ still contribute to normalization, but are skipped with a warning when fitting
 species energy offsets. If all energy labels are missing, offsets are initialized
 to zero with a warning. Hidden neuron counts must be positive for each used layer.
 
-### `initmtpm` — Initialize MTP_M
+### `initmtpm` — Initialize MTP-based models
 
 Initialize a PotMTP_M (multi-order MTP) potential file with random coefficients.
 Used as a starting point when no pre-trained potential exists. The MTP level and
@@ -631,7 +631,109 @@ Structures without energy labels contribute to basis statistics but are skipped
 when fitting energy offsets, with a warning. If no energy labels are available,
 energy offsets are initialized to zero. Missing, empty or unreadable datasets fail.
 
-### Training Command Selection Guide
+New explicit workflow: `--input` is the template/model and `--output` is the
+result; the default result is `_Initialized_Potential_.gpm`. The old flat
+`potfile` key remains an output option. A dataset is optional in the new entry.
+Complete compatible parameters are reused by default; `--reinitialize` resets
+them. Missing parameters use the selected family's layout and initialization.
+An ordinary MTP energy head is never reinterpreted as MTP-M latent parameters.
+
+```sh
+imrmlp mtmbasis --settings mtmbasis.ini --potfile basis.mtp
+# Choose a generated candidate, here basis.mtp_0, and complete its radial settings.
+imrmlp initmtpm --input basis.mtp_0 --elements Al Ni --output initial.gpm
+imrmlp initmtpm --input initial.gpm --output reused.gpm
+imrmlp initmtpm --input basis.mtp --settings nn.ini --elements Al Ni --output nn.gpm
+```
+
+For the two-hidden-layer MTP-M example, `nn.ini` contains:
+
+```ini
+pot:pottype mtp_m
+pot:extmodel mtp_m_n2
+pot:n_input 2
+pot:n_neuron 16
+pot:n_neuron2 8
+```
+
+New NN heads require explicit positive dimensions. Existing GPM models restore
+these dimensions from metadata. Ordinary MTP and the li/q2/fs/n1/n2 MTP-M heads
+are supported by this entry. A new layout copies compatible radial parameters
+and energy offsets, while allocating its own latent and head parameters.
+
+`--dataset` and `--format` request statistics without modifying reused
+parameters. `--fit-species-offsets` explicitly refits energy offsets against the
+remaining model contribution; `--normalize-descriptors` explicitly rescales
+moment coefficients and centers channel offsets. Both require data. Offset
+fitting rejects missing labels or a rank-deficient species count matrix.
+`--randomize=false` retains deterministic defaults for missing parameters;
+`--rand-scale` scales newly randomized moment coefficients. Explicit element
+maps must match the model declarations.
+
+
+Parameter layout audit (`R`: ordered-pair radial coefficients, `S`: species,
+`B`: scalar basis size, `Q`: latent width, `H`: head parameters, `C`: charge
+channels, `K`: SOG terms per channel). Physical parameters and optimizer
+coordinates differ when request masks select only some groups.
+
+| Family | Physical model data | Initialization and adjustment |
+|---|---|---|
+| `mtp` | `R + S + B`, topology and radial bases | Initialize, reuse, reinitialize, permutation, extension, basis order |
+| `mtp_m` li/q2/fs/n1/n2 | `R + (Q+1)S + QB + H` | All operations; new NN heads require explicit dimensions |
+| `mtp_m` with LES/SOG | Above plus `C(S+B)` latent charges and `2CK` SOG kernel parameters | All operations, including reinitialization and head conversion with explicit target configuration |
+| `mtp_les` | Ordinary MTP plus independent charge heads and Coulomb/SOG kernel | All operations; new SOG models require weights and log bandwidths |
+| `mtpnn1` | MTP descriptor, NN1/NN2 weights, input normalization, species energy offsets | All operations; new heads require `nnhidden`, and `nnhidden2` for `nnlay 2` |
+| `mtp_edq`, `mtp_edqrd` | Separate energy/charge MTPs; `S-1` redistribution logits | All operations; new models require `sr_potfile` and `charge_potfile` |
+| `hmtp`, `hybrid` | MTP children, switching/shared parameters, optional hybrid ZBL child | All operations; new models require `npot` and each child's type/template |
+| `hybrid_scale` | Child parameters plus feature/radius/boundary settings | All operations for supported children; complete EAMPoly children can be reused, but their species migration is undefined |
+| MTM `descriptor_linear` | MTP descriptor and separately indexed linear head | All operations; basis ordering also permutes the linear head |
+| `committee` and unknown corrections | Ensemble or additional undefined parameter layouts | Explicit error; use the corresponding model workflow |
+
+Each MTP branch retains split radial bases. Element permutation updates all
+species groups, ordered pairs and metadata; basis ordering also updates NN input
+weights/normalization and linear heads. EDQRd weights are rebased to the new last
+species, retaining old physical ratios. L1/L2 penalties follow the actual
+optimizer coordinates. An operation fails if a penalty becomes inseparable
+under a reference-gauge change. Borrowed parameter storage and HC/rR corrections
+without defined adapters are rejected before publication.
+
+For a new SOG model, provide `pot:les_kernel sog`, `pot:sog_channels`,
+`pot:sog_weights` and `pot:sog_log_bandwidths` (the last two contain `C*K`
+values). Existing kernel definitions are restored from GPM. MTPNN uses
+`pot:nnlay 1|2`, `pot:nnhidden` and optionally `pot:nnhidden2`.
+For composites, configure `pot:npot` and `pot:pot1:pottype`,
+`pot:pot1:potfile`, etc. Each MTP template may have no coefficients. ZBL can
+infer atomic numbers from explicit element symbols. Fixed/trainable branches
+and hybrid-scale switching settings are retained. Complete compatible GPMs
+require no external model configuration or template files.
+
+Composite offset fitting requires an explicit energy-branch path:
+
+```sh
+imrmlp initmtpm --input hybrid.gpm --output fitted.gpm --dataset train.xyz \
+  --format extxyz --fit-species-offsets --offset-target pot1
+imrmlp initmtpm --input edqrd.gpm --output fitted.gpm --dataset train.xyz \
+  --format extxyz --fit-species-offsets --offset-target short_range
+```
+
+Nested targets use paths such as `pot2/pot1`; `root` selects the root energy
+head. Charge and descriptor branches are invalid offset targets. Fitting uses
+the complete model's energy response, including fixed branches and
+position-dependent mixing weights, and rejects rank-deficient responses.
+A constant change to one weighted branch need not give a constant total-energy
+change. MTM linear heads have no independent elemental offsets. Explicit
+normalization adjusts the selected MTP moment channels; NN input normalization
+is preserved and cannot be changed through this option.
+
+Native output remains available by choosing a native output filename. Composite
+native formats can include manifests/sidecars; GPM always contains the complete
+model. Old dataset-driven MTP-M configuration and output conventions remain
+compatible. Adjusted/reinitialized GPMs use inference saving and discard old AL
+state; rebuild selection before continuing active learning.
+
+EDQ/EDQRd is implemented only in atoms-agent. This public repository has no such model family and reports an explicit unsupported-type error.
+
+## Training Command Selection Guide
 
 | Command | Model type | Method | Use for |
 | --- | --- | --- | --- |
@@ -642,7 +744,7 @@ energy offsets are initialized to zero. Missing, empty or unreadable datasets fa
 | `fastfit` | Ordinary MTP | Linear fitting with SA / NSGA-II and other basis selection | Compare errors, basis size and evaluation cost |
 
 For ordinary MTP, choose a compatible template, then run `trainmtp --linear-fit` or
-`trainmtp --do-lbfgs`. `initmtpm` targets the separate MTP-M model. See the
+`trainmtp --do-lbfgs`. `initmtpm` initializes ordinary MTP and supported MTP-based models. See the
 [training workflow](../guides/workflows.md) before combining different trainers.
 
 ---
@@ -1961,6 +2063,31 @@ imrmlp adjustmtp --input=original.mtp --output=reordered.mtp --neworder 0 2 1
 | `--neworder` | | | New species order (positional, multiple values); longer orders append randomly initialized species |
 | `--elements` | | | Element symbols in the output species order; required when `--neworder` appends species |
 
+The explicit GPM/MTP-M entry separates `--basis-order keep|level|level-group`
+from element permutation (`--neworder`). It defaults to keeping the basis order
+and writing `_Adjusted_Potential_.gpm`. Legacy ordinary-MTP commands retain their
+level-order behavior and native output default.
+
+```sh
+imrmlp adjustmtp --input initial.gpm --output reordered.gpm --neworder 1 0
+imrmlp adjustmtp --input initial.gpm --output expanded.gpm \
+  --append-elements Cu --new-species-init clone --clone-from 0
+imrmlp adjustmtp --input initial.gpm --output random.gpm \
+  --append-elements Cu --new-species-init random
+```
+
+Clone sources refer to original input IDs. Random initialization affects only
+new species blocks and new ordered-pair radial blocks; source 0 supplies basis
+configuration unless another source is given. Extensions run before permutation,
+then basis ordering runs last. Elements already declared by the model cannot be
+renamed. MTP-M scalar permutations migrate every latent moment channel rather
+than only the first channel. Packed regularization layouts without a defined
+migration map are rejected; unsupported model families are rejected before
+publication. Modified GPM outputs omit old AL state and require fresh selection.
+Native and GPM writes are staged, and GPM/native reload validation precedes
+publication. In-place replacement requires an explicit output path.
+
+
 ### `mtpbasis` — Compare MTP Bases and Remap Parameters
 
 Check two classic linear MTP bases using exact symbolic integer arithmetic.
@@ -2025,7 +2152,7 @@ templates as `potential.mtp_<iteration>`. It also writes `conns_exp.log` with
 contraction count diagnostics. The generated MTP files contain the basis metadata
 (`alpha_index_basic`, `alpha_index_times`, and `alpha_moment_mapping`) but no
 trained coefficients. Complete the species/radial settings of the selected
-template before fitting with `trainmtp`. `initmtpm` targets MTP-M, not ordinary MTP.
+template before fitting with `trainmtp`. `initmtpm` initializes ordinary MTP and supported MTP-based models.
 
 Pool-only modes are useful for staging expensive basis enumeration:
 

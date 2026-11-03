@@ -487,9 +487,12 @@ namespace Potentials {
             }
         }
 
-        inline double get_scale() const { return p_radical_basis->scaling; };
+        inline double get_scale() const { return radial_basis_split ? p_radical_basis_pair.at(0)->scaling : p_radical_basis->scaling; };
 
-        inline void set_scale(double scl) { p_radical_basis->scaling = scl; };
+        inline void set_scale(double scl) {
+            if (radial_basis_split) for (auto *basis : p_radical_basis_pair) basis->scaling = scl;
+            else p_radical_basis->scaling = scl;
+        };
 
         void set_linear_coeff(double *val);
         void set_moment_coeff(double *val);

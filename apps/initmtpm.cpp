@@ -5,6 +5,8 @@
 #include "potentials/model_elements.h"
 #include "io/gpio.h"
 #include "species_map_utils.h"
+#include "mtp_workflow.h"
+#include "mtp_tree_workflow.h"
 #include <cmath>
 #include <memory>
 
@@ -19,12 +21,23 @@ int initmtpm(int argc, char** argv)
     string dataset = "train.cfg";
     string format = "";
     string index = "index.map";
+    string input,output,target_type,offset_target;
+    vector<string> elements;
+    bool reinitialize=false,fit_offsets=false,normalize=false;
     bool randomize = true;
     double rand_scale = 1.0;
     double lb = -0.1, ub = 0.1;
     GPIO iobj;
-    cmdopts.addop(potfile, "potfile", "pot", "Potential file", false, 1, 0)
-        .addop(settingfile, "settings", "", "settings file name", true, 1, 0)
+    cmdopts.addop(input,"input","in","Input basis template or model")
+        .addop(output,"output","out","Output model (default _Initialized_Potential_.gpm)")
+        .addop(target_type,"type","","Target model family")
+        .addop(elements,"elements","","Ordered element symbols",false,-1)
+        .addop(reinitialize,"reinitialize","","Reset existing parameters",false,0)
+        .addop(fit_offsets,"fit-species-offsets","","Fit elemental energy offsets",false,0)
+        .addop(normalize,"normalize-descriptors","","Normalize descriptor statistics",false,0)
+        .addop(offset_target,"offset-target","","Energy branch for offset fitting")
+        .addop(potfile, "potfile", "pot", "Potential file", false, 1, 0)
+        .addop(settingfile, "settings", "", "settings file name", false, 1, 0)
         .addop(dataset, "dataset", "d", "dataset file name", false, 1, 0)
         .addop(format, "format", "f", "dataset file format, mlpcfg, extxyz, ...", false, 1, 0)
         .addop(index, "index", "id", "index file name, for selecting configurations", false, 1, 0)
@@ -33,7 +46,9 @@ int initmtpm(int argc, char** argv)
         .addop(ub, "rand-ub", "", "upper bound for random coeffs, default 0.1", false, 1, 0)
         .addop(randomize, "randomize", "r", "randomize coeffs or not, default true", false, 1, 0);
     cmdopts.phrase_options(argc, argv);
-    if (!settingfile.empty()) {
+    if(cmdopts.displayhelp){cmdopts.showhelp(cout);return 0;}
+    const bool modern=!input.empty()||!output.empty()||!target_type.empty()||!elements.empty()||reinitialize||fit_offsets||normalize||!offset_target.empty();
+    if (!settingfile.empty() && (cmdopts.was_provided("settings")||!modern)) {
         try {
             settings.Load(settingfile);
         } catch (const GPException& e) {
@@ -42,6 +57,13 @@ int initmtpm(int argc, char** argv)
         }
     }
     apply_settings_to_cmdopts(cmdopts, settings);
+    if(modern||(!settings["pot:pottype"].empty()&&settings["pot:pottype"]!="mtp_m")) {
+        if(!output.empty()&&cmdopts.was_provided("potfile")&&output!=potfile)GPERROR("Conflicting output and potfile options");
+        if(output.empty()&&(cmdopts.was_provided("potfile")||settings.count("potfile")))output=potfile;
+        const auto data=(cmdopts.was_provided("dataset")||settings.count("dataset"))?dataset:string();
+        Training::collective_try([&]{if(mpi.rank==0)MTPWorkflow::initialize_model(settings,input,output,target_type,elements,reinitialize,randomize,lb,ub,data,format,index,fit_offsets,normalize,rand_scale,cmdopts.was_provided("index")||settings.count("index"),offset_target);});
+        return 0;
+    }
     vector<Atoms> atoms;
     // Retained for reference.
     // iobj.readmap(index);
@@ -114,6 +136,8 @@ int initmtpm(int argc, char** argv)
         return 1;
     }
     PotMTP *pmtp = dynamic_cast<PotMTP*>(pot.get());
+    for(const auto &at:atoms)for(int id:at.chemmap_)if(id<0||id>=pmtp->species_count)GPERROR("Initialization dataset species is outside the model layout");
+    Training::collective_try([&]{MTPWorkflow::validate_graph(*pmtp);});
     int nprops;
     pmtp->get_n_props(nprops);
     int n_radial, n_species_coeffs, n_moment, n_model, n_species;
@@ -345,9 +369,27 @@ int initmtpm(int argc, char** argv)
         }
     }
 
-    if (mpi.rank == 0) {
-        pot->Save(potfile);
-    }
+    pot->init_coeffs();
+    Training::collective_try([&] {
+        if(mpi.rank!=0)return;
+        MTPWorkflow::LocalComputation local;
+        const auto source=potsettings["potfile"];
+        if(!cmdopts.was_provided("potfile")&&!settings.count("potfile")&&!source.empty()&&MTPWorkflow::fs::absolute(source).lexically_normal()==MTPWorkflow::fs::absolute(potfile).lexically_normal())
+            GPERROR("Explicit output is required to overwrite the input model");
+        if(GPM::extension(potfile))MTPWorkflow::save(*pot,potfile);
+        else {
+            const auto target=MTPWorkflow::fs::absolute(potfile).lexically_normal();MTPWorkflow::Stage stage(target.parent_path());
+            const auto temporary=(stage.path/target.filename()).string();pot->Save(temporary);
+            auto reload=potsettings;reload.Modify("potfile",temporary);reload.Modify("pottype",Potentials::ModelBundle::type(*pot));Potentials::potential_wrapper check(reload);
+            if(check.pot->get_NL_coeffs_count()!=pot->get_NL_coeffs_count())GPERROR("Initialized model parameter count changed on native reload");
+            if(!atoms.empty()) {
+                auto before=atoms.front(),after=before;pot->getEFS(before);check.pot->getEFS(after);
+                if(std::abs(before.energy_-after.energy_)>1e-10*(1+std::abs(before.energy_))||(before.stress_-after.stress_).norm()>1e-9*(1+before.stress_.norm()))GPERROR("Initialized native model changed predictions on reload");
+                for(size_t i=0;i<before.size();++i)if((before.forces_[i]-after.forces_[i]).norm()>1e-9*(1+before.forces_[i].norm()))GPERROR("Initialized native model changed forces on reload");
+            }
+            MTPWorkflow::fs::rename(temporary,target);
+        }
+    });
 
     return 0;
 }

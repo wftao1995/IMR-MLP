@@ -82,7 +82,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/unitest
 
 # ── Standard object lists ──────────────────────────────────────────────
-OBJAPP = model_bundle_app.o apps.o convstr.o calc_efs.o calc_err.o \
+OBJAPP = mtp_tree_workflow.o model_bundle_app.o apps.o convstr.o calc_efs.o calc_err.o \
 		mlpcalcfc.o ti_reference_app.o ti_fit_fc.o calc_eos.o mlpcalccellhess.o \
 		split_set.o calc_ferr.o \
 		calc_neb.o calc_dimer.o mlpnroptimize.o mtp2spline.o adjustpot.o testpot.o \

@@ -586,7 +586,92 @@ imrmlp initmtpm -pot initial.mtp --dataset=train.cfg
 缺少能量标签的结构参与基组统计，但跳过能量偏移拟合并给出警告；全部结构都没有能量标签时，
 能量偏移初始化为零。数据集缺失、为空或读取失败时，命令报错。
 
-### 训练命令选择指南
+新增的显式入口使用 `--input` 指定模板或模型、`--output` 指定结果，默认结果为
+`_Initialized_Potential_.gpm`；旧的顶层 `potfile` 仍表示输出。新入口的数据集可选。
+默认复用完整且兼容的参数，`--reinitialize` 显式重置；缺失参数按目标模型的布局
+创建并初始化，不会把普通 MTP 的能量系数当作 MTP-M 潜变量参数。
+
+```sh
+imrmlp mtmbasis --settings mtmbasis.ini --potfile basis.mtp
+# 选择生成的候选模板（此处为 basis.mtp_0），并补齐径向设置。
+imrmlp initmtpm --input basis.mtp_0 --elements Al Ni --output initial.gpm
+imrmlp initmtpm --input initial.gpm --output reused.gpm
+imrmlp initmtpm --input basis.mtp --settings nn.ini --elements Al Ni --output nn.gpm
+```
+
+两层隐藏层 MTP-M 示例的 `nn.ini` 内容：
+
+```ini
+pot:pottype mtp_m
+pot:extmodel mtp_m_n2
+pot:n_input 2
+pot:n_neuron 16
+pot:n_neuron2 8
+```
+
+创建新 NN 头时必须指定正的维度；已有 GPM 从 metadata 恢复这些维度。
+该入口支持普通 MTP 及 li/q2/fs/n1/n2 五类 MTP-M 头。新布局复用兼容的径向参数
+和元素能量偏移，潜变量及头参数由目标布局独立分配。
+
+`--dataset`、`--format` 默认只计算统计量，不修改复用参数。
+`--fit-species-offsets` 显式扣除模型其他贡献后重新拟合元素能量偏移；
+`--normalize-descriptors` 显式缩放 moment 系数并居中通道偏移；两者均要求数据。
+没有能量标签或元素计数矩阵秩不足时，偏移拟合明确失败。
+`--randomize=false` 对缺失参数使用确定性初值；`--rand-scale` 缩放新随机生成的
+moment 系数。显式元素映射须与模型声明一致。
+
+
+参数布局审计：`R` 为有向元素对径向系数，`S` 为元素数，`B` 为标量基数，`Q` 为
+潜变量维度，`H` 为头参数数，`C` 为电荷通道数，`K` 为每通道 SOG 项数。
+request mask 只选择部分参数组时，物理参数布局与优化器坐标不同。
+
+| 家族 | 物理模型数据 | 初始化与调整 |
+|---|---|---|
+| `mtp` | `R + S + B`，拓扑及径向基 | 初始化、复用、重初始化、置换、扩展、基组重排 |
+| `mtp_m` li/q2/fs/n1/n2 | `R + (Q+1)S + QB + H` | 全部操作；新 NN 头必须指定维度 |
+| `mtp_m`（LES/SOG） | 另有 `C(S+B)` 电荷潜变量和 `2CK` 个 SOG 核参数 | 全部操作；换头须显式提供目标头配置 |
+| `mtp_les` | 普通 MTP 加独立电荷头及 Coulomb/SOG 核 | 全部操作；新 SOG 必须提供权重与对数带宽 |
+| `mtpnn1` | MTP 描述符、NN1/NN2、输入归一化、元素能量偏移 | 全部操作；新头须提供 `nnhidden`，`nnlay 2` 另需 `nnhidden2` |
+| `mtp_edq`、`mtp_edqrd` | 独立能量/电荷 MTP，`S-1` 个重分配 logit | 全部操作；新模型须提供 `sr_potfile` 和 `charge_potfile` |
+| `hmtp`、`hybrid` | MTP 子模型、切换/共享参数、hybrid 可选 ZBL | 全部操作；新模型须提供 `npot` 和各子模型类型、模板 |
+| `hybrid_scale` | 子模型及特征、半径、边界设置 | 已支持子模型可执行全部操作；完整 EAMPoly 可复用，但未定义其元素迁移 |
+| MTM `descriptor_linear` | MTP 描述符及独立索引的线性头 | 全部操作；基组重排同步迁移线性头 |
+| `committee` 及未知修正项 | 集成或未定义的额外参数布局 | 明确报错，使用相应模型工作流 |
+
+各 MTP 分支保留分裂径向基。元素置换同步更新所有元素参数、有向元素对和 metadata；
+基组重排同步更新 NN 输入权重、归一化及线性头。EDQRd 以新的末元素重设参考规范，
+保留原有元素的物理权重比。L1/L2 正则项按实际优化器坐标迁移；参考规范变换使惩罚
+无法继续按单坐标表达时明确失败。借用参数存储及缺少适配定义的 HC/rR 修正项在发布前拒绝。
+
+新 SOG 模型须提供 `pot:les_kernel sog`、`pot:sog_channels`、`pot:sog_weights`、
+`pot:sog_log_bandwidths`，后两项均含 `C*K` 个值。已有核定义从 GPM 恢复。
+MTPNN 使用 `pot:nnlay 1|2`、`pot:nnhidden` 以及可选的 `pot:nnhidden2`。
+复合势配置 `pot:npot` 和 `pot:pot1:pottype`、`pot:pot1:potfile` 等；
+各 MTP 模板可以不含系数。ZBL 可从显式元素符号推导原子序数。固定/可训练分支及
+hybrid_scale 切换配置随模型保留。完整兼容 GPM 不再依赖外部模型配置或模板文件。
+
+复合势偏移拟合必须明确指定能量分支路径：
+
+```sh
+imrmlp initmtpm --input hybrid.gpm --output fitted.gpm --dataset train.xyz \
+  --format extxyz --fit-species-offsets --offset-target pot1
+imrmlp initmtpm --input edqrd.gpm --output fitted.gpm --dataset train.xyz \
+  --format extxyz --fit-species-offsets --offset-target short_range
+```
+
+嵌套目标使用 `pot2/pot1` 等路径，`root` 选择根模型能量头。电荷和描述符分支不能
+作为偏移目标。拟合基于完整模型的能量响应，计入固定分支及位置相关混合权重，响应
+矩阵秩不足时明确失败。对一个加权分支增加常数不一定使总能量增加常数。
+MTM 线性头没有独立元素能量偏移。显式归一化调整所选 MTP 的 moment 通道；
+此选项保留 NN 已有输入归一化，不支持改写它。
+
+指定传统输出文件名即可保存原生格式。复合势原生格式可包含清单和旁文件；GPM 始终
+自包含完整模型。旧的数据驱动 MTP-M 配置和输出约定保持兼容。调整或重初始化后的
+GPM 按 inference 语义保存并移除旧 AL 状态；继续主动学习前须重建选样状态。
+
+EDQ/EDQRd 仅在 atoms-agent 中实现；本公开仓库没有该模型家族，调用时明确报不支持的类型。
+
+## 训练命令选择指南
 
 | 命令 | 模型类型 | 方法 | 适用场景 |
 | --- | --- | --- | --- |
@@ -1835,6 +1920,26 @@ imrmlp adjustmtp --input=original.mtp --output=reordered.mtp --neworder 0 2 1
 | `--output` | `-out` | `output-adj.mtp` | 输出势（位置参数） |
 | `--neworder` | | | 新物种顺序（位置参数，可多值）；顺序变长时追加随机初始化物种 |
 | `--elements` | | | 输出物种顺序对应的元素符号；`--neworder` 追加物种时必需 |
+
+新的 GPM/MTP-M 入口将基组调整 `--basis-order keep|level|level-group` 与元素置换
+`--neworder` 分开，默认保持基组顺序，输出 `_Adjusted_Potential_.gpm`。
+旧普通 MTP 命令继续保持 level 重排和原生默认输出约定。
+
+```sh
+imrmlp adjustmtp --input initial.gpm --output reordered.gpm --neworder 1 0
+imrmlp adjustmtp --input initial.gpm --output expanded.gpm \
+  --append-elements Cu --new-species-init clone --clone-from 0
+imrmlp adjustmtp --input initial.gpm --output random.gpm \
+  --append-elements Cu --new-species-init random
+```
+
+克隆来源使用原输入 ID。随机扩展只改变新增元素及新有向元素对的参数；未指定
+来源时使用原元素 0 的基配置。执行顺序为扩展、元素置换、基组重排。已有元素
+身份不能重命名。MTP-M 的标量置换会迁移所有潜变量 moment 通道，而非仅首通道。
+没有定义迁移映射的打包正则项布局会被拒绝；不支持的模型家族会在发布前报错。
+修改后的 GPM 不携带旧 AL 状态，需要重新选样。原生与 GPM 输出先暂存并进行
+相应的重载校验，再发布；原地替换必须显式指定输出路径。
+
 
 ### `mtpbasis` — 比较 MTP 基组并映射参数
 
