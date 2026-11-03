@@ -139,14 +139,11 @@ final points are always checked when a validation set is present.
 
 ## GPU MTP training
 
-@note **GPU fitting is implemented in `trainnlpot` only.** `trainmtp` and
-`train_linear` are CPU-only: their trainers contain no GPU kernels and never
-read `fit:device`. `trainmtp` does not reject the key either — a shared settings
-file containing `fit:device cuda` is loaded and echoed in the settings dump, then
-ignored, so the fit still runs entirely on the CPU without any warning. Do not
-expect a GPU build to accelerate `trainmtp`; move the fit to `trainnlpot` with
-the same model instead. The Python training entry point is CPU-only as well and
-raises an error when `device` is not `cpu`.
+`trainmtp` supports explicit FP64 GPU linear fitting and L-BFGS/CG/SGD
+training for ordinary MTP. See [trainmtp GPU training](trainmtp-gpu.md) for its
+batch limits, memory budgets, CUDA linear curvature support and examples.
+`trainnlpot` supports the broader model families described below, with its own
+batching settings. `train_linear` and Python training remain CPU-only.
 
 Classic linear MTP now has complete FP64 GPU gradients for energy, force,
 and stress losses.  Enable it in `trainnlpot` with:

@@ -38,4 +38,6 @@ public:
 
     /// @brief Reset and rebuild neighbor lists
     void init(const Atoms &atom, const double cutoff);
+    static std::size_t construction_memory_bound(const Atoms &, double cutoff, std::size_t budget);
+    std::size_t owned_memory_bytes(bool copied = false) const;
 };

@@ -96,8 +96,8 @@ Combined modes are `mpi-cuda` and `mpi-hip`. For evaluation commands that expose
 [installation](installation.md) and [GPU support](../development/cuda.md). A GPU build does not change the CLI
 surface; unsupported combinations fail at potential construction time.
 
-GPU builds do not accelerate `trainmtp`: it is CPU-only and ignores `fit:device`.
-For GPU fitting use `trainnlpot` with the same model.
+`trainmtp` uses the GPU when a matching GPU build receives `fit:device cuda|hip|dcu`.
+See [trainmtp GPU training](../development/trainmtp-gpu.md) for supported actions and budgets.
 
 ## Can CLI and Python be mixed?
 

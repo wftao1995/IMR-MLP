@@ -15,6 +15,9 @@ struct HVPFitSettings {
     double observation_weight(const Atoms &atom, double normalization = 1.0) const;
 };
 
+Atoms gpu_hvp_geometry_copy(const Atoms &reference);
+void validate_hessian_fit_label(const Atoms &reference);
+
 struct HVPFitResult {
     double loss = 0.0, squared_error = 0.0;
     int observations = 0;

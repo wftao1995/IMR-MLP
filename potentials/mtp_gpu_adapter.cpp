@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <sstream>
 #include <typeinfo>
+#include <type_traits>
 
 namespace Potentials {
 namespace {
@@ -32,6 +33,20 @@ bool set_error(std::string *error, const std::string &message)
 {
     if (error != nullptr) *error = message;
     return false;
+}
+
+struct TrainingCallGuard {
+    MTPGpuEvaluator &evaluator;
+    bool success=false;
+    ~TrainingCallGuard() {
+        if(!success && evaluator.initialized())evaluator.context().invalidate_training_state();
+    }
+};
+
+bool complete_cartesian(const Atoms &a)
+{
+    return a.cartesian && !a.have_ghost && a.nghost_ == 0 && a.map_ghost_.empty() &&
+        (a.nlocal_ == 0 || (a.nlocal_ > 0 && size_t(a.nlocal_) == a.size()));
 }
 
 MTPGpuActivation gpu_activation(m_model_nn1::ActivationFunction activation)
@@ -180,6 +195,28 @@ bool MTPGpuEvaluator::initialize_short_range(const AnyPotential &source_potentia
     return initialize_short_range(source_potential, device_id, MTPGpuPrecision::FP64, error);
 }
 
+bool MTPGpuEvaluator::initialize_bounded(const AnyPotential &potential, int device_id,
+                                        size_t budget, std::string *error)
+{
+    if (!budget) return set_error(error, "GPU inference requires a positive memory budget");
+    return initialize_impl(potential, device_id, MTPGpuPrecision::FP64, false, error, nullptr, budget);
+}
+
+bool MTPGpuEvaluator::initialize_training_bounded(const AnyPotential &potential,int device_id,
+    size_t budget,std::string *error)
+{
+    if(context_) {
+        context_->invalidate_training_state();
+        return set_error(error,"bounded training initialization requires a fresh evaluator");
+    }
+    const auto *mtp=dynamic_cast<const PotMTP *>(&potential);
+    if(!budget || !mtp || typeid(potential)!=typeid(PotMTP) || mtp->radial_mode!=0) {
+        if(context_)context_->invalidate_training_state();
+        return set_error(error,"bounded GPU training requires ordinary PotMTP, radial_mode=0 and a positive budget");
+    }
+    return initialize_impl(potential,device_id,MTPGpuPrecision::FP64,false,error,nullptr,0,budget);
+}
+
 bool MTPGpuEvaluator::initialize_short_range(const AnyPotential &source_potential,
                                              int device_id, MTPGpuPrecision precision,
                                              std::string *error)
@@ -190,9 +227,17 @@ bool MTPGpuEvaluator::initialize_short_range(const AnyPotential &source_potentia
 bool MTPGpuEvaluator::initialize_impl(const AnyPotential &source_potential,
                                       int device_id, MTPGpuPrecision precision,
                                       bool short_range_only, std::string *error,
-                                      const MTPGpuPotentialView *head_override)
+                                      const MTPGpuPotentialView *head_override,
+                                      size_t memory_budget_bytes,
+                                      size_t training_memory_budget_bytes)
 {
+    if(context_ && context_->memory_stats().training_memory_budget_bytes) {
+        context_->invalidate_training_state();
+        return set_error(error,"replace the bounded training evaluator to reinitialize its model or budget");
+    }
     context_.reset();
+    linear_energy_columns_ = 0;
+    analytic_hvp_supported_ = false;
     short_range_only_ = short_range_only;
     custom_head_ = head_override != nullptr;
     const auto *potential_ptr = dynamic_cast<const PotMTP *>(&source_potential);
@@ -200,6 +245,9 @@ bool MTPGpuEvaluator::initialize_impl(const AnyPotential &source_potential,
         return set_error(error, "GPU MTP adapter requires PotMTP or PotMTP_M");
     }
     const PotMTP &potential = *potential_ptr;
+    training_model_shape_={potential.species_count,potential.radial_func_count,potential.rb_size,
+        potential.alpha_moments_count,potential.alpha_index_basic_count,potential.alpha_index_times_count,
+        potential.alpha_scalar_moments,potential.max_mu};
     MTPGpuModel model_type = MTPGpuModel::Linear;
     MTPGpuActivation model_activation = MTPGpuActivation::Tanh;
     int model_hidden1 = 0;
@@ -375,6 +423,10 @@ bool MTPGpuEvaluator::initialize_impl(const AnyPotential &source_potential,
         view.descriptor_count = head_override->descriptor_count;
         view.descriptor_species_coeffs = head_override->descriptor_species_coeffs;
         view.descriptor_moment_coeffs = head_override->descriptor_moment_coeffs;
+        view.scalar_gather = head_override->scalar_gather;
+        view.input_mean = head_override->input_mean;
+        view.input_inverse_std = head_override->input_inverse_std;
+        view.input_species = head_override->input_species;
         view.model_coeffs = head_override->model_coeffs;
         view.model_coeffs_count = head_override->model_coeffs_count;
         view.model_activation = head_override->model_activation;
@@ -385,6 +437,8 @@ bool MTPGpuEvaluator::initialize_impl(const AnyPotential &source_potential,
     auto new_context = std::make_unique<MLIPCore::GpuDirect::MTPGpuDirect>();
     MTPGpuInitializationOptions options;
     options.precision = precision;
+    options.memory_budget_bytes = memory_budget_bytes;
+    options.training_memory_budget_bytes = training_memory_budget_bytes;
     if (!new_context->set_device(device_id, error) ||
         !new_context->initialize(view, options, error)) {
         return false;
@@ -393,6 +447,11 @@ bool MTPGpuEvaluator::initialize_impl(const AnyPotential &source_potential,
     has_sog_ = false;
     if(!short_range_only_ && !update_sog(source_potential,error)){context_.reset();return false;}
     configure_gradient_layout(source_potential);
+    if (typeid(source_potential) == typeid(PotMTP) && !short_range_only_ &&
+        !custom_head_ && precision == MTPGpuPrecision::FP64 && potential.radial_mode == 0)
+        linear_energy_columns_ = potential.get_lin_coeff_size();
+    analytic_hvp_supported_ = !training_memory_budget_bytes && linear_energy_columns_ > 0 &&
+        !potential.hc_correction && !potential.rR_correction && !potential.add_efs;
     return true;
 }
 
@@ -421,23 +480,11 @@ bool MTPGpuEvaluator::initialize_legacy_nn(const PotMTPNN1 &potential,
     if (nn_inputs != inputs || mean.size() != inputs || inverse_std.size() != inputs ||
         potential.species_coeffs.size() != static_cast<size_t>(mtp.species_count))
         return set_error(error, "legacy neural GPU descriptor or species layout mismatch");
-    std::vector<double> species(static_cast<size_t>(inputs) * mtp.species_count);
-    std::vector<double> moments(static_cast<size_t>(inputs) * mtp.alpha_scalar_moments, 0.);
-    for (int descriptor = 0; descriptor < inputs; ++descriptor) {
-        for (int type = 0; type < mtp.species_count; ++type) {
-            const double raw_bias = descriptor == 0 ? mtp.species_coeffs[type] : 0.;
-            species[descriptor * mtp.species_count + type] =
-                (raw_bias - mean[descriptor]) * inverse_std[descriptor];
-        }
-        if (descriptor > 0)
-            moments[descriptor * mtp.alpha_scalar_moments + descriptor - 1] = inverse_std[descriptor];
-    }
     MTPGpuPotentialView head;
     head.model = potential.nnlay > 1 ? MTPGpuModel::MTPMNN2 : MTPGpuModel::MTPMNN1;
     head.species_coeffs = potential.species_coeffs.data();
     head.descriptor_count = inputs;
-    head.descriptor_species_coeffs = species.data();
-    head.descriptor_moment_coeffs = moments.data();
+    head.scalar_gather=true;head.input_mean=mean.data();head.input_inverse_std=inverse_std.data();head.input_species=mtp.species_coeffs;
     head.model_coeffs_count = potential.nnlay > 1 ? potential.p_nn2->n_coeffs : potential.p_nn->n_coeffs;
     std::vector<double> coefficients(head.model_coeffs_count);
     if (potential.nnlay > 1) {
@@ -495,10 +542,12 @@ bool MTPGpuEvaluator::accumulate_gradient(MLIPCore::GpuDirect::MTPGpuGradientReq
 {
     if (short_range_only_) return set_error(error, "short-range-only GPU models are inference-only");
     if (!context_) return set_error(error,"GPU MTP evaluator is not initialized");
-    if (inference_only_radial_mode_)
+    if (inference_only_radial_mode_) {
+        context_->invalidate_training_state();
         return set_error(error,"GPU training still requires radial_mode=0");
+    }
     if (request.gradient_count != static_cast<int>(gradient_indices_.size()) || !request.gradient) {
-        context_->invalidate_forward();
+        context_->invalidate_training_state();
         return set_error(error,"GPU gradient does not match the native optimizer layout");
     }
     if (request.gradient_count == full_gradient_count_)
@@ -570,19 +619,39 @@ size_t MTPGpuEvaluator::reciprocal_bytes(const Atoms &atoms) const
 bool MTPGpuEvaluator::update_coefficients(const AnyPotential &source_potential,
                                             std::string *error)
 {
+    // A rejected update or a changed native model contract must never leave
+    // the inference-only analytic capability from the previous model active.
+    analytic_hvp_supported_ = false;
     if (!context_) return set_error(error, "GPU MTP evaluator is not initialized");
     if (custom_head_) return set_error(error, "custom GPU heads require explicit reinitialization after coefficient changes");
-    context_->invalidate_forward();
+    context_->invalidate_training_state();
     const auto *potential = dynamic_cast<const PotMTP *>(&source_potential);
     if (potential == nullptr)
         return set_error(error, "GPU coefficient update requires PotMTP");
+    if(context_->memory_stats().training_memory_budget_bytes &&
+       (typeid(source_potential)!=typeid(PotMTP) || potential->radial_mode!=0 ||
+        potential->get_NL_coeffs_count()!=full_gradient_count_ ||
+        training_model_shape_!=std::array<int,8>{potential->species_count,potential->radial_func_count,potential->rb_size,
+            potential->alpha_moments_count,potential->alpha_index_basic_count,potential->alpha_index_times_count,
+            potential->alpha_scalar_moments,potential->max_mu}))
+        return set_error(error,"bounded training coefficient update requires the original ordinary MTP layout");
+    // Preserve the existing inference update path; only withdraw this new
+    // observation capability if its narrower model contract no longer holds.
+    if (typeid(source_potential) != typeid(PotMTP) || potential->radial_mode != 0)
+        linear_energy_columns_ = 0;
     inference_only_radial_mode_ = potential->radial_mode != 0;
     if(!short_range_only_ && !update_sog(source_potential,error))return false;
     configure_gradient_layout(source_potential);
     if (typeid(source_potential) == typeid(PotMTP) || dynamic_cast<const PotMTP_LES *>(&source_potential)) {
-        return context_->update_coefficients(
+        const bool updated = context_->update_coefficients(
             potential->radial_coeffs, potential->species_coeffs,
             potential->moment_coeffs, error);
+        analytic_hvp_supported_ = updated && typeid(source_potential) == typeid(PotMTP) &&
+            !short_range_only_ && !custom_head_ && linear_energy_columns_ > 0 &&
+            context_->precision() == MTPGpuPrecision::FP64 &&
+            !context_->memory_stats().training_memory_budget_bytes && potential->radial_mode == 0 &&
+            !potential->hc_correction && !potential->rR_correction && !potential->add_efs;
+        return updated;
     }
     if (const auto *linear = dynamic_cast<const PotMTP_M<m_model_mtpli> *>(&source_potential)) {
         return context_->update_coefficients(linear->radial_coeffs, linear->species_coeffs, nullptr,
@@ -650,7 +719,11 @@ bool MTPGpuBatch::refresh_compatible(
     std::string *error)
 {
     built_ = false;
+    prepared_loss_token_={};
+    complete_cartesian_ = complete_cartesian(atoms);
     ++input_revision_;
+    if(host_memory_budget_bytes_ && !complete_cartesian_)
+        return set_error(error,"bounded GPU batch refresh requires complete Cartesian structures");
 
     if (structure_count() != 1 || atom_count() != static_cast<int>(atoms.size()) ||
         neighborhoods.size() != static_cast<int>(atoms.size())) {
@@ -687,8 +760,11 @@ bool MTPGpuBatch::refresh_compatible(
             }
         }
     }
-    if(reciprocal_geometry_[0].cell_!=atoms.cell_ || reciprocal_geometry_[0].pbc_!=atoms.pbc_)grid_valid_=false;
-    reciprocal_geometry_[0].cell_=atoms.cell_;reciprocal_geometry_[0].pbc_=atoms.pbc_;
+    if(!reciprocal_geometry_.empty()) {
+        if(reciprocal_geometry_[0].cell_!=atoms.cell_ || reciprocal_geometry_[0].pbc_!=atoms.pbc_)grid_valid_=false;
+        reciprocal_geometry_[0].cell_=atoms.cell_;reciprocal_geometry_[0].pbc_=atoms.pbc_;
+    }
+    prepared_loss_token_={};
     built_ = true;
     return true;
 }
@@ -717,12 +793,39 @@ bool MTPGpuBatch::build(const std::vector<Atoms> &atoms,
     return build_impl(atom_ptrs, neighborhood_ptrs, error);
 }
 
+size_t MTPGpuBatch::owned_host_bytes() const
+{
+    size_t bytes=0;
+    const auto add=[&](const auto &v){bytes+=v.capacity()*sizeof(typename std::decay_t<decltype(v)>::value_type);};
+    add(centers_);add(center_structure_);add(structure_offsets_);add(offsets_);add(neighbors_);add(types_);
+    add(positions_);add(neighbor_vectors_);add(forces_);add(site_energies_);add(site_virials_);
+    for(const auto &v:cached_labels_)add(v);
+    add(reciprocal_geometry_);add(wave_offsets_);add(wave_vectors_);add(wave_factors_);
+    add(wave_taper_);add(wave_tp_);add(volumes_);
+    return bytes;
+}
+
+bool MTPGpuBatch::build_bounded(const std::vector<const Atoms *> &atoms,
+    const std::vector<const AnyNeighborhoods *> &neighborhoods,size_t cap,std::string *error)
+{
+    built_=false;prepared_loss_token_={};
+    if(!cap)return set_error(error,"bounded GPU batch requires a positive host budget");
+    if(owned_host_bytes()>cap)
+        return set_error(error,"retained GPU batch exceeds the requested host budget; use a fresh batch");
+    // A smaller cap can replace the old packed data, but cannot be used to
+    // erase the persistent bound through ordinary build/evaluate calls.
+    host_memory_budget_bytes_=cap;
+    return build_impl(atoms,neighborhoods,error);
+}
+
 bool MTPGpuBatch::build_impl(
     const std::vector<const Atoms *> &atoms,
     const std::vector<const AnyNeighborhoods *> &neighborhoods,
     std::string *error)
 {
     built_ = false;
+    prepared_loss_token_={};
+    complete_cartesian_ = false;
     ++topology_revision_;
     ++grid_revision_;
     ++labels_revision_;
@@ -732,7 +835,44 @@ bool MTPGpuBatch::build_impl(
     ++input_revision_;
     uploaded_once_ = false;
 
+    if(atoms.size()!=neighborhoods.size())
+        return set_error(error,"GPU MTP batch requires one neighborhood set per structure");
     if (atoms.empty()) return set_error(error, "GPU MTP batch is empty");
+    if(host_memory_budget_bytes_) {
+        size_t total=0,edges=0;
+        if(atoms.size()>size_t(std::numeric_limits<int>::max()/9))
+            return set_error(error,"bounded GPU batch structure count overflows indexing");
+        for(size_t s=0;s<atoms.size();++s) {
+            if(!atoms[s] || !neighborhoods[s] || !complete_cartesian(*atoms[s]) ||
+               atoms[s]->size()>size_t(std::numeric_limits<int>::max()/6)-total ||
+               atoms[s]->chemmap_.size()!=atoms[s]->size() ||
+               neighborhoods[s]->size()!=static_cast<int>(atoms[s]->size()))
+                return set_error(error,"bounded GPU batch requires complete Cartesian structures and valid sizes");
+            total+=atoms[s]->size();
+            for(int i=0;i<neighborhoods[s]->size();++i) {
+                const auto &nbh=(*neighborhoods[s])[i];
+                if(nbh.nbhcount_<0 || size_t(nbh.nbhcount_)>size_t(std::numeric_limits<int>::max()/3)-edges ||
+                   nbh.indices_.size()!=size_t(nbh.nbhcount_) || nbh.pos_.size()!=size_t(nbh.nbhcount_))
+                    return set_error(error,"bounded GPU batch neighborhood size overflows indexing");
+                edges+=size_t(nbh.nbhcount_);
+            }
+        }
+        const size_t int_count=4*total+atoms.size()+2+edges;
+        const size_t double_count=13*total+3*edges;
+        if(int_count>std::numeric_limits<size_t>::max()/sizeof(int) ||
+           double_count>std::numeric_limits<size_t>::max()/sizeof(double) ||
+           int_count*sizeof(int)>host_memory_budget_bytes_ ||
+           double_count*sizeof(double)>host_memory_budget_bytes_-int_count*sizeof(int))
+            return set_error(error,"packed GPU batch exceeds its persistent host memory budget");
+        // Drop old buffers before allocating exact replacements: no doubled
+        // old/new packed batch and no geometric reserve under the cap.
+        const auto release=[](auto &v){std::decay_t<decltype(v)>().swap(v);};
+        release(centers_);release(center_structure_);release(structure_offsets_);release(offsets_);
+        release(neighbors_);release(types_);release(positions_);release(neighbor_vectors_);
+        release(forces_);release(site_energies_);release(site_virials_);release(reciprocal_geometry_);
+        release(wave_offsets_);release(wave_vectors_);release(wave_factors_);release(wave_taper_);release(wave_tp_);release(volumes_);
+        grid_definition_=LES{};
+    }
     structure_offsets_.assign(atoms.size() + 1, 0);
     for (size_t s = 0; s < atoms.size(); ++s) {
         if (atoms[s] == nullptr || neighborhoods[s] == nullptr) {
@@ -745,8 +885,12 @@ bool MTPGpuBatch::build_impl(
         }
         structure_offsets_[s + 1] = structure_offsets_[s] + static_cast<int>(n);
     }
-    reciprocal_geometry_.resize(atoms.size());
-    for(size_t b=0;b<atoms.size();++b){reciprocal_geometry_[b].cell_=atoms[b]->cell_;reciprocal_geometry_[b].pbc_=atoms[b]->pbc_;}
+    complete_cartesian_ = std::all_of(atoms.begin(), atoms.end(),
+        [](const Atoms *a) { return complete_cartesian(*a); });
+    if(!host_memory_budget_bytes_) {
+        reciprocal_geometry_.resize(atoms.size());
+        for(size_t b=0;b<atoms.size();++b){reciprocal_geometry_[b].cell_=atoms[b]->cell_;reciprocal_geometry_[b].pbc_=atoms[b]->pbc_;}
+    }
     grid_valid_=false;
     const int natoms = structure_offsets_.back();
     centers_.resize(natoms);
@@ -812,8 +956,19 @@ bool MTPGpuBatch::build_impl(
     site_virials_.assign(static_cast<size_t>(natoms) * 6, 0.0);
     uploaded_once_ = false;
     uploaded_generation_ = 0;
+    if(host_memory_budget_bytes_ && owned_host_bytes()>host_memory_budget_bytes_)
+        return set_error(error,"retained GPU batch capacities exceed host memory budget");
     built_ = true;
     return true;
+}
+
+bool MTPGpuBatch::build(const std::vector<const Atoms *> &atoms,
+    const std::vector<const AnyNeighborhoods *> &neighborhoods, std::string *error)
+{
+    built_ = false;
+    if (atoms.size() != neighborhoods.size())
+        return set_error(error, "GPU MTP batch requires one neighborhood set per structure");
+    return build_impl(atoms, neighborhoods, error);
 }
 
 bool MTPGpuBatch::can_reuse_topology(
@@ -838,6 +993,7 @@ bool MTPGpuBatch::prepare_sog(MTPGpuEvaluator &evaluator,
     if (!built_) return set_error(error,"GPU batch requires a successful build or refresh");
     const LES *definition=evaluator.sog_definition();
     if(!definition)return true;
+    if(host_memory_budget_bytes_)return set_error(error,"bounded training batches do not support SOG allocations");
     if(!std::all_of(positions_.begin(),positions_.end(),[](double x){return std::isfinite(x);}))
         return set_error(error,"SOG GPU positions contain non-finite values");
     const bool same=grid_valid_ && grid_definition_.dl==definition->dl
@@ -889,6 +1045,156 @@ MLIPCore::GpuDirect::MTPGpuBatchRequest MTPGpuBatch::request()
     req.accumulate_force = false;
     req.deterministic_reduction = deterministic_reduction_;
     return req;
+}
+
+bool MTPGpuBatch::prepare_linear_energy(MTPGpuEvaluator &evaluator,
+    size_t forward_budget_bytes, std::string *error)
+{
+    if (evaluator.initialized()) evaluator.context().invalidate_forward();
+    if (!built_ || !atom_count() || !evaluator.initialized() ||
+        !evaluator.linear_energy_column_count())
+        return set_error(error, "linear energy observations require a nonempty batch and ordinary FP64 PotMTP with radial_mode=0");
+    auto req = request();
+    req.inference_only = true;
+    req.memory_budget_bytes = forward_budget_bytes;
+    req.compute_forces = req.compute_global_energy = req.compute_site_energy = false;
+    req.force = req.site_energy = req.site_virial = nullptr;
+    req.reuse_topology = can_reuse_topology(evaluator, true);
+    if (!evaluator.context().compute_batch(req, error)) return false;
+    record_uploaded_topology(evaluator);
+    if (!evaluator.context().has_linear_energy_input(input_token())) {
+        evaluator.context().invalidate_forward();
+        return set_error(error, "linear energy forward budget cannot retain all centers; reduce the batch size");
+    }
+    return true;
+}
+
+bool MTPGpuBatch::linear_energy_block(MTPGpuEvaluator &evaluator, int first_structure,
+    int rows, const std::vector<int> &columns, std::vector<double> &output,
+    size_t workspace_budget_bytes, std::string *error)
+{
+    output.clear();
+    if (!built_ || !evaluator.initialized() || !evaluator.linear_energy_column_count() ||
+        !evaluator.context().has_linear_energy_input(input_token()))
+        return set_error(error, "prepare linear energy observations for this batch before reading a block");
+    if (first_structure < 0 || first_structure > structure_count() || rows < 0 ||
+        rows > structure_count() - first_structure || columns.size() > size_t(std::numeric_limits<int>::max()))
+        return set_error(error, "invalid linear energy row or column count");
+    for (int c : columns)
+        if (c < 0 || c >= evaluator.linear_energy_column_count())
+            return set_error(error, "invalid native linear energy column");
+    const size_t count = size_t(rows) * columns.size();
+    const size_t header_bytes = ((size_t(rows) + 1 + columns.size()) * sizeof(int) + 7) & ~size_t(7);
+    if (count && (count > size_t(std::numeric_limits<int>::max()) ||
+        header_bytes > workspace_budget_bytes ||
+        count > (workspace_budget_bytes - header_bytes) / sizeof(double)))
+        return set_error(error, "linear energy block exceeds workspace budget or kernel index limit");
+    output.resize(count);
+    if (!evaluator.context().linear_energy_block(input_token(), structure_offsets_.data() + first_structure,
+        rows, columns.data(), static_cast<int>(columns.size()), output.data(), workspace_budget_bytes, error)) {
+        output.clear();
+        return false;
+    }
+    return true;
+}
+
+bool MTPGpuBatch::linear_force_block(MTPGpuEvaluator &evaluator, int first_row, int rows,
+    const std::vector<int> &columns, std::vector<double> &output, size_t budget, std::string *error)
+{
+    return linear_derivative_block(evaluator, MLIPCore::GpuDirect::MTPGpuLinearDerivative::Force,
+        first_row, rows, columns, output, budget, error);
+}
+
+bool MTPGpuBatch::linear_virial_block(MTPGpuEvaluator &evaluator, int first_row, int rows,
+    const std::vector<int> &columns, std::vector<double> &output, size_t budget, std::string *error)
+{
+    return linear_derivative_block(evaluator, MLIPCore::GpuDirect::MTPGpuLinearDerivative::Virial,
+        first_row, rows, columns, output, budget, error);
+}
+
+bool MTPGpuBatch::linear_derivative_block(MTPGpuEvaluator &evaluator,
+    MLIPCore::GpuDirect::MTPGpuLinearDerivative kind, int first_row, int rows,
+    const std::vector<int> &columns, std::vector<double> &output, size_t budget, std::string *error)
+{
+    output.clear();
+    if (!built_ || !evaluator.initialized() || !evaluator.linear_observation_column_count() ||
+        !evaluator.context().has_linear_energy_input(input_token()))
+        return set_error(error, "prepare linear observations for this batch before reading a derivative block");
+    const size_t available_rows = kind == MLIPCore::GpuDirect::MTPGpuLinearDerivative::Virial
+        ? size_t(structure_count())*9 : size_t(atom_count())*3;
+    if (available_rows > size_t(std::numeric_limits<int>::max()) || first_row < 0 || rows < 0 ||
+        size_t(first_row) > available_rows || size_t(rows) > available_rows - first_row ||
+        columns.size() > size_t(std::numeric_limits<int>::max()))
+        return set_error(error, "invalid linear derivative row or column count");
+    for (int c : columns) if (c < 0 || c >= evaluator.linear_observation_column_count())
+        return set_error(error, "invalid native linear derivative column");
+    const size_t count = size_t(rows)*columns.size();
+    if (count > size_t(std::numeric_limits<int>::max()) || count > budget/sizeof(double))
+        return set_error(error, "linear derivative output exceeds workspace budget or index limit");
+    output.resize(count);
+    if (!evaluator.context().linear_derivative_block(input_token(), kind, structure_offsets_.data(),
+        structure_count(), first_row, rows, columns.data(), static_cast<int>(columns.size()),
+        output.data(), budget, error)) {
+        output.clear();
+        return false;
+    }
+    return true;
+}
+
+bool MTPGpuBatch::prepare_linear_energy_device(MTPGpuEvaluator &evaluator,int first,int rows,
+    const std::vector<int> &columns,MLIPCore::GpuDirect::MTPGpuLinearRows &token,
+    size_t workspace_cap,size_t total_cap,std::string *error)
+{
+    token={};
+    if(!built_ || !complete_cartesian_ || !evaluator.initialized() || !evaluator.linear_observation_column_count() ||
+        first<0 || rows<0 || first>structure_count() || rows>structure_count()-first ||
+        columns.size()>size_t(std::numeric_limits<int>::max())) {
+        if(evaluator.initialized())evaluator.context().invalidate_forward();
+        return set_error(error,"invalid complete Cartesian batch or energy resident block");
+    }
+    return evaluator.context().prepare_linear_energy_device(input_token(),structure_offsets_.data()+first,rows,
+        columns.data(),int(columns.size()),token,workspace_cap,total_cap,error);
+}
+bool MTPGpuBatch::prepare_linear_site_device(MTPGpuEvaluator &evaluator,int first,int rows,
+    const std::vector<int> &columns,MLIPCore::GpuDirect::MTPGpuLinearRows &token,
+    size_t workspace_cap,size_t total_cap,std::string *error)
+{
+    token={};
+    if(!built_ || !complete_cartesian_ || !evaluator.initialized() || !evaluator.linear_observation_column_count() ||
+        first<0 || rows<0 || first>atom_count() || rows>atom_count()-first ||
+        columns.size()>size_t(std::numeric_limits<int>::max())) {
+        if(evaluator.initialized())evaluator.context().invalidate_forward();
+        return set_error(error,"invalid complete Cartesian batch or site resident block");
+    }
+    std::vector<int> offsets(size_t(rows)+1);std::iota(offsets.begin(),offsets.end(),first);
+    return evaluator.context().prepare_linear_energy_device(input_token(),offsets.data(),rows,
+        columns.data(),int(columns.size()),token,workspace_cap,total_cap,error);
+}
+bool MTPGpuBatch::prepare_linear_force_device(MTPGpuEvaluator &evaluator,int first,int rows,
+    const std::vector<int> &columns,MLIPCore::GpuDirect::MTPGpuLinearRows &token,
+    size_t workspace_cap,size_t total_cap,std::string *error)
+{
+    token={};
+    if(!built_ || !complete_cartesian_ || !evaluator.initialized() || !evaluator.linear_observation_column_count() ||
+        columns.size()>size_t(std::numeric_limits<int>::max())) {
+        if(evaluator.initialized())evaluator.context().invalidate_forward();
+        return set_error(error,"invalid complete Cartesian batch for force resident block");
+    }
+    return evaluator.context().prepare_linear_derivative_device(input_token(),MLIPCore::GpuDirect::MTPGpuLinearDerivative::Force,
+        structure_offsets_.data(),structure_count(),first,rows,columns.data(),int(columns.size()),token,workspace_cap,total_cap,error);
+}
+bool MTPGpuBatch::prepare_linear_virial_device(MTPGpuEvaluator &evaluator,int first,int rows,
+    const std::vector<int> &columns,MLIPCore::GpuDirect::MTPGpuLinearRows &token,
+    size_t workspace_cap,size_t total_cap,std::string *error)
+{
+    token={};
+    if(!built_ || !complete_cartesian_ || !evaluator.initialized() || !evaluator.linear_observation_column_count() ||
+        columns.size()>size_t(std::numeric_limits<int>::max())) {
+        if(evaluator.initialized())evaluator.context().invalidate_forward();
+        return set_error(error,"invalid complete Cartesian batch for virial resident block");
+    }
+    return evaluator.context().prepare_linear_derivative_device(input_token(),MLIPCore::GpuDirect::MTPGpuLinearDerivative::Virial,
+        structure_offsets_.data(),structure_count(),first,rows,columns.data(),int(columns.size()),token,workspace_cap,total_cap,error);
 }
 
 bool MTPGpuBatch::evaluate(MTPGpuEvaluator &evaluator, Atoms &result,
@@ -1093,6 +1399,193 @@ bool MTPGpuBatch::evaluate_energy_impl(
     return true;
 }
 
+bool MTPGpuBatch::evaluate_inference(MTPGpuEvaluator &evaluator,
+    std::vector<InferenceResult> &results, bool keep_sites, bool need_forces,
+    size_t budget, std::string *error)
+{
+    if (!built_ || !evaluator.initialized() || !budget)
+        return set_error(error, "bounded GPU inference requires a built batch, evaluator and positive budget");
+    if (!complete_cartesian_)
+        return set_error(error, "bounded GPU inference requires complete Cartesian structures without ghosts");
+    if (evaluator.linear_observation_column_count() <= 0)
+        return set_error(error, "bounded GPU batch inference requires ordinary FP64 MTP with radial_mode=0");
+    evaluator.context().invalidate_forward();
+    auto req = request();
+    req.inference_only = true;
+    req.memory_budget_bytes = budget;
+    req.compute_global_energy = false; // Structure energies are sums of their sites.
+    req.total_energy = nullptr;
+    req.compute_forces = need_forces;
+    req.copy_forces_to_host = need_forces;
+    if (!need_forces) { req.force = nullptr; req.site_virial = nullptr; }
+    req.reuse_topology = can_reuse_topology(evaluator, true);
+    if (!evaluator.context().compute_batch(req, error)) return false;
+    record_uploaded_topology(evaluator);
+
+    std::vector<InferenceResult> next(structure_count());
+    for (int s = 0; s < structure_count(); ++s) {
+        auto &out = next[s];
+        const int begin = structure_offsets_[s], end = structure_offsets_[s+1];
+        if (keep_sites) out.site_energies.assign(site_energies_.begin()+begin, site_energies_.begin()+end);
+        if (need_forces) out.forces.resize(end-begin);
+        for (int i = begin; i < end; ++i) {
+            if (!std::isfinite(site_energies_[i])) return set_error(error, "GPU inference produced a nonfinite site energy");
+            out.energy += site_energies_[i];
+            if (need_forces) {
+                for (int d = 0; d < 3; ++d) out.forces[i-begin][d] = forces_[3*i+d];
+                if (!out.forces[i-begin].allFinite()) return set_error(error, "GPU inference produced nonfinite forces");
+                out.stress(0,0) += site_virials_[6*i];
+                out.stress(1,1) += site_virials_[6*i+1];
+                out.stress(2,2) += site_virials_[6*i+2];
+                out.stress(0,1) += site_virials_[6*i+3];
+                out.stress(0,2) += site_virials_[6*i+4];
+                out.stress(1,2) += site_virials_[6*i+5];
+            }
+        }
+        out.stress(1,0) = out.stress(0,1);
+        out.stress(2,0) = out.stress(0,2);
+        out.stress(2,1) = out.stress(1,2);
+        if (!std::isfinite(out.energy) || !out.stress.allFinite())
+            return set_error(error, "GPU inference produced nonfinite EFS");
+    }
+    results.swap(next);
+    return true;
+}
+
+bool MTPGpuBatch::evaluate_analytic_hvp(MTPGpuEvaluator &evaluator,
+    const double *direction, size_t count, std::vector<double> &product,
+    size_t device_cap, size_t host_cap, std::string *error)
+{
+    TrainingCallGuard guard{evaluator};
+    prepared_loss_token_ = {};
+    analytic_hvp_host_peak_bytes_ = 0;
+    if (evaluator.initialized()) evaluator.context().invalidate_training_state();
+    if (!built_ || !evaluator.initialized() || !device_cap || !host_cap)
+        return set_error(error, "analytic GPU HVP requires a built batch, evaluator and positive device/host budgets");
+    if (!complete_cartesian_ || !evaluator.supports_analytic_hvp())
+        return set_error(error, "analytic GPU HVP requires complete Cartesian structures and ordinary FP64 radial_mode=0 MTP without corrections");
+    if (types_.size() > std::numeric_limits<size_t>::max() / 3 ||
+        count != 3 * types_.size() || (count && !direction))
+        return set_error(error, "analytic GPU HVP direction must contain exactly 3N components");
+    double scale = 0.0;
+    for (size_t i = 0; i < count; ++i) {
+        if (!std::isfinite(direction[i]))
+            return set_error(error, "analytic GPU HVP direction must be finite");
+        scale = std::max(scale, std::abs(direction[i]));
+    }
+    const size_t packed = owned_host_bytes();
+    if (packed > host_cap || count > (host_cap - packed) / (2 * sizeof(double)))
+        return set_error(error, "analytic GPU HVP packed data and vector workspace exceed the host budget");
+    // Normalize before any directional arithmetic, including directions whose
+    // per-atom norm would overflow. Restore units only after the finite result
+    // has been downloaded. Borrowed input remains alive until publication.
+    std::vector<double> normalized(count);
+    const size_t direction_bytes = normalized.capacity() * sizeof(double);
+    if (direction_bytes > host_cap - packed ||
+        count > (host_cap - packed - direction_bytes) / sizeof(double))
+        return set_error(error, "analytic GPU HVP direction allocation exceeds the host budget");
+    for (size_t i = 0; i < count; ++i)
+        normalized[i] = scale == 0.0 ? 0.0 : direction[i] / scale;
+    std::vector<double> pending(count);
+    const size_t product_bytes = pending.capacity() * sizeof(double);
+    if (product_bytes > host_cap - packed - direction_bytes)
+        return set_error(error, "analytic GPU HVP product allocation exceeds the host budget");
+    analytic_hvp_host_peak_bytes_ = packed + direction_bytes + product_bytes;
+
+    auto req = request();
+    req.inference_only = true;
+    req.memory_budget_bytes = device_cap;
+    req.compute_forces = req.compute_global_energy = req.compute_site_energy = false;
+    req.copy_outputs_to_host = req.copy_forces_to_host = false;
+    req.force = req.total_energy = req.global_virial = req.site_energy = req.site_virial = nullptr;
+    req.reuse_topology = can_reuse_topology(evaluator, true);
+    MLIPCore::GpuDirect::MTPGpuAnalyticHvpRequest hvp;
+    hvp.direction = normalized.data();
+    hvp.direction_count = count;
+    hvp.product = pending.data();
+    hvp.product_count = count;
+    if (!evaluator.context().compute_analytic_hvp(req, hvp, error)) return false;
+    record_uploaded_topology(evaluator);
+    for (double &value : pending) {
+        if (!std::isfinite(value))
+            return set_error(error, "analytic GPU HVP produced a nonfinite product");
+        value *= scale;
+        if (!std::isfinite(value))
+            return set_error(error, "analytic GPU HVP product is not representable at the requested direction scale");
+    }
+    product.swap(pending);
+    guard.success = true;
+    return true;
+}
+
+bool MTPGpuBatch::linear_hvp_block(MTPGpuEvaluator &evaluator,
+    const double *direction, size_t count, int first_row, int rows,
+    const std::vector<int> &columns, std::vector<double> &output,
+    size_t device_cap, size_t host_cap, std::string *error)
+{
+    TrainingCallGuard guard{evaluator};
+    prepared_loss_token_ = {};
+    linear_hvp_host_peak_bytes_ = 0;
+    if (evaluator.initialized()) evaluator.context().invalidate_training_state();
+    if (!built_ || !evaluator.initialized() || !device_cap || !host_cap)
+        return set_error(error, "linear GPU HVP requires a built batch, evaluator and positive device/host budgets");
+    if (!complete_cartesian_ || !evaluator.supports_analytic_hvp() ||
+        evaluator.linear_observation_column_count() <= 0)
+        return set_error(error, "linear GPU HVP requires complete Cartesian structures and ordinary FP64 radial_mode=0 MTP without corrections");
+    if (types_.size() > std::numeric_limits<size_t>::max() / 3 ||
+        count != 3 * types_.size() || (count && !direction) ||
+        first_row < 0 || rows < 0 || size_t(first_row) > count || size_t(rows) > count-size_t(first_row) ||
+        columns.size() > size_t(std::numeric_limits<int>::max()))
+        return set_error(error, "invalid linear GPU HVP direction or block shape");
+    for (int column : columns)
+        if (column < 0 || column >= evaluator.linear_observation_column_count())
+            return set_error(error, "linear GPU HVP native column is outside the model");
+    if (rows && columns.size() > std::numeric_limits<size_t>::max()/size_t(rows))
+        return set_error(error, "linear GPU HVP output size overflow");
+    const size_t entries = size_t(rows)*columns.size();
+    double scale = 0.;
+    for (size_t i=0; i<count; ++i) {
+        if (!std::isfinite(direction[i])) return set_error(error, "linear GPU HVP direction must be finite");
+        scale = std::max(scale, std::abs(direction[i]));
+    }
+    const size_t packed = owned_host_bytes();
+    if (packed > host_cap || count > (host_cap-packed)/sizeof(double) ||
+        entries > (host_cap-packed-count*sizeof(double))/sizeof(double))
+        return set_error(error, "linear GPU HVP packed data and block workspace exceed the host budget");
+    std::vector<double> normalized(count);
+    const size_t direction_bytes = normalized.capacity()*sizeof(double);
+    if (direction_bytes > host_cap-packed || entries > (host_cap-packed-direction_bytes)/sizeof(double))
+        return set_error(error, "linear GPU HVP direction allocation exceeds the host budget");
+    for (size_t i=0; i<count; ++i) normalized[i] = scale == 0. ? 0. : direction[i]/scale;
+    std::vector<double> pending(entries);
+    const size_t result_bytes = pending.capacity()*sizeof(double);
+    if (result_bytes > host_cap-packed-direction_bytes)
+        return set_error(error, "linear GPU HVP output allocation exceeds the host budget");
+    linear_hvp_host_peak_bytes_ = packed+direction_bytes+result_bytes;
+    auto req = request();
+    req.inference_only = true;
+    req.memory_budget_bytes = device_cap;
+    req.compute_forces = req.compute_global_energy = req.compute_site_energy = false;
+    req.copy_outputs_to_host = req.copy_forces_to_host = false;
+    req.force = req.total_energy = req.global_virial = req.site_energy = req.site_virial = nullptr;
+    req.reuse_topology = can_reuse_topology(evaluator, true);
+    MLIPCore::GpuDirect::MTPGpuLinearHvpRequest block;
+    block.direction = normalized.data(); block.direction_count = count;
+    block.first_row = first_row; block.row_count = rows;
+    block.columns = columns.data(); block.column_count = static_cast<int>(columns.size());
+    block.output = pending.data(); block.output_count = entries;
+    if (!evaluator.context().compute_linear_hvp_block(req, block, error)) return false;
+    record_uploaded_topology(evaluator);
+    for (double &value : pending) {
+        if (!std::isfinite(value)) return set_error(error, "linear GPU HVP produced a nonfinite component");
+        value *= scale;
+        if (!std::isfinite(value)) return set_error(error, "linear GPU HVP component is not representable at the requested direction scale");
+    }
+    output.swap(pending);
+    guard.success = true;
+    return true;
+}
+
 bool MTPGpuBatch::evaluate_loss(
     MTPGpuEvaluator &evaluator,
     const std::vector<double> &target_energy,
@@ -1105,6 +1598,8 @@ bool MTPGpuBatch::evaluate_loss(
     bool reset_metrics, bool copy_metrics_to_host,
     std::string *error)
 {
+    TrainingCallGuard guard{evaluator};
+    prepared_loss_token_={};
     if (evaluator.initialized()) evaluator.context().invalidate_forward();
     if (!evaluator.initialized())
         return set_error(error, "GPU MTP evaluator is not initialized");
@@ -1131,12 +1626,13 @@ bool MTPGpuBatch::evaluate_loss(
     const std::array<const std::vector<double> *, 6> labels = {
         &target_energy, &energy_weight, &target_force, &force_weight,
         &target_stress, &stress_weight};
-    bool labels_changed = false;
+    bool labels_changed = host_memory_budget_bytes_!=0;
     for (size_t i = 0; i < labels.size(); ++i)
         labels_changed |= cached_labels_[i] != *labels[i];
     if (labels_changed) {
         ++labels_revision_;
-        for (size_t i = 0; i < labels.size(); ++i) cached_labels_[i] = *labels[i];
+        if(!host_memory_budget_bytes_)
+            for (size_t i = 0; i < labels.size(); ++i) cached_labels_[i] = *labels[i];
     }
     MLIPCore::GpuDirect::MTPGpuLossRequest loss;
     loss.labels_token = {identity_.value, labels_revision_};
@@ -1153,13 +1649,49 @@ bool MTPGpuBatch::evaluate_loss(
     loss.reset_metrics = reset_metrics;
     loss.copy_metrics_to_host = copy_metrics_to_host;
     loss.deterministic_reduction = deterministic_reduction_;
-    return evaluator.context().prepare_loss(loss, error);
+    guard.success=evaluator.context().prepare_loss(loss,error);
+    return guard.success;
+}
+
+bool MTPGpuBatch::evaluate_hvp_pair_loss(MTPGpuEvaluator &evaluator,
+    const double *target,size_t target_count,double epsilon,double observation_weight,
+    MLIPCore::GpuDirect::MTPGpuHVPPairMetrics &metrics,std::string *error)
+{
+    TrainingCallGuard guard{evaluator};
+    prepared_loss_token_={};
+    if(evaluator.initialized())evaluator.context().invalidate_forward();
+    if(!built_ || !complete_cartesian_ || !host_memory_budget_bytes_ || !evaluator.initialized() ||
+       !evaluator.context().memory_stats().training_memory_budget_bytes ||
+       structure_count()!=2 || structure_offsets_[1]<=0 || structure_offsets_[2]!=2*structure_offsets_[1] ||
+       !target || target_count!=size_t(structure_offsets_[1])*3 || !std::isfinite(epsilon) || epsilon<=0. ||
+       !std::isfinite(1./epsilon) || !std::isfinite(observation_weight) || observation_weight<0.)
+        return set_error(error,"HVP pair requires a bounded complete plus/minus batch and finite target metadata");
+    const int n=structure_offsets_[1];
+    for(int i=0;i<n;++i) if(types_[i]!=types_[n+i])
+        return set_error(error,"HVP pair species and atom order must agree");
+    for(size_t i=0;i<target_count;++i) if(!std::isfinite(target[i]))
+        return set_error(error,"HVP target must be finite");
+    auto compute=request();
+    double ignored=0.;compute.total_energy=&ignored;
+    compute.reuse_topology=can_reuse_topology(evaluator,true);
+    compute.copy_outputs_to_host=false;compute.compute_global_energy=false;
+    compute.compute_site_energy=false;compute.site_energy=nullptr;compute.site_virial=nullptr;
+    if(!evaluator.context().compute_batch(compute,error))return false;
+    record_uploaded_topology(evaluator);
+    MLIPCore::GpuDirect::MTPGpuHVPForcePairLossRequest loss;
+    loss.atoms_per_structure=n;loss.structure_offsets=structure_offsets_.data();
+    loss.center_structure=center_structure_.data();loss.target=target;loss.target_count=target_count;
+    loss.epsilon=epsilon;loss.observation_weight=observation_weight;
+    loss.deterministic_reduction=deterministic_reduction_;
+    loss.input_token=input_token();loss.labels_token={identity_.value,++labels_revision_};
+    guard.success=evaluator.context().prepare_hvp_pair_loss(loss,metrics,prepared_loss_token_,error);
+    return guard.success;
 }
 
 bool MTPGpuBatch::require_forward(MTPGpuEvaluator &evaluator, std::string *error) const
 {
     if (!built_ || !evaluator.initialized() || !evaluator.context().has_input(input_token())) {
-        if (evaluator.initialized()) evaluator.context().invalidate_forward();
+        if (evaluator.initialized()) evaluator.context().invalidate_training_state();
         return set_error(error, "GPU gradient requires a successful forward of this batch version");
     }
     return true;
@@ -1178,7 +1710,7 @@ bool MTPGpuBatch::accumulate_gradient(
     if (dloss_denergy.size() != static_cast<size_t>(structure_count()) ||
         dloss_dforce.size() != static_cast<size_t>(atom_count()) * 3 ||
         dloss_dstress.size() != static_cast<size_t>(structure_count()) * 9) {
-        evaluator.context().invalidate_forward();
+        evaluator.context().invalidate_training_state();
         return set_error(error, "GPU MTP loss-adjoint arrays do not match the resident batch");
     }
     MLIPCore::GpuDirect::MTPGpuGradientRequest req;
@@ -1209,7 +1741,7 @@ bool MTPGpuBatch::accumulate_gradient_chunks(
     if (dloss_denergy.size() != static_cast<size_t>(structure_count()) ||
         dloss_dforce.size() != static_cast<size_t>(atom_count()) * 3 ||
         dloss_dstress.size() != static_cast<size_t>(structure_count()) * 9) {
-        evaluator.context().invalidate_forward();
+        evaluator.context().invalidate_training_state();
         return set_error(error,
             "GPU MTP loss-adjoint arrays do not match the resident batch");
     }
@@ -1244,6 +1776,7 @@ bool MTPGpuBatch::accumulate_prepared_gradient(
     req.accumulate_gradient_on_device = true;
     req.copy_gradient_to_host = finalize;
     req.adjoints_on_device = true;
+    req.prepared_loss_token = prepared_loss_token_;
     req.deterministic_reduction = deterministic_reduction_;
     req.radial_parameter_tile = radial_parameter_tile_;
     return evaluator.accumulate_gradient(req, error);

@@ -119,7 +119,7 @@ OBJIO = gpio.o gpio_session.o format_detection.o atoms_units.o xsf_fields.o \
 OBJCP = compute_ha.o compute_voro.o compute_bondangle.o compute_rdf.o \
 		compute_msd.o compute_boo.o trajectory_transform.o compute_vacf.o \
 		compute_posavg.o compute_fftfilter.o \
-		compute_sro.o compute_hessian.o compute_cna.o \
+		compute_sro.o gpu_force_fd.o gpu_analytic_hvp.o compute_hessian.o compute_cna.o \
 		lowest_eigenmodes.o \
 		compute_wcsro.o
 
@@ -140,7 +140,7 @@ OBJMISC = units.o lower_energy_envelope.o chem.o procstr.o gputils.o comm.o mpi_
 
 OBJMTM = mtm.o basisgen.o
 
-OBJTRAIN = error_monitor.o training_data.o train_mtp.o train_nonlinear_potential.o train_linear_potential.o linear_refit.o linear_efs_system.o hvp_fit.o varpro.o train_varpro.o nonlinear_workflow.o nonlinear_schedule.o fixed_core.o sgd_scheduler.o
+OBJTRAIN = error_monitor.o training_data.o train_mtp.o train_mtp_gpu.o linear_efs_observations.o linear_curvature_observations.o train_nonlinear_potential.o train_linear_potential.o linear_refit.o linear_efs_system.o hvp_fit.o varpro.o train_varpro.o nonlinear_workflow.o nonlinear_schedule.o fixed_core.o sgd_scheduler.o
 
 OBJAL = al_potential.o al_scorer.o gpm_al.o
 
@@ -174,7 +174,7 @@ GPU_HEADERS := runtime/mtp/gpu-direct/mtp_gpu_direct.h \
                runtime/mtp/gpu-direct/gpu_cache.h \
                runtime/mtp/gpu-direct/gpu_backend.h \
                runtime/mtp/gpu-direct/gpu_runtime.h \
-               runtime/mtp/gpu-direct/radial_gpu_math.h potentials/native_profile.h
+               runtime/mtp/gpu-direct/radial_gpu_math.h runtime/mtp/gpu-direct/precision_inference.cuh potentials/native_profile.h
 GPU_FLAGS_STAMP := $(BUILD_DIR)/.gpu-flags
 $(GPU_FLAGS_STAMP): flags-force | $(BUILD_DIR)
 	@new='$(NVCC) $(CUDA_ARCH) $(HIPCC) $(HIP_ARCH) $(HIP_CXXFLAGS) $(MTP_GPU_ENABLE_NVTX)'; \

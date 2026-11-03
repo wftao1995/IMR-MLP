@@ -228,8 +228,8 @@ Relative inputs still resolve from the launch directory. In practice, launch
 from the task directory using absolute program and library paths.
 See [NEB](neb.md) for ranks and threads, and [GPU support](../development/cuda.md)
 for architectures and supported paths. A GPU build does not automatically put
-all commands on the GPU: `trainmtp` still runs on CPU; supported GPU fitting
-uses `trainnlpot`.
+all commands on the GPU. Enable supported `trainmtp` or `trainnlpot` fitting
+explicitly with `fit:device`; see [trainmtp GPU training](../development/trainmtp-gpu.md).
 
 ## Common build problems
 

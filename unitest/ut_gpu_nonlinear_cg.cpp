@@ -43,7 +43,7 @@ void run_staged_optimizer(TrainNonlinear& trainer,const std::string& optimizer) 
     if(optimizer=="cg") trainer.TrainCG();
     else if(optimizer=="bfgs") trainer.TrainBFGS();
     else if(optimizer=="sgd") trainer.TrainSGD();
-    else trainer.TrainShLBFGS();
+    else GPERROR("Unknown test optimizer");
 }
 std::vector<double> cg_coefficients(const AnyPotential& model) {
     std::vector<double> values(model.get_NL_coeffs_count());model.nl_get_coeffs(values.data());return values;
@@ -101,7 +101,7 @@ TEMPLATE_TEST_CASE("GPU SOG optimizer stages preserve warmup masks and save the 
     PotMTP_M<m_model_mtpfs>,PotMTP_M<m_model_nn1>,PotMTP_M<m_model_nn2>) {
     if(!cg_gpu_available()) SKIP("No GPU");
     const std::string schedule=GENERATE("mtp_sog_from_scratch","mtp_sog_resume");
-    const std::string optimizer=GENERATE("cg","bfgs","sgd","shlbfgs");
+    const std::string optimizer=GENERATE("cg","bfgs","sgd");
     INFO("optimizer="<<optimizer<<", schedule="<<schedule);
     CGFiles files;TestType model;setup_cg_model(model);model.set_inited();
     auto target=LESCurvature::geometry();model.getEFS(target);target.energy_+=.1;

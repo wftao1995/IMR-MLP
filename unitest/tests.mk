@@ -14,7 +14,7 @@ CATCH2_SRCS := $(filter-out unitest/ut_mtp_sgd_mpi.cpp unitest/ut_mtmbasis_trans
 endif
 # This executable owns MPI initialization and GPU collective assertions.
 ifeq ($(filter mpi-cuda mpi-hip,$(BUILD_MODE)),)
-CATCH2_SRCS := $(filter-out unitest/ut_gpu_training_mpi.cpp,$(CATCH2_SRCS))
+CATCH2_SRCS := $(filter-out unitest/ut_gpu_training_mpi.cpp unitest/ut_gpu_train_mtp_mpi.cpp unitest/ut_gpu_linear_curvature_mpi.cpp unitest/ut_trainmtp_nonlinear_gpu_mpi.cpp,$(CATCH2_SRCS))
 endif
 # The VP MPI executable owns MPI initialization.
 ifeq ($(findstring mpi,$(BUILD_MODE)),)

@@ -149,3 +149,34 @@ void finite_difference_hvp_vjp(Potentials::AnyPotential &pot,
     }
 }
 } // namespace Training
+
+Atoms Training::gpu_hvp_geometry_copy(const Atoms &reference) {
+    Atoms result;
+    result.cell_ = reference.cell_;
+    result.pos_ = reference.pos_;
+    result.chemmap_ = reference.chemmap_;
+    result.pbc_ = reference.pbc_;
+    result.cartesian = reference.cartesian;
+    result.id = 0;
+#ifdef _ENABLE_FORCE_ONLY_PREDICTION_
+    result.forces_.resize(reference.size(), Eigen::Vector3d::Zero());
+#endif
+    return result;
+}
+
+void Training::validate_hessian_fit_label(const Atoms &reference) {
+    if (!reference.have_hessian) return;
+    // Atoms::size()/has_hessian() use int indexing. Check the actual owner size
+    // first, including the full Frobenius observation count, before using them.
+    const size_t atoms = reference.pos_.size();
+    if (atoms == 0 || atoms > size_t(std::numeric_limits<int>::max()) / 3)
+        GPERROR("Full Hessian label atom count exceeds integer indexing");
+    const size_t ndof = 3 * atoms;
+    if (ndof > std::numeric_limits<size_t>::max() / ndof ||
+        ndof * ndof > size_t(std::numeric_limits<int>::max()))
+        GPERROR("Full Hessian observation count exceeds integer indexing");
+    if (reference.hessian_.rows() != static_cast<Eigen::Index>(ndof) ||
+        reference.hessian_.cols() != static_cast<Eigen::Index>(ndof) ||
+        !reference.hessian_.allFinite())
+        GPERROR("Full Hessian labels require a finite Cartesian 3N by 3N matrix");
+}

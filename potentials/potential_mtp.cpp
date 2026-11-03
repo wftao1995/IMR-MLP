@@ -2435,7 +2435,7 @@ void PotMTP::CalcSiteEFS(Neighborhood &nbh, double &site_energy,
     // Backpropagation step 1: dE/dB for scalar moments = moment_coeffs
     std::ranges::fill(site_energy_ders_wrt_moments_, 0);
     for (int i = 0; i < alpha_scalar_moments; ++i) {
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] = moment_coeffs[i];
+        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
     }
 
     // Backpropagation step 2: reverse traversal through product rules
@@ -2464,7 +2464,7 @@ void PotMTP::CalcSiteEFSOMP(Neighborhood &nbh, ompbuffers &buffer) {
     // Backpropagation step 1: dE/dB for scalar moments = moment_coeffs
     std::ranges::fill(buffer.site_energy_ders_wrt_moments_, 0);
     for (int i = 0; i < alpha_scalar_moments; ++i) {
-        buffer.site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] = moment_coeffs[i];
+        buffer.site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
     }
 
     // Backpropagation step 2: reverse traversal through product rules
@@ -2867,7 +2867,7 @@ void PotMTP::AccumulateFPGard(Neighborhood &nbh,
 
     // Backpropagation step 1: site energy derivative is the corresponding linear combination
     for (int i = 0; i < alpha_scalar_moments; ++i)
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] = moment_coeffs[i]; // this is dE/dbi
+        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i]; // this is dE/dbi
 
     // Backpropagation step 2: expressing through basic moments:
     for (int i = alpha_index_times_count - 1; i >= 0; --i) {
@@ -3074,7 +3074,7 @@ void Potentials::PotMTP::AccumulateFPGard(Neighborhood &nbh, double *out_gard_ac
 
     // Backpropagation step 1: site energy derivative is the corresponding linear combination
     for (int i = 0; i < alpha_scalar_moments; ++i)
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] = moment_coeffs[i];
+        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
 
     // Backpropagation step 2: expressing through basic moments:
     for (int i = alpha_index_times_count - 1; i >= 0; --i) {
@@ -3277,7 +3277,7 @@ void PotMTP::AccumulateFPGardRonly(Neighborhood &nbh,
 
     // Backpropagation step 1: site energy derivative is the corresponding linear combination
     for (int i = 0; i < alpha_scalar_moments; ++i)
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] = moment_coeffs[i];
+        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
 
     // Backpropagation step 2: expressing through basic moments:
     for (int i = alpha_index_times_count - 1; i >= 0; --i) {
@@ -3474,7 +3474,7 @@ void Potentials::PotMTP::AccumulateFPGardRonly(Neighborhood &nbh, double *out_ga
 
     // Backpropagation step 1: site energy derivative is the corresponding linear combination
     for (int i = 0; i < alpha_scalar_moments; ++i)
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] = moment_coeffs[i];
+        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
 
     // Backpropagation step 2: expressing through basic moments:
     for (int i = alpha_index_times_count - 1; i >= 0; --i) {

@@ -31,6 +31,7 @@ using gpuEvent_t = cudaEvent_t;
 IMRMLP_GPU_CONSTANT(Success);
 IMRMLP_GPU_CONSTANT(MemcpyHostToDevice);
 IMRMLP_GPU_CONSTANT(MemcpyDeviceToHost);
+IMRMLP_GPU_CONSTANT(MemcpyDeviceToDevice);
 IMRMLP_GPU_CONSTANT(StreamNonBlocking);
 IMRMLP_GPU_CONSTANT(EventDisableTiming);
 IMRMLP_GPU_CONSTANT(FuncAttributeMaxDynamicSharedMemorySize);

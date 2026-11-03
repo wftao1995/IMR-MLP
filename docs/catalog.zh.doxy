@@ -33,6 +33,7 @@ INPUT += ../docs/development/architecture_zh.md
 INPUT += ../docs/development/cpp-examples_zh.md
 INPUT += ../docs/development/cuda_zh.md
 INPUT += ../docs/development/index_zh.md
+INPUT += ../docs/development/trainmtp-gpu_zh.md
 INPUT += ../docs/guides/active-learning_zh.md
 INPUT += ../docs/guides/basis-selection_zh.md
 INPUT += ../docs/guides/conventions_zh.md

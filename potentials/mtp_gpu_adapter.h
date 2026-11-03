@@ -24,7 +24,7 @@ namespace Potentials {
 
 class PotMTPNN1;
 
-// IMR-MLP-facing owner for the backend-neutral GPU MTP core.  It converts the
+// IMRMLP-facing owner for the backend-neutral GPU MTP core.  It converts the
 // native PotMTP representation once, while MTPGpuBatch owns the contiguous
 // CSR buffers used for repeated evaluations.
 class MTPGpuEvaluator {
@@ -35,6 +35,11 @@ public:
         const AnyPotential &potential, int device_id,
         MLIPCore::GpuDirect::MTPGpuPrecision precision,
         std::string *error = nullptr);
+    // FP64 inference owner with a cap that also applies before model upload.
+    bool initialize_bounded(const AnyPotential &potential, int device_id,
+                            size_t memory_budget_bytes, std::string *error = nullptr);
+    bool initialize_training_bounded(const AnyPotential &potential, int device_id,
+                                     size_t memory_budget_bytes, std::string *error = nullptr);
     // Explicit inference primitive for composite backends: compile only the
     // local MTP energy, leaving LES/Coulomb/SOG to the caller's field backend.
     bool initialize_short_range(const AnyPotential &potential, int device_id = -1,
@@ -58,6 +63,9 @@ public:
     bool accumulate_gradient(MLIPCore::GpuDirect::MTPGpuGradientRequest request,
                              std::string *error = nullptr);
     int full_gradient_count() const { return full_gradient_count_; }
+    int linear_energy_column_count() const { return linear_energy_columns_; }
+    int linear_observation_column_count() const { return linear_energy_columns_; }
+    bool supports_analytic_hvp() const { return analytic_hvp_supported_; }
 
 
 private:
@@ -66,14 +74,19 @@ private:
     bool has_sog_ = false;
     bool short_range_only_ = false;
     bool custom_head_ = false;
+    bool analytic_hvp_supported_ = false;
+    int linear_energy_columns_ = 0;
     bool initialize_impl(const AnyPotential &, int,
                          MLIPCore::GpuDirect::MTPGpuPrecision, bool,
                          std::string *,
-                         const MLIPCore::GpuDirect::MTPGpuPotentialView *head_override = nullptr);
+                         const MLIPCore::GpuDirect::MTPGpuPotentialView *head_override = nullptr,
+                         size_t memory_budget_bytes = 0,
+                         size_t training_memory_budget_bytes = 0);
     bool inference_only_radial_mode_ = false;
     int full_gradient_count_ = 0;
     std::vector<int> gradient_indices_;
     std::vector<double> full_gradient_;
+    std::array<int, 8> training_model_shape_{};
     void configure_gradient_layout(const AnyPotential &);
     LES sog_definition_;
     bool update_sog(const AnyPotential &, std::string *error);
@@ -91,6 +104,13 @@ public:
                const std::vector<Neighborhoods> &neighborhoods,
                const std::vector<int> &indices,
                std::string *error = nullptr);
+    bool build(const std::vector<const Atoms *> &atoms,
+               const std::vector<const AnyNeighborhoods *> &neighborhoods,
+               std::string *error = nullptr);
+    bool build_bounded(const std::vector<const Atoms *> &atoms,
+                       const std::vector<const AnyNeighborhoods *> &neighborhoods,
+                       size_t host_memory_budget_bytes, std::string *error = nullptr);
+    size_t owned_host_bytes() const;
     // Refresh coordinates, types, and displacement vectors while requiring
     // an exactly compatible centers/offsets/neighbors topology. This enables
     // trajectory reuse without making a same-sized but changed neighbor list
@@ -98,6 +118,46 @@ public:
     bool refresh_compatible(const Atoms &atoms,
                             const AnyNeighborhoods &neighborhoods,
                             std::string *error = nullptr);
+    // Ordinary PotMTP, FP64, radial_mode=0 only. Prepare once, then read any
+    // number of row/column blocks until input, parameters or evaluator change.
+    // A nonzero forward budget must fit all centers; reduce the batch if not.
+    bool prepare_linear_energy(MTPGpuEvaluator &evaluator,
+                               size_t forward_budget_bytes = 0,
+                               std::string *error = nullptr);
+    bool linear_energy_block(MTPGpuEvaluator &evaluator, int first_structure,
+                             int rows, const std::vector<int> &columns,
+                             std::vector<double> &output,
+                             size_t workspace_budget_bytes = size_t{64} << 20,
+                             std::string *error = nullptr);
+    bool prepare_linear_observations(MTPGpuEvaluator &evaluator,
+                                    size_t forward_budget_bytes = 0,
+                                    std::string *error = nullptr) {
+        return prepare_linear_energy(evaluator, forward_budget_bytes, error);
+    }
+    // Rows may split atoms or tensors. Raw, unweighted observations in native
+    // linear-column order; force rows 3*atom+axis, virial rows 9*structure+3*a+b.
+    bool linear_force_block(MTPGpuEvaluator &evaluator, int first_row, int rows,
+                            const std::vector<int> &columns, std::vector<double> &output,
+                            size_t workspace_budget_bytes = size_t{64} << 20,
+                            std::string *error = nullptr);
+    bool linear_virial_block(MTPGpuEvaluator &evaluator, int first_row, int rows,
+                             const std::vector<int> &columns, std::vector<double> &output,
+                             size_t workspace_budget_bytes = size_t{64} << 20,
+                             std::string *error = nullptr);
+    // Device-resident, unweighted native rows. prepare_linear_observations must
+    // retain the complete forward batch first. No full row matrix is downloaded.
+    bool prepare_linear_energy_device(MTPGpuEvaluator &, int first_structure, int rows,
+        const std::vector<int> &, MLIPCore::GpuDirect::MTPGpuLinearRows &,
+        size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
+    bool prepare_linear_site_device(MTPGpuEvaluator &, int first_atom, int rows,
+        const std::vector<int> &, MLIPCore::GpuDirect::MTPGpuLinearRows &,
+        size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
+    bool prepare_linear_force_device(MTPGpuEvaluator &, int first_row, int rows,
+        const std::vector<int> &, MLIPCore::GpuDirect::MTPGpuLinearRows &,
+        size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
+    bool prepare_linear_virial_device(MTPGpuEvaluator &, int first_row, int rows,
+        const std::vector<int> &, MLIPCore::GpuDirect::MTPGpuLinearRows &,
+        size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
     bool evaluate(MTPGpuEvaluator &evaluator, Atoms &result,
                   bool reuse_topology = true, std::string *error = nullptr);
     bool evaluate(MTPGpuEvaluator &evaluator, std::vector<Atoms> &results,
@@ -113,6 +173,48 @@ public:
     bool evaluate(MTPGpuEvaluator &evaluator, std::vector<Atoms> &results,
                   const std::vector<int> &indices,
                   bool reuse_topology = true, std::string *error = nullptr);
+    // Request-aware, bounded ordinary-MTP inference on complete Cartesian
+    // structures (no distributed ghost layout). Each result corresponds to
+    // one packed structure. Energy-only requests do not launch force kernels;
+    // sites can be retained independently. Failure leaves results unchanged.
+    // Repeated calls with the SAME evaluator reuse uploaded geometry even when
+    // update_coefficients() changes the member (including radial coefficients).
+    struct InferenceResult {
+        double energy = 0.;
+        std::vector<double> site_energies;
+        std::vector<Eigen::Vector3d> forces;
+        Eigen::Matrix3d stress = Eigen::Matrix3d::Zero();
+    };
+    bool evaluate_inference(MTPGpuEvaluator &evaluator,
+                            std::vector<InferenceResult> &results,
+                            bool site_energies, bool forces,
+                            size_t memory_budget_bytes,
+                            std::string *error = nullptr);
+    // One fixed-cell coordinate direction for the whole packed batch. The
+    // positive host cap covers retained packed buffers and the normalized
+    // direction + pending product. It excludes borrowed inputs, the caller's
+    // previous product, model conversion and allocator/runtime overhead.
+    // No dense Hessian is formed. Failure preserves product, including when
+    // direction aliases its storage; success publishes by swap.
+    bool evaluate_analytic_hvp(MTPGpuEvaluator &evaluator,
+                              const double *direction, size_t direction_count,
+                              std::vector<double> &product,
+                              size_t device_memory_budget_bytes,
+                              size_t host_memory_budget_bytes,
+                              std::string *error = nullptr);
+    size_t last_analytic_hvp_host_bytes() const { return analytic_hvp_host_peak_bytes_; }
+    // Unweighted native linear-column H*v, row-major rows x columns. Leading
+    // species columns are zero; selected columns retain order and duplicates.
+    // Uses the same bounded, normalized, transactional contract as analytic
+    // HVP, but does not contract with the current linear model coefficients.
+    bool linear_hvp_block(MTPGpuEvaluator &evaluator,
+                          const double *direction, size_t direction_count,
+                          int first_row, int rows, const std::vector<int> &columns,
+                          std::vector<double> &output,
+                          size_t device_memory_budget_bytes,
+                          size_t host_memory_budget_bytes,
+                          std::string *error = nullptr);
+    size_t last_linear_hvp_host_bytes() const { return linear_hvp_host_peak_bytes_; }
     bool evaluate_loss(MTPGpuEvaluator &evaluator,
                        const std::vector<double> &target_energy,
                        const std::vector<double> &energy_weight,
@@ -132,6 +234,11 @@ public:
                              double *gradient, int gradient_count,
                              bool accumulate = false,
                              std::string *error = nullptr);
+    bool evaluate_hvp_pair_loss(MTPGpuEvaluator &evaluator,
+                               const double *target, size_t target_count,
+                               double epsilon, double observation_weight,
+                               MLIPCore::GpuDirect::MTPGpuHVPPairMetrics &metrics,
+                               std::string *error = nullptr);
     bool accumulate_gradient_chunks(MTPGpuEvaluator &evaluator,
                                     const std::vector<double> &dloss_denergy,
                                     const std::vector<double> &dloss_dforce,
@@ -159,6 +266,11 @@ public:
 
 private:
     bool built_ = false;
+    bool complete_cartesian_ = false;
+    size_t host_memory_budget_bytes_ = 0;
+    size_t analytic_hvp_host_peak_bytes_ = 0;
+    size_t linear_hvp_host_peak_bytes_ = 0;
+    MLIPCore::GpuDirect::GpuCacheToken prepared_loss_token_;
     MLIPCore::GpuDirect::GpuCacheIdentity identity_;
     std::uint64_t topology_revision_ = 1, input_revision_ = 1;
     std::uint64_t grid_revision_ = 1, labels_revision_ = 1;
@@ -168,6 +280,9 @@ private:
         return {identity_.value, input_revision_};
     }
     bool require_forward(MTPGpuEvaluator &, std::string *error) const;
+    bool linear_derivative_block(MTPGpuEvaluator &, MLIPCore::GpuDirect::MTPGpuLinearDerivative,
+                                 int, int, const std::vector<int> &, std::vector<double> &,
+                                 size_t, std::string *);
     bool prepare_sog(MTPGpuEvaluator &, MLIPCore::GpuDirect::MTPGpuBatchRequest &, std::string *error);
     std::vector<Atoms> reciprocal_geometry_;
     std::vector<int> wave_offsets_;

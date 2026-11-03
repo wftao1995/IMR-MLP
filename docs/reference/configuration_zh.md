@@ -251,14 +251,17 @@ MaxVol、FPS/CUR 与拥挤度命令从 `builder:` 和 `selector:` 块读取构�
 
 `trainmtp`、`trainnlpot` 和 `train_linear` 的参数。所有键使用 `fit:` 前缀。
 
-这些表覆盖多种训练器；只有所选训练器实际提供的键才会生效。GPU、阶段日程、
+这些表覆盖多种训练器；只有所选训练器实际提供的键才会生效。阶段日程、
 VarPro 和条件线性精修控制属于 `trainnlpot`。可用 `imrmlp <command> --help`
 查看该命令连接的设置。以下默认值不是完整训练方案；应根据数据选择标签权重和收敛容差。
 
-@note GPU 键（`fit:device`、`fit:gpu_id` 及以下 `fit:gpu_*` 键）仅适用于
-`trainnlpot`。`trainmtp` 与 `train_linear` 没有 GPU 路径，也不读取这些键；
-与 `trainnlpot` 共用的设置文件里的 `fit:device cuda` 会被这两个命令读入后
-静默忽略，它们继续在 CPU 上运行且不给出任何警告。
+`trainmtp` 和 `trainnlpot` 使用不同的 GPU 分批设置。`trainmtp` 接受
+`fit:device`、`fit:gpu_id`、`fit:gpu_device_loss`、`fit:gpu_deterministic_reduction`，
+正批次上限（默认 4096 原子 / 32 构型）、`fit:gpu_memory_mib`（256）、
+`fit:gpu_workspace_mib`（64）及 `fit:gpu_curvature_host_mib`（128，仅 CUDA 线性曲率）。
+MiB 为 2²⁰ 字节，详见 [trainmtp GPU 训练](../development/trainmtp-gpu_zh.md)。
+下方 GPU 表描述 `trainnlpot`；自动批次、显存比例和批次缓存为该训练器的设置。
+`train_linear` 和 Python 训练仍只支持 CPU。
 
 ### 数据集与 I/O
 

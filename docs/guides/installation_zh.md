@@ -200,8 +200,8 @@ LD_LIBRARY_PATH="$imrmlp_root/build/mpi${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
 配置中的相对文件仍从启动目录解析，因此实际任务通常应在其输入目录启动，并使用
 程序和库的绝对路径。MPI rank 与线程的规划见 [NEB 引导](neb_zh.md)。
 GPU 架构设置和支持范围见 [GPU 指南](../development/cuda_zh.md)。
-仅构建 GPU 版本不会让所有命令自动使用 GPU；例如 `trainmtp` 仍在 CPU 运行，
-受支持的 GPU 拟合入口是 `trainnlpot`。
+GPU 构建仍需通过 `fit:device` 显式启用受支持的 `trainmtp` 或 `trainnlpot` 训练。
+详见 [trainmtp GPU 训练](../development/trainmtp-gpu_zh.md)。
 
 ## 常见构建问题
 

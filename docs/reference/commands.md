@@ -342,11 +342,9 @@ The primary training command for Moment Tensor Potentials. Fits both radial basi
 coefficients and linear species/moment coefficients to reference DFT data (energies,
 forces, stresses).
 
-@note **CPU only.** `trainmtp` has no GPU code path, and `fit:device` is not one of
-its settings: a `fit:device cuda` line in a shared settings file is loaded and echoed
-in the settings dump, then silently ignored, so the fit stays on the CPU with no
-warning. GPU fitting is available through `trainnlpot`; see the
-[GPU guide](../development/cuda.md).
+CPU is the default. A matching GPU build accepts `fit:device cuda|hip|dcu`
+for ordinary MTP linear fitting and L-BFGS/CG/SGD training. Unsupported GPU
+requests fail explicitly; see [trainmtp GPU training](../development/trainmtp-gpu.md).
 
 ```bash
 imrmlp trainmtp training.ini --do-lbfgs

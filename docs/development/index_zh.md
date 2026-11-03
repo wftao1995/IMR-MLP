@@ -23,6 +23,7 @@ C++ 架构、API 与集成模块。
 ## 实现说明
 
 - [MTP GPU 求值与训练（CUDA/HIP）](cuda_zh.md)
+- [trainmtp GPU 训练](trainmtp-gpu_zh.md)
 
 ## 集成模块
 

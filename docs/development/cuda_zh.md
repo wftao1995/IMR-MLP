@@ -100,12 +100,10 @@ LAMMPS `mlip/gpudirect` 仅支持短程模型。另一个
 
 ## GPU MTP 训练
 
-@note **GPU 训练只在 `trainnlpot` 中实现。** `trainmtp` 与 `train_linear`
-只能在 CPU 上运行：它们的训练器没有 GPU 内核，也不读取 `fit:device`。
-`trainmtp` 也不会报错——共享设置文件里的 `fit:device cuda` 会被正常读入并在
-设置清单中原样打印，随后被忽略，拟合依旧完全在 CPU 上完成，且没有任何警告。
-不要指望 GPU 构建能加速 `trainmtp`，需要 GPU 时请把训练改到 `trainnlpot`
-上配同一个模型。Python 训练入口同样是纯 CPU，`device` 不为 `cpu` 时会直接报错。
+`trainmtp` 支持普通 MTP 的 FP64 GPU 线性拟合及 L-BFGS/CG/SGD 训练。
+批次上限、显存预算、CUDA 线性曲率支持和运行示例见
+[trainmtp GPU 训练](trainmtp-gpu_zh.md)。`trainnlpot` 支持下文所述的更多模型族，
+使用自己的分批设置。`train_linear` 和 Python 训练仍只支持 CPU。
 
 经典线性 MTP 具备能量、力和应力损失的完整 FP64 GPU 梯度。
 在 `trainnlpot` 中启用：

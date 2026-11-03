@@ -522,6 +522,11 @@
               "source": "docs/development/cuda.md",
               "slug": "development/cuda",
               "render": true
+            },
+            {
+              "source": "docs/development/trainmtp-gpu.md",
+              "slug": "development/trainmtp-gpu",
+              "render": true
             }
           ]
         },

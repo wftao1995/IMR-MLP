@@ -257,16 +257,19 @@ Additional keys accepted by the relaxation drivers:
 Parameters for `trainmtp`, `trainnlpot`, and `train_linear`. All keys below use the `fit:` prefix in the settings file.
 
 The tables cover several trainers; a key is effective only when the selected
-trainer exposes it. GPU, staged schedules, VarPro and conditional linear-refit
+trainer exposes it. Staged schedules, VarPro and conditional linear-refit
 controls belong to `trainnlpot`. Use `imrmlp <command> --help` to inspect that
 command's connected settings. Values below are defaults, not a complete
 training recipe; choose label weights and convergence tolerances for your data.
 
-@note The GPU keys (`fit:device`, `fit:gpu_id`, and the `fit:gpu_*` keys below)
-apply to `trainnlpot` only. `trainmtp` and `train_linear` have no GPU path and do
-not read them, so a `fit:device cuda` line in a settings file shared with
-`trainnlpot` is loaded and then silently ignored by these two commands: they keep
-running on the CPU without any warning.
+GPU settings differ between `trainmtp` and `trainnlpot`. `trainmtp` accepts
+`fit:device`, `fit:gpu_id`, `fit:gpu_device_loss`, `fit:gpu_deterministic_reduction`,
+positive batch limits (defaults: 4096 atoms / 32 structures),
+`fit:gpu_memory_mib` (256), `fit:gpu_workspace_mib` (64), and
+`fit:gpu_curvature_host_mib` (128, CUDA linear curvature only). MiB means 2²⁰ bytes.
+See [trainmtp GPU training](../development/trainmtp-gpu.md). The GPU table below
+describes `trainnlpot`; automatic batch limits, memory fractions and batch caching
+are specific to that trainer. `train_linear` and Python training remain CPU-only.
 
 ### Dataset & I/O
 

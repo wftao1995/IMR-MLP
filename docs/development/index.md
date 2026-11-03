@@ -23,6 +23,7 @@ C++ architecture, APIs and integration modules.
 ## Implementation notes
 
 - [MTP GPU evaluation and training (CUDA/HIP)](cuda.md)
+- [trainmtp GPU training](trainmtp-gpu.md)
 
 ## Integration modules
 

@@ -31,10 +31,83 @@
 using size_t = std::size_t;
 
 #include "error_monitor.h"
+#include "train/linear_efs_observations.h"
+#include "train/linear_curvature_observations.h"
+#include <functional>
+#include <memory>
+
+// Rank-local GPU timings/counters; data and effective-ridge objectives are global.
+// The before point is after the legacy CPU orthogonalization, before solving.
+struct GpuLinearReport {
+    std::string backend = "cpu", algorithm;
+    bool verified = false;
+    double data_before = 0, data_after = 0;
+    double predicted_data_before = 0, predicted_data_after = 0;
+    double quadratic_tolerance_before = 0, quadratic_tolerance_after = 0;
+    double objective_before = 0, objective_after = 0;
+    std::vector<double> effective_l2; // Full native indices; fixed species are excluded from objectives.
+    Training::LinearEFSOptions options;
+    Training::LinearEFSStatistics gpu_stats;
+    Training::LinearCurvatureStatistics curvature_stats;
+    double orthogonalization_seconds = 0, assembly_seconds = 0, reduction_seconds = 0;
+    double solve_seconds = 0, verification_seconds = 0, total_seconds = 0;
+    std::size_t host_design_bytes = 0;
+    std::size_t curvature_host_cap_bytes = 0, curvature_host_peak_bytes = 0;
+};
+
+// Cumulative rank-local work; optimizer decisions and regularization stay on CPU.
+struct GpuMTPNonlinearReport {
+    std::size_t evaluations = 0, validation_evaluations = 0, batches = 0;
+    std::size_t gradient_evaluations = 0, peak_device_bytes = 0;
+    double evaluation_seconds = 0;
+};
 
 class Trainer_MTP : public ConnectSettings
 {
 private:
+    struct GpuNonlinearState;
+    std::shared_ptr<GpuNonlinearState> gpu_nonlinear_;
+    GpuMTPNonlinearReport gpu_nonlinear_report_;
+    bool gpu_device_loss_ = true, gpu_deterministic_reduction_ = false;
+    bool gpu_nonlinear_running_ = false;
+    void ReleaseGpuNonlinear();
+    void RunGpuNonlinear(const std::function<void()> &);
+    void AccumulateGpuNonlinear(const std::vector<int> &, double &, bool gradient,
+                                bool validation = false);
+    void SynchronizeGpuCoefficients();
+    std::string linear_device_ = "cpu";
+    int linear_gpu_id_ = -1, linear_gpu_batch_atoms_ = 4096, linear_gpu_batch_structures_ = 32;
+    int linear_gpu_memory_mib_ = 256, linear_gpu_workspace_mib_ = 64;
+    int linear_gpu_curvature_host_mib_ = 128;
+    std::size_t gpu_curvature_host_peak_ = 0, gpu_curvature_external_bytes_ = 0;
+    std::size_t gpu_curvature_aligned_size_ = 0;
+    bool gpu_linear_active_ = false;
+    Training::LinearEFSOptions gpu_linear_options_;
+    GpuLinearReport gpu_linear_report_;
+    std::string gpu_linear_allocation_signature_;
+    Eigen::MatrixXd gpu_linear_gram_;
+    Eigen::VectorXd gpu_linear_rhs_;
+    long double gpu_linear_target_squared_ = 0;
+    std::string GpuLinearAllocationSignature() const;
+    Training::LinearEFSOptions GpuLinearOptions() const;
+    bool PreflightGpuLinear(Potentials::PotMTP *, const std::vector<Atoms> &,
+                            const std::vector<Neighborhoods> &, bool initialized,
+                            bool nonlinear = false);
+    void RunGpuLinear(bool fast);
+    void AssembleGpuLinear(bool fast);
+    double GpuLinearNormalization(const Atoms &, bool fast) const;
+    double DirectGpuLinearDataLoss(bool fast);
+    void RejectGpuLinearAction(const char *) const;
+
+    bool UsesGpuCurvature() const;
+    std::size_t GpuCurvatureHostCap() const;
+    std::size_t GpuCurvatureOwnedBytes() const;
+    std::size_t GpuCurvatureRowCount(const std::vector<Atoms> &) const;
+    std::size_t GpuCurvatureReserve(const Potentials::PotMTP &, const std::vector<Atoms> &,
+                                   const std::vector<Neighborhoods> &, bool allocating) const;
+    void CheckGpuCurvatureHost(Potentials::PotMTP &, const std::vector<Atoms> &,
+                               const std::vector<Neighborhoods> &, bool initialized);
+
     // std::vector<double> mask; // set zero to constraint some coeffs
 
     int n_size_mat = 0;
@@ -88,6 +161,7 @@ private:
     double energy_weight(const Atoms &atom) const;
     double force_weight(const Atoms &atom) const;
     double stress_weight(const Atoms &atom) const;
+    double hessian_weight(const Atoms &atom) const;
 
     // Control flags
     bool safe_linear_fitting = true;
@@ -187,6 +261,15 @@ private:
     void RefitBFGS(const char *reason);
 
 public:
+    void SaveCheckpoint(const std::string &, bool enabled = true);
+    bool UsesGpu() const { return UsesGpuLinear(); }
+    void ValidateGpuSettings() const;
+    void ValidateGpuNonlinearSettings() const;
+    const GpuMTPNonlinearReport &GetGpuNonlinearReport() const { return gpu_nonlinear_report_; }
+    bool UsesGpuLinear() const;
+    void ValidateGpuLinearSettings() const;
+    const GpuLinearReport &GetGpuLinearReport() const { return gpu_linear_report_; }
+
     ErrorMonitor emonitor, emonitor_valid;
     bool fix_radial_coeffs = false;
     bool fix_linear_coeffs = false;

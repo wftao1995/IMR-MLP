@@ -84,8 +84,8 @@ LES/SOG 属于 `mtp_les` 家族，
 与 [GPU 支持](../development/cuda_zh.md)。GPU 构建不改变命令行接口；
 不支持的组合会在构造势函数时报错。
 
-GPU 构建不会加速 `trainmtp`：它只能在 CPU 上运行，并会忽略 `fit:device`。
-需要 GPU 训练时改用 `trainnlpot` 配同一个模型。
+匹配的 GPU 构建通过 `fit:device cuda|hip|dcu` 启用 `trainmtp` GPU 训练。
+支持的动作和显存预算见 [trainmtp GPU 训练](../development/trainmtp-gpu_zh.md)。
 
 ## CLI 和 Python 可以混用吗？
 
