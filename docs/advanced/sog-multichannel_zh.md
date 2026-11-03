@@ -32,7 +32,7 @@ imrmlp trainnlpot --settings fit-sog-multichannel.ini --do-lbfgs \
   --output fitted-sog-multichannel.mtp
 ```
 
-`mtp_sog_from_scratch` 与 `mtp_sog_resume` 均支持多通道。零初始化检查逐通道进行：保留已有非零头，为整个头为零的通道确定性随机初始化，避免该通道停在零梯度状态。新增通道初始 Gaussian 网格相同，潜变量头的随机初始化使各通道能够学习不同响应。
+`mtp_sog_from_scratch` 与 `mtp_sog_resume` 均支持多通道。初始化时逐通道检查：保留已有非零头，为整个头为零的通道确定性随机初始化，避免该通道停在零梯度状态。新增通道初始 Gaussian 网格相同，潜变量头的随机初始化使各通道能够学习不同响应。
 
 训练参数组仍为 `les_species`、`les_moment`、`sog_weights` 和 `sog_log_bandwidths`，每组包含所有通道；当前没有逐通道冻结配置。L2 正则覆盖所有通道的头与核权重，带宽继续使用有界映射。通道数不是连续优化变量；恢复训练时应保持模型布局和带宽上下界一致。
 
@@ -51,7 +51,7 @@ CUDA/HIP 求值与训练见 [GPU 指南](../development/cuda_zh.md)及 [SOG 参�
 | `sog_weights` | C×M | 通道 0 的全部 Gaussian，再通道 1，依次排列 |
 | `sog_log_bandwidths` | C×M | 同上，文件保存物理 log 带宽 u |
 
-线性 MTP 文件中，`les_kernel = sog` 和 `sog_channels` 必须先于多通道系数块，`sog_terms` 必须先于 Gaussian 数组。使用模型的 Save 接口生成文件即可满足顺序约束。MTP-M 有自己的短程模型格式，不能作为线性 MTP 模型部署。
+线性 MTP 文件中，`les_kernel = sog` 和 `sog_channels` 必须先于多通道系数块，`sog_terms` 必须先于 Gaussian 数组。使用模型的 Save 接口生成文件即可满足顺序约束。MTP-M 有自己的短程模型格式，不能交给线性 MTP 的独立适配器使用。
 
 预测后的 `PotMTP_LES::LES_all_latents`、`PotMTP_M::LES_all_latents` 是 N×C 矩阵；原有 `LES_all_qs` 保留第一通道。`Atoms::charges_` 在 SOG 预测时清空。
 

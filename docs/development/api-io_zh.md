@@ -173,7 +173,7 @@ io.write(structures, "output.data", "n2p2");
 
 ### CIF
 
-- `loop_` 块中的每个 `_atom_site_*` 标签独占一行，这是 ASE 的 CIF 解析器等严格读取器所要求的格式。
+- `loop_` 块把每个 `_atom_site_*` 标签写到单独一行，这是 ASE 的 CIF 解析器等严格读取器所要求的。
 
 ### Materials Studio 格式（`msi`、`xsd`、`car`）
 

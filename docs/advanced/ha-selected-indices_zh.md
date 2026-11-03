@@ -2,7 +2,7 @@
 
 [English](ha-selected-indices.md)
 
-`calc_prop --ha-index` 只统计指定的 Honeycutt–Andersen 类别码：
+`calc_prop --ha-index` 只对指定的 Honeycutt–Andersen 类别码进行分类：
 
 ```text
 ha_index:indices 1421 1551 1661

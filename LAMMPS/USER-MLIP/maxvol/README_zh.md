@@ -83,7 +83,7 @@ fix ID all mlip/maxvol NEVERY MODEL STATE INDEX TYPE_TO_SPECIES... &
 | `f_ID[1]` | 当前 fix 生命周期内已保存的构型数 |
 | `f_ID[2]` | 最近一次评分的 timestep |
 
-这些值均为 intensive，不随 thermo 的原子数归一化；采样间隔内保留上次结果。
+这些值均为强度量，不随 thermo 的原子数归一化；采样间隔内保留上次结果。
 在每次 `run` 的初始化阶段（包括 `run 0`）刷新 grade，以反映两次 run 之间的
 坐标或晶胞变化。常规保存只在 timestep 为 `NEVERY` 的正向积分采样步发生，
 避免连续 `run` 在交界步重复保存。
@@ -202,6 +202,6 @@ ctest --test-dir build/lammps-maxvol-plugin --output-on-failure
 非连续 ID、非零 boxlo、正交／三斜盒、PBC、描述符／EFS 权重、采样频率、
 只读状态、追加输出、同一步几何变更、停止前保存和 MPI 统一错误处理。
 类型回归动态生成小型确定性模型，覆盖 NN1/NN2、五种 MTP-M、LES/SOG、
-MTP-M + LES/SOG、两层／三层混合 MTP，以及类型别名
+MTP-M + LES/SOG、两个／三个子势的混合 MTP，以及类型别名
 和不兼容状态报错。核心 `ut_maxvol_mtp_family` 用参数数值差分独立校验 E/F/S
 梯度。LAMMPS 回归使用 22 Jul 2025 Update 5 的 MPI/PLUGIN 构建。

@@ -187,7 +187,7 @@ imrmlp calc_efs --potfile __REDUCED__.mtp --input test.xyz --output test-predict
 imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --output-summary test-errors.txt
 ```
 
-分列读取单原子能量、力与 virial 误差，并检查偏差最大的构型。速度由压缩后的模型、体系规模
+分列读取每原子能量、力与 virial 误差，并检查偏差最大的构型。速度由压缩后的模型、体系规模
 和后端共同决定，标量数只是其中一项；压缩前后在同一批构型上实测耗时。缩减后再做非线性训练
 会得到新的候选，需要重新走一遍验证。
 

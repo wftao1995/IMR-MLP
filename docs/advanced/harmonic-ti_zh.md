@@ -41,9 +41,9 @@ imrmlp ti_fit_fc --workflow md-ensemble \
   再在该晶胞下跑定胞 NVT。
 - 不指定 `--input` 时，MD 工作流会展开轨迹、去除质量加权质心漂移，
   并以其质心作为参考结构。
-- 默认用所选势重新计算力。要消费轨迹中已存储的力，需显式传
+- 默认用所选势重新计算力。要使用轨迹中已存储的力，需显式传
   `--force-source trajectory`。
-- 周期像在去除共同平移后对齐，包括质心漂移跨越半个晶胞的情形。
+- 周期镜像在去除共同平移后对齐，包括质心漂移跨越半个晶胞的情形。
   原子间的相对晶体运动必须小于半个周期。
 
 完整选项见[命令参考](../reference/commands_zh.md)的 `ti_fit_fc` 一节，
@@ -51,7 +51,7 @@ imrmlp ti_fit_fc --workflow md-ensemble \
 
 ## 拟合过程保证了什么
 
-拟合与采样都在质量加权内部子空间中进行，因此纯平移被构造性地排除。
+拟合与采样都在质量加权内部子空间中进行，因此纯平移从构造上就被排除。
 
 - 默认的分阶段拟合先更新模态刚度，再用正平方根表示更新耦合的软模式与近
   简并块。`--root-representation` 可选 `normal`、`sqrt`（默认）或 `root4`。
@@ -60,7 +60,7 @@ imrmlp ti_fit_fc --workflow md-ensemble \
 - `--initial-floor-thz`（默认 1 THz）是每次自洽迭代使用的物理采样刚度；
   `--pd-floor-thz`（默认 1e-4 THz）只是拟合 FC 的严格数值正定下限。
   两者不是同一个量。
-- 自洽迭代采样对立（antithetic）高斯系综、计算真实 MTP 力，并在根空间做
+- 自洽迭代采样对偶（antithetic）高斯系综、计算真实 MTP 力，并在根空间做
   阻尼更新（`--mixing`）。只有在模态预热（`--warmup-iterations`）结束后
   才统计收敛。
 - 违反位移或最小距离限制的候选会作为完整的 `+q/-q` 对整体拒绝并替换。
@@ -82,7 +82,7 @@ imrmlp ti_fit_fc --workflow md-ensemble \
 
 如何解读误差：
 
-- 训练误差描述的是去中心化后的拟合目标。
+- 训练误差描述的是中心化后的拟合目标。
 - 留出误差、`final_md_force_rmse` 与 `harmonic_validation_force_rmse` 使用
   真实简谐力残差，且不去除验证集的力偏移。单位均为质量加权内部力坐标
   （eV/Å/√amu）。
@@ -92,8 +92,8 @@ imrmlp ti_fit_fc --workflow md-ensemble \
 - 接受率持续偏低说明参考势或采样下限不合适，不应据此放宽安全限制。
 
 导出给 LAMMPS 时可用稀疏形式截断原子对的 3×3 块
-（`--lammps-fc-block-threshold`、`--lammps-fc-cutoff`），截断后现场块
-（onsite）会被重建以强制声学求和规则；需要时还可用最小的各向同性稳定化
+（`--lammps-fc-block-threshold`、`--lammps-fc-cutoff`），截断后 onsite 块会被重建以强制声学求和规则；
+需要时还可用最小的各向同性稳定化
 把最低内部频率抬到目标值（`--lammps-fc-min-frequency-thz`）。
 务必检查报告中的保留块比例、Hessian 相对变化、稳定化前后的频率与 ASR 误差：
 截断 `fitted` 的 FC 可能显著改变参考势；若要保留原始局域 FC，
@@ -124,7 +124,7 @@ pair_coeff * *
 要求：周期性边界、固定晶胞、原子 ID 为 `1..N` 且与参考文件一致、
 原子类型匹配、每种类型质量为正（`atom_style atomic`）。该风格会去除
 质量加权的全局平移位移，不请求近邻表。不支持 restart 序列化：
-读取 restart 后需重新指定 pair 风格与参考文件。
+读取 restart 后需重新指定 pair style 与参考文件。
 
 可选的存储参数为 `auto`（默认）、`replicated` 或 `distributed`。
 replicated 模式在每个 MPI rank 上保存全部 FC 行；distributed 模式分块保存
@@ -148,7 +148,7 @@ pair_coeff * * mlip/opt potential.mtp Al Ni
 MTP 的 `pair_coeff` 请按[LAMMPS 元素映射](../../LAMMPS/README_zh.md)使用元素名。
 
 每个 λ 点是一次独立的 LAMMPS 运行。IMR-MLP 提供的是参考势与可混合的
-pair 风格；λ 取值方案、对 \(\langle U_{\mathrm{MTP}} - U_{\mathrm{harm}}\rangle_\lambda\)
+pair style；λ 取值方案、对 \(\langle U_{\mathrm{MTP}} - U_{\mathrm{harm}}\rangle_\lambda\)
 沿 λ 的积分以及误差估计属于使用者的工作流。由于参考势是在某一温度下拟合的，
 只应在该温度、且只在拟合所用的晶胞下复用。
 

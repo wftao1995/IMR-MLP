@@ -79,7 +79,7 @@ imrmlp.write("build/quickstart/python-predicted.cfg", atoms)
 
 ## Atoms
 
-`imrmlp.Atoms` 类包装了 C++ `Atoms` 结构，提供基于属性的访问和自动原子序数到物种索引的翻译。
+`imrmlp.Atoms` 类包装了 C++ `Atoms` 结构，提供基于属性的访问和原子序数到物种索引的自动转换。
 
 ```python
 import numpy as np
@@ -272,7 +272,7 @@ fmt = guess_format("structure.cfg")
 
 ### 流式与增量 I/O
 
-轨迹无法整体载入内存，或帧是边生成边消费时（例如主动学习循环），使用下列接口。
+轨迹无法整体载入内存，或帧是边生成边处理时（例如主动学习循环），使用下列接口。
 
 ```python
 import imrmlp
@@ -309,7 +309,7 @@ with open_writer("out.extxyz", append=True) as writer:
 
 | 接口 | 用途 | 说明 |
 |---|---|---|
-| `iread(path, format="", *, detect_content=False, input_units=None)` | 惰性逐帧迭代 | 支持 `extxyz`/`xyz`、`cfg`/`mlpcfg`、`bin`/`mlpbin`、`n2p2`、`cp2kxyz`、`gro`、`xdatcar`、`xdatcar6`、`outcar`、`xsf`/`axsf`。按原生格式支持 gzip 流式解压，全部读完时检查压缩尾部。损坏帧在被消费时抛错。 |
+| `iread(path, format="", *, detect_content=False, input_units=None)` | 惰性逐帧迭代 | 支持 `extxyz`/`xyz`、`cfg`/`mlpcfg`、`bin`/`mlpbin`、`n2p2`、`cp2kxyz`、`gro`、`xdatcar`、`xdatcar6`、`outcar`、`xsf`/`axsf`。按原生格式支持 gzip 流式解压，全部读完时检查压缩尾部。读到损坏帧时抛错。 |
 | `write_one(path, atoms, format="")` | 只写一帧 | `write()` 的便捷封装，格式探测与限制完全一致。 |
 | `write_iter(path, structures, format="", *, append=False)` | 由可迭代对象写入 | 支持 EXTXYZ、CFG、BIN、XDATCAR、XDATCAR6、CP2KXYZ 与 N2P2。所有帧必须使用同一元素映射；空可迭代对象既不创建也不截断目标文件；`append=True` 当前会抛出 `ValueError`；后期失败可能留下已写入的前缀。 |
 | `open_reader(path, format="", *, detect_content=False, input_units=None)` | 有界读取会话 | 支持 EXTXYZ、CFG、BIN、N2P2、XSF、OUTCAR 与 XDATCAR/6。可作为迭代器或上下文管理器使用；不同会话可并发。 |
@@ -376,7 +376,7 @@ neb = NEB(
     potential=pot,
     n_images=7,            # 包括端点
     spring=5.0,            # 弹簧常数（eV/Å²）
-    climb=True,            # 爬升镜像 NEB
+    climb=True,            # 爬坡图像 NEB
     optimizer="fire",      # 统一的 C++ 优化循环
     max_iter=1000,
     neb_ftol=1e-2,         # 力容差（eV/Å）
@@ -387,7 +387,7 @@ print(result.converged, result.stop_reason, result.max_neb_force)
 print(f"收敛: {result.converged}")
 
 for i, img in enumerate(result.images):
-    print(f"镜像 {i}: E = {img.energy:.4f} eV")
+    print(f"图像 {i}: E = {img.energy:.4f} eV")
 ```
 
 `NEBResult` 的常用字段：
@@ -396,7 +396,7 @@ for i, img in enumerate(result.images):
 - `n_iter` — `int`
 - `images` — `List[Atoms]`（包括端点）
 - `max_perp_force` — 最大垂直力
-- `max_neb_force` — 包含弹簧和爬山项的最大有效 NEB 力
+- `max_neb_force` — 包含弹簧和爬坡项的最大有效 NEB 力
 - `stop_reason` — 停止原因；请与 `converged` 一起检查
 
 ## 势函数训练
@@ -404,7 +404,7 @@ for i, img in enumerate(result.images):
 ### 线性训练器
 
 `LinearTrainer` 要求模型支持通用线性拟合接口，`descriptor_linear` 实现了该接口。
-普通 MTP 未暴露此接口；其线性系数应使用 `imrmlp trainmtp train.ini --linear-fit`
+普通 MTP 未提供此接口；其线性系数应使用 `imrmlp trainmtp train.ini --linear-fit`
 拟合。下例需要含标注的 `training.cfg`，且只有一个 Al 物种（索引 0）。
 无需外部数据的可运行合成示例见 [06_train.py](../../examples-python/06_train.py)：
 构建 Python 扩展后，在仓库根目录运行 `PYTHONPATH=. python3 examples-python/06_train.py`，
@@ -529,7 +529,7 @@ grade = selector.grade(new_structure)
 
 ### 最远点采样（FPS）
 
-当前高层 `FPSSelector` 包装没有暴露描述符/B 矩阵构建器的初始化接口；
+当前高层 `FPSSelector` 包装没有提供描述符/B 矩阵构建器的初始化接口；
 `metric` 和 `random_seed` 仅保存在 Python 层，没有传给 C++ 选择器。
 结构选择请使用 `fps_select` CLI 并显式配置势/描述符，不要把
 `FPSSelector().add_candidates(pool)` 当作可独立运行的流程。
@@ -560,8 +560,8 @@ print(f"重构误差: {result.reconstruction_error:.4f}")
 | `scores` | `np.ndarray` | `A` 每行的杠杆分数。 |
 | `reconstruction_error` | `float` | 相对重构误差；`compute_error=False` 时为 `-1.0`。 |
 
-`deterministic=True` 按分数取前 `k` 行；默认的概率加权采样用 `seed` 保证可复现，
-不同种子会选出不同行。`k` 不得超过行数。
+`deterministic=True` 按分数取前 `k` 行；默认的概率加权采样（`deterministic=False`）用 `seed`
+保证可复现，不同种子可能选出不同行。`k` 不得超过行数。
 
 ## 描述符
 
@@ -607,7 +607,7 @@ SO4 的 `inner-density` 先平均密度再构造指纹。`compute_averaged_with_
 
 ## ASE 计算器集成
 
-先安装 ASE，显式传入模型物种顺序。计算器将原生广延应力（eV）除以体积，
+先安装 ASE，显式传入模型物种顺序。计算器按 `-atoms.stress / atoms.volume` 将原生广延应力（eV）
 转换为 ASE 应力（eV/Å³）。以下示例使用入门合成模型；实际弛豫和 MD 应使用
 经过验证的材料势。
 
@@ -686,7 +686,7 @@ set_num_threads(4)            # 设置显式线程数
 
 ## 模型包与主动学习会话
 
-`ModelBundle` 暴露 GPM 容器，且不会隐式启动主动学习：
+`ModelBundle` 提供 GPM 容器，且不会隐式启动主动学习：
 
 ```python
 from imrmlp import ModelBundle
@@ -706,7 +706,7 @@ bundle.potential.save("deploy.gpm", profile="inference")
 
 `ModelBundle.from_settings(settings)` 从扁平 `{key: value}` 映射构造模型包。
 `attach_al()` 与 `attach_selector()` 可附加已有会话或选择器；
-`ALSession.selector` 返回当前用于选择的活动集选择器。
+`ALSession.selector` 返回当前用于选择的主动集选择器。
 
 ## Shell 求值任务
 

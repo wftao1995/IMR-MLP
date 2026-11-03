@@ -72,7 +72,7 @@ imrmlp trainmtp --help       # 查看单个命令的选项
 LES/SOG 属于 `mtp_les` 家族，
 需要把短程势与 `zbl` 等子势组合时用 `hybrid`/`hybrid_scale`。
 [势类型总览](../reference/potential-types_zh.md)列出全部 21 种已注册类型、
-各自的输入产物与构建开关。
+各自需要的输入文件与构建开关。
 
 ## 支持 MPI 和 GPU 吗？
 
@@ -98,6 +98,6 @@ GPU 构建不会加速 `trainmtp`：它只能在 CPU 上运行，并会忽略 `f
 ## 如何让结果可复现？
 
 固定同一构建、固定线程数（`OMP_NUM_THREADS`、`MKL_NUM_THREADS`），
-并设置所用功能暴露的种子，例如 `dimer:random_seed`。
+并设置所用功能提供的种子，例如 `dimer:random_seed`。
 Dimer 的 `random_seed=0` 在同一构建下可复现，`-1` 表示非确定性初始化。
 每次运行使用独立目录，避免 `_Trained_Potential_.mtp` 与日志被覆盖。

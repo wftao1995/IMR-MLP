@@ -13,7 +13,7 @@
 
 | 类 | 头文件 | 用途 |
 |---|---|---|
-| `ComputeRDF` | `analyse/compute_rdf.h` | 对分布计数和径向分布函数 |
+| `ComputeRDF` | `analyse/compute_rdf.h` | 原子对计数和径向分布函数 |
 | `ComputeVoro` | `analyse/compute_voro.h` | Voronoi 体积、面及配位 |
 | `ComputeAngles` | `analyse/compute_bondangle.h` | 键角和二面角分布 |
 | `ComputeMSD` | `analyse/compute_msd.h` | 均方位移 |
@@ -75,7 +75,7 @@ int main() {
 键序输出为 `[Q_2, Q_4, ..., Q_maxl, W_2, W_4, ..., W_maxl]`，`maxl` 必须是
 不小于 2 的偶数。ACSF 和 MTP 描述符还接受带 `DescriptorGradient` 的
 `ComputeOptions`，梯度形状为 `(feature_size, neighbor_count, 3)`。
-`DescriptorMTM` 引用已加载的 `Potentials::PotMTP` 模型，模型须比描述符存活更久。
+`DescriptorMTM` 引用已加载的 `Potentials::PotMTP` 模型，模型的生命周期须长于描述符。
 
 ## 对称性与结构比较
 

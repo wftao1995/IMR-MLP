@@ -67,7 +67,7 @@ JSON 紧接前导。数据区起点为 `align64(64 + json_length)`，填充字�
 
 数值引用格式为 `{ "block": "unique/id" }`。构造模型之前检查 JSON 校验、重复键、维度、偏移、重叠和必需版本。每块在读取时校验 SHA-256。普通推理不读取 AL 历史和候选数据，完整验证读取所有块。默认 JSON 上限为 64 MiB，单块解码上限为 8 GiB。
 
-writer 在目标目录暂存数据，校验并 fsync 后原子重命名。重命名前的失败保持旧目标完整。C++ writer 为本地操作，适用于已有的主进程保存位置；转换 CLI 由主进程执行并向其他进程广播失败结果。调用方不得对同一路径并发启动独立 writer。
+writer 在目标目录暂存数据，校验并 fsync 后原子重命名。重命名前的失败保持旧目标完整。C++ writer 为本地操作，适用于已有的 rank 0 保存位置；转换 CLI 由 rank 0 执行并向其他进程广播失败结果。调用方不得对同一路径并发启动独立 writer。
 
 
 这里的 `zstd` 是 GPM 内部数据块的编码；与普通结构/设置/势文本文件的外层
@@ -75,7 +75,7 @@ writer 在目标目录暂存数据，校验并 fsync 后原子重命名。重命
 
 ## 模型节点
 
-`models` 将 ID 映射到包含 `type`、`version: 1`、`species`、`species_mode`、`common` 和 `children` 的节点。各类型按需增加 `configuration`、`parameters`、`state` 或 `resources`。子节点引用文件内 ID，不引用输入路径。遍历模型图时检查缺失引用和环。
+`models` 将 ID 映射到包含 `type`、`version: 1`、`species`、`species_mode`、`common` 和 `children` 的节点。各节点按需增加 `configuration`、`parameters`、`state` 或 `resources`。子节点引用文件内 ID，不引用输入路径。遍历模型图时检查缺失引用和环。
 
 元素类型从零编号，每个类型对应 `{ "id": 0 }`，仅在已知时增加 `symbol`。`mindist` 声明 `species_mode: "type_independent"`。显式外部映射必须与已知元素一致；未提供化学符号时仍保留明确的类型顺序。
 
@@ -83,11 +83,11 @@ v1 codec 覆盖 `mtp`、`mtp_m`、`mtpnn1`、`mtp_les`、`hmtp`、`hybrid`、`hy
 
 MTP 节点保存径向基定义、各基缩放、矩规则、明确的系数顺序和具名的头部/核字段。`mtp_m` 元数据区分 li/q2/fs/n1/n2，并记录网络维度和激活函数。数值数组不依赖 Eigen 或对象内存布局。现有 MTP 解析器读取这些字段在内存中生成的表达，不重新打开原模型。
 
-其他 codec 保存有效样条表、函数参数、描述符配置、NN 归一化与权重或有序子模型。MTM 描述符内嵌依赖的 MTP；混合势保留训练标记和特征过渡参数，计算和训练能力边界保持不变。
+其他 codec 保存有效样条表、函数参数、描述符配置、NN 归一化与权重或有序子模型。MTM 描述符内嵌依赖的 MTP；混合势保留训练标记和特征过渡参数，原有的计算与训练限制保持不变。
 
 `EAMZhou2004::SaveParameterSet` / `LoadParameterSet` 保存独立的 `eam_zhou2004_parameters` 对象，包含活跃元素和具名参数。它是参数集文件，不是新增的可执行势工厂类型；`model_info` 和 `model_validate` 支持它。
 
-KIM 节点声明模型标识并保存有效参数数组。ACE 内嵌已加载的基资源，仍需 PACE 运行库。Shell 内嵌捕获的脚本和显式列出的输入资源；用 `shellfile:dependencies` 声明程序依赖，用 `shellfile:resource:relative/name source/path` 声明输入。资源名不得逃出任务目录。展开的脚本随加载对象管理生命周期；显式计算 shell 模型时仍会运行这些脚本。
+KIM 节点声明模型标识并保存有效参数数组。ACE 内嵌已加载的基资源，仍需 PACE 运行库。Shell 内嵌捕获的脚本和显式列出的输入资源；用 `shellfile:dependencies` 声明程序依赖，用 `shellfile:resource:relative/name source/path` 声明输入。资源名不得逃出任务目录。解包后的脚本与所加载势对象的生命周期一致；显式计算 shell 模型时仍会运行这些脚本。
 
 ## 主动学习
 

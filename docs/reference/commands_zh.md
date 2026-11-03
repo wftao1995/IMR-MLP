@@ -41,7 +41,7 @@ imrmlp relax relax.ini                              # 设置文件
 | `--version` | 显示版本信息（`imrmlp --version`） |
 | `--settings` | 从设置文件加载选项（无 `-i` 别名；许多命令也接受把该文件作为位置参数）。`phonopyfc` 是例外：它使用 `--settings-file` / `-i`。 |
 | `--verbose` | 启用详细日志输出（仅少数命令支持） |
-| `--index` / `-id` | 种类索引文件。多数命令默认读工作目录下的 `index.map`，只在改名或换目录时传入（`model_convert` 无默认值）。加载 MTP/GPM 模型的命令在找不到映射文件时会使用模型声明的元素顺序；显式指定的文件不存在且模型也没有声明顺序时报错 |
+| `--index` / `-id` | 物种索引文件。多数命令默认读工作目录下的 `index.map`，只在改名或换目录时传入（`model_convert` 无默认值）。加载 MTP/GPM 模型的命令在找不到映射文件时会使用模型声明的元素顺序；显式指定的文件不存在且模型也没有声明顺序时报错 |
 
 ### 压缩输入/输出文件
 
@@ -259,20 +259,20 @@ imrmlp calc_neb neb_config.ini
 | `--settings` | | | 设置文件（位置参数，必需） |
 | `--create-input` | | `false` | 创建 NEB 计算示例输入文件（布尔） |
 | `--input-format` | `-if` | auto | 输入结构格式 |
-| `--nimgs` | | `0` | 镜像数（含两个端点）；通常由设置文件给出 |
+| `--nimgs` | | `0` | 图像数（含两个端点）；通常由设置文件给出 |
 | `--index` | `-id` | `index.map` | 原子类型到物种的索引文件 |
 | `--ninterp` | | `100` | MEP 曲线插值点数 |
 | `--cellweight` | `-cwt` | `100` | 已弃用；请使用 `neb:cellweight`，顶层值优先。 |
 | `--mepout` | | `mep.xyz` | MEP 轨迹输出文件 |
 | `--mepformat` | | `extxyz` | MEP 轨迹格式 |
 | `--summary` | | `neb.dat` | MEP 摘要输出 |
-| `--neb:path_pbc` | | | 从 POSCAR 导入完整路径时的显式 PBC 位 |
+| `--neb:path_pbc` | | | 从 POSCAR 导入新建路径时的显式 PBC 位 |
 | `--neb:reference_cell` | | | 变胞路径的参考晶胞；与重启不兼容 |
 | `--neb:profile` | | | MPI+OpenMP 计时 JSON 文件名 |
 | `--driver` | | `lbfgs` | 优化器：`lbfgs`、`fire`、`cg` 或 `sgd` |
 | `--gtol` | `-gtol` | `lbfgs:epsgmax` | 活动 NEB 力容差；覆盖 `neb:gtol` |
 | `--maxiteration` | `-maxit` | `lbfgs:max_iterations` | 单次优化的迭代上限 |
-| `--max_total_iter` | | `1000000` | 跨镜像调整重启的总迭代预算 |
+| `--max_total_iter` | | `1000000` | 跨图像调整重启的总迭代预算 |
 | `--initial_step` | | `lbfgs:initial_step` | 初始步长 |
 | `--max_step` | | `lbfgs:max_step` | 最大步长 |
 | `--max_move` | | `lbfgs:max_step_move` | 单次迭代最大累计位移 |
@@ -286,7 +286,7 @@ imrmlp calc_neb neb_config.ini
 | `--lbfgs_m` | | `15` | L-BFGS 历史长度 |
 | `--next_step` | `-r` | `false` | 从 `nebimage_XX_final.vasp` 重启（布尔） |
 
-@note NEB 参数（弹簧常数、climbing image 选项、对称释放、变镜像阈值等）在设置文件的
+@note NEB 参数（弹簧常数、爬坡图像选项、解除对称性、可变图像阈值等）在设置文件的
 `neb:` 前缀键中配置。上表 CLI 标志是常见情形的显式覆盖；完整键列表参见 @ref guide_config "配置说明"。
 
 ### 鞍点方法选择指南
@@ -419,9 +419,9 @@ imrmlp trainnlpot --settings=training.ini --trainset=train.cfg --validset=valid.
 
 MTP 势能的快速线性拟合与基函数选择。支持多种模式：
 模式 0 计算特征值谱，模式 1 执行简单加权最小二乘拟合，
-模式 2 应用预计算的基函数选择，模式 3 暴力逐个剔除搜索，
+模式 2 应用预计算的基函数选择，模式 3 穷举逐个剔除搜索，
 模式 4 使用基于 CUR 的重要性评分选择基函数，模式 5 通过
-模拟退火或贪心交换精化选择，模式 6 使用 NSGA-II 多目标
+模拟退火或贪心交换细化选择，模式 6 使用 NSGA-II 多目标
 遗传优化寻找最佳基函数子集，模式 7 进行相关性分析和去相关。
 
 ```bash
@@ -458,7 +458,7 @@ imrmlp fastfit --settings=settings.ini --potfile=init.mtp --trainset=train.cfg -
 | `--corr-save-reduced` | `-csave` | `false` | 模式 7：选择后保存降维势（布尔） |
 | `--cmp` | `-cmp` | `false` | 模式 1：比较求解器方法（布尔） |
 | `--objective-convention` | | `legacy` | `legacy` 或共享 mean-moments EFS/L2 目标 |
-| `--l2-reference` | | `native` | L2 输入参考：`native`、`mean` 或 `sum`；后者要求 mean-moments |
+| `--l2-reference` | | `native` | L2 输入参考：`native`、`mean` 或 `sum`；`mean` 与 `sum` 要求 mean-moments |
 | `--objective-report` | | | 可选的 TSV 目标契约报告，含有效 L2 项 |
 | `--selection-objective` | | `legacy` | `legacy` 或 `error-cost`（模式 5/6） |
 | `--max-valid-loss` | | | error-cost 选择所需的平均加权验证损失上限 |
@@ -496,7 +496,7 @@ imrmlp fastfit --settings=settings.ini --potfile=init.mtp --trainset=train.cfg -
 | `--vecF` | `-vf` | | 力目标向量 |
 | `--vecS` | `-vs` | | 应力目标向量 |
 
-选集文件采用“数量 + 未偏移的标量矩 ID”格式，物种系数始终隐式保留；模式
+选择文件采用“数量 + 未偏移的标量矩 ID”格式，物种系数始终隐式保留；模式
 2、4、5、6、7 使用同一格式。MPI 运行时，候选拟合与误差评估由所有 rank
 共同执行，输出文件只由 rank 0 写入。
 
@@ -629,7 +629,7 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--max-swaps` |  | `0` | 交换限制（0 = 无限制） |
 | `--weight` |  | `1.0` | B-矩阵行权重 |
 | `--pow-scale` |  | `0.5` | 原子计数缩放指数 |
-| `--init-mode` |  | `auto` | 活动集初始化：`auto`、MLIP 兼容虚拟单位阵 `mlip`，或旧的真实行初始化 `data` |
+| `--init-mode` |  | `auto` | 主动集初始化：`auto`、MLIP 兼容虚拟单位阵 `mlip`，或旧的真实行初始化 `data` |
 | `--init-value` |  | `1e-6` | `mlip` 模式的虚拟单位行尺度 |
 | `--verbose` | `-v` | `false` | 详细输出（布尔值） |
 | `--all-coeffs` |  | `false` | 使用 ALL 系数（不仅是线性系数，布尔值） |
@@ -710,7 +710,7 @@ imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state
 | `--pottype` | | `mtp` | 势类型 |
 | `--input` | | `candidates.xyz` | 输入构型文件 |
 | `--output` | `-o` | `sampled.xyz` | 输出评分后的结构 |
-| `--state-file` | | | Active Set state 文件（默认：`potfile` + `.sel`） |
+| `--state-file` | | | 主动集 state 文件（默认：`potfile` + `.sel`） |
 | `--dtype` | | `mtm` | 描述符类型 |
 | `--index` | `-id` | `index.map` | 索引映射文件 |
 | `--input-format` | `-if` | | 输入格式 |
@@ -732,7 +732,7 @@ imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state
 | `--verbose` | `-v` | `false` | 详细输出（布尔值） |
 | `--all-coeffs` | | `false` | 使用 ALL 系数（不仅是线性系数，布尔值） |
 | `--row-scaling` | | `uniform` | 行缩放：`uniform` 或 `mlip` |
-| `--init-mode` | | `auto` | 活动集初始化：`auto`、`mlip` 或 `data` |
+| `--init-mode` | | `auto` | 主动集初始化：`auto`、`mlip` 或 `data` |
 | `--init-value` | | | MLIP 虚拟单位行尺度 |
 | `--max-swaps` | | `0` | 交换上限（0 = 无限制） |
 | `--select-mode` | | `stream` | 选择后端：`stream`、`full` 或 `online` |
@@ -749,7 +749,7 @@ imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state
 
 ### `maxvol_extend` — MAXVOL 扩充
 
-基于已有 Active Set 增量扩充信息量高的候选结构。
+基于已有主动集增量扩充信息量高的候选结构。
 
 两种模式：
 
@@ -760,7 +760,7 @@ imrmlp maxvol_extend --potfile=potential.mtp \
   --state-file=state.bin --candidates=pool.cfg -o new_selected.cfg
 ```
 
-从 `maxvol_select` 生成的 `.sel` state 文件加载已有 Active Set，对候选结构进行选择，
+从 `maxvol_select` 生成的 `.sel` state 文件加载已有主动集，对候选结构进行选择，
 输出新入选的结构。可选的 `--train` 参数提供超出 state 中已有训练集的额外训练构型。
 
 **模式 2 — 三段式选择（原始方式，无 state 文件）：**
@@ -770,14 +770,14 @@ imrmlp maxvol_extend --potfile=potential.mtp \
   --train=train.cfg --candidates=pool.cfg -o new_selected.cfg
 ```
 
-从 `--train` 构建初始 Active Set，评估候选结构，合并且重新稳定。
+从 `--train` 构建初始主动集，评估候选结构，再与合并后的候选池重新稳定。
 适用于一次性训练集构建。
 
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|---------|-------------|
 | `--potfile` |  | `potential.mtp` | 势文件用于 B-矩阵 |
 | `--pottype` |  | `mtp` | 势类型：mtp、eampoly、lj612... |
-| `--state-file` |  | — | 主动集 state 文件 (`.sel`) — 跳过 Stage 1，加载已有 Active Set |
+| `--state-file` |  | — | 主动集 state 文件 (`.sel`) — 跳过 Stage 1，加载已有主动集 |
 | `--train` |  | — | 训练集文件 |
 | `--candidates` |  | `candidates.xyz` | 候选结构文件 |
 | `--output` | `-o` | `new_selected.xyz` | 输出新入选的候选结构 |
@@ -797,7 +797,7 @@ imrmlp maxvol_extend --potfile=potential.mtp \
 | `--verbose` | `-v` | `false` | 详细输出（布尔值） |
 | `--all-coeffs` |  | `false` | 使用 ALL 系数（不仅是线性系数，布尔值） |
 | `--row-scaling` |  | `uniform` | 行缩放：`uniform` 或 `mlip` |
-| `--init-mode` |  | `auto` | 活动集初始化：`auto`、`mlip` 或 `data` |
+| `--init-mode` |  | `auto` | 主动集初始化：`auto`、`mlip` 或 `data` |
 | `--init-value` |  | `1e-6` | MLIP 虚拟单位行尺度 |
 | `--select-mode` |  | `stream` | 选择后端：`stream`、`full` 或 `online` |
 | `--stream-mode` |  | `exact` | 流式后端：`exact` 或 `fast` |
@@ -949,7 +949,7 @@ imrmlp mk_super --input=POSCAR 2 0 0 0 2 0 0 0 2 --output=super.vasp   # 3x3 矩
 
 ### `mk_lower` — 将晶胞转换为下三角形式
 
-将晶胞矩阵转换为下三角形式，便于比较或对称性分析前标准化周期晶胞。
+将晶胞矩阵转换为下三角形式，便于在比较或对称性分析之前标准化周期晶胞的表示。
 
 ```bash
 imrmlp mk_lower --input=POSCAR --output=lower.vasp
@@ -1229,7 +1229,7 @@ imrmlp calc_descriptors --dtype biso3 --input input.xyz --input-format extxyz \
 imrmlp calc_descriptors --dtype biso4 --settings so4.ini --input input.xyz
 ```
 
-`so4.ini` 使用以下 `biso4:` 设置。物种索引从 0 开始，需覆盖权重数组；局部输出始终是逐中心描述符。
+`so4.ini` 使用以下 `biso4:` 设置。物种索引从 0 开始，必须落在两个权重数组的范围内；局部输出始终是逐中心描述符。
 
 | 设置 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -1380,7 +1380,7 @@ imrmlp calc_fc --potfile potential.mtp --input POSCAR --supercell 3 3 3 --reduce
 `--lowest-modes=N` 保留为矩阵无关的 HVP 诊断，投影掉三维质量加权平移，
 仅输出 N 个内部模到 `EIGENVALS`、`EIGENVECTORS` 和 `EIGENSYS`，不写力常数。
 该模式要求解析 HVP，不能与 `--check-symm` 组合。
-质量读取 `index.map` 的第三列，缺省使用元素表。
+质量读取 `index.map` 的第三列，默认使用元素表。
 
 Phonopy 接入见 [Python 适配器](python_zh.md#phonopy-integration)。导入解析力常数时，
 先在 Phonopy 中生成超胞，将其原样写成 `calc_fc` 输入，省略 `--supercell` 并使用
@@ -1389,7 +1389,7 @@ Phonopy 接入见 [Python 适配器](python_zh.md#phonopy-integration)。导入�
 
 ### `ti_fit_fc` — 有限温度正定有效力常数
 
-`ti_fit_fc` 用于 MD/ensemble 拟合与 LAMMPS 简谐参考文件导出。必须显式选择 `--workflow md|ensemble|md-ensemble|export`：
+`ti_fit_fc` 用于 MD/系综拟合与 LAMMPS 简谐参考文件导出。必须显式选择 `--workflow md|ensemble|md-ensemble|export`：
 
 ```bash
 imrmlp ti_fit_fc --workflow md-ensemble \
@@ -1403,13 +1403,13 @@ imrmlp ti_fit_fc --workflow md-ensemble \
 再在该晶胞补跑 NVT。默认用当前势函数重新计算所有轨迹力；只有显式指定
 `--force-source trajectory` 才使用轨迹保存的力。
 
-周期镜像在去除共同平移后选择，支持质心漂移跨越半个晶胞；原子间的相对晶体
+周期镜像在去除共同平移后对齐，支持质心漂移跨越半个晶胞；原子间的相对晶体
 振动仍需小于半个周期。
 
 拟合和采样均在去除三个平移模的质量加权内部空间完成。默认先做模态刚度
 更新，再对软模和近简并小块做 `sqrt` root 拟合；自洽迭代用当前 FC 生成
-antithetic 高斯 ensemble、计算真实 MTP 力，并在 root 空间阻尼更新。默认
-`--initial-floor-thz=1` 同时控制初始稳定化和每一轮自洽 ensemble 的物理采样
+对偶高斯系综、计算真实 MTP 力，并在 root 空间阻尼更新。默认
+`--initial-floor-thz=1` 同时控制初始稳定化和每一轮自洽系综的物理采样
 刚度，`--pd-floor-thz=1e-4` 仅是拟合 FC 的数值正定下限，二者不可混用。
 收敛次数仅在 modal warmup 结束、进入耦合阶段后累计。两个拟合阶段的目标均为
 按权重平均的力残差平方加上偏离当前 FC 的 `--ridge` 惩罚；重复样本不会改变
@@ -1420,7 +1420,7 @@ antithetic 高斯 ensemble、计算真实 MTP 力，并在 root 空间阻尼更�
 距离并失败，不会自动修改 sampling floor 或使用不足数量的样本拟合。
 
 主要输出为 `<prefix>_FORCE_CONSTANTS`、平均参考结构、迭代 CSV、诊断报告、
-独立验证 ensemble 和 `<prefix>_LAMMPS_REFERENCE`。后者可直接供新的
+独立验证系综和 `<prefix>_LAMMPS_REFERENCE`。后者可直接供新的
 LAMMPS `pair_style harmonic/reference` 使用。运行
 `imrmlp ti_fit_fc --help` 查看收敛、soft-block 与安全位移选项。
 
@@ -1448,7 +1448,7 @@ imrmlp ti_fit_fc --workflow export \
 ```
 
 也可用 `--lammps-fc-cutoff` 做距离截断。报告中的保留块比例、Hessian 相对变化、
-稳定化前后最低频率和 ASR 误差必须一起检查。ensemble 拟合或全局谱投影后的
+稳定化前后最低频率和 ASR 误差必须一起检查。系综拟合或全局谱投影后的
 `fitted` FC 可能含有较大的长程块，此时直接截断会显著改变参考态；若目标是
 保留原始局域模型，应使用 `--lammps-fc-source initial`。
 
@@ -1479,7 +1479,7 @@ imrmlp ti_fit_fc --workflow export \
 | `--initial-floor-thz` |  | `1.0` | 初始及迭代采样的物理频率下限（THz） |
 | `--pd-floor-thz` |  | `1e-4` | 拟合矩阵的数值正定频率下限（THz） |
 | `--ridge` |  | `1e-8` | 向当前参考态的正则化强度 |
-| `--mixing` |  | `0.25` | 矩阵参数空间中的更新比例 |
+| `--mixing` |  | `0.25` | 根空间中的更新比例 |
 | `--warmup-iterations` |  | `5` | 仅模态更新的预热轮数 |
 | `--min-iterations` |  | `3` | 最少自洽轮数 |
 | `--max-iterations` |  | `20` | 最多自洽轮数 |
@@ -1500,7 +1500,7 @@ imrmlp ti_fit_fc --workflow export \
 | `--lammps-fc-block-threshold` |  | `0.0` | 非对角力常数块范数阈值 |
 | `--lammps-fc-min-frequency-thz` |  | `-1.0` | 稀疏参考态最低频率；负值使用 pd-floor-thz |
 | `--lammps-fc-stabilize` |  | `true` | 必要时添加稀疏各向同性稳定项 |
-| `--write-validation-ensemble` |  | `true` | 写出使用真实势函数计算力的验证 ensemble |
+| `--write-validation-ensemble` |  | `true` | 写出使用真实势函数计算力的验证系综 |
 
 返回码：0 表示成功，2 表示自洽迭代未收敛（仍写出结果和诊断）。
 
@@ -1563,7 +1563,7 @@ imrmlp calc_trjavg trajectory.cfg average.cfg --start=100 --end=500 --wrap
 
 轨迹平均与 `calc_prop --avgpos` 共用流式内核。`calc_trjavg` 固定胞时去除质量加权
 质心漂移，变胞时平均展开后的分数坐标；`--avgpos` 平均展开后的笛卡尔坐标，不去漂移。
-质量读取 `index.map` 第三列，缺省使用元素质量；输出平均几何，不沿用原帧 E/F/S 标签。
+质量读取 `index.map` 第三列，默认使用元素质量；输出平均几何，不沿用原帧 E/F/S 标签。
 
 可用 `calc_trjavg --average-coordinates=auto|cartesian|fractional` 和
 `--drift=auto|remove|keep` 显式选择平均策略，去漂移要求固定晶胞。
@@ -1642,21 +1642,21 @@ NetCDF（`.nc`）不在支持范围内。显式给出 `--input-format nc` 时读
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--wrap` | `-w` | `false` | 坐标环绕到周期性边界内（布尔值） |
 | `--resetid` | `-rid` | `true` | 原子类型 ID 重置为 0,1,2,... |
-| `--start` | `-st` | `0` | 起始镜像索引 |
-| `--end` | `-ed` | `INT_MAX` | 结束镜像索引 |
+| `--start` | `-st` | `0` | 起始帧索引 |
+| `--end` | `-ed` | `INT_MAX` | 结束帧索引 |
 | `--outrate` | `-or` | `0`（全部） | 每 N 帧写入一次 |
-| `--shuffle` | | `false` | 随机打乱镜像顺序（布尔值） |
+| `--shuffle` | | `false` | 随机打乱帧顺序（布尔值） |
 | `--sort-by` | | — | 逗号分隔的排序键：`energy`、`fenergy`、`fitness`、`volume`、`size`、`id` 或全局属性 |
 | `--sort-order` | | `asc` | 排序方向，单个值或逗号分隔 |
-| `--reverse` | `-r` | `false` | 反转镜像顺序（布尔值） |
+| `--reverse` | `-r` | `false` | 反转帧顺序（布尔值） |
 | `--last` | `-last` | `false` | 仅输出最后一帧（布尔值） |
 | `--drop` | `-d` | `false` | 跳过未收敛的 OUTCAR 帧（布尔值） |
 | `--overwrite` | `-ov` | `false` | 覆盖现有文件（布尔值） |
 | `--append` | `-a` | `false` | 追加到现有文件（布尔值） |
-| `--select` | `-s` | — | 选择特定镜像索引（可变参数） |
-| `--loadrate` | `-lr` | `0` | 每 N 个结构读取镜像到内存 |
-| `--ostart` | `-ost` | `0` | 输出起始镜像索引 |
-| `--oend` | `-oed` | `INT_MAX` | 输出结束镜像索引 |
+| `--select` | `-s` | — | 选择特定帧索引（可变参数） |
+| `--loadrate` | `-lr` | `0` | 每 N 个结构读入内存 |
+| `--ostart` | `-ost` | `0` | 输出起始帧索引 |
+| `--oend` | `-oed` | `INT_MAX` | 输出结束帧索引 |
 | `--bstart` | `-b` | `true` | 从零开始 ID（布尔值） |
 | `--outsuffix` | `-suff` | — | 附加到输出文件名的后缀 |
 | `--separator` | `-sep` | — | 文件名与 ID 之间的分隔符 |
@@ -1668,7 +1668,7 @@ NetCDF（`.nc`）不在支持范围内。显式给出 `--input-format nc` 时读
 | `--force-tilt` | | `false` | 即使正交也强制倾斜晶胞格式（布尔值） |
 | `--write-symbol` | | `true` | 输出中写入原子符号（布尔值） |
 | `--pack-atoms` | | `true` | POSCAR 输出中合并原子类型 |
-| `--apply-disp` | `-ad` | `false` | 对镜像施加随机位移（布尔值） |
+| `--apply-disp` | `-ad` | `false` | 对帧施加随机位移（布尔值） |
 | `--rand-type` | `-rt` | `0` | 随机位移类型 |
 | `--disp-mag` | `-dm` | `0.05` | 位移幅度 |
 | `--label` | `-lb` | | 添加自定义逐结构标签（可变参数） |

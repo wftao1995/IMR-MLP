@@ -57,7 +57,7 @@ imrmlp trainnlpot --settings fit-sog.ini --do-lbfgs --output fitted-sog.mtp
 
 优化器为每个带宽使用无约束变量 z：
 `u = (u_min+u_max)/2 + (u_max-u_min)*atan(z)/pi`，训练中包含其链式导数。
-模型文件保存物理 u 而非 z。无法严格表示在边界内的系数会被拒绝，而不是静默截断。
+模型文件保存物理 u 而非 z。无法严格表示在边界内的系数会被拒绝，而不是静默钳位。
 改变边界会改变优化器坐标；resume 时应保持不变。
 
 现有 `fit:penalty_weight` 除 SR 惩罚外，还会对潜变量头和核权重施加 L2，
@@ -80,7 +80,7 @@ imrmlp trainnlpot --settings fit-sog.ini --do-lbfgs --output fitted-sog.mtp
 `LES_all_latents` 包含完整 N×C 矩阵；预测后 `LES_all_qs` 保留第一通道。
 SOG 不支持总电荷训练、电荷平衡和 BEC，应将 `fit:charge_weight` 设为 0。
 
-外部、物理标定的 BEC 模型可作为 SOG 的零场势组合使用。
+外部、物理标定的 BEC 模型可作为 SOG 的零场势与之组合使用。
 [LAMMPS 示例](../../examples/les-response/README_zh.md)使用固定晶胞、固定 BEC 的
 DFT 参考张量；它不从 SOG 通道推导电荷，属于局域线性响应近似。
 
@@ -101,7 +101,7 @@ DFT 参考张量；它不从 SOG 通道推导电荷，属于局域线性响应�
 `PotMTP_M<T>` 在自身短程和潜变量头系数块之外读写 SOG v3/v4 元数据。
 模板必须具有匹配的 MTP-M 头布局；线性 MTP 文件不是 MTP-M 文件。
 `set_sog_definition(SOGModel)` 在加载兼容模板前设置核定义。文件中的元数据会自动启用 SOG。
-共享的 `potentials/sog_model.h` 提供可移植元数据校验和独立高斯公式。
+共享的 `potentials/sog_model.h` 提供可移植的元数据校验，以及独立的高斯公式。
 
 MTP-M 使用普通单阶段非线性训练器。参数组为 `sr_radial`、`sr_species`、
 `sr_moment`、`sr_model`、`les_species`、`les_moment`、`sog_weights` 与

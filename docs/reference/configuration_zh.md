@@ -65,7 +65,7 @@ fit:trainable_groups \
 
 ### 命名空间前缀
 
-每个子系统前缀用于路由参数。无前缀的值将进入顶层设置容器。
+每个子系统前缀负责把参数分发到对应的子系统。无前缀的值将进入顶层设置容器。
 
 | 前缀 | 子系统 |
 |--------|-----------|
@@ -77,7 +77,7 @@ fit:trainable_groups \
 | `dimer:` | Dimer 鞍点搜索（`calc_dimer`） |
 | `pot:` | 势 |
 | `builder:` | MaxVol、FPS/CUR 与拥挤度的描述符/B-matrix 构造 |
-| `selector:` | MaxVol 活动集选择（`maxvol_*`） |
+| `selector:` | MaxVol 主动集选择（`maxvol_*`） |
 | `behler:` | Behler/ACSF 描述符设置 |
 | `bondorder:` | Bond-order 描述符设置 |
 | `shellfile:` | 外部 shell 提供者（`pottype shellfile`），见 @ref reference_potential_types |
@@ -138,7 +138,7 @@ MaxVol、FPS/CUR 与拥挤度命令从 `builder:` 和 `selector:` 块读取构�
 | `relax:ftol` | float | `0` | 能量容差 — 能量变化低于此值时停止 |
 | `relax:xtol` | float | `0` | 步长容差 — 位移变化低于此值时停止 |
 | `relax:ztol` | float | `1e-6` | 冻结小梯度的零阈值 |
-| `relax:eps` | float | `1e-6` | 防止除零的机器 epsilon（浮点精度上限） |
+| `relax:eps` | float | `1e-6` | 防止除零的机器 epsilon |
 
 ### 约束与过滤器
 
@@ -281,7 +281,7 @@ VarPro 和条件线性精修控制属于 `trainnlpot`。可用 `imrmlp <command>
 | `fit:gpu_device_loss` | bool | true | 在 GPU 上构造 E/F/S 残差、指标和损失伴随量 |
 | `fit:gpu_deterministic_reduction` | bool | false | 使用有序、可复现的 GPU 归约进行诊断 |
 | `fit:gpu_radial_parameter_tile` | int | 128 | 每个径向参数部分梯度分块包含的参数数目 |
-| `fit:gpu_cache_batches` | bool | true | 在优化器重复回调间缓存固定全量数据的主机端打包批次和标签 |
+| `fit:gpu_cache_batches` | bool | true | 在优化器多次回调之间缓存固定全量数据在主机端打包的批次与标签 |
 
 缓存可避免在重复全量回调中重建 CSR 拓扑和标签，代价是与打包数据量
 成比例的主机内存。随机或部分 SGD 选择不会使用全量缓存。多 GPU 采用
@@ -383,15 +383,15 @@ VarPro 和条件线性精修控制属于 `trainnlpot`。可用 `imrmlp <command>
 | `fit:lbfgspp:epsrel` | 相对梯度容差 |
 | `fit:lbfgspp:m` | L-BFGS 记忆 |
 | `fit:lbfgspp:damping` | 阻尼因子 |
-| `fit:lbfgspp:init_step` | 初始 line-search 步长 |
+| `fit:lbfgspp:init_step` | 初始线搜索步长 |
 | `fit:lbfgspp:first_step` | 第一次初始步长 |
 | `fit:lbfgspp:past` | 用于收敛判断的历史迭代数 |
 | `fit:lbfgspp:delta` | 函数变化收敛阈值 |
 | `fit:lbfgspp:maxit` | 最大 LBFGS++ 迭代数 |
-| `fit:lbfgspp:linesearch` | line-search 算法选择 |
-| `fit:lbfgspp:max_linesearch` | 最大 line-search 尝试次数 |
-| `fit:lbfgspp:min_step` | 最小 line-search 步长 |
-| `fit:lbfgspp:max_step` | 最大 line-search 步长 |
+| `fit:lbfgspp:linesearch` | 线搜索算法选择 |
+| `fit:lbfgspp:max_linesearch` | 最大线搜索尝试次数 |
+| `fit:lbfgspp:min_step` | 最小线搜索步长 |
+| `fit:lbfgspp:max_step` | 最大线搜索步长 |
 | `fit:lbfgspp:ftol` | Armijo 条件参数 |
 | `fit:lbfgspp:wolfe` | Wolfe 条件参数 |
 | `fit:lbfgspp:f_dec_coeff` | 函数下降系数 |
@@ -423,11 +423,11 @@ VarPro 和条件线性精修控制属于 `trainnlpot`。可用 `imrmlp <command>
 | `fit:charge_weight` | `0` | 电荷标签权重 |
 | `fit:charge_pow` | `1` | 电荷原子数幂次 |
 | `fit:charge_target_attrib` | `total_charge` | 电荷目标所在属性 |
-| `fit:charge_default_target` | `0` | 缺省电荷目标 |
+| `fit:charge_default_target` | `0` | 回退电荷目标 |
 | `fit:training_schedule` | `single` | `single`、`mtp_les_from_scratch`、`mtp_les_resume`、`mtp_sog_from_scratch`、`mtp_sog_resume`；仅 `trainnlpot` |
 | `fit:varpro_report` | `varpro.jsonl` | VarPro 报告路径 |
 | `fit:varpro_radial_scale_file` | — | VarPro 径向缩放文件 |
-| `fit:varpro_linear_refinement_steps` | `2` | VarPro 内线性精化步数 |
+| `fit:varpro_linear_refinement_steps` | `2` | VarPro 内线性精修步数 |
 | `fit:varpro_linear_gradient_tolerance` | `1e-7` | VarPro 内线性梯度容差 |
 | `fit:validation_metric` | `force` | 验证结果排序指标 |
 | `fit:refit_train_valid` | 否 | 在 train+valid 合并集上重拟合 |
@@ -442,7 +442,7 @@ VarPro 和条件线性精修控制属于 `trainnlpot`。可用 `imrmlp <command>
 | `fit:linear_refit_rtol` | `1e-12` | 数值秩的相对阈值 |
 | `fit:linear_refit_atol` | `0` | 数值秩的绝对阈值 |
 | `fit:linear_refit_tolerance` | `1e-10` | 精修目标核验的相对容差 |
-| `fit:trainable_groups` | — | 暴露给优化器的命名参数组 |
+| `fit:trainable_groups` | — | 提供给优化器的命名参数组 |
 | `fit:sr_stage_iterations` | `100` | 短程阶段迭代数 |
 | `fit:les_stage_iterations` | `50` | LES 阶段迭代数 |
 | `fit:joint_stage_iterations` | `0` | 联合阶段迭代数 |
@@ -480,7 +480,7 @@ VarPro 和条件线性精修控制属于 `trainnlpot`。可用 `imrmlp <command>
 | `al:export_file` | path | `al_candidates.xyz` | 候选输出文件 |
 | `al:sparsify_to` | int | 1000 | 导出候选池的最大大小；非正数清空候选池 |
 | `al:sparsify_method` | str | `fps` | `fps` 或 `random` |
-| `al:source` | str | `external` | `external` 外部活动集或 `embedded` GPM 内嵌会话 |
+| `al:source` | str | `external` | `external` 外部主动集或 `embedded` GPM 内嵌会话 |
 | `al:committee_prefix` | str | — | committee 成员模型文件前缀 |
 
 在普通弛豫配置中加入以下 section，再执行 `imrmlp relax relax.ini`：
@@ -502,9 +502,9 @@ export_file     candidates.xyz
 
 | 键 | 类型 | 默认值 | 描述 |
 |-----|------|---------|-------------|
-| `neb:spring` | float | `5.0` | 镜像间的弹簧常数 |
-| `neb:climb` | bool | no | 启用爬坡镜像 NEB (CI-NEB) |
-| `neb:climb_mode` | string | `highest` | 选择最高能量镜像（标准 CI-NEB）或全部 `all_local` 局部极大值 |
+| `neb:spring` | float | `5.0` | 图像间的弹簧常数 |
+| `neb:climb` | bool | no | 启用爬坡图像 NEB (CI-NEB) |
+| `neb:climb_mode` | string | `highest` | 选择最高能量图像（标准 CI-NEB）或全部 `all_local` 局部极大值 |
 | `neb:climb_delay` | int | `0` | 延迟 N 步启动 CI-NEB；`stable-v1` 按接受步计数，`legacy` 按力评估计数 |
 | `neb:vcneb` | bool | no | 启用变胞 NEB |
 | `neb:variablespring` | bool | no | 可变弹簧常数 |
@@ -519,14 +519,14 @@ export_file     candidates.xyz
 | `neb:trjformat` | str | `mlpcfg` | 轨迹文件格式 |
 | `neb:nblocks` | int | `5` | 轨迹输出间隔；`stable-v1` 按接受步计数，`legacy` 按力评估计数 |
 | `neb:cellweight` | float | 100.0 | VC-NEB 切线、弹簧与广义力统一使用的晶胞坐标度量权重 |
-| `neb:min_images` | int | 5 | 最小总镜像数（包含端点） |
-| `neb:max_images` | int | 20 | 最大总镜像数（包含端点） |
+| `neb:min_images` | int | 5 | 最小总图像数（包含端点） |
+| `neb:max_images` | int | 20 | 最大总图像数（包含端点） |
 | `neb:solver_policy` | str | `legacy` | 数值策略：`legacy` 或 `stable-v1` |
 | `neb:max_cell_strain` | float | — | 单步最大晶胞应变 |
 | `neb:max_force_evaluations` | int | — | 力求值次数上限 |
 | `neb:diagnostics` | path | 空 | 可选的接受状态诊断 CSV 文件名 |
 | `neb:vally` / `neb:valley` | bool | 否 | 启用 valley 路径修正 |
-| `neb:pin` | bool | 否 | 固定爬坡和 valley 镜像 |
+| `neb:pin` | bool | 否 | 固定爬坡图像和谷底图像 |
 | `neb:ciival` | 6 floats | `100 100 100 50 50 50` | 晶胞坐标缩放正权重，顺序为 `xx yy zz yz xz xy` |
 | `neb:apply_scal` | bool | — | 应用标量路径修正 |
 | `neb:omp_mode` | str | — | 力求值的 OpenMP 调度模式 |
@@ -539,22 +539,22 @@ export_file     candidates.xyz
 | `neb:symmetry_diagnostics` | path | 空 | 可选的对称性报告文件名 |
 | `neb:perturb_amplitude` | float | — | 路径扰动幅度 |
 | `neb:perturb_seed` | int | — | 路径扰动种子 |
-| `neb:symmetry_release` | path | 空 | 运行结束后对称性释放检查的新输出目录；空值禁用 |
-| `neb:symmetry_release_trials` | int | — | 对称释放尝试次数 |
-| `neb:symmetry_release_seed` | int | — | 对称释放种子 |
-| `neb:symmetry_release_steps` | int | — | 对称释放优化步数 |
-| `neb:symmetry_release_evaluations` | int | — | 对称释放力求值次数 |
-| `neb:symmetry_release_amplitude` | float | — | 对称释放位移幅度 |
-| `neb:symmetry_release_strain` | float | — | 对称释放晶胞应变 |
-| `neb:symmetry_release_energy_tol` | float | — | 对称释放能量容差 |
+| `neb:symmetry_release` | path | 空 | 运行结束后对称性解除检查的新输出目录；空值禁用 |
+| `neb:symmetry_release_trials` | int | — | 对称性解除尝试次数 |
+| `neb:symmetry_release_seed` | int | — | 对称性解除种子 |
+| `neb:symmetry_release_steps` | int | — | 对称性解除优化步数 |
+| `neb:symmetry_release_evaluations` | int | — | 对称性解除时的力求值次数 |
+| `neb:symmetry_release_amplitude` | float | — | 对称性解除时的位移幅度 |
+| `neb:symmetry_release_strain` | float | — | 对称性解除时的晶胞应变 |
+| `neb:symmetry_release_energy_tol` | float | — | 对称性解除时的能量容差 |
 | `neb:traj` | path | — | `neb:trjfile` 的别名 |
 | `neb:traj-format` | str | — | `neb:trjformat` 的别名 |
 | `neb:springmax` | float | — | 最大弹簧常数 |
 | `neb:springmin` | float | — | 最小弹簧常数 |
-| `neb:variableimage` | bool | 否 | 优化过程中插入/删除镜像 |
-| `neb:img_insert_thresh` | float | — | 变镜像插入阈值 |
-| `neb:img_remove_thresh` | float | — | 变镜像删除阈值 |
-| `neb:img_adjust_interval` | int | — | 镜像调整间隔 |
+| `neb:variableimage` | bool | 否 | 优化过程中插入/删除图像 |
+| `neb:img_insert_thresh` | float | — | 可变图像插入阈值 |
+| `neb:img_remove_thresh` | float | — | 可变图像删除阈值 |
+| `neb:img_adjust_interval` | int | — | 图像调整间隔 |
 | `neb:ttype` | int | 1 | 切线类型：1 改进型，2 带保护的原始型，3 EB |
 | `neb:stype` | int | 1 | 弹簧投影类型，通常与 `ttype` 相同 |
 | `neb:mdist_r` | float | — | 路径过滤使用的最小距离半径 |

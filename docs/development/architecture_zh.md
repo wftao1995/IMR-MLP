@@ -13,8 +13,8 @@ IMR-MLP 遵循分层架构：
 
 1. **数据层** — Atoms、Neighborhoods、掩码和 I/O 格式定义了*我们处理的内容*
 2. **计算层** — 势函数和描述符从数据中计算物理量
-3. **驱动层** — 最小化驱动程序和训练算法协调计算
-4. **应用层** — CLI 命令向最终用户暴露功能
+3. **驱动层** — 最小化驱动与训练算法协调计算
+4. **应用层** — CLI 命令向最终用户提供功能
 
 ## 数据流
 
@@ -117,7 +117,7 @@ PotMTP::getEFS()
     │       ├── 模型传播（线性或 NN）
     │       └── 反向传播（通过 Jacobian 计算力和应力）
     │
-    └── 累加：单位点能量求和 → 总能量、力、应力
+    └── 累加：位点能量求和 → 总能量、力、应力
 ```
 
 ## 配置模型
@@ -139,7 +139,7 @@ PotMTP::getEFS()
 ### `mtp_kim/` — KIM API 模型驱动
 
 独立的 KIM API 兼容模型驱动，将 MTP 打包为标准的 KIM 模型，
-供 LAMMPS、ASE 或任何 KIM 感知的 MD 代码使用。包含：
+供 LAMMPS、ASE 或任何支持 KIM 的 MD 代码使用。包含：
 
 - `kim_model_driver.cpp`：KIM API v2 模型接口（Create、ComputeArgumentsCreate、
   Compute、Destroy、Refresh）。

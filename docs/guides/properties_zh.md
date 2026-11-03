@@ -15,7 +15,7 @@
 | `relaxed.vasp` | 平衡结构 | 弛豫结果用 `convstr` 导出的 POSCAR |
 | `index.map` | 模型元素顺序 | 模型或其训练记录 |
 
-每个计算在独立目录中进行；声子与弹性还要另装 Phonopy（仅声子后处理需要）。
+每个计算在独立目录中进行；声子还要另装 Phonopy（仅后处理需要）。
 `relaxed.vasp` 的具体路径与命名规则见[输入文件与配置约定](conventions_zh.md)。
 EOS 与零压弹性要求先完成对应的晶胞优化。
 
@@ -44,7 +44,7 @@ imrmlp calc_fc --potfile model.mtp \
 在支持时用解析、否则回退到力的有限差分，或显式选择 `force_fd` 并检查
 `--hessian-nudge-pos` 位移步长。
 
-`--lowest-modes N` 是另一种矩阵无关的最低 Gamma 模诊断：输出本征模，不写完整
+`--lowest-modes N` 是另一种免矩阵的最低 Gamma 模诊断：输出本征模，不写完整
 `FORCE_CONSTANTS`，不能替代整个布里渊区的声子色散。更多后端及输出定义见
 [命令参考](../reference/commands_zh.md)。
 
@@ -136,7 +136,7 @@ yz、xz、xy。顺序认错会把 `C44`、`C55`、`C66` 与 `C12`、`C13` 张冠
 
 1. 通常说的“弹性常数”就是第一段 C。解析模式在 `--relax-correction` 打开（默认）时、
    数值模式对每个应变点弛豫离子后，得到的都是离子弛豫后的刚度；解析模式关掉该项得到
-   的是钳制离子（clamped-ion）刚度。两者相差可能很大，不能混比。
+   的是钳制离子（clamped-ion）刚度。两者相差可能很大，不能相互比较。
 2. 只有外压非零时 B 才与 C 不同：对角元减 P，正应力交叉项加 P。例如同一结构在 5 GPa 下
    `C11` = 97.90、`B11` = 92.90，`C12` = 54.57、`B12` = 59.57。本征值和
    “Born elastic stability conditions meet / NOT meet” 只看 B；柔度张量与模量表由 C 得到。

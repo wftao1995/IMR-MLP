@@ -94,7 +94,7 @@ saddle = result.saddle_atoms  # 独立副本，可在释放驱动后使用
 
 NEB 的原有设置和 Python `NEB` 保留；VCNEB 的 `pressure` 单位 GPa，
 图像能量已经包含 pV，后处理不要再次累加。应对目标材料的模型、晶胞尺寸及图像数
-做收敛检查。MPI、路径对称性和释放检查见 [NEB 并行与路径对称性](neb-parallel-symmetry_zh.md)。
+做收敛检查。MPI、路径对称性和对称性解除检查见 [NEB 并行与路径对称性](neb-parallel-symmetry_zh.md)。
 
 `modefollowing` 模式 1 是 Hessian/动画，模式 2 才是迭代模式跟随，模式 4 只做单步 NR，
 模式 9 导出方向。模式 2 通过 `--max-loop` 限制每阶段次数；重复初始化不会读取

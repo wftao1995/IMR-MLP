@@ -50,7 +50,7 @@ imrmlp maxvol_select select.ini --pool train.xyz \
 输出是选中的结构和 `model.mtp.sel` 主动集状态，后者不是势函数文件。判据是日志里的
 `Selection status:` 行及同一行末尾的 `virtual_rows`：出现 `WARNING: not converged`
 说明在预算内没有达到阈值，用 `full` 或 `stream/exact` 重跑；`virtual_rows` 非零表示
-仍有未初始化的方向，小数据或相关性强的参数方向会造成秩不足。
+仍有未初始化的方向，小数据集或强相关数据会造成这种情况。
 
 ## 筛选探索结构
 
@@ -61,7 +61,7 @@ imrmlp maxvol_sample select.ini --input pool.xyz \
 ```
 
 示例提高了**离线输出**的 break 阈值，便于收集较高 grade 的帧；`2.1` 等数值只是初始
-设置，需结合模型、活动集和参考误差校准。CLI 的默认 break 为 11：遇到超过阈值的构型会
+设置，需结合模型、主动集和参考误差校准。CLI 的默认 break 为 11：遇到超过阈值的构型会
 立即停止，该极端帧本身也不写入，日志随之打印 `BREAK: cfg … grade …` —— 此时
 `candidates.xyz` 只覆盖到中断位置，后面的结构从未被打分。要扫完整个池，调高
 `--threshold-break` 或分块运行。LAMMPS fix 的阈值与保存行为按其专用说明处理。
@@ -90,7 +90,7 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py
 | 2.5 | 3.445 | 是 |
 
 查看 `grades.tsv`、`candidates.xyz` 和 `sample.log`，应看到 `Saved 2 / 4`。分数由主动集
-和构型共同决定，不是间距的单调函数。模型是合成教学模型，`Al` 仅
+和构型共同决定，并非只由间距决定。模型是合成教学模型，`Al` 仅
 演示映射；候选文件只含几何和评分，尚未完成参考标注或重训。手动命令与调低阈值的做法见
 [完整示例](../../examples/active-learning/README_zh.md)。
 
@@ -126,7 +126,7 @@ LAMMPS 的 `fix mlip/maxvol` 需要单独安装 MPI 插件，并使用匹配的�
 它只打分/保存候选，不改变 pair 力。GPU pair 与 CPU 打分器组合需按接口说明核验。
 CLI 中读取 GPM 也不会自动启动采样。
 
-候选池很大时，`stream` + `exact` 可通过缓存行完成全池扫描；`online` 不保留所有历史
+候选池很大时，`stream` + `exact` 会缓存各行数据，从而完成全池扫描；`online` 不保留所有历史
 候选，结果与到达顺序有关，需要与全池扫描等价的选择时用 `stream/exact`。内存与 MPI
 控制见[命令参考](../reference/commands_zh.md)。
 

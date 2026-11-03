@@ -69,7 +69,7 @@ imrmlp trainmtp fit.ini --do-lbfgs
 ```
 
 这会覆盖默认最终快照；对比不同运行前应复制到独立文件。
-生产数据准备、优化器选择和部署见[工作流程](../../docs/guides/workflows_zh.md)。
+数据划分、优化器选择和模型部署见[工作流程](../../docs/guides/workflows_zh.md)。
 使用 Python/ASE 评估生成模型见[Python 文档](../../docs/reference/python_zh.md)，
 LAMMPS 部署见[接口说明](../../LAMMPS/README_zh.md)。
 

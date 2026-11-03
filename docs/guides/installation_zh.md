@@ -212,7 +212,7 @@ GPU 架构设置和支持范围见 [GPU 指南](../development/cuda_zh.md)。
 | 已装 oneMKL 但仍报 `mkl.h` 缺失 | `MKLROOT` 与 oneMKL 环境，或改用 `USE_MKL=0` 构建 |
 | 链接报 `cannot find -l...` | 对应开发库和链接目录是否存在；使用该后端时还需初始化 oneMKL 环境 |
 | 启动报动态库找不到 / undefined symbol | 程序与库来自同一构建，当前构建目录在库路径最前 |
-| `cc1plus` 被杀死 | 降到 `-j1` 或 `-j2`，确认机器内存 |
+| `cc1plus` 被终止 | 降到 `-j1` 或 `-j2`，确认机器内存 |
 | pip 构建失败 | 先确认原生依赖齐全，再看 pip 日志中的第一条实际编译/链接错误 |
 
 更多按症状解释见[故障排查](troubleshooting_zh.md)。

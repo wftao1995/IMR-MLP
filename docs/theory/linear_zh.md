@@ -25,7 +25,7 @@ E_i = \sum_{\alpha} \xi_\alpha B_\alpha(\mathbf{r}_i)
 `supports_linear_fit()` 接口。
 
 MTP_M 中，固定径向参数仍不足以使非线性头与投影的联合拟合成为线性问题。
-固定其余参数后，`li/q2/fs/n1/n2` 各有受支持的仿射输出块，可通过 `trainnlpot`
+固定其余参数后，`li/q2/fs/n1/n2` 各自提供受支持的仿射输出块，可通过 `trainnlpot`
 执行[条件线性精修](../advanced/linear-refit_zh.md)。各头的具体系数与推导见
 [MTP_M 理论](mtp-m_zh.md)。
 
@@ -92,8 +92,8 @@ B_k(\mathbf{r}_i)
 
 ### 应力行（结构级）
 
-通用训练器使用扩展应力张量（eV）的全部 9 个分量，而非 6 个 Voigt 分量；
-非对角分量分别计入。对特征 @f$k@f$ 和笛卡尔分量 @f$a,b@f$，未加权行为：
+通用训练器使用广延应力张量（eV）的全部 9 个分量，而非 6 个 Voigt 分量；
+非对角分量分别计入。对特征 @f$k@f$ 和笛卡尔分量 @f$a,b@f$，未加权行如下：
 
 @f[
 \mathbf{A}_{\text{stress}, ab} = -\sum_i \sum_j

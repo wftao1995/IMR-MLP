@@ -5,11 +5,11 @@
 ## 找不到模型、POSCAR 或示例目录
 
 先确认当前目录（`pwd`）和上一阶段是否成功。`model.mtp`、`POSCAR` 等是自备输入的
-占位名，不会由任意命令自动下载；没有自己的输入时走
-[连续计算练习](../../examples/basic-calculations/README_zh.md)。物性目录的 `relaxed.vasp`
-来自其中晶胞弛豫结果的显式复制，NEB 端点来自两次端点弛豫后的导出。
-训练入门默认输出到 `build/quickstart/`；如果使用了其他 `--work`（包括旧示例的
-`build/first-run/`），后续页面也要换成实际路径。
+占位名，不会由任意命令自动下载；没有自己的输入时，请按
+[连续计算练习](../../examples/basic-calculations/README_zh.md)中的流程操作。物性目录的 `relaxed.vasp`
+是晶胞弛豫结果的显式副本，NEB 端点来自两次端点弛豫后的导出。
+训练入门默认输出到 `build/quickstart/`；如果改用其他 `--work`（旧示例为
+`build/first-run/`），后续页面中的路径也要一并替换成实际路径。
 
 脚本提示输出目录非空时，复用已成功的结果，或指定一个新的 `--work`；不需要删除原结果。
 `convstr` 从多帧文件导出 POSCAR 时可能添加编号后缀；仅需一帧时使用
@@ -51,7 +51,7 @@ export LD_LIBRARY_PATH="$PWD/build/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 提供 `include/mkl.h` 时启用该后端；`USE_MKL=0` 可完全不用 oneMKL，改用 Eigen
 自带内核编译。`USE_KIM=0` 可关闭可选 KIM 接口。
 编译器及标准库需支持本项目的 C++23 特性，详见[安装指南](installation_zh.md)。
-编译进程因内存不足被杀死时，降低并行编译任务数。
+编译进程因内存不足被终止时，减少并行编译任务数。
 
 ## 物种不匹配或能量、力异常
 
@@ -77,7 +77,7 @@ Spline、LES/SOG 模型需选择各自对应的 style。
 
 构建、安装、运行应使用同一个 Python 解释器。用
 `python3 -c "import imrmlp; print(imrmlp.__file__)"` 检查导入路径，并检查扩展的
-动态库依赖。注意当前目录可能遮蔽已安装的软件包。ASE 计算器需另外安装 ASE。
+动态库依赖。注意当前目录下的同名包可能覆盖已安装的版本。ASE 计算器需另外安装 ASE。
 `Potential(filename)` 默认 `auto`：GPM 推断包内类型，旧格式按 `mtp` 加载；
 其他旧格式类型需显式传入。
 详见 [Python 指南](../reference/python_zh.md)。

@@ -69,7 +69,7 @@ imrmlp mtmbasis mtmbasis.ini --alphapool alphapool.dat --potfile basis.mtp
 
 当前 `mtmbasis` 的布尔命令行选项需要显式值，例如 `--generate-only true`、`--sample true`、`--advanced-sample true`。`--generate-only` 单独出现会报缺少参数。
 
-需要限制候选矩张量时，用 `--moments moments.txt` 替代自动矩张量列表；文件第一个数是数量，其后恰好是这些 `(mu,nu)` 对，例如：
+需要限制候选矩张量时，用 `--moments moments.txt` 替代自动矩张量列表；文件第一个数是数量，其后恰好跟着该数量的 `(mu,nu)` 对，例如：
 
 ```text
 3
@@ -198,9 +198,9 @@ imrmlp fastfit fastfit.ini --mode 2 --num_threads 1
 
 模式 4 必须先有模式 0 生成的 `EIGVEC` 和 `EIGVAL`，不能在空目录中直接接在模式 1 后运行。它默认按分数确定性选择；`--cur` 才开启随机采样。`--discard-rate` 是丢弃比例。`--addback` 可保留计算路径中的标量，因此实际保留数量可能不同于简单比例。
 
-可在原选集上执行 `--mode 5 --search-steps 100 --method greedy`，或独立尝试 `--mode 6 --population 16 --generations 10`。模式 5 默认 legacy 分数使用训练损失加可用的验证损失。模式 6 的 legacy 双目标在有验证集时为训练损失／验证损失，没有验证集时为训练损失／标量数；这套双目标里没有速度项，要在误差上限内压速度得换 `selection-objective error-cost`。搜索预算是示例值：把 `--generations` 加倍重跑一次，验证误差不再下降即为够用。
+可在原选集上执行 `--mode 5 --search-steps 100 --method greedy`，或独立尝试 `--mode 6 --population 16 --generations 10`。模式 5 默认 legacy 分数使用训练损失加可用的验证损失。模式 6 的 legacy 双目标在有验证集时为训练损失／验证损失，没有验证集时为训练损失／标量数；这套双目标里没有速度项，若要在误差上限内压低耗时，需改用 `selection-objective error-cost`。搜索预算是示例值：把 `--generations` 加倍重跑一次，验证误差不再下降即为够用。
 
-需要在验证误差上限内追求速度，使用模式 5/6 的 `selection-objective error-cost`，见[按 E/F/S 成本选基](fastfit-cost-selection_zh.md)。它要求非空验证集，以估算运算量搜索，再对少量候选实测。标量数量只是运算量的代理，与实际 CPU/GPU/LAMMPS 时间不成比例。
+需要在验证误差上限内追求速度，使用模式 5/6 的 `selection-objective error-cost`，见[按 E/F/S 成本选基](fastfit-cost-selection_zh.md)。它要求非空验证集，以估算的运算量为目标进行搜索，再对少量候选实测。标量数量只是运算量的代理，与实际 CPU/GPU/LAMMPS 时间不成比例。
 
 ## 6. 选集文件、矩阵缓存与可复现性
 

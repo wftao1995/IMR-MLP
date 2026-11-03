@@ -7,8 +7,8 @@
 
 ## 1. 文档范围
 
-MaxVol（Maximum Volume）从候选矩阵中选择一组尽可能线性独立的行，使这些行
-张成的平行多面体体积尽可能大。在机器学习原子势（MLIP）中，候选行通常是
+MaxVol（Maximum Volume）从候选矩阵中选择一组行，使它们张成的体积尽可能大，
+并为所选表示提供有信息量的方向。在机器学习原子势（MLIP）中，候选行通常是
 描述符，或能量、力、应力对势参数的导数。因而 MaxVol 可以同时用于：
 
 - 构建数值条件较好的初始训练集；
@@ -87,7 +87,7 @@ I_* = \arg\max_{|I|=n} |\det A[I,:]|.
 \mathbf y \approx B\boldsymbol\theta,
 @f]
 
-且观测噪声经过权重处理后可视为独立同方差，则 Fisher 信息矩阵或正规矩阵为
+且观测噪声经过权重处理后可视为独立同分布，则 Fisher 信息矩阵或正规矩阵为
 @f$F=B^\mathsf T B@f$。对于方形主动矩阵，
 
 @f[
@@ -138,7 +138,7 @@ MaxVol 每轮寻找
 
 较小阈值意味着更严格的局部最优性、更多扫描和交换；较大阈值会更早停止。
 推荐令 @f$\tau\ge1@f$。实现对小于 1 的停止阈值也会按 1 处理，因此设置成
-小于 1 并不能要求“更严格于最大体积”的结果。
+小于 1 也无法得到“比最大体积更严格”的结果。
 
 ### 3.4 外推等级
 
@@ -245,7 +245,7 @@ full / stream / online MaxVol ──► 主动行矩阵 C
 ```
 
 选择的基本单位是 <b>B 行</b>，输出的基本单位是 <b>原子构型</b>。一个构型可能贡献
-多行，也可能有多行同时进入主动矩阵；输出时会按构型索引去重。因此：
+多行，即多个主动行可能来自同一构型；输出时会按构型索引去重。因此：
 
 - 主动行数通常接近参数/描述符维数 @f$n@f$；
 - 输出构型数可以明显小于主动行数；
@@ -340,7 +340,7 @@ B 矩阵。线性系数通常已足以刻画标量基多样性，而且显著降
 | 类/入口 | 职责 |
 |---|---|
 | `MaxVol` | 通用稠密矩阵选行、矩形广义体积、评分、增广和底层 checkpoint |
-| `OnlineMaxVolState` | 保存紧凑主动矩阵，执行批次式在线交换和无分配重复评分 |
+| `OnlineMaxVolState` | 保存紧凑主动矩阵，执行批次式在线交换，并支持不分配内存的重复评分 |
 | `BMatrixBuilder` | 把 `Atoms` 转换为 B 行及 `BRowRef` 元数据 |
 | `ActiveSelector` | 连接构型、builder、选择后端、grade、MPI 和 `.sel` 状态 |
 | `maxvol_select` | 从候选池构建主动集 |
@@ -459,7 +459,7 @@ shortlist 中批量交换，再进入下一轮全池扫描。它和 `full` 都�
 - 用 SVD 构造伪逆，截断阈值约为
   @f$\epsilon_{\rm mach}\max(k,n)\sigma_{\max}@f$；
 - 秩亏的宽主动矩阵使用与谱尺度相关的正则项；
-- Sherman--Morrison 分母非有限或绝对值小于 @f$10^{-14}@f$ 时完整重分解；
+- Sherman--Morrison 分母非有限或绝对值小于 @f$10^{-14}@f$ 时完整重分解（在线方阵路径使用 @f$10^{-12}@f$）；
 - 底层 `MaxVol` 默认每 20 次快速更新强制完整重算一次；
 - 在线状态每 16 次更新抽样检查分解漂移，最多 128 次更新后强制重分解；
 - 底层 `MaxVol` 的良态方阵使用带主元的 LU；保守的逆条件数检查确保病态或秩亏
@@ -571,8 +571,8 @@ O(mn^2+s\,mn),
 | `online` | 每批次构建并评分；典型方阵评分 @f$O(m_qn^2)@f$ | @f$O(n^2+m_qn)@f$，不保存历史池 |
 
 data 初始化的 exact 路径通常有 @f$q\lesssim s+1@f$；MLIP shortlist 路径可在
-一次扫描中接受多次交换。默认 exact 安全上限为 @f$q=100@f$。这些式子只给
-数量级。Eigen/MKL 的矩阵乘法、builder 成本、缓存带宽、mmap I/O、
+一次扫描中接受多次交换。默认 exact 安全上限为 @f$q=100@f$。这些公式只给出
+数量级估计。Eigen/MKL 的矩阵乘法、builder 成本、缓存带宽、mmap I/O、
 OpenMP 调度和 MPI 通信都会影响实际墙钟时间。
 
 仅一个 @f$m\times n@f$ double 矩阵就需要 @f$8mn@f$ 字节。例如
@@ -667,7 +667,7 @@ build/release/imrmlp maxvol_select select.ini \
 
 命令会：
 
-1. 写出唯一的入选构型到 `selected.xyz`；
+1. 写出去重后的入选构型到 `selected.xyz`；
 2. 写出每个池构型的 `idx grade selected` 到 `maxvol_scores.dat`；
 3. 自动把 state 保存为 `potfile + ".sel"`，本例为 `potential.mtp.sel`；
 4. 打印选中构型数、log-volume、收敛状态、最大剩余 grade 和虚拟行数；
@@ -804,7 +804,7 @@ mv.warm_cache(selected, A);
 Eigen::VectorXd candidate_scores = mv.score_rows(B_candidate, selected);
 ```
 
-`score_rows()` 不会在缺少匹配缓存时偷偷重新分解；缓存未准备、列数变化、主动行
+`score_rows()` 不会在缺少匹配缓存时静默重新分解；缓存未准备、列数变化、主动行
 索引变化或主动行数值变化时会返回空向量。高层 `ActiveSelector::prepare_grading()`
 负责完成对应准备工作。
 
@@ -848,7 +848,7 @@ Eigen::VectorXd candidate_scores = mv.score_rows(B_candidate, selected);
 
 `max-swaps=0` 只表示没有用户设置的交换数上限。底层 `MaxVol` 和 exact stream
 仍有默认 100 轮的安全上限；若在此之前未满足 post-check，state 会标记为
-`postcheck-failed`。当前 CLI 没有单独暴露底层 `max_iterations`。
+`postcheck-failed`。当前 CLI 没有单独提供底层 `max_iterations`。
 
 
 ## 10. 结果解释与推荐工作流

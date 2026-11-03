@@ -112,7 +112,7 @@ JSONL 包含 `settings`、`initial`、`accepted`、`final`、`termination`，发
 
 每个接受点记录：
 
-- `loss.total/data/energy/force/virial/radial_penalty/linear_penalty`；数据损失按现有权重归一化，总目标等于数据损失与两类惩罚之和。
+- `loss.total/data/energy/force/virial/radial_penalty/linear_penalty`；数据损失为按现有权重加权的结果，总目标等于数据损失与两类惩罚之和。
 - 原物理径向梯度、优化器坐标梯度、线性梯度无穷范数，内层秩、最优性残差、组装/求解/核验时间。
 - `linear_refinements` 和 `linear_gradient_initial_inf`：当前点的额外修正次数和首次线性梯度范数；内层时间累计全部求解，秩和归一化最优性残差来自最后一次求解。
 - 每个径向通道跨全部元素对和径向基的系数范数。
@@ -121,11 +121,11 @@ JSONL 包含 `settings`、`initial`、`accepted`、`final`、`termination`，发
 
 `settings` 记录实际生效的数据权重、幂次、力归一化参数、径向惩罚和线性正则权重、内外层求解容差，以及验证选择规则。`termination.type` 采用 ALGLIB 编号；1/2/4 标记停止条件满足，5 表示达到迭代上限。0 表示只做了初始投影，L-BFGS 一步未走；此时判断模型可用性看 JSONL 里的验证 RMSE 与 `best_validation_iteration`。
 
-JSONL 为 `schema_version=3`，保留原字段，并在 `settings` 中记录 `stress_metric="full_tensor_rmse_9"`。此前版本的 `stress_GPa` 按六个独立分量等权计算；旧报告数值和 `validation_max_stress` 阈值需按新口径重新核对，不能用一个固定比例换算。`best-data` 仍使用训练设置中的权重与归一化，不等同于最低未加权力 RMSE。改变正则权重时，可以比较相同数据权重下的 `loss.data`；不同正则权重的 `loss.total` 不适合直接排名。
+JSONL 为 `schema_version=3`，保留原字段，并在 `settings` 中记录 `stress_metric="full_tensor_rmse_9"`。此前版本的 `stress_GPa` 按六个独立分量等权计算；旧报告数值和 `validation_max_stress` 阈值需按新口径重新核对，不能用一个固定比例换算。`best-data` 仍使用训练设置中的权重与归一化，不等同于未加权时力 RMSE 最低的模型。改变正则权重时，可以比较相同数据权重下的 `loss.data`；不同正则权重的 `loss.total` 不适合直接排名。
 
 ## 可选的固定径向坐标缩放
 
-设置 `fit:varpro_radial_scale_file /absolute/radial-scales.txt` 启用。文件只包含恰好 `radial_coeff_size` 个有限正数，以空白分隔，排列顺序与 MTP 径向系数一致（元素对、径向通道、径向基索引）。未设置时全部为 1，保留原物理坐标。文件只由 MPI 主进程读取、验证，再广播尺度向量；缺失、数目不符、非正或非有限值均拒绝。
+设置 `fit:varpro_radial_scale_file /absolute/radial-scales.txt` 启用。文件必须恰好包含 `radial_coeff_size` 个有限正数，以空白分隔，排列顺序与 MTP 径向系数一致（元素对、径向通道、径向基索引）。未设置时全部为 1，保留原物理坐标。文件只由 MPI 主进程读取、验证，再广播尺度向量；缺失、数目不符、非正或非有限值均拒绝。
 
 优化器使用 `r_i = s_i z_i`，梯度按 `g_z,i = s_i g_r,i` 转换。每次试探仍在物理参数 `r` 上执行原来的线性求解、E/F/virial 目标和两类正则项，模型保存的也是物理参数。它不是对描述符或惩罚公式的修改。
 

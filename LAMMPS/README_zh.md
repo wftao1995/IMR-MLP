@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-IMR-MLP 通过一组 `mlip/...` pair 风格接入 LAMMPS。除本页介绍的 CPU 复制安装外，
+IMR-MLP 通过一组 `mlip/...` pair style 接入 LAMMPS。除本页介绍的 CPU 复制安装外，
 另有 standalone 与 native 两条安装路线，见第 3 节。
 
 对普通短程 MTP 与 MTP-M 模型做分子动力学或结构优化，应优先使用 CPU 接口
@@ -77,7 +77,7 @@ run 0
 GPU 与 OpenMP 的加速比取决于模型、体系规模与硬件，换接口或加线程都不保证变快。
 普通能量、力与压力计算不需要 transport 接口。
 
-对标准短程 MTP，CPU 上慢约 1.5–2 倍，GPU 上差距更大。native 主要用来跑 `opt`
+对标准短程 MTP，native 在 CPU 上约慢 1.5–2 倍，GPU 上差距更大。native 主要用来跑 `opt`
 读不了的模型，即长程 MTP-M、原生神经网络与混合势。
 
 完整模型范围见 [CPU 风格说明（英文）](USER-MLIP/opt/README.md)、
@@ -189,7 +189,7 @@ pair_coeff * * model.mtp Ni Al
 
 元素名须与模型中声明的元素表匹配。同一条命令不能混用名称与数字，也不接受 `NULL`。
 三种原子类型需提供三个条目，例如 `Al Ni Co`；多个原子类型也可映射到同一模型元素。
-上述语法同样适用于本页其他 `mlip/...` pair 风格。
+上述语法同样适用于本页其他 `mlip/...` pair style。
 
 旧模型若没有元素元数据，应先从训练设置确认 species 顺序，再使用从 0 开始的数字映射：
 

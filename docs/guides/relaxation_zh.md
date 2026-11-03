@@ -67,7 +67,7 @@ echo $?
 tail -n 20 relax.log
 ```
 
-`echo $?` 要紧接上一条命令运行。固定胞笛卡尔坐标下，`gtol` 检查活动梯度的最大
+`echo $?` 要紧接上一条命令运行。固定胞笛卡尔坐标下，`gtol` 检查允许自由度上梯度的最大
 绝对分量；无约束时对应每个力分量低于 `0.001 eV/Å`。`maxiteration` 是迭代预算，
 `stepmax` 控制优化器更新幅度，两者不是收敛精度。这些数值是示例，生产计算应做
 容差检查。
@@ -89,7 +89,7 @@ relax:cartesian false
 ### 约束、对称性与优化器
 
 POSCAR 的 `Selective dynamics` 标志需配合 `relax:selective_dynamics true` 使用。
-分量的含义与优化坐标有关，不能不加检查地把任意 T/F 掩码理解为实验室笛卡尔方向。
+分量的含义与优化坐标有关，不能把任意 T/F 掩码直接理解为实验室笛卡尔方向。
 `relax:keep_symm true` 会限制在初始空间群允许的子空间中，可能排除真实的破对称畸变，
 并与其他约束存在兼容性限制；规则见[约束与对称性](../advanced/relax-symmetry_zh.md)
 及[配置参考](../reference/configuration_zh.md)。

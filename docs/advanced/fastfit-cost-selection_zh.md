@@ -47,7 +47,7 @@ population-init stratified
 mutation-rate -1
 ```
 
-`population-init half`（默认）使随机个体以 50% 概率保留每个标量；`stratified` 按种群位置将保留概率从 5% 分布到 95%，同时保留已有的文件种子和 `error-cost` 完整基组种子。这是按概率分层：个体之间保留的标量数会不同，比较规模时读 `selected_ones*.dat` 的实际条数。
+`population-init half`（默认）使随机个体以 50% 概率保留每个标量；`stratified` 按种群位置将保留概率从 5% 分布到 95%，已有的文件种子和 `error-cost` 完整基组种子仍然优先。这是按概率分层：个体之间保留的标量数会不同，比较规模时读 `selected_ones*.dat` 的实际条数。
 
 `mutation-rate` 是逐标量独立翻转概率，允许 `[0,1]`，默认 `0.05`；`-1` 表示 `1/nscalar`，即每个子代**平均**翻转一项，并非每次恰好一项。对于 756 项基组，默认值平均翻转 37.8 项。更小的概率有利于局部调整，但可能减慢大范围探索，应在相同种群、代数和多个 seed 下比较。日志及成本报告记录实际概率；这两个参数只影响 NSGA-II。
 
@@ -112,7 +112,7 @@ MPI 各 rank 使用同一负载统计和目标函数，rank 0 完成实测并广
 
 `cost_analysis`、`cost_benchmark` 已接入可选的分段 profile。`scratch_bytes_estimate` 只是指定最大邻居数与线程数下主要 E/F/S 临时数组的估计，排除分配器容量、径向基内部空间、原子力缓冲区和训练矩阵；它不是进程 RSS。进程峰值继续使用原有 profile 的 RSS 历史峰值统计。
 
-## Assembly cache
+## 组装缓存
 
 同一输入上重复搜索时，可通过 [`apps/fastfit_cache.h`](../../apps/fastfit_cache.h)
 中的 `func_fastfit::fastfit_cached()` 传入调用方管理的 `AssemblyCache`，最多保存
@@ -125,7 +125,7 @@ MPI 各 rank 使用同一负载统计和目标函数，rank 0 完成实测并广
 
 ## 统一 E/F/V 损失与 L2（显式选择）
 
-旧默认 `objective-convention legacy` 保持不变：fastfit 的正规方程对应数据损失总和，并惩罚物种偏置和 moment 系数；普通 MTP 非线性训练使用帧平均损失，L2 只惩罚 moment 系数。两条路径的 L2 数值写一样时，目标函数仍然不同——惩罚的参数组就是不一致的；要对齐目标，显式选 `objective-convention mean-moments`，再按下一节对齐权重与参考口径。
+旧默认 `objective-convention legacy` 保持不变：fastfit 的正规方程对应数据损失总和，并惩罚物种偏置和 moment 系数；普通 MTP 非线性训练使用帧平均损失，L2 只惩罚 moment 系数。两条路径的 L2 数值即使设成一样，目标函数仍然不同——因为二者惩罚的参数组不同；要对齐目标，显式选 `objective-convention mean-moments`，再按下一节对齐权重与参考口径。
 
 新选项 `objective-convention mean-moments` 让两条路径对应同一个目标：所有已加载训练帧的加权 E/F/完整 9 分量 virial 残差平方和除以全局帧数 N，再加 `lambda_mean * ||moment_coeffs||²`；物种偏置、径向参数不受这项 L2 惩罚。权重、原子数指数和参考力归一化仍须显式对齐。缺失标签不改变帧数分母。
 
@@ -143,7 +143,7 @@ objective-report objective.tsv
 
 ## 多档模型导出
 
-在 `selection-objective error-cost` 的模式 5/6 下，可选 `cost-archive-rule pareto`，维护有容量上限的非支配档案；默认 `spread` 保持原先的分散成本探索。代理成本有偏差时，保留 `spread` 也可以导出实测前沿。容量裁剪与 shortlist 都保留最低成本、最低验证损失端点；容量上限之外的候选不进入档案，导出的前沿由这些代表构成。
+在 `selection-objective error-cost` 的模式 5/6 下，可选 `cost-archive-rule pareto`，维护有容量上限的非支配档案；默认 `spread` 保持原先的分散成本探索，也支持导出；代理成本有偏差时，保留 `spread` 可能更可取。容量裁剪与 shortlist 都保留最低成本、最低验证损失端点；容量上限之外的候选不进入档案，导出的前沿由这些代表构成。
 
 设置 `cost-export-dir pareto-models` 后，保存并重载每个 shortlist 模型、全量 EFS 复核通过，再以临时目录整体发布导出包。目标目录及同名 `.tmp` 必须不存在；原先单赢家文件仍输出。包内含输入母势的精确副本 `parent.mtp`、所有已核验的 `candidate-*.mtp`、`objective.tsv`、`manifest.tsv` 和逐轮 `rounds.tsv`。
 

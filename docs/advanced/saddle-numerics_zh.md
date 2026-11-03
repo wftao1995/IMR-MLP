@@ -9,7 +9,7 @@
 
 - NR 使用 `xx yy zz yz xz xy` 顺序的对称线性应变，即 `H = H_ref (I + strain)`。
   坐标、梯度和 Hessian 使用同一参考晶胞，并包含应变-位置混合导数。
-- 分数坐标变胞 mode following 使用同顺序的度规分量 `C-I`，即 `H = H_ref chol(C)`。
+- 分数坐标变胞 mode following 使用同顺序的度量分量 `C-I`，即 `H = H_ref chol(C)`。
   Hessian 包含胞映射的二阶导数。`--car-rep` 则使用独立的原始晶胞与笛卡尔原子坐标。
   参见[命令参考](../reference/commands_zh.md)。
 - NR 约束在求逆前对 Hessian 做降维。`--no-cell` 下固定原子按笛卡尔固定，
@@ -32,7 +32,7 @@
 |---|---|
 | `unitest/ut_saddle_numerics.cpp` | 解析鞍点、独立的能量/梯度差分、约束求逆与 Dimer 状态 |
 | `unitest/ut_saddle_inputs.cpp` | NR 收敛与约束、严格输入、输出错误与 MODECAR 切线 |
-| `unitest/ut_modefollowing.cpp` | 固定/变胞 Hessian、远离参考晶胞的度规导数、模态投影与鞍点搜索 |
+| `unitest/ut_modefollowing.cpp` | 固定/变胞 Hessian、远离参考晶胞的度量导数、模态投影与鞍点搜索 |
 | `unitest/ut_neb.cpp` | VCNEB 压力导数、CI-NEB 双阱势垒与收敛 |
 | `unitest/python/test_saddle_api.py` | 所有权、重复运行、不收敛、显式方向与轨迹写出 |
 | `unitest/python/test_saddle_cli.py` | 命令行输出失败路径 |
@@ -49,6 +49,6 @@ python3 -m pytest
 ## 适用范围
 
 NR 与 mode following 需要 MTP 解析 Hessian。其稠密 Hessian 面向较小的候选结构。
-NR 寻找驻点时不选择 Hessian 索引。测试以 CPU/OpenMP 以及定胞或静水压导数
+NR 寻找驻点时不指定鞍点阶数。测试以 CPU/OpenMP 以及定胞或静水压导数
 为目标，不用于验证各向异性外应力或任意材料迁移路径。
 变胞 mode following 是否收敛，看退出码与最终力／单一负模检查的结果，`MODECAR` 只是输入。

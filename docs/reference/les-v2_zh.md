@@ -2,7 +2,7 @@
 
 [English](les-v2.md)
 
-可训练的高斯和（SOG）核（v3/v4）见 [MTP + SOG](sog_zh.md)。下文 v2 Coulomb 泛函保持不变。
+可选的可训练高斯和（SOG）核（v3/v4）见 [MTP + SOG](sog_zh.md)。下文 v2 Coulomb 泛函保持不变。
 
 ## 用途与输入
 

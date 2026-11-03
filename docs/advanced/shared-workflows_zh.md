@@ -6,7 +6,7 @@
 
 `imrmlp.iread()` 逐帧读取轨迹，`imrmlp.write_iter()` 在一个输出会话中写入可迭代对象。
 支持的格式和读写方向限制见 `imrmlp.io`。独立会话分别维护帧计数和编解码设置。
-消费到损坏帧或截断的压缩流时会报告错误。
+读到损坏帧或截断的压缩流时会报错。
 
 `imrmlp.detect_format()` 可检查文件内容。显式格式优先，文件名格式推断只检查基本文件名。
 `open_reader()` 和 `open_writer()` 提供可配置、可复用的 Python 会话对象。
@@ -27,7 +27,8 @@ XSF 标量网格通过独立的 `read_xsf_fields()`、`write_xsf_fields()` 以�
 `hessian_weight`、`hessian_pow`、`hessian_fd_step` 支持完整 Cartesian Hessian 标签，
 可以与 E/F/S、HVP 观测共同训练。训练使用结构副本，位置转换不修改输入标签。
 
-普通 MTP 可以针对固定普通 MTP 或 ZBL 核心势的残差训练；复合势输出保留两个分量。
+可以为普通 MTP 提供一个固定的普通 MTP 或 ZBL 核心势，用于残差训练；核心保持固定，
+复合势输出保留两个分量。
 训练集、验证选择和最终测试集评估分别处理。命名参数组和支持的分阶段调度控制拟合坐标。
 
 CPU CG 可在最后接受点执行一次终端线性重拟合，保留径向参数并校验目标函数。

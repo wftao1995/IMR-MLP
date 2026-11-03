@@ -137,7 +137,7 @@ imrmlp trainmtp train.ini --linear-fit
 cp _Trained_Potential_.mtp fitted-linear.mtp
 ```
 
-**必须显式选择优化器或 `--linear-fit`**：裸命令 `trainmtp train.ini` 不会自动选择
+**必须显式选择优化器或 `--linear-fit`**：直接运行 `trainmtp train.ini` 不会自动选择
 非线性优化方法。最终快照固定写入工作目录的 `_Trained_Potential_.mtp`；
 `fit:save_to` 指定训练器检查点，不会重命名这个命令级最终输出。使用独立运行目录可避免
 覆盖之前的模型。
@@ -191,7 +191,7 @@ pair_coeff * * fitted.mtp Al Ni
 这里按 LAMMPS 类型顺序写 Al/Ni；单元素 Al 模型仅需 `Al`。旧模型无元素元数据时改用
 已确认的数字 species 映射。该片段放在建盒/读入原子之后，完整输入见接口指南。
 先用 `run 0`，在同一几何、晶胞、映射和边界条件下与 CLI 比较 E/F。样条模型使用
-`mlip/spline`；LES/SOG 使用专用样式；热流计算需采用 transport pair style。
+`mlip/spline`；LES/SOG 使用专用 pair style；热流计算需采用 transport pair style。
 
 ### Python 与 ASE
 
@@ -202,10 +202,10 @@ pair_coeff * * fitted.mtp Al Ni
 
 | 症状 | 原因 | 处理 |
 | --- | --- | --- |
-| 训练结束但没有预期迭代输出 | 未指定 `--do-lbfgs` 或 `--linear-fit` | 显式选择优化方式，裸命令不会自动挑选 |
+| 训练结束但没有预期迭代输出 | 未指定 `--do-lbfgs` 或 `--linear-fit` | 显式选择优化方式，直接运行不会自动挑选 |
 | 找不到自己命名的模型文件 | 最终快照固定写入 `_Trained_Potential_.mtp` | 训练后复制并按用途命名，或改用独立运行目录 |
 | 训练误差很低但计算明显偏差 | 元素映射错误或数据划分泄漏 | 核对 `index.map`，按轨迹/相/成分划分集合 |
-| 验证误差突然变好 | 验证集参与了模型或超参数选择之后的反复调整 | 用未参与选择的 `test.xyz` 报告最终指标 |
+| 验证误差突然变好 | 验证集在调参过程中被反复使用 | 用未参与选择的 `test.xyz` 报告最终指标 |
 | 格式识别错误 | 把 extxyz 改名成 `.cfg` | 保留扩展名，或在配置中显式指定格式 |
 | LAMMPS 能量与 CLI 不一致 | 类型顺序、映射或边界条件不同 | 先 `run 0` 在同一条件下逐项比对 |
 

@@ -230,7 +230,7 @@ N_{\mathrm{par}}=N_r+S+qS+qP+N_{\mathrm{head}}.
 长程项的能量、响应力和晶胞导数都必须计入总预测；不能只保留短程头。
 相关定义见 [LES v2](../reference/les-v2_zh.md)、[SOG](../reference/sog_zh.md)。
 
-短程头可按支持范围使用 CPU/OpenMP 或 GPU 独立部署；原生模型组合和长程路径
+受支持的短程头可独立部署到 CPU/OpenMP 或 GPU；原生模型组合和长程路径
 需要选择兼容接口。文件后缀或转换为 GPM 都不会改变模型的数学形式或执行器支持范围。
 部署选择见 [LAMMPS 接口](../../LAMMPS/README_zh.md)。
 

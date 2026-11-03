@@ -3,7 +3,7 @@
 [English](potential-types.md)
 
 势工厂根据 `pot:pottype`（部分命令使用扁平键 `pottype`）分派类型。
-普通势文件的类型为空或 `auto` 时选择 `mtp`；GPM 从内嵌元数据推断类型。下表类型全部注册在
+旧式势文件的类型为空或 `auto` 时选择 `mtp`；GPM 从内嵌元数据推断类型。下表类型全部注册在
 `potentials/potential_wrapper.cpp`；表格给出每种类型所需的输入文件，
 以及已有专页时的链接。
 
@@ -20,7 +20,7 @@
 | `eamfs` | Finnis–Sinclair EAM | EAM FS 表 | — |
 | `eampoly` | 多项式 EAM | EAM 参数文件 | 混合势示例中使用 |
 | `openkim` | OpenKIM 模型 | `pot:kim_model` 中的模型名 | 需要 `USE_KIM` 构建 |
-| `acelmp` | ACE/LAMMPS 势 | ACE 模型 | 需要 `WITH_ACELMP`；当前 Makefile 未暴露开关，需在 `CXXFLAGS` 中手动启用 |
+| `acelmp` | ACE/LAMMPS 势 | ACE 模型 | 需要 `WITH_ACELMP`；当前 Makefile 未提供开关，需在 `CXXFLAGS` 中手动启用 |
 | `mindist` | 最小距离惩罚 | 无 | 参数为 `pot:cutoff`、`pot:factor`、`pot:power` |
 | `lj612` | Lennard–Jones 6-12 | 无 | 参数来自势配置段 |
 | `zbl` | Ziegler–Biersack–Littmark | 无 | 通常作为 `hybrid` 的固定核心 |
