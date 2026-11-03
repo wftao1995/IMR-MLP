@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "potential_hybrid.h"
+#include "potential_wrapper.h"
 
 #include <algorithm>
 #include <cmath>
@@ -59,7 +60,10 @@ Potentials::PotentialHybrid::PotentialHybrid(GPSettings settings, std::vector<st
         }
         Message("Potential number " + std::to_string(i+1) + " type is " + ptype);
         if (ptype == "zbl") {
-            ppots[i] = children.empty() ? std::make_unique<PotentialZBL>(pset) : std::move(children[i]);
+            if(children.empty()) {
+                if(!pset.count("typemap"))pset.Modify("typemap","");
+                potential_wrapper child(pset);ppots[i].reset(child.pot);child.pot=nullptr;
+            } else ppots[i]=std::move(children[i]);
             if (!dynamic_cast<PotentialZBL*>(ppots[i].get())) GPERROR("hybrid: child type mismatch");
         } else if (ptype == "mtp") {
             std::unique_ptr<PotMTP> pmtp_owner;

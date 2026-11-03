@@ -23,6 +23,8 @@ public:
     AnyPotential &potential() const;
     std::unique_ptr<AnyPotential> release_potential();
     void save(const std::string &path,Profile profile=Profile::Preserve);
+    /// Export a loaded GPM to reloadable native files and optional MaxVol .sel.
+    void save_native(const std::string &path,Profile profile=Profile::Preserve);
     std::unique_ptr<AL::ALPotential> create_al(const GPSettings &overrides);
     void attach_al(AL::ALPotential &al);
     void attach_selector(ActiveSelector &selector);

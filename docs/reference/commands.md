@@ -2200,12 +2200,14 @@ Mode following also supports `--mode=9 --modecar-out=MODECAR`; mode 2 accepts
 ```bash
 imrmlp model_convert --input old.mtp --type mtp --output model.gpm
 imrmlp model_convert --settings with-al.ini --output resume.gpm --profile resume
+imrmlp model_convert --input resume.gpm --legacy --output model.mtp
 ```
 
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
 | `--input` | `-in` | | Legacy model or GPM input |
-| `--output` | `-out` | | Output GPM file (required) |
+| `--output` | `-out` | | Output model file (GPM by default; required) |
+| `--legacy` | | `false` | Export GPM to native models and compatible MaxVol `.sel` |
 | `--settings` | | | Existing potential and optional `al:` configuration |
 | `--type` | | `auto` | Legacy potential type; GPM infers its type |
 | `--index` | | | Explicit ordered element map |

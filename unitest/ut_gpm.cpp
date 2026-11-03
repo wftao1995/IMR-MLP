@@ -53,6 +53,18 @@ void roundtrip(AnyPotential&p,Atoms atoms=swap_lattice(2,2)) {
     Directory dir;p.Save(dir.file());auto b=ModelBundle::load(dir.file());
     equivalent(p,b->potential(),atoms);ModelBundle::validate(dir.file());validate_fresh(dir.file());
     REQUIRE(ModelBundle::fingerprint(p)==ModelBundle::fingerprint(b->potential()));
+    const auto family=ModelBundle::type(p);
+    if(family=="eamalloy"||family=="eamfs"||family=="meam"||family=="shellfile"||family=="committee"||family=="openkim"||family=="acelmp") {
+        REQUIRE_THROWS(b->save_native(dir.file("native.model")));
+        REQUIRE_FALSE(std::filesystem::exists(dir.file("native.model")));
+    } else {
+        b->save_native(dir.file("native.model"));
+        GPSettings native=GPSettings(dir.file("native.model.ini")).ExtractSubSettings("pot");
+        native.Modify("potfile",dir.file("native.model"));
+        if(!native["typemap"].empty())native.Modify("typemap",dir.file("native.model.index.map"));
+        potential_wrapper restored(native);equivalent(p,*restored.pot,atoms);
+    }
+
     const int count=p.get_NL_coeffs_count();REQUIRE(count==b->potential().get_NL_coeffs_count());
     if(count>0){std::vector<double> before(count),after(count);p.nl_get_coeffs(before.data());b->potential().nl_get_coeffs(after.data());REQUIRE(before==after);}
     if(p.supports_analytical_hessian_vector_product()){
@@ -183,6 +195,10 @@ TEST_CASE("GPM local and long-range composite models are closed", "[gpm]") {
     if(auto *les=dynamic_cast<PotMTP_LES*>(wrapper.pot)){les->les_kernel=GENERATE("coulomb","sog");les->sog_terms=2;les->sog_channels=les->les_kernel=="sog"?2:1;les->train_init();}
     wrapper.pot->Save(dir.file());std::filesystem::remove(dir.file("a.mtp"));std::filesystem::remove(dir.file("b.mtp"));
     auto bundle=ModelBundle::load(dir.file());equivalent(*wrapper.pot,bundle->potential());ModelBundle::validate(dir.file());validate_fresh(dir.file());
+    bundle->save_native(dir.file("native.model"));
+    GPSettings native(dir.file("native.model.ini"));auto options=native.ExtractSubSettings("pot");options.Modify("potfile",dir.file("native.model"));options.Modify("typemap","");
+    potential_wrapper restored(options);equivalent(bundle->potential(),*restored.pot);
+
     if(std::string(type)!="mtp_les")REQUIRE_THROWS(MLIPCore::read_model_text(dir.file().c_str()));
 }
 
@@ -203,6 +219,9 @@ TEST_CASE("GPM hybrid ZBL preserves node element labels and AL binding", "[gpm][
     REQUIRE(ModelBundle::fingerprint(bundle->potential())==fingerprint);
     equivalent(*wrapper.pot,bundle->potential());
     ModelBundle::validate(dir.file());validate_fresh(dir.file());
+    bundle->save_native(dir.file("native.hybrid"));
+    potential_wrapper native(dir.file("native.hybrid"),"hybrid");equivalent(bundle->potential(),*native.pot);
+
     bundle->save(dir.file("resaved.gpm"),ModelBundle::Profile::Inference);
     REQUIRE(ModelBundle::inspect(dir.file()).at("models")==ModelBundle::inspect(dir.file("resaved.gpm")).at("models"));
     ModelBundle::validate(dir.file("resaved.gpm"));
@@ -257,6 +276,19 @@ TEST_CASE("GPM tables EAM and empirical variants roundtrip", "[gpm]") {
     }
     potential_wrapper wrapper(s);wrapper.pot->Save(dir.file());std::filesystem::remove(path);
     auto loaded=ModelBundle::load(dir.file());equivalent(*wrapper.pot,loaded->potential(),atoms);ModelBundle::validate(dir.file());validate_fresh(dir.file());
+    const auto family=ModelBundle::type(loaded->potential());
+    if(family=="eamalloy"||family=="eamfs"||family=="meam") {
+        std::ofstream(dir.file("native.model"))<<"keep old output";
+        REQUIRE_THROWS(loaded->save_native(dir.file("native.model")));
+        std::ifstream old(dir.file("native.model"));std::string text;std::getline(old,text);REQUIRE(text=="keep old output");
+    } else {
+        loaded->save_native(dir.file("native.model"));
+        GPSettings native=GPSettings(dir.file("native.model.ini")).ExtractSubSettings("pot");
+        native.Modify("potfile",dir.file("native.model"));
+        if(!native["typemap"].empty())native.Modify("typemap",dir.file("native.model.index.map"));
+        potential_wrapper restored(native);equivalent(loaded->potential(),*restored.pot,atoms);
+    }
+
 }
 
 TEST_CASE("GPM descriptor linear embeds its MTM dependency", "[gpm]") {
@@ -264,6 +296,10 @@ TEST_CASE("GPM descriptor linear embeds its MTM dependency", "[gpm]") {
     GPSettings s;s.Modify("pottype","descriptor_linear");s.Modify("typemap","");s.Modify("descriptor_linear:descriptor:dtype","mtm");s.Modify("descriptor_linear:descriptor:mtm:potfile",dir.file("descriptor.mtp"));
     potential_wrapper wrapper(s);std::vector<double> c(wrapper.pot->get_NL_coeffs_count(),.1);wrapper.pot->nl_set_coeffs(c.data());wrapper.pot->Save(dir.file());std::filesystem::remove(dir.file("descriptor.mtp"));
     auto loaded=ModelBundle::load(dir.file());equivalent(*wrapper.pot,loaded->potential());ModelBundle::validate(dir.file());validate_fresh(dir.file());
+    loaded->save_native(dir.file("native.descriptor"));
+    std::filesystem::remove(dir.file());
+    potential_wrapper native(dir.file("native.descriptor"),"descriptor_linear");equivalent(loaded->potential(),*native.pot);
+
 }
 
 TEST_CASE("GPM validates lazy payloads and preserves optional extensions atomically", "[gpm]") {

@@ -181,3 +181,53 @@ imrmlp maxvol_extend --legacy --potfile _Trained_Potential_.mtp --state-file _Tr
 
 此模式只切换持久化约定，不回退训练或选样算法，也不恢复已移除的 `is_new_` 字段，
 不增加 GPM 主版本 1 的兼容性。
+
+## 将 GPM 导出为原生模型文件
+
+`model_convert --legacy` 将参数完整的 GPM 模型转换为原来的原生格式。
+不需要训练数据，也不负责初始化空白 MTP 模板。不传 `--legacy` 时仍输出 GPM。
+
+```sh
+imrmlp model_convert --input session.gpm --legacy --output model.mtp
+imrmlp model_convert --input session.gpm --legacy --output model.mtp --profile inference
+```
+
+默认 `preserve` 同时将内嵌 MaxVol 状态导出为 `model.mtp.sel`。
+`resume` 要求存在兼容的 MaxVol 状态；`inference` 只输出模型，并删除同一目标位置
+已有的 `model.mtp.sel`。其他 AL 方法无法表示为 `.sel`，除非选择 `inference`，
+否则明确报错。AL 策略、候选队列及 GPM 扩展不在原生导出范围内。
+
+GPM 元素表完整时额外生成 `model.mtp.index.map`；`model.mtp.ini` 记录原生模型
+重载配置。使用该设置文件时，在导出目录运行命令。MTPNN1 在输出前缀后添加
+`.mtp`、`.nn`、`.sc`；HMTP 添加 `_subN`。MTP-M 所需的 `extmodel` 记录在设置文件中。
+
+`hybrid` 和 `hybrid_scale` 在指定输出路径写清单，将所有子势（包括固定子势）
+保存为 `<output>.potN`。清单使用相对子势路径，保留训练标志与混合配置；移动时
+需一起移动整套导出文件。基于 MTM 的 `descriptor_linear` 还会导出
+`<output>.descriptor.mtp`，通过相对模型文件的路径引用。
+
+原生导出支持 `mtp`、`mtp_m`、`mtp_les`、`mtpnn1`、`mtp_edq`、`mtp_edqrd`、
+`hmtp`、`hybrid`、`hybrid_scale`、`eam_trainable`、`eampoly`、`lj612`、`zbl`、
+`mindist`、`sw`、`tersoff`、`pair_table`、`threebody_table`、`descriptor_linear`。
+没有完整可重载原生写入器的模型（包括 MEAM、EAM alloy/FS 表格、committee 和
+外部运行时模型）明确报错，不进行近似或重新拟合。重载后的推理数据须与来源
+一致，无法由原生格式精确表示的数据（例如自定义的预计算多项式矩阵）会被拒绝。
+此校验不包含训练正则项和单次计算的累加标志。
+
+对于 `pot_efs` MaxVol 状态，使用导出的原生模型和状态：
+
+```sh
+imrmlp maxvol_sample --potfile model.mtp --pottype mtp --dtype pot_efs \
+  --state-file model.mtp.sel --index model.mtp.index.map --input candidates.xyz
+```
+
+配套设置文件也记录恢复的 builder、selector 和状态路径：
+
+```sh
+imrmlp maxvol_sample --settings model.mtp.ini --input candidates.xyz
+imrmlp maxvol_extend --settings model.mtp.ini --candidates candidates.xyz
+```
+
+旧 CLI 的 builder 类型应与选样时一致；混合势还需指定对应 `--pottype`。
+原生输出路径不能以 `.gpm` 结尾。所有输出先暂存并重载校验，再发布；发生可报告
+的发布错误时回滚已有输出。多个文件的发布期间，并发读取方应等待转换完成。

@@ -189,3 +189,61 @@ imrmlp maxvol_extend --legacy --potfile _Trained_Potential_.mtp --state-file _Tr
 
 This mode changes persistence conventions, not fitting or selection algorithms.
 It does not reintroduce the removed `is_new_` field or enable GPM major version 1.
+
+## Export GPM to native model files
+
+`model_convert --legacy` converts a complete GPM model to its original native
+format. It does not initialize blank MTP templates or require training data.
+Without `--legacy`, conversion continues to produce GPM.
+
+```sh
+imrmlp model_convert --input session.gpm --legacy --output model.mtp
+imrmlp model_convert --input session.gpm --legacy --output model.mtp --profile inference
+```
+
+The default `preserve` profile also exports embedded MaxVol state as
+`model.mtp.sel`. `resume` requires compatible MaxVol state; `inference` exports
+only the model and removes an old `model.mtp.sel` at the same destination.
+Other AL methods cannot be represented by `.sel` and fail unless `inference`
+is selected. AL policy, candidate queues and GPM extensions are not exported.
+
+The command writes `model.mtp.index.map` when the GPM contains a complete element
+table, and `model.mtp.ini` with the native reload settings. Run commands using
+this settings file from the exported directory. MTPNN1 uses `.mtp`, `.nn` and
+`.sc` suffixes on the output prefix; HMTP uses `_subN`. MTP-M requires the
+`extmodel` option recorded in the companion settings file.
+
+`hybrid` and `hybrid_scale` export a manifest at the requested output path and
+all child files as `<output>.potN`, including fixed children. The manifest uses
+relative child paths and preserves training flags and mixing configuration.
+Move the entire exported file set together. An MTM-backed `descriptor_linear`
+also exports `<output>.descriptor.mtp`, referenced relative to its model file.
+
+Native export supports `mtp`, `mtp_m`, `mtp_les`, `mtpnn1`, `mtp_edq`,
+`mtp_edqrd`, `hmtp`, `hybrid`, `hybrid_scale`, `eam_trainable`, `eampoly`,
+`lj612`, `zbl`, `mindist`, `sw`, `tersoff`, `pair_table`, `threebody_table`
+and `descriptor_linear`. Families without a complete reloadable native writer
+(including MEAM, EAM alloy/FS tables, committees and external runtime models)
+fail explicitly. Export does not approximate or refit models. Reloaded inference
+data must match the source, so data without an exact native representation
+(such as customized prepared polynomial matrices) is rejected. Training
+regularizers and per-call accumulation flags are not part of this comparison.
+
+For a `pot_efs` MaxVol state, use the exported native model and state together:
+
+```sh
+imrmlp maxvol_sample --potfile model.mtp --pottype mtp --dtype pot_efs \
+  --state-file model.mtp.sel --index model.mtp.index.map --input candidates.xyz
+```
+
+The companion settings also records the restored builder, selector and state path:
+
+```sh
+imrmlp maxvol_sample --settings model.mtp.ini --input candidates.xyz
+imrmlp maxvol_extend --settings model.mtp.ini --candidates candidates.xyz
+```
+
+Match the original builder family when using the legacy CLI; a composite model
+also needs its original `--pottype`. Native output paths must not end in `.gpm`.
+Files are staged and reloaded before publication. Reported publication failures
+roll back existing outputs; concurrent readers should wait for conversion to finish.

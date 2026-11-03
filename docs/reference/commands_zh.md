@@ -2062,12 +2062,14 @@ imrmlp dimer dimer.ini
 ```bash
 imrmlp model_convert --input old.mtp --type mtp --output model.gpm
 imrmlp model_convert --settings with-al.ini --output resume.gpm --profile resume
+imrmlp model_convert --input resume.gpm --legacy --output model.mtp
 ```
 
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|---------|-------------|
 | `--input` | `-in` | | 旧格式模型或 GPM 输入 |
-| `--output` | `-out` | | 输出 GPM 文件（必需） |
+| `--output` | `-out` | | 输出模型文件（默认 GPM，必需） |
+| `--legacy` | | `false` | 将 GPM 导出为原生模型及兼容的 MaxVol `.sel` |
 | `--settings` | | | 已有势配置及可选的 `al:` 配置 |
 | `--type` | | `auto` | 旧格式势类型；GPM 会推断类型 |
 | `--index` | | | 显式有序元素映射 |

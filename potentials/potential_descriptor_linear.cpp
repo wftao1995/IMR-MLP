@@ -94,6 +94,9 @@ GPSettings PotentialDescriptorLinear::LoadSettings(const std::string &filename)
     for (const auto &key : {"descriptor:dtype", "cutoff", "species_count", "feature_count", "coefficients"}) {
         if (settings[key].empty()) GPERROR("Missing linear descriptor model setting: " + std::string(key));
     }
+    const auto dependency=settings["descriptor:mtm:potfile"];
+    if(!dependency.empty()&&std::filesystem::path(dependency).is_relative())
+        settings.Modify("descriptor:mtm:potfile",(std::filesystem::absolute(filename).parent_path()/dependency).lexically_normal().string());
     return settings;
 }
 

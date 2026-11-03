@@ -22,10 +22,12 @@ template<class F> int on_writer(F action) {
 }
 
 int model_convert(int argc,char **argv) {
+    bool legacy=false;
     std::string input,output,settings_file,type="auto",index,profile="preserve";
     auto &options=CMDOption::global_cmdopts;
     options.addop(input,"input","in","Legacy model or GPM input")
-        .addop(output,"output","out","Output GPM file",true)
+        .addop(output,"output","out","Output model file (GPM by default)",true)
+        .addop(legacy,"legacy","","Export GPM to native model files and compatible MaxVol .sel",false,0)
         .addop(settings_file,"settings","","Existing potential and optional al: configuration")
         .addop(type,"type","","Legacy potential type; GPM infers its type")
         .addop(index,"index","","Explicit ordered element map")
@@ -40,12 +42,14 @@ int model_convert(int argc,char **argv) {
         if(!index.empty())settings.Modify("typemap",index);
         auto bundle=Potentials::ModelBundle::from_settings(settings);
         auto al_settings=all.ExtractSubSettings("al");
-        if(profile!="inference")if(auto al=AL::ALPotential::create(al_settings)) {
+        if(!legacy&&profile!="inference")if(auto al=AL::ALPotential::create(al_settings)) {
             al->init_builder(bundle->potential());bundle->attach_al(*al);
         }
         using Profile=Potentials::ModelBundle::Profile;
         GPM::require(profile=="preserve"||profile=="inference"||profile=="resume","unknown save profile");
-        bundle->save(output,profile=="inference"?Profile::Inference:profile=="resume"?Profile::Resume:Profile::Preserve);
+        const auto mode=profile=="inference"?Profile::Inference:profile=="resume"?Profile::Resume:Profile::Preserve;
+        if(legacy)bundle->save_native(output,mode);
+        else bundle->save(output,mode);
         std::cout<<"Saved "<<output<<'\n';
     });
 }
