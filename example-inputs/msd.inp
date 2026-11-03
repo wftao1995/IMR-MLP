@@ -17,7 +17,6 @@ msd:drift_cm        true                # [bool] Remove center-of-mass drift
 msd:drift_vm        false               # [bool] Remove integrated COM-velocity drift; exclusive with drift_cm
 msd:tacavg          false               # [bool] Time-averaged correlation
 msd:projection      false               # [bool] Project along direction
-msd:total           true                # [bool] Compute total MSD
 msd:types           false               # [bool] Compute per-type MSD
 msd:track           false               # [bool] Track specific atoms
 msd:groups          false               # [bool] Compute per-group MSD

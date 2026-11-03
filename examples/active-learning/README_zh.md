@@ -21,6 +21,17 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py
 `--work build/active-learning-2`；也可用 `--imrmlp /absolute/path/to/imrmlp`
 指定其他可执行程序，并配置与其匹配的运行库路径。
 
+默认流程使用 GPM 主动集状态 `model.mtp.maxvol.gpm`。如需复现 GPM 之前的
+`.sel` 状态，可加 `--legacy` 运行同一练习：
+
+```sh
+OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py \
+  --legacy --work build/active-learning-legacy
+```
+
+此时写入 `model.mtp.sel`，并给两条 MaxVol 命令都加上 `--legacy`。使用
+`--legacy` 时的默认输出目录是 `build/active-learning-legacy/`。
+
 ## 查看结果
 
 脚本会打印以下近似分数，并写入 `grades.tsv`：
@@ -40,7 +51,7 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py
 | --- | --- |
 | `coverage.cfg`、`pool.cfg` | 仅含几何的已有覆盖与探索输入 |
 | `model.mtp`、`index.map`、`select.ini` | 模型、元素顺序与评分配置 |
-| `model.mtp.sel`、`selected.xyz` | 主动集状态及其选中行所对应的结构 |
+| `model.mtp.maxvol.gpm`、`selected.xyz` | 主动集状态（GPM；加 `--legacy` 时为 `model.mtp.sel`）及其选中行所对应的结构 |
 | `graded-pool.xyz`、`grades.tsv` | 全部四帧的评分与便于阅读的汇总 |
 | `candidates.xyz` | 两个待考虑参考标注的构型，**尚无参考 E/F/应力标签** |
 
@@ -52,13 +63,24 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py
 imrmlp maxvol_select select.ini --pool coverage.cfg --index index.map \
   --output selected.xyz --score-file coverage-grades.txt
 imrmlp maxvol_sample select.ini --input pool.cfg --index index.map \
-  --state-file model.mtp.sel --output candidates.xyz \
+  --state-file model.mtp.maxvol.gpm --output candidates.xyz \
+  --threshold-save 2.1 --threshold-break 1000000000
+```
+
+默认状态文件是 GPM 格式的 `model.mtp.maxvol.gpm`。如需旧式 `.sel` 格式，
+给两条命令都加 `--legacy`，并改用 `--state-file model.mtp.sel`：
+
+```sh
+imrmlp maxvol_select select.ini --legacy --pool coverage.cfg --index index.map \
+  --output selected-legacy.xyz --score-file coverage-grades-legacy.txt
+imrmlp maxvol_sample select.ini --legacy --input pool.cfg --index index.map \
+  --state-file model.mtp.sel --output candidates-legacy.xyz \
   --threshold-save 2.1 --threshold-break 1000000000
 ```
 
 试着改为 `--threshold-save 1.2 --output candidates-1.2.xyz`，应保存四帧中的三帧。
 这改变的是待标注数量，不是模型精度。很高的 break 阈值用于收集这个有限的离线池，
-不能直接作为在线 MD 的安全设置。只改变输出阈值时，保持模型和 `.sel` 的对应关系。
+不能直接作为在线 MD 的安全设置。只改变输出阈值时，保持模型与其状态文件的对应关系。
 
 实际工作中，还要检查候选几何，用与旧数据一致的参考方法标注，再重训、验证并
 建立匹配的新状态，步骤见[指南](../../docs/guides/active-learning_zh.md)。本练习只完成

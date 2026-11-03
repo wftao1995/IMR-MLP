@@ -26,7 +26,8 @@ with a value or a commented key, never a bare key: the loader reports
 | Active learning | `select*.ini`, `diverse-select*.ini`, `calc-fitness*.ini` |
 | Structure utilities | `convstr*.ini`, `mk-*.ini`, `swap-axis*.ini`, `sameq*.ini`, `findint*.ini`, `trans-reduce*.ini`, `primi-reduce*.ini`, `split-set*.ini`, `remove-duplicate-*.ini`, `smooth-traj*.ini` |
 | Potential utilities | `adjustmtp*.ini`, `mtp2spline*.ini`, `mtpbasis*.ini`, `mtmbasis*.ini`, `pot2table*.ini` |
-| Properties and phonons | `prop*.ini`, `phonopyfc*.ini`, `calc-trjavg*.ini`, `ev*.ini`, `calc-elastic*.ini`, `calc-numelastic*.ini`, `calc-fc*.ini`, `calc-ferr*.ini` |
+| Properties and phonons | `prop*.ini`, `msd.inp`, `example_calc_ha.inp`, `phonopyfc*.ini`, `calc-trjavg*.ini`, `ev*.ini`, `calc-elastic*.ini`, `calc-numelastic*.ini`, `calc-fc*.ini`, `calc-ferr*.ini` |
+| I/O and compressed inputs | `compressed/` (gzip and zstd examples) |
 | Hybrid example | `zbl-mtp-hybrid-al/calc-efs.ini` |
 
 These are templates, not self-contained calculations. Copy a suitable file to a
@@ -56,9 +57,13 @@ generates models, structures and settings and passes outputs to the next step.
 
 Files marked “CLI reference only” describe command-line options and cannot be
 loaded as settings. These include many structure utilities, `adjustmtp`,
-`mtp2spline`, and `nroptimize`. `phonopyfc` uses `--settings-file` instead of
-`--settings`; `pot2table` reads only potential settings from its file and requires
-its export options on the command line.
+`mtp2spline`, `mtpbasis`, and `nroptimize`. `phonopyfc` uses `--settings-file`
+instead of `--settings`; `pot2table` reads only potential settings from its file and
+requires its export options on the command line.
+
+`calc_fitness` is a separate executable target built by `make all`, not an
+`imrmlp` subcommand. Its decks are loaded with
+`calc_fitness --settings calc-fitness.ini` (or the corresponding simple deck).
 
 `nroptimize.ini` is a parameter reference rather than a directly loadable template.
 `dimer.ini` is the complete Dimer example; `dimer-simple.ini` is a minimal

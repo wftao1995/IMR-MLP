@@ -22,7 +22,8 @@
 | 主动学习 | `select*.ini`、`diverse-select*.ini`、`calc-fitness*.ini` |
 | 结构操作 | `convstr*.ini`、`mk-*.ini`、`swap-axis*.ini`、`sameq*.ini`、`findint*.ini`、`trans-reduce*.ini`、`primi-reduce*.ini`、`split-set*.ini`、`remove-duplicate-*.ini`、`smooth-traj*.ini` |
 | 势函数工具 | `adjustmtp*.ini`、`mtp2spline*.ini`、`mtpbasis*.ini`、`mtmbasis*.ini`、`pot2table*.ini` |
-| 性质与声子 | `prop*.ini`、`phonopyfc*.ini`、`calc-trjavg*.ini`、`ev*.ini`、`calc-elastic*.ini`、`calc-numelastic*.ini`、`calc-fc*.ini`、`calc-ferr*.ini` |
+| 性质与声子 | `prop*.ini`、`msd.inp`、`example_calc_ha.inp`、`phonopyfc*.ini`、`calc-trjavg*.ini`、`ev*.ini`、`calc-elastic*.ini`、`calc-numelastic*.ini`、`calc-fc*.ini`、`calc-ferr*.ini` |
+| I/O 与压缩输入 | `compressed/`（gzip、zstd 示例） |
 | 混合势 | `zbl-mtp-hybrid-al/calc-efs.ini` |
 
 这些是模板，不能在没有模型和数据时直接运行。先复制需要的配置到独立运行目录，
@@ -47,9 +48,12 @@ cd build/my-efs-run
 其中会自动生成模型、结构与对应配置，并说明输出如何传给下一步。
 
 标有 “CLI reference only” 的文件是命令行选项参考，不能作为配置加载；
-包括许多结构工具、`adjustmtp`、`mtp2spline` 和 `nroptimize`。`phonopyfc` 使用
-`--settings-file` 而非 `--settings`；`pot2table` 的文件只读取势函数配置，
-导出选项需在命令行指定。
+包括许多结构工具、`adjustmtp`、`mtp2spline`、`mtpbasis` 和 `nroptimize`。
+`phonopyfc` 使用 `--settings-file` 而非 `--settings`；`pot2table` 的文件只读取
+势函数配置，导出选项需在命令行指定。
+
+`calc_fitness` 是 `make all` 构建的独立可执行程序，不是 `imrmlp` 子命令。
+其配置用 `calc_fitness --settings calc-fitness.ini`（或对应的 simple 文件）加载。
 
 `nroptimize.ini` 是参数参考，不能直接作为配置加载。`dimer.ini` 是完整 Dimer 示例，
 `dimer-simple.ini` 是最小起点。命令选项见[命令参考](../docs/reference/commands_zh.md)，

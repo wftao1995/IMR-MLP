@@ -39,7 +39,7 @@ output directory**. Here `imrmlp` means the executable selected above:
 ```sh
 imrmlp calc_efs train-input.cfg train.cfg --potfile reference.mtp --index index.map
 imrmlp calc_efs valid-input.cfg valid.cfg --potfile reference.mtp --index index.map
-imrmlp trainmtp fit.ini --linear-fit
+imrmlp trainmtp fit.ini --linear-fit --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp fitted.mtp
 imrmlp calc_err --input valid.cfg --potfile fitted.mtp --index index.map --output-summary errors.txt
 imrmlp calc_efs valid-input.cfg predicted.cfg --potfile fitted.mtp --index index.map
@@ -47,8 +47,9 @@ imrmlp calc_efs valid-input.cfg predicted.cfg --potfile fitted.mtp --index index
 
 This fits the linear coefficients while keeping the radial basis fixed.
 The starting linear coefficients differ from the reference coefficients.
-`trainmtp` always writes its final snapshot to `_Trained_Potential_.mtp` in
-the working directory; `fit:save_to` controls trainer checkpoints separately.
+The explicit `--output _Trained_Potential_.mtp` keeps the native final model;
+without it, `trainmtp` now defaults to `_Trained_Potential_.gpm`.
+`fit:save_to` controls trainer checkpoints separately.
 The script copies the final snapshot to `fitted.mtp` explicitly.
 
 Each stage prints `OK`. Inspect `errors.txt` and the per-stage `.log` files.
@@ -75,11 +76,12 @@ pages if you chose a custom output directory.
 To try ALGLIB L-BFGS from the same template, run in the generated directory:
 
 ```sh
-imrmlp trainmtp fit.ini --do-lbfgs
+imrmlp trainmtp fit.ini --do-lbfgs --output _Trained_Potential_.mtp
 ```
 
-This overwrites the default final snapshot; copy it to a distinct filename
-before comparing runs. The main [training guide](../../docs/guides/workflows.md)
+This overwrites the native `_Trained_Potential_.mtp` snapshot; copy it to a
+distinct filename before comparing runs. Without `--output`, training now
+defaults to `_Trained_Potential_.gpm`. The main [training guide](../../docs/guides/workflows.md)
 explains optimizer selection, data splits and model deployment. See the
 [Python guide](../../README-python.md) to evaluate `fitted.mtp` from Python/ASE,
 and the [LAMMPS guide](../../LAMMPS/README.md) for `pair_style mlip/opt`.

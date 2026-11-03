@@ -127,14 +127,16 @@ maxiter 100
 
 ```sh
 cd "$imrmlp_mtp/basis-8"
-imrmlp trainmtp fit.ini --linear-fit > train.log 2>&1
+imrmlp trainmtp fit.ini --linear-fit --output _Trained_Potential_.mtp \
+  > train.log 2>&1
 echo $?
 cp _Trained_Potential_.mtp fitted.mtp
 imrmlp calc_err --input ../valid.cfg --potfile fitted.mtp \
   --index ../index.map --output-summary validation.txt
 echo $?
 cd "$imrmlp_mtp/basis-16"
-imrmlp trainmtp fit.ini --linear-fit > train.log 2>&1
+imrmlp trainmtp fit.ini --linear-fit --output _Trained_Potential_.mtp \
+  > train.log 2>&1
 echo $?
 cp _Trained_Potential_.mtp fitted.mtp
 imrmlp calc_err --input ../valid.cfg --potfile fitted.mtp \
@@ -144,8 +146,10 @@ echo $?
 
 两份配置使用同一数据与权重：`energy_weight=1`、`force_weight=0.1`、
 `stress_weight=0.001`、`weight_L2=1e-12`，关闭随机初始化与径向正交化。
-完整配置已生成，不要用其他训练器的设置替换。最终模型固定写入
-`_Trained_Potential_.mtp`；脚本设置的 `checkpoint.mtp` 是另一份检查点。
+完整配置已生成，不要用其他训练器的设置替换。显式传入
+`--output _Trained_Potential_.mtp` 可保留原生最终模型；`fit:save_to` 写入另一份
+`checkpoint.mtp`。若省略 `--output`，训练现在默认写 GPM
+`_Trained_Potential_.gpm`，而 `MTP1m` 模板目前无法编码为该格式。
 
 预先为本教学问题规定：验证集每原子能量 RMS 不超过 1 meV/atom，力向量 RMS
 不超过 0.001 eV/Å，选择满足两项的较小候选。典型结果为：

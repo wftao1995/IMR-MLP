@@ -23,6 +23,18 @@ ASE, LAMMPS or reference dataset is needed. The default output is
 `--work build/active-learning-2` for another run, or `--imrmlp /absolute/path/to/imrmlp`
 to select a different executable and configure its matching runtime libraries.
 
+The canonical run uses the GPM active-set state `model.mtp.maxvol.gpm`. To
+reproduce the pre-GPM `.sel` state instead, run the same exercise with
+`--legacy`:
+
+```sh
+OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/active-learning/run.py \
+  --legacy --work build/active-learning-legacy
+```
+
+This writes `model.mtp.sel` and adds `--legacy` to both MaxVol commands. The
+default output directory with `--legacy` is `build/active-learning-legacy/`.
+
 ## Inspect the result
 
 The script prints the following approximate scores and writes `grades.tsv`:
@@ -42,7 +54,7 @@ column; the selected structure count is not a rule for larger MTPs.
 | --- | --- |
 | `coverage.cfg`, `pool.cfg` | Geometry-only known coverage and exploration inputs |
 | `model.mtp`, `index.map`, `select.ini` | Model, species order and scoring settings |
-| `model.mtp.sel`, `selected.xyz` | Active-set state and structures representing its selected rows |
+| `model.mtp.maxvol.gpm`, `selected.xyz` | Active-set state (GPM; `model.mtp.sel` with `--legacy`) and structures representing its selected rows |
 | `graded-pool.xyz`, `grades.tsv` | All four scored frames and a readable summary |
 | `candidates.xyz` | Two frames to consider for reference labeling; **no reference E/F/stress labels** |
 
@@ -54,15 +66,27 @@ In the generated directory, with `imrmlp` on `PATH`, the core commands are:
 imrmlp maxvol_select select.ini --pool coverage.cfg --index index.map \
   --output selected.xyz --score-file coverage-grades.txt
 imrmlp maxvol_sample select.ini --input pool.cfg --index index.map \
-  --state-file model.mtp.sel --output candidates.xyz \
+  --state-file model.mtp.maxvol.gpm --output candidates.xyz \
+  --threshold-save 2.1 --threshold-break 1000000000
+```
+
+The default state is the GPM file `model.mtp.maxvol.gpm`. For the legacy
+`.sel` format, add `--legacy` to both commands and use
+`--state-file model.mtp.sel`:
+
+```sh
+imrmlp maxvol_select select.ini --legacy --pool coverage.cfg --index index.map \
+  --output selected-legacy.xyz --score-file coverage-grades-legacy.txt
+imrmlp maxvol_sample select.ini --legacy --input pool.cfg --index index.map \
+  --state-file model.mtp.sel --output candidates-legacy.xyz \
   --threshold-save 2.1 --threshold-break 1000000000
 ```
 
 Try `--threshold-save 1.2 --output candidates-1.2.xyz`: three of these four
 frames should be saved. This changes the labeling budget, not model accuracy.
 The high break threshold is for collecting this finite offline pool; it is
-not an online MD safety setting. Keep the model and `.sel` paired while changing
-only the output threshold.
+not an online MD safety setting. Keep the model and its state file paired while
+changing only the output threshold.
 
 For real work, inspect candidate geometries, obtain new reference labels with
 the same calculation method as the existing data, retrain, validate and rebuild

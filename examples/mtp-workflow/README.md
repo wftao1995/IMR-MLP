@@ -142,14 +142,16 @@ Use each isolated directory's `fit.ini`, explicitly choosing linear fitting:
 
 ```sh
 cd "$imrmlp_mtp/basis-8"
-imrmlp trainmtp fit.ini --linear-fit > train.log 2>&1
+imrmlp trainmtp fit.ini --linear-fit --output _Trained_Potential_.mtp \
+  > train.log 2>&1
 echo $?
 cp _Trained_Potential_.mtp fitted.mtp
 imrmlp calc_err --input ../valid.cfg --potfile fitted.mtp \
   --index ../index.map --output-summary validation.txt
 echo $?
 cd "$imrmlp_mtp/basis-16"
-imrmlp trainmtp fit.ini --linear-fit > train.log 2>&1
+imrmlp trainmtp fit.ini --linear-fit --output _Trained_Potential_.mtp \
+  > train.log 2>&1
 echo $?
 cp _Trained_Potential_.mtp fitted.mtp
 imrmlp calc_err --input ../valid.cfg --potfile fitted.mtp \
@@ -160,8 +162,11 @@ echo $?
 Both configurations use the same data and weights: `energy_weight=1`,
 `force_weight=0.1`, `stress_weight=0.001`, `weight_L2=1e-12`, with random
 initialization and radial orthogonalization disabled. Complete settings are
-already supplied; do not substitute another trainer's configuration. The final
-snapshot is `_Trained_Potential_.mtp`; `checkpoint.mtp` is a separate checkpoint.
+already supplied; do not substitute another trainer's configuration. The
+explicit `--output _Trained_Potential_.mtp` keeps a native final model;
+`fit:save_to` writes the separate `checkpoint.mtp`. Without `--output`,
+training now defaults to the GPM `_Trained_Potential_.gpm`, which the
+`MTP1m` template cannot be encoded to.
 
 For this teaching problem, prescribe validation energy RMS no greater than
 1 meV/atom and force-vector RMS no greater than 0.001 eV/Å, choosing the smaller

@@ -29,9 +29,16 @@ def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--imrmlp', type=Path, default=root/'build/release/imrmlp')
-    parser.add_argument('--work', type=Path, default=root/'build/active-learning')
+    parser.add_argument('--work', type=Path, default=None,
+                        help='empty output directory (default: build/active-learning, '
+                             'or build/active-learning-legacy with --legacy)')
+    parser.add_argument('--legacy', action='store_true',
+                        help='use the pre-GPM .sel active-set state instead of the default '
+                             '.maxvol.gpm state')
     args = parser.parse_args()
-    executable, work = args.imrmlp.resolve(), args.work.resolve()
+    executable = args.imrmlp.resolve()
+    work = (args.work or root/('build/active-learning-legacy' if args.legacy
+                               else 'build/active-learning')).resolve()
     if not executable.is_file():
         parser.error('build the CLI with make imrmlp, or supply --imrmlp')
     if work.exists() and (not work.is_dir() or any(work.iterdir())):
@@ -56,12 +63,16 @@ def main():
             raise SystemExit(f'{label} failed (exit {result.returncode}); see {log_path}')
         print(f'{label}: OK', flush=True)
 
-    run('select', 'maxvol_select', 'select.ini', '--pool', 'coverage.cfg',
+    state_file = 'model.mtp.sel' if args.legacy else 'model.mtp.maxvol.gpm'
+    persistence = ('--legacy',) if args.legacy else ()
+    run('select', 'maxvol_select', 'select.ini', *persistence, '--pool', 'coverage.cfg',
         '--index', 'index.map', '--output', 'selected.xyz',
         '--score-file', 'coverage-grades.txt')
+    if not (work/state_file).is_file():
+        raise SystemExit(f'Expected active-set state {state_file}; inspect {work}/select.log')
     # The first pass saves all positive-grade frames for an inspectable score table.
-    common = ('maxvol_sample', 'select.ini', '--input', 'pool.cfg',
-              '--index', 'index.map', '--state-file', 'model.mtp.sel',
+    common = ('maxvol_sample', 'select.ini', *persistence, '--input', 'pool.cfg',
+              '--index', 'index.map', '--state-file', state_file,
               '--threshold-break', '1000000000')
     run('grade-pool', *common, '--output', 'graded-pool.xyz', '--threshold-save', '0')
     threshold = 2.1

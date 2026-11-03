@@ -34,15 +34,16 @@ python3 examples/quickstart/run.py \
 ```sh
 imrmlp calc_efs train-input.cfg train.cfg --potfile reference.mtp --index index.map
 imrmlp calc_efs valid-input.cfg valid.cfg --potfile reference.mtp --index index.map
-imrmlp trainmtp fit.ini --linear-fit
+imrmlp trainmtp fit.ini --linear-fit --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp fitted.mtp
 imrmlp calc_err --input valid.cfg --potfile fitted.mtp --index index.map --output-summary errors.txt
 imrmlp calc_efs valid-input.cfg predicted.cfg --potfile fitted.mtp --index index.map
 ```
 
 本例固定径向参数，只拟合线性系数；初始线性系数与参考势不同。
-`trainmtp` 在工作目录写出最终 `_Trained_Potential_.mtp`，`fit:save_to`
-用于训练器检查点，不会重命名这个最终文件。脚本显式复制为 `fitted.mtp`。
+显式传入 `--output _Trained_Potential_.mtp` 可保留原生最终模型；省略时
+`trainmtp` 现在默认写 `_Trained_Potential_.gpm`。`fit:save_to` 用于训练器
+检查点，不会重命名这个最终文件。脚本显式复制为 `fitted.mtp`。
 
 每个阶段会显示 `OK`。查看 `errors.txt` 和各阶段 `.log`；该精确可表示的
 合成问题应得到接近数值精度的 E/F/应力误差，报告按六位小数显示。
@@ -65,10 +66,11 @@ imrmlp calc_efs valid-input.cfg predicted.cfg --potfile fitted.mtp --index index
 在生成的目录内，可用同一模板尝试 ALGLIB L-BFGS：
 
 ```sh
-imrmlp trainmtp fit.ini --do-lbfgs
+imrmlp trainmtp fit.ini --do-lbfgs --output _Trained_Potential_.mtp
 ```
 
-这会覆盖默认最终快照；对比不同运行前应复制到独立文件。
+这会覆盖原生 `_Trained_Potential_.mtp` 快照；对比不同运行前应复制到独立文件。
+若省略 `--output`，训练现在默认写 `_Trained_Potential_.gpm`。
 数据划分、优化器选择和模型部署见[工作流程](../../docs/guides/workflows_zh.md)。
 使用 Python/ASE 评估生成模型见[Python 文档](../../docs/reference/python_zh.md)，
 LAMMPS 部署见[接口说明](../../LAMMPS/README_zh.md)。

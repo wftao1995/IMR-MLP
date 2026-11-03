@@ -7,7 +7,7 @@
 | [Quickstart / 快速入门](quickstart/README.md) · [中文](quickstart/README_zh.md) | Self-contained synthetic MTP labeling, fitting and validation; no external data needed |
 | [Calculation walkthrough](basic-calculations/README.md) · [中文](basic-calculations/README_zh.md) | Supplied LJ potential, structures and settings for relaxation, endpoint preparation, NEB, properties and optional DOS |
 | [MTP walkthrough](mtp-workflow/README.md) · [中文](mtp-workflow/README_zh.md) | Basis generation, synthetic reference labels, fitting and validation selection, then the same MTP for relaxation, NEB, properties and optional DOS |
-| [Active-learning exercise](active-learning/README.md) · [中文](active-learning/README_zh.md) | Self-contained geometry-only MaxVol selection, score table and threshold exercise |
+| [Active-learning exercise](active-learning/README.md) · [中文](active-learning/README_zh.md) | Self-contained geometry-only MaxVol selection with a GPM active set; includes a legacy `.sel` variant |
 | [MTP GPU Al/Ni](mtp-gpu-alni/README.md) · [中文](mtp-gpu-alni/README_zh.md) | Supplied structures; user must provide a compatible Al/Ni potential, GPU build and optional training data |
 | [LES response](les-response/README.md) · [中文](les-response/README_zh.md) | Response-analysis inputs and limitations; external model/reference data required |
 
