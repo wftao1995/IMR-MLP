@@ -35,7 +35,9 @@ void Trainer_MTP::SynchronizeGpuCoefficients() {
     p_mtp->set_coeffs(coefficients);
     bool flags[] = {p_mtp->empty, p_mtp->radial_empty, p_mtp->linear_empty};
     MPI_Bcast(flags, 3, MPI_C_BOOL, 0, mpi.comm);
-    p_mtp->empty = flags[0]; p_mtp->radial_empty = flags[1]; p_mtp->linear_empty = flags[2];
+    p_mtp->empty = flags[0];
+    p_mtp->radial_empty = flags[1];
+    p_mtp->linear_empty = flags[2];
 }
 
 // Called by every rank, even when the legacy checkpoint was root-only.
@@ -66,8 +68,11 @@ void Trainer_MTP::RunGpuNonlinear(const std::function<void()> &operation) {
         } else scaling.push_back(p_mtp->p_radical_basis->scaling);
         indices = train_set_inds_aligned;
         p_mtp->get_coeffs(coefficients);
-        l1 = p_mtp->reg_L1_vector; l2 = p_mtp->reg_L2_vector;
-        update = update_vector; previous = update_vector_last; optimization = optimization_coeffs;
+        l1 = p_mtp->reg_L1_vector;
+        l2 = p_mtp->reg_L2_vector;
+        update = update_vector;
+        previous = update_vector_last;
+        optimization = optimization_coeffs;
     });
     auto previous_scheduler = std::move(sgd_scheduler);
     gpu_nonlinear_running_ = true;
@@ -79,17 +84,25 @@ void Trainer_MTP::RunGpuNonlinear(const std::function<void()> &operation) {
         gpu_nonlinear_running_ = false;
         ReleaseGpuNonlinear();
         if (p_mtp->radial_basis_split) {
-            for (size_t i = 0; i < scaling.size(); ++i) p_mtp->p_radical_basis_pair[i]->scaling = scaling[i];
+            for (size_t i = 0; i < scaling.size(); ++i)
+                p_mtp->p_radical_basis_pair[i]->scaling = scaling[i];
         } else p_mtp->p_radical_basis->scaling = scaling.front();
         p_mtp->set_coeffs(coefficients);
         if (p_mtp->inited() != initialized) p_mtp->set_empty_flag();
-        p_mtp->radial_empty = radial_empty; p_mtp->linear_empty = linear_empty;
-        p_mtp->reg_L1_vector.swap(l1); p_mtp->reg_L2_vector.swap(l2);
-        reg_init = ridge_initialized; bfgs_iter = iteration; bfgs_last_linear_fit_iter = last_refit;
+        p_mtp->radial_empty = radial_empty;
+        p_mtp->linear_empty = linear_empty;
+        p_mtp->reg_L1_vector.swap(l1);
+        p_mtp->reg_L2_vector.swap(l2);
+        reg_init = ridge_initialized;
+        bfgs_iter = iteration;
+        bfgs_last_linear_fit_iter = last_refit;
         loss_f_prev = previous_loss;
         sgd_pretrain = pretrained;
-        update_vector = update; update_vector_last = previous; optimization_coeffs = optimization;
-        train_set_inds_aligned.swap(indices); RNG.mtd = rng;
+        update_vector = update;
+        update_vector_last = previous;
+        optimization_coeffs = optimization;
+        train_set_inds_aligned.swap(indices);
+        RNG.mtd = rng;
         sgd_scheduler = std::move(previous_scheduler);
         InitPenaltyGard();
         throw;
