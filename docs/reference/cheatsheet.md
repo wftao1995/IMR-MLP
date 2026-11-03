@@ -52,12 +52,13 @@ from a compatible template.
 | Goal | Command | Example |
 |------|---------|---------|
 | MaxVol select subset | `imrmlp maxvol_select --pool=pool.cfg --potfile=potential.mtp` | `--threshold=1.001` |
-| MaxVol grade structures | `imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.sel` | — |
-| MaxVol augment set | `imrmlp maxvol_extend --potfile=potential.mtp --state-file=potential.mtp.sel --candidates=pool.cfg` | — |
+| MaxVol grade structures | `imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.maxvol.gpm` | — |
+| MaxVol augment set | `imrmlp maxvol_extend --potfile=potential.mtp --state-file=potential.mtp.maxvol.gpm --candidates=pool.cfg` | — |
 | FPS / CUR diversity select | `imrmlp diverse_select --n-select=50 --pool=pool.xyz --potfile=potential.mtp` | `--method=cur` |
 
-MaxVol selection writes its reusable active set to
-`potential.mtp.sel`. Diversity selection defaults to MTP-based descriptors and therefore
+MaxVol selection writes its reusable GPM active set to
+`potential.mtp.maxvol.gpm`; pass `--legacy` (and a `.sel` state path) for the
+pre-GPM format. Diversity selection defaults to MTP-based descriptors and therefore
 also needs a compatible potential. Selection scores rank extrapolation relative to the
 current active set; measure the error with `calc_err` on the same configurations.
 

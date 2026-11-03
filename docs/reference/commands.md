@@ -361,6 +361,8 @@ imrmlp trainmtp --trainset=train.cfg --validset=valid.cfg --potfile=init.mtp --d
 | `--trainset-format` | `-if` | | Training dataset file format (empty = auto-detect) |
 | `--validset-format` | `-vf` | | Validation dataset file format (empty = auto-detect) |
 | `--potfile` | `-pot` | `potential.mtp` | Potential file |
+| `--output` | `-o` | `_Trained_Potential_.gpm` | Final model output; explicit native paths remain supported |
+| `--save-maxvol-state` | | `false` | Rebuild MaxVol from the training set and embed it in the final GPM |
 | `--index` | `-id` | `index.map` | Index file |
 | `--linear-fit` | `-lf` | `false` | Linear fit only, fix radial (bool flag) |
 | `--do-rescale` | `-rs` | `false` | Search radial rescaling during linear fitting; requires `--linear-fit` |
@@ -424,6 +426,7 @@ imrmlp trainnlpot --settings=training.ini --trainset=train.cfg --validset=valid.
 | `--fixed-core` | | | Existing fixed core; fit an ordinary MTP to residual labels and write a Hybrid manifest |
 | `--fixed-core-type` | | `zbl` | Fixed core model type: `zbl` or `mtp` |
 | `--output` | `-o` | `_Trained_Potential_.gpm` | Output potential file prefix |
+| `--save-maxvol-state` | | `false` | Rebuild MaxVol from the training set and embed it in the final GPM |
 | `--index` | `-id` | `index.map` | Index file |
 | `--do-lbfgs` | `-lbf` | `false` | Use L-BFGS optimizer (bool flag) |
 | `--do-sgd` | `-sgd` | `false` | Use SGD optimizer (bool flag) |
@@ -560,6 +563,7 @@ imrmlp train_linear --trainset=train.cfg --validset=valid.cfg -o fitted_potentia
 | `--validset` | `-inv` | | Validation dataset file |
 | `--trainset-format` | `-if` | `mlpcfg` | Training data format: mlpcfg, extxyz, vaspabn |
 | `--output` | `-o` | `_Trained_Potential_.gpm` | Output potential file prefix |
+| `--save-maxvol-state` | | `false` | Rebuild MaxVol from the training set and embed it in the final GPM |
 | `--index` | `-id` | `index.map` | Index file mapping atom types to indices |
 | `--debug` | | `false` | Enable debug output (bool) |
 
@@ -674,6 +678,7 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--input-format` | `-if` | auto | Input pool file format |
 | `--output-format` | `-of` | auto | Output format |
 | `--output` | `-o` | `selected.xyz` | Output selected structures |
+| `--state-output` |  | derived | Output MaxVol state (GPM `.maxvol.gpm`, or legacy `.sel` with `--legacy`) |
 | `--score-file` |  | — | Output per-structure MaxVol scores |
 | `--threshold` | | `1.001` | Selection threshold |
 | `--max-swaps` | | `0` | Swap limit (0 = unlimited) |
@@ -699,8 +704,9 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--w-stress` | | `0.0` | Stress weight for B-matrix |
 | `--settings` | | `select.ini` | Settings file (positional, required) |
 
-MaxVol state files (`.sel`) use format v10. Model metadata parsing is
-independent of the state format.
+Legacy `.sel` MaxVol state files use format v10. The default model-dependent
+state is the self-describing GPM `<potfile>.maxvol.gpm`; model metadata parsing is
+independent of either state container.
 
 In settings files, shared MaxVol builder and selector options should use
 namespaced keys:
@@ -758,7 +764,7 @@ is saved with `converged=no`; sampling or extending it prints a warning.
 Grade structures against an existing MaxVol active set (extrapolation detection).
 
 ```bash
-imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state.bin -o candidates.cfg
+imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.maxvol.gpm -o candidates.cfg
 ```
 
 | Option | Alias | Default | Description |
@@ -768,7 +774,7 @@ imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state
 | `--pottype` | | `mtp` | Potential type |
 | `--input` | | `candidates.xyz` | Input configuration file |
 | `--output` | `-o` | `sampled.xyz` | Output sampled structures |
-| `--state-file` | | | Active-set state file (default: `potfile` + `.sel`) |
+| `--state-file` | | | Active-set state file (default: embedded state, then `potfile` + `.maxvol.gpm`, then `potfile` + `.sel`; `--legacy` uses `.sel`) |
 | `--dtype` | | `mtm` | Descriptor type |
 | `--index` | `-id` | `index.map` | Index map file |
 | `--input-format` | `-if` | | Input format |
@@ -816,10 +822,11 @@ Two modes:
 
 ```bash
 imrmlp maxvol_extend --potfile=potential.mtp \
-  --state-file=state.bin --candidates=pool.cfg -o new_selected.cfg
+  --state-file=potential.mtp.maxvol.gpm --candidates=pool.cfg -o new_selected.cfg
 ```
 
-Loads an existing active set from a `.sel` state file (produced by `maxvol_select`),
+Loads an existing active set from a GPM `.maxvol.gpm` or legacy `.sel` state file
+(produced by `maxvol_select`),
 evaluates candidates against it, and outputs newly selected structures.
 An optional `--train` file can supply extra training structures beyond what is
 already in the state file.
@@ -838,7 +845,8 @@ the combined pool.  Suitable for one-shot training set construction.
 |--------|-------|---------|-------------|
 | `--potfile` | | `potential.mtp` | Potential file for B-matrix |
 | `--pottype` | | `mtp` | Potential type: mtp, eampoly, lj612, ... |
-| `--state-file` |  | — | Active-set state file (`.sel`) — skip Stage 1 |
+| `--state-file` |  | — | Active-set state file (GPM `.maxvol.gpm` or legacy `.sel`) — skip Stage 1 |
+| `--state-output` |  | derived | Output MaxVol state (GPM `.maxvol.gpm`, or legacy `.sel` with `--legacy`) |
 | `--train` |  | — | Training set file |
 | `--candidates` | | `candidates.xyz` | Candidate structures to evaluate |
 | `--output` | `-o` | `new_selected.xyz` | Output newly selected structures |

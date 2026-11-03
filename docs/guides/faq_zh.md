@@ -15,8 +15,9 @@
 | 快速线性拟合与基组选择 | `fastfit` | 模式 0 计算特征值谱，模式 1 加权最小二乘，其余模式用于基组/NSGA-II 选择。 |
 
 这些命令使用相同的空白分隔设置语法，但支持的键和势函数定义不同，不能直接
-互换训练配置。`trainmtp` 的最终模型是工作目录下的
-`_Trained_Potential_.mtp`，训练检查点由 `fit:save_to` 控制。
+互换训练配置。`trainmtp` 的最终模型默认写工作目录下的
+`_Trained_Potential_.gpm`；原生 `.mtp` 需传 `--output model.mtp`（或
+`--legacy`）。训练检查点由 `fit:save_to` 控制。
 
 ## 怎么查命令和选项？
 
@@ -100,4 +101,4 @@ LES/SOG 属于 `mtp_les` 家族，
 固定同一构建、固定线程数（`OMP_NUM_THREADS`、`MKL_NUM_THREADS`），
 并设置所用功能提供的种子，例如 `dimer:random_seed`。
 Dimer 的 `random_seed=0` 在同一构建下可复现，`-1` 表示非确定性初始化。
-每次运行使用独立目录，避免 `_Trained_Potential_.mtp` 与日志被覆盖。
+每次运行使用独立目录，避免最终模型与日志被覆盖。

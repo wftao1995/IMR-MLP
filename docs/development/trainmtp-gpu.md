@@ -11,15 +11,17 @@ make BUILD_MODE=cuda -j4 imrmlp
 OMP_NUM_THREADS=1 python3 examples/quickstart/run.py
 cp examples/quickstart/gpu.ini build/quickstart/gpu.ini
 cd build/quickstart
-LD_LIBRARY_PATH=../cuda:$LD_LIBRARY_PATH ../cuda/imrmlp-cu trainmtp gpu.ini --do-lbfgs
+LD_LIBRARY_PATH=../cuda:$LD_LIBRARY_PATH ../cuda/imrmlp-cu trainmtp gpu.ini \
+  --do-lbfgs --output _Trained_Potential_.mtp
 ```
 
 The quickstart generates public synthetic labels and a starting model. Other
 actions are `--do-cg`, `--do-sgd`, and `--linear-fit` (optionally `--do-rescale`).
 `--calc-grad`, `--check-grad` and `--check-grad-all` share the nonlinear GPU
-callbacks. `fit:save_to` names checkpoints; the final model remains
-`_Trained_Potential_.mtp`. Synthetic labels exercise the interface rather than
-establishing accuracy for a material.
+callbacks. `fit:save_to` names checkpoints; the explicit
+`--output _Trained_Potential_.mtp` keeps a native final model (the default is the
+GPM `_Trained_Potential_.gpm`). Synthetic labels exercise the interface rather
+than establishing accuracy for a material.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |

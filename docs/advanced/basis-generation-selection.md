@@ -139,7 +139,7 @@ fit:force_randomlinear false
 Save it as `train.ini`, then run:
 
 ```sh
-imrmlp trainmtp train.ini --linear-fit
+imrmlp trainmtp train.ini --linear-fit --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp full.mtp
 ```
 

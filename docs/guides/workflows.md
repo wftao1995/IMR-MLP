@@ -151,19 +151,20 @@ them according to label quality, normalization and target observables.
 
 ```sh
 # ALGLIB L-BFGS: optimize radial and linear coefficients
-imrmlp trainmtp train.ini --do-lbfgs
+imrmlp trainmtp train.ini --do-lbfgs --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp fitted.mtp
 
 # Alternative: refit only the linear coefficients with fixed radial functions
-imrmlp trainmtp train.ini --linear-fit
+imrmlp trainmtp train.ini --linear-fit --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp fitted-linear.mtp
 ```
 
 **Select an optimizer or `--linear-fit` explicitly**: a bare `trainmtp train.ini`
-does not select a nonlinear optimization method. The final snapshot is always
-written as `_Trained_Potential_.mtp` in the working directory; `fit:save_to` names
-trainer checkpoints, not this command-level output. Separate run directories
-prevent overwriting earlier models.
+does not select a nonlinear optimization method. Training now defaults to the GPM
+`_Trained_Potential_.gpm`; the explicit `--output _Trained_Potential_.mtp` keeps
+the native `.mtp` name used below, and `--legacy` restores native defaults.
+`fit:save_to` names trainer checkpoints, not this command-level output. Separate
+run directories prevent overwriting earlier models.
 
 Optional linear refits during nonlinear optimization are described in the
 [linear-refit guide](../advanced/linear-refit.md). `trainnlpot` supports additional
@@ -240,7 +241,7 @@ the method.
 | Symptom | Cause | Action |
 | --- | --- | --- |
 | Training finishes without the expected iterations | `--do-lbfgs` or `--linear-fit` was not given | Select the optimization mode explicitly; a bare command does not choose one |
-| The model file you named is missing | The final snapshot is always `_Trained_Potential_.mtp` | Copy and rename after training, or use a separate run directory |
+| The model file you named is missing | The default final snapshot is `_Trained_Potential_.gpm`; a native `.mtp` requires `--output` or `--legacy` | Copy the actual output after training, pass `--output`, or use a separate run directory |
 | Training errors are low but calculations deviate | Species map error or leakage across splits | Check `index.map` and split by trajectory, phase or composition |
 | Validation error suddenly improves | The validation set was reused while tuning | Report final metrics on `test.xyz`, which takes no part in selection |
 | Format detection fails | extxyz renamed to `.cfg` | Keep the extension or specify the format explicitly in the settings |

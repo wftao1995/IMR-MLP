@@ -47,7 +47,7 @@ imrmlp maxvol_select select.ini --pool train.xyz \
   --output selected.xyz --score-file training-grades.txt
 ```
 
-输出是选中的结构和 `model.mtp.sel` 主动集状态，后者不是势函数文件。判据是日志里的
+输出是选中的结构和 `model.mtp.maxvol.gpm` 主动集状态，后者不是势函数文件。判据是日志里的
 `Selection status:` 行及同一行末尾的 `virtual_rows`：出现 `WARNING: not converged`
 说明在预算内没有达到阈值，用 `full` 或 `stream/exact` 重跑；`virtual_rows` 非零表示
 仍有未初始化的方向，小数据集或强相关数据会造成这种情况。
@@ -56,9 +56,14 @@ imrmlp maxvol_select select.ini --pool train.xyz \
 
 ```sh
 imrmlp maxvol_sample select.ini --input pool.xyz \
-  --state-file model.mtp.sel --output candidates.xyz \
+  --state-file model.mtp.maxvol.gpm --output candidates.xyz \
   --threshold-save 2.1 --threshold-break 1000000000
 ```
+
+如需 GPM 之前的 `.sel` 格式，给 `maxvol_select` 和 `maxvol_sample` 都加
+`--legacy`，并使用 `--state-file model.mtp.sel`。该开关只作用于当前命令，
+不会改写已有的 GPM 状态。[自包含练习](../../examples/active-learning/README_zh.md)
+提供了 `run.py --legacy` 的对照用法。
 
 示例提高了**离线输出**的 break 阈值，便于收集较高 grade 的帧；`2.1` 等数值只是初始
 设置，需结合模型、主动集和参考误差校准。CLI 的默认 break 为 11：遇到超过阈值的构型会
@@ -117,7 +122,7 @@ cat train.xyz new-reference.xyz > train-next.xyz
 保留原验证集。多个参考计算需逐一确认收敛再合并，原始参考文件和每轮数据都应保留。
 
 保持每一轮模型、builder 设置、映射、主动集、候选和标签的对应关系。修改模型参数后，
-不应因旧 `.sel` 仍可读取或维度相同就沿用旧状态。`maxvol_extend` 可更新状态，但不替代
+不应因旧 `.sel` 或 `.gpm` 仍可读取或维度相同就沿用旧状态。`maxvol_extend` 可更新状态，但不替代
 重训与验证；重要状态先留副本。
 
 ## 生产采样的扩展
@@ -139,7 +144,7 @@ CLI 中读取 GPM 也不会自动启动采样。
 | 候选很多但重复 | 探索池本身冗余 | 先按机制或描述符多样性去重，再分批标注 |
 | 重训后目标性质未改善 | 标签质量或数据覆盖不足 | 比较参考标签质量与覆盖，不要只看训练误差或 grade |
 | 把 grade 当作误差 | grade 是相对特定主动集的外推度量 | 用参考标签另行评估 E/F 误差 |
-| 沿用旧 `.sel` 状态 | 模型参数已改 | 为新模型重建主动集 |
+| 沿用旧 `.sel` 或 `.gpm` 状态 | 模型参数已改 | 为新模型重建主动集 |
 
 ## 相关
 

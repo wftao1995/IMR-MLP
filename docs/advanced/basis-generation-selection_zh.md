@@ -139,7 +139,7 @@ fit:force_randomlinear false
 保存为 `train.ini`，运行：
 
 ```sh
-imrmlp trainmtp train.ini --linear-fit
+imrmlp trainmtp train.ini --linear-fit --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp full.mtp
 ```
 

@@ -49,11 +49,11 @@
 | 目标 | 命令 | 示例 |
 |------|------|---------|
 | MaxVol 选择子集 | `imrmlp maxvol_select --pool=pool.cfg --potfile=potential.mtp` | `--threshold=1.001` |
-| MaxVol 对结构评分 | `imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.sel` | — |
-| MaxVol 扩充主动集 | `imrmlp maxvol_extend --potfile=potential.mtp --state-file=potential.mtp.sel --candidates=pool.cfg` | — |
+| MaxVol 对结构评分 | `imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.maxvol.gpm` | — |
+| MaxVol 扩充主动集 | `imrmlp maxvol_extend --potfile=potential.mtp --state-file=potential.mtp.maxvol.gpm --candidates=pool.cfg` | — |
 | FPS / CUR 多样性选择 | `imrmlp diverse_select --n-select=50 --pool=pool.xyz --potfile=potential.mtp` | `--method=cur` |
 
-MaxVol 选择将可复用的主动集写到 `potential.mtp.sel`。多样性选择默认使用 MTP 描述符，因此也需要匹配的势文件。
+MaxVol 选择将可复用的 GPM 主动集写到 `potential.mtp.maxvol.gpm`；如需 GPM 之前的格式，加 `--legacy` 并使用 `.sel` 状态路径。多样性选择默认使用 MTP 描述符，因此也需要匹配的势文件。
 选择分数只排序相对当前主动集的外推程度，误差要用 `calc_err` 在同一批构型上测量。
 
 ## 弹性常数与声子

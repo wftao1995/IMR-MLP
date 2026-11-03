@@ -25,8 +25,9 @@
 
 非线性 L-BFGS 需显式执行 `imrmlp trainmtp train.ini --do-lbfgs`；仅拟合线性
 系数用 `--linear-fit`。`--check-grad` 和矩阵导出属于诊断操作。检查日志中的
-接受步数和停止原因。最终势文件是 `_Trained_Potential_.mtp`，`fit:save_to`
-指定训练器检查点。每次训练使用独立目录，避免覆盖之前的模型。
+接受步数和停止原因。默认最终势文件是 `_Trained_Potential_.gpm`；原生
+`.mtp` 需传 `--output model.mtp` 或 `--legacy`。`fit:save_to` 指定训练器
+检查点。每次训练使用独立目录，避免覆盖之前的模型。
 
 ALGLIB 的 `M>N` 错误表示 L-BFGS 历史长度超过自由参数数目；调小 `fit:bfgs_m`，
 微型入门模型使用 2。

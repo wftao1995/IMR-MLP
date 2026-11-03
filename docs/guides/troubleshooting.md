@@ -31,8 +31,9 @@ and does use equals signs.
 Select the action explicitly: `imrmlp trainmtp train.ini --do-lbfgs` for nonlinear
 L-BFGS, or `--linear-fit` for the linear coefficients. `--check-grad` and matrix
 export options are diagnostics. Check the training log for accepted iterations
-and the stop reason. The final snapshot is `_Trained_Potential_.mtp`;
-`fit:save_to` controls trainer checkpoints. Use separate run directories.
+and the stop reason. The default final snapshot is `_Trained_Potential_.gpm`;
+pass `--output model.mtp` or `--legacy` for a native `.mtp`. `fit:save_to`
+controls trainer checkpoints. Use separate run directories.
 
 ALGLIB's `M>N` error means the L-BFGS history is larger than the number of free
 parameters: reduce `fit:bfgs_m` (the tiny quickstart uses 2).

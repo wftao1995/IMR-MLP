@@ -11,12 +11,14 @@ make BUILD_MODE=cuda -j4 imrmlp
 OMP_NUM_THREADS=1 python3 examples/quickstart/run.py
 cp examples/quickstart/gpu.ini build/quickstart/gpu.ini
 cd build/quickstart
-LD_LIBRARY_PATH=../cuda:$LD_LIBRARY_PATH ../cuda/imrmlp-cu trainmtp gpu.ini --do-lbfgs
+LD_LIBRARY_PATH=../cuda:$LD_LIBRARY_PATH ../cuda/imrmlp-cu trainmtp gpu.ini \
+  --do-lbfgs --output _Trained_Potential_.mtp
 ```
 
 也可选择 `--do-cg`、`--do-sgd` 或 `--linear-fit`；线性拟合可加 `--do-rescale`。
 `--calc-grad`、`--check-grad`、`--check-grad-all` 使用相同 GPU 非线性回调。
-检查点由 `fit:save_to` 指定，最终模型仍为 `_Trained_Potential_.mtp`。
+检查点由 `fit:save_to` 指定；显式传 `--output _Trained_Potential_.mtp`
+可保留原生最终模型（默认是 GPM `_Trained_Potential_.gpm`）。
 本例标签来自合成势，适合验证接口，不能代表真实材料精度。
 
 | 设置 | 默认值 | 含义 |

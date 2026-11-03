@@ -333,6 +333,8 @@ imrmlp trainmtp --trainset=train.cfg --validset=valid.cfg --potfile=init.mtp --d
 | `--trainset-format` | `-if` | | 训练数据集格式（空 = 自动检测） |
 | `--validset-format` | `-vf` | | 验证数据集格式（空 = 自动检测） |
 | `--potfile` | `-pot` | `potential.mtp` | 势文件 |
+| `--output` | `-o` | `_Trained_Potential_.gpm` | 最终模型输出；仍支持显式原生路径 |
+| `--save-maxvol-state` | | `false` | 从训练集重建 MaxVol 并嵌入最终 GPM |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--linear-fit` | `-lf` | `false` | 仅线性拟合，固定径向（布尔标志） |
 | `--do-rescale` | `-rs` | `false` | 在线性拟合中搜索径向缩放；须同时指定 `--linear-fit` |
@@ -389,6 +391,7 @@ imrmlp trainnlpot --settings=training.ini --trainset=train.cfg --validset=valid.
 | `--fixed-core` | | | 已有固定核心；对残差标签拟合普通 MTP 并输出 Hybrid manifest |
 | `--fixed-core-type` | | `zbl` | 固定核心类型：`zbl` 或 `mtp` |
 | `--output` | `-o` | `_Trained_Potential_.gpm` | 输出势文件前缀 |
+| `--save-maxvol-state` | | `false` | 从训练集重建 MaxVol 并嵌入最终 GPM |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--debug` | | `false` | 调试输出（布尔值） |
 | `--do-lbfgs` | `-lbf` | `false` | 使用 L-BFGS 优化器（布尔标志） |
@@ -519,6 +522,7 @@ imrmlp train_linear --trainset=train.cfg --validset=valid.cfg -o fitted_potentia
 | `--validset` | `-inv` | | 验证数据集文件（默认：无） |
 | `--trainset-format` | `-if` | `mlpcfg` | 训练数据格式：mlpcfg、extxyz、vaspabn |
 | `--output` | `-o` | `_Trained_Potential_.gpm` | 输出势文件前缀 |
+| `--save-maxvol-state` | | `false` | 从训练集重建 MaxVol 并嵌入最终 GPM |
 | `--index` | `-id` | `index.map` | 原子类型索引文件 |
 | `--debug` | | `false` | 启用调试输出（布尔） |
 
@@ -625,6 +629,7 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--input-format` | `-if` | auto | 输入池文件格式 |
 | `--output-format` | `-of` | auto | 输出格式 |
 | `--output` | `-o` | `selected.xyz` | 输出选中的结构 |
+| `--state-output` |  | 自动推导 | 输出 MaxVol 状态（GPM `.maxvol.gpm`；加 `--legacy` 时为 `.sel`） |
 | `--score-file` |  | — | 输出每个结构的 MaxVol 评分 |
 | `--threshold` |  | `1.001` | 选择阈值 |
 | `--max-swaps` |  | `0` | 交换限制（0 = 无限制） |
@@ -650,7 +655,8 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--w-stress` |  | `0.0` | 应力 B-矩阵权重 |
 | `--settings` |  | `select.ini` | 设置文件（必需） |
 
-MaxVol 状态文件（`.sel`）使用 v10 格式，模型元数据解析独立于该状态格式。
+旧式 `.sel` MaxVol 状态文件使用 v10 格式；依赖模型的默认状态是自描述的 GPM
+`<potfile>.maxvol.gpm`。模型元数据解析独立于两种状态容器。
 
 配置文件中，共享的 builder/selector 选项推荐使用命名空间 key：
 
@@ -701,7 +707,7 @@ selector:stream-memory-limit-mb 3072
 针对现有的 MaxVol 主动集对结构进行评分（外推检测）。
 
 ```bash
-imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state.bin -o candidates.cfg
+imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=potential.mtp.maxvol.gpm -o candidates.cfg
 ```
 
 | 选项 | 别名 | 默认值 | 描述 |
@@ -711,7 +717,7 @@ imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state
 | `--pottype` | | `mtp` | 势类型 |
 | `--input` | | `candidates.xyz` | 输入构型文件 |
 | `--output` | `-o` | `sampled.xyz` | 输出评分后的结构 |
-| `--state-file` | | | 主动集 state 文件（默认：`potfile` + `.sel`） |
+| `--state-file` | | | 主动集 state 文件（默认依次尝试内嵌状态、`potfile` + `.maxvol.gpm`、`potfile` + `.sel`；`--legacy` 使用 `.sel`） |
 | `--dtype` | | `mtm` | 描述符类型 |
 | `--index` | `-id` | `index.map` | 索引映射文件 |
 | `--input-format` | `-if` | | 输入格式 |
@@ -758,10 +764,11 @@ imrmlp maxvol_sample --potfile=potential.mtp --input=pool.cfg --state-file=state
 
 ```bash
 imrmlp maxvol_extend --potfile=potential.mtp \
-  --state-file=state.bin --candidates=pool.cfg -o new_selected.cfg
+  --state-file=potential.mtp.maxvol.gpm --candidates=pool.cfg -o new_selected.cfg
 ```
 
-从 `maxvol_select` 生成的 `.sel` state 文件加载已有主动集，对候选结构进行选择，
+从 `maxvol_select` 生成的 GPM `.maxvol.gpm` 或旧式 `.sel` 状态文件加载已有主动集，
+对候选结构进行选择，
 输出新入选的结构。可选的 `--train` 参数提供超出 state 中已有训练集的额外训练构型。
 
 **模式 2 — 三段式选择（原始方式，无 state 文件）：**
@@ -778,7 +785,8 @@ imrmlp maxvol_extend --potfile=potential.mtp \
 |--------|-------|---------|-------------|
 | `--potfile` |  | `potential.mtp` | 势文件用于 B-矩阵 |
 | `--pottype` |  | `mtp` | 势类型：mtp、eampoly、lj612... |
-| `--state-file` |  | — | 主动集 state 文件 (`.sel`) — 跳过 Stage 1，加载已有主动集 |
+| `--state-file` |  | — | 主动集 state 文件（GPM `.maxvol.gpm` 或旧式 `.sel`）— 跳过 Stage 1，加载已有主动集 |
+| `--state-output` |  | 自动推导 | 输出 MaxVol 状态（GPM `.maxvol.gpm`；加 `--legacy` 时为 `.sel`） |
 | `--train` |  | — | 训练集文件 |
 | `--candidates` |  | `candidates.xyz` | 候选结构文件 |
 | `--output` | `-o` | `new_selected.xyz` | 输出新入选的候选结构 |

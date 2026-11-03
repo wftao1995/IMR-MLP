@@ -111,7 +111,7 @@ fit:weight_L2       1e-8
 ```
 
 ```sh
-imrmlp trainmtp train.ini --linear-fit
+imrmlp trainmtp train.ini --linear-fit --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp full.mtp
 ```
 

@@ -52,8 +52,9 @@ imrmlp maxvol_select select.ini --pool train.xyz \
   --output selected.xyz --score-file training-grades.txt
 ```
 
-Outputs are the selected structures and the active-set state `model.mtp.sel`, which is
-not a potential file. The check is the `Selection status:` line and the `virtual_rows`
+Outputs are the selected structures and the active-set state
+`model.mtp.maxvol.gpm`, which is not a potential file. The check is the
+`Selection status:` line and the `virtual_rows`
 count printed with it: `WARNING: not converged` means the threshold was not reached
 within the budget, so rerun with `full` or `stream/exact`; a nonzero `virtual_rows`
 count means directions remain uninitialized, which small or strongly correlated
@@ -63,9 +64,15 @@ datasets produce.
 
 ```sh
 imrmlp maxvol_sample select.ini --input pool.xyz \
-  --state-file model.mtp.sel --output candidates.xyz \
+  --state-file model.mtp.maxvol.gpm --output candidates.xyz \
   --threshold-save 2.1 --threshold-break 1000000000
 ```
+
+For the pre-GPM `.sel` format, add `--legacy` to both `maxvol_select` and
+`maxvol_sample`, and pass `--state-file model.mtp.sel`. The legacy switch is
+local to the command; it does not rewrite an existing GPM state. The
+[self-contained exercise](../../examples/active-learning/README.md) offers the
+same comparison with `run.py --legacy`.
 
 The example raises the **offline output** break threshold to collect higher-grade
 frames. Values such as `2.1` are starting points to calibrate against the model,
@@ -133,8 +140,8 @@ validation set. Check convergence for each reference calculation before combinin
 multiple results, retaining raw references and each round's data.
 
 Keep each round's model, builder settings, map, state, candidates and labels
-together. After model parameters change, an old readable `.sel` with matching
-dimensions is not sufficient. `maxvol_extend` can update state but does not replace
+together. After model parameters change, an old readable `.sel` or `.gpm`
+state with matching dimensions is not sufficient. `maxvol_extend` can update state but does not replace
 retraining and validation; retain copies of important states first.
 
 ## Extending to production sampling
@@ -158,7 +165,7 @@ the selection has to be equivalent to a whole-pool scan. See the
 | Many redundant candidates | The exploration pool itself is redundant | Reduce by mechanism or descriptor diversity, then label in batches |
 | Retraining does not improve target properties | Label quality or coverage is insufficient | Compare label quality and coverage instead of training error or grade alone |
 | Grade treated as an error | Grade is extrapolation relative to one active set | Evaluate E/F errors against reference labels separately |
-| An old `.sel` state is reused | Model parameters changed | Rebuild the active set for the new model |
+| An old `.sel` or `.gpm` state is reused | Model parameters changed | Rebuild the active set for the new model |
 
 ## Related
 

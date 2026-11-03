@@ -18,9 +18,10 @@ in the [command reference](../reference/commands.md) and the
 
 These commands share the whitespace-separated settings syntax, but accept
 different keys and potential definitions. Use the settings for the selected
-command; do not copy them between trainers unchanged. The final `trainmtp` model is
-`_Trained_Potential_.mtp` in the working directory; `fit:save_to` controls trainer
-checkpoints.
+command; do not copy them between trainers unchanged. The final `trainmtp` model
+defaults to `_Trained_Potential_.gpm` in the working directory; pass
+`--output model.mtp` (or `--legacy`) for a native `.mtp`. `fit:save_to`
+controls trainer checkpoints.
 
 ## How do I discover commands and options?
 
@@ -115,4 +116,4 @@ Use one build, pin the thread counts (`OMP_NUM_THREADS`, `MKL_NUM_THREADS`) and
 set the seeds exposed by the feature you use, for example `dimer:random_seed`.
 For the Dimer option, `random_seed=0` is reproducible within a given build,
 while `-1` requests nondeterministic initialization. Run directories should be separate so that
-`_Trained_Potential_.mtp` and logs are not overwritten.
+the final model and logs are not overwritten.

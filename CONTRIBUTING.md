@@ -46,6 +46,7 @@ on the `make test` command when you have these fixtures. Report missing inputs
 separately from numerical/assertion failures. To test the public workflow alone:
 
 ```sh
+export LD_LIBRARY_PATH="$PWD/build/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 examples/quickstart/run.py --work build/quickstart-review
 ```
 

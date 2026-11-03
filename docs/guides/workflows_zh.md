@@ -129,18 +129,19 @@ fit:save_to         checkpoint.mtp
 
 ```sh
 # ALGLIB L-BFGS：联合优化径向与线性系数
-imrmlp trainmtp train.ini --do-lbfgs
+imrmlp trainmtp train.ini --do-lbfgs --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp fitted.mtp
 
 # 另一种选择：固定径向函数，仅拟合线性系数
-imrmlp trainmtp train.ini --linear-fit
+imrmlp trainmtp train.ini --linear-fit --output _Trained_Potential_.mtp
 cp _Trained_Potential_.mtp fitted-linear.mtp
 ```
 
 **必须显式选择优化器或 `--linear-fit`**：直接运行 `trainmtp train.ini` 不会自动选择
-非线性优化方法。最终快照固定写入工作目录的 `_Trained_Potential_.mtp`；
-`fit:save_to` 指定训练器检查点，不会重命名这个命令级最终输出。使用独立运行目录可避免
-覆盖之前的模型。
+非线性优化方法。训练现在默认写 GPM 的 `_Trained_Potential_.gpm`；显式传入
+`--output _Trained_Potential_.mtp` 才保留下面使用的原生 `.mtp` 文件名，
+`--legacy` 可恢复原生默认。`fit:save_to` 指定训练器检查点，不会重命名这个
+命令级最终输出。使用独立运行目录可避免覆盖之前的模型。
 
 非线性优化中可选的线性重拟合见[线性精修](../advanced/linear-refit_zh.md)。
 `trainnlpot` 支持更多模型与设备路径，`train_linear` 是另一套通用线性拟合入口；
@@ -203,7 +204,7 @@ pair_coeff * * fitted.mtp Al Ni
 | 症状 | 原因 | 处理 |
 | --- | --- | --- |
 | 训练结束但没有预期迭代输出 | 未指定 `--do-lbfgs` 或 `--linear-fit` | 显式选择优化方式，直接运行不会自动挑选 |
-| 找不到自己命名的模型文件 | 最终快照固定写入 `_Trained_Potential_.mtp` | 训练后复制并按用途命名，或改用独立运行目录 |
+| 找不到自己命名的模型文件 | 默认最终快照是 `_Trained_Potential_.gpm`；原生 `.mtp` 需 `--output` 或 `--legacy` | 复制实际输出文件、显式传 `--output`，或改用独立运行目录 |
 | 训练误差很低但计算明显偏差 | 元素映射错误或数据划分泄漏 | 核对 `index.map`，按轨迹/相/成分划分集合 |
 | 验证误差突然变好 | 验证集在调参过程中被反复使用 | 用未参与选择的 `test.xyz` 报告最终指标 |
 | 格式识别错误 | 把 extxyz 改名成 `.cfg` | 保留扩展名，或在配置中显式指定格式 |
