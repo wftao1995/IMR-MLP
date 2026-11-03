@@ -557,7 +557,7 @@ TEST_CASE("Ewald dEdq numerical verification with self correction", "[les][ewald
 }
 
 TEST_CASE("PotMTP_LES indirect force matches total energy finite difference", "[les][mtp_les][grad]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les = true;
     pot.les_species_coeffs[0]=0.25;
     pot.les_species_coeffs[1]=-0.18;
@@ -600,7 +600,7 @@ TEST_CASE("PotMTP_LES indirect force matches total energy finite difference", "[
 
 TEST_CASE("MTP LES prediction entry points include identical LES terms",
           "[les][mtp_les][api]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les = true;
     pot.les_species_coeffs[0] = 0.21;
     pot.les_species_coeffs[1] = -0.16;
@@ -641,7 +641,7 @@ TEST_CASE("MTP LES prediction entry points include identical LES terms",
 
 TEST_CASE("MTP LES response parity flips all signed responses but not EFS",
           "[les][mtp_les][parity]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les=true;
     pot.les_species_coeffs[0]=0.23;
     pot.les_species_coeffs[1]=-0.17;
@@ -706,7 +706,7 @@ TEST_CASE("MTP LES response parity flips all signed responses but not EFS",
 
 TEST_CASE("MTP LES is invariant to periodic reimaging",
           "[les][mtp_les][pbc]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les=true;
     pot.les_species_coeffs[0]=0.2;
     pot.les_species_coeffs[1]=-0.1;
@@ -731,7 +731,7 @@ TEST_CASE("MTP LES is invariant to periodic reimaging",
 
 TEST_CASE("MTP LES BEC failure clears stale response state",
           "[les][mtp_les][bec][state]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     Atoms atom;
     atom.cell_=10.0*Eigen::Matrix3d::Identity();
     atom.pos_={{1.0,2.0,3.0}};
@@ -746,7 +746,7 @@ TEST_CASE("MTP LES BEC failure clears stale response state",
 
 TEST_CASE("Analytic MTP LES BEC matches displaced periodic dipoles",
           "[les][mtp_les][bec][analytic]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les=true;
     pot.les_species_coeffs[0]=0.23;
     pot.les_species_coeffs[1]=-0.17;
@@ -801,7 +801,7 @@ TEST_CASE("Analytic MTP LES BEC matches displaced periodic dipoles",
 
 TEST_CASE("Analytic dynamic LES BEC preserves geometric and response state contracts",
           "[les][mtp_les][bec][analytic][pbc]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les=true;
     pot.les_species_coeffs[0]=0.23;
     pot.les_species_coeffs[1]=-0.17;
@@ -851,7 +851,7 @@ TEST_CASE("Analytic dynamic LES BEC preserves geometric and response state contr
 
 TEST_CASE("MTP LES coordinate Hessian uses full forces and hard-cutoff cell Hessian rejects",
           "[les][mtp_les][hessian]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les = true;
     pot.les_species_coeffs[0]=0.2; pot.les_species_coeffs[1]=-0.1;
     std::fill_n(pot.les_moment_coeffs, pot.get_alpha_scalar_moments(), 0.0);
@@ -911,7 +911,7 @@ TEST_CASE("MTP LES coordinate Hessian uses full forces and hard-cutoff cell Hess
 
 TEST_CASE("MTP LES outer OpenMP evaluation is deterministic",
           "[les][mtp_les][api][omp]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les = true;
     pot.les_species_coeffs[0]=0.19; pot.les_species_coeffs[1]=-0.13;
     std::fill_n(pot.les_moment_coeffs, pot.get_alpha_scalar_moments(), 0.0);
@@ -944,8 +944,8 @@ TEST_CASE("MTP LES zero initialization is reproducible and charge balanced",
     };
     auto atoms=make_atoms();
     const std::vector<double> targets={0.35,-0.20};
-    PotMTP_LES first("tests/case-mtp-les/les.mtp");
-    PotMTP_LES second("tests/case-mtp-les/les.mtp");
+    PotMTP_LES first("unitest/test-data/case-mtp-les/les.mtp");
+    PotMTP_LES second("unitest/test-data/case-mtp-les/les.mtp");
     for(auto *pot:{&first,&second}) {
         pot->lr_les=true;
         std::fill_n(pot->les_species_coeffs,pot->species_count,0.0);
@@ -978,7 +978,7 @@ TEST_CASE("MTP LES zero initialization is reproducible and charge balanced",
         first.les_moment_coeffs+first.get_alpha_scalar_moments());
     REQUIRE_FALSE(first.initialize_zero_les_coeffs(atoms,targets,2e-3,1));
     REQUIRE(std::equal(before.begin(),before.end(),first.les_moment_coeffs));
-    PotMTP_LES invalid("tests/case-mtp-les/les.mtp");
+    PotMTP_LES invalid("unitest/test-data/case-mtp-les/les.mtp");
     invalid.lr_les=true;
     std::fill_n(invalid.les_species_coeffs,invalid.species_count,0.0);
     std::fill_n(invalid.les_moment_coeffs,invalid.get_alpha_scalar_moments(),0.0);
@@ -986,7 +986,7 @@ TEST_CASE("MTP LES zero initialization is reproducible and charge balanced",
 }
 
 TEST_CASE("MTP LES combined EFS parameter gradient is numerical", "[les][mtp_les][grad]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les=true;
     pot.les_species_coeffs[0]=0.23;
     pot.les_species_coeffs[1]=-0.17;
@@ -1043,7 +1043,7 @@ TEST_CASE("MTP LES combined EFS parameter gradient is numerical", "[les][mtp_les
 
 TEST_CASE("MTP LES total-charge parameter gradient is analytic",
           "[les][mtp_les][charge][grad]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les = true;
     pot.les_species_coeffs[0] = 0.19;
     pot.les_species_coeffs[1] = -0.13;
@@ -1103,7 +1103,7 @@ TEST_CASE("MTP LES total-charge parameter gradient is analytic",
 
 TEST_CASE("Nonlinear trainer adds normalized per-configuration charge loss",
           "[les][mtp_les][charge][train]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.lr_les = true;
     pot.les_species_coeffs[0] = 0.16;
     pot.les_species_coeffs[1] = -0.11;
@@ -1180,7 +1180,7 @@ TEST_CASE("Nonlinear trainer adds normalized per-configuration charge loss",
 }
 
 TEST_CASE("PotMTP_LES loads plain MTP without LES sections", "[les][mtp_les][load]") {
-    PotMTP_LES pot("tests/case-mtp-les/_Trained_Potential_.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/_Trained_Potential_.mtp");
 
     REQUIRE_FALSE(pot.lr_les);
     REQUIRE(pot.les_species_coeffs != nullptr);
@@ -1203,12 +1203,12 @@ TEST_CASE("PotMTP_LES loads plain MTP without LES sections", "[les][mtp_les][loa
 }
 
 TEST_CASE("MTP LES rejects ambiguous legacy coefficients", "[les][mtp_les][load]") {
-    REQUIRE_THROWS_AS(PotMTP_LES("tests/case-mtp-les/_Trained_Potential_"),
+    REQUIRE_THROWS_AS(PotMTP_LES("unitest/test-data/case-mtp-les/_Trained_Potential_"),
                       GPException);
 }
 
 TEST_CASE("MTP LES train_init preserves loaded zero coefficients", "[les][mtp_les][train]") {
-    PotMTP_LES pot("tests/case-mtp-les/_Trained_Potential_.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/_Trained_Potential_.mtp");
     for (int t=0;t<pot.species_count;++t)
         REQUIRE(pot.les_species_coeffs[t]==Approx(0.0).margin(1e-30));
     for (int a=0;a<pot.get_alpha_scalar_moments();++a)

@@ -88,7 +88,7 @@ TEST_CASE("Bond order values and gradients respect rotations", "[rotation][bondo
 }
 
 TEST_CASE("MTP scalar basis and EFS respect rotations", "[rotation][mtp]") {
-    const std::string model = GENERATE("unitest/test-data/pot4b.mtp", "tests/case-mtp-les/les.mtp");
+    const std::string model = GENERATE("unitest/test-data/pot4b.mtp", "unitest/test-data/case-mtp-les/les.mtp");
     const bool periodic = GENERATE(false, true);
     const bool parallel = GENERATE(false, true);
     CAPTURE(model, periodic, parallel);

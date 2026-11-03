@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "active_learn/al_scorer.h"
+#include "potentials/potential.h"
 #include "tools/gpm_container.h"
 #include "active_learn/al_potential.h"
 #include "maxvol/active_selector.h"
@@ -31,6 +32,7 @@ void MaxVolScorer::load_state(const std::string &state_file,
     if (p->num_candidates() == 0) {
         GPERROR("al:state_file '" + state_file + "' is missing, invalid or contains no candidates");
     }
+    if(p->state_potential()){builder_initialized_=true;cutoff_=p->state_potential()->cutoff;}
     as_ = p.release();
     own_selector_ = true;
     loaded_ = true;

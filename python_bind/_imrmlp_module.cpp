@@ -2003,14 +2003,14 @@ void bind_maxvol(py::module_ &m) {
             as.save_state(fn, idx, pf, pt);
         }, py::arg("filename"), py::arg("index_file") = "",
            py::arg("potfile") = "", py::arg("pottype") = "",
-           "Save active set state to .sel file.")
+           "Save a legacy .sel state or self-contained GPM bundle.")
 
         .def_static("load_state", [](const std::string &fn, const std::string &idx) {
             auto as = std::make_unique<ActiveSelector>();
             as->load_state(fn, idx);
             return as;
         }, py::arg("filename"), py::arg("index_file") = "",
-           "Load active set from .sel file.")
+           "Load legacy .sel metadata or a self-contained GPM MaxVol state.")
 
         .def("init_builder", [](ActiveSelector &as, Potentials::AnyPotential &pot) {
             as.init_builder(pot);

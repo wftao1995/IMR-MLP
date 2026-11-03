@@ -1,6 +1,8 @@
 // Copyright (c) 2026 IMR-MLP contributors
 // SPDX-License-Identifier: MIT
 
+#include "training_output.h"
+#include "persistence_mode.h"
 #include "potentials/potential_wrapper.h"
 #include "potentials/model_elements.h"
 #include "io/gpio.h"
@@ -20,11 +22,17 @@ int train_linear(int argc, char *argv[]) {
     string infile = "train.cfg";
     string infilev = "";
     string informat = "mlpcfg";
-    string poutfile = "_Trained_Potential_";
+    string poutfile = "_Trained_Potential_.gpm";
+    bool save_maxvol_state=false;
+    PersistenceMode persistence;
+    persistence.RegisterConsole(cmdopts);
     string settingfile = "";
     GPSettings settings;
     bool debug = false;
 
+    cmdopts.attach_settings("builder:","Final GPM MaxVol builder",[](std::ostream &out){BMatrixBuilderSettings b;b.dtype="pot_efs";b.ListSettings(out,"builder:");});
+    cmdopts.attach_settings("selector:","Final GPM MaxVol selector",[](std::ostream &out){ActiveSelector().ListSettings(out,"selector:");});
+    cmdopts.addop(save_maxvol_state,"save-maxvol-state","","Rebuild MaxVol on the training set and embed it in the final GPM",false,0);
     cmdopts.addop(debug, "debug", "", "Enable debug output stream", false, 0, 10)
         .addop(indexfile, "index", "id", "Index file mapping atom types to indices")
         .addop(infile, "trainset", "in", "Input training dataset file")
@@ -48,6 +56,8 @@ int train_linear(int argc, char *argv[]) {
         settings.Print();
     }
     apply_settings_to_cmdopts(cmdopts, settings);
+    persistence.training_defaults(settings,poutfile,"_Trained_Potential_","potential_fitted","potential_fitted.gpm",save_maxvol_state);
+    Training::validate_training_output(poutfile,save_maxvol_state);
     std::unique_ptr<ScopedStreamRedirect> debug_guard;
     if (debug) {
         auto debugfs = std::make_unique<std::ofstream>("DEBUG" + mpi.fnm_ending);
@@ -120,6 +130,7 @@ int train_linear(int argc, char *argv[]) {
     Message("Construct potential loader");
     Potentials::potential_wrapper wrapper(settings.ExtractSubSettings("pot"));
     Potentials::AnyPotential *p_pot = wrapper.pot;
+    p_pot->set_element_map(iobj.getmap());
 
     if (!p_pot->supports_linear_fit())
         GPERROR("Potential type does not support linear fitting");
@@ -144,10 +155,9 @@ int train_linear(int argc, char *argv[]) {
     Message("Training run");
     trainer.Train();
 
-    Training::collective_try([&] {
-        if (mpi.rank == 0)
-            p_pot->Save(poutfile);
-    });
+    Training::publish_training_result(poutfile,save_maxvol_state,[&](const std::string &output){
+        Training::collective_try([&]{if(mpi.rank==0)Training::save_trained_model(*p_pot,output);});
+    },settings,iobj,infile,informat);
 
     Message("Finished");
     return 0;

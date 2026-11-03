@@ -16,9 +16,9 @@ Atoms atoms() {
     a.pos_={{2.,2.,2.},{4.1,2.2,2.},{2.3,4.2,2.4},{5.,4.8,3.1}};a.chemmap_={0,1,0,1};return a;
 }
 std::string template_source(int channels=1) {
-    std::ifstream f("tests/case-mtp-les/les.mtp");
+    std::ifstream f("unitest/test-data/case-mtp-les/les.mtp");
     std::string source((std::istreambuf_iterator<char>(f)),{});source.resize(source.find("species_coeffs"));
-    PotMTP ref("tests/case-mtp-les/les.mtp");int n=ref.get_alpha_scalar_moments();
+    PotMTP ref("unitest/test-data/case-mtp-les/les.mtp");int n=ref.get_alpha_scalar_moments();
     source+="les_species_coeffs = {";
     for(int c=0;c<channels;++c){if(c)source+=", ";source+="0.23, -0.17";}
     source+="}\nles_moment_coeffs = {";
@@ -110,7 +110,7 @@ TEST_CASE("MTP-M SOG parameters include complete force response with frozen grou
 TEST_CASE("MTP-M and MTP use identical SOG EFS and support model roundtrips","[sog][mtp_m]") {
     MTPM m;initialize(m);auto a=atoms();m.getEFS(a);REQUIRE(a.charges_.empty());
     m.lr_les=false;auto sr=atoms();m.getEFS(sr);m.lr_les=true;
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");p.les_kernel="sog";p.sog_terms=2;p.train_init();p.model_les=m.model_les;
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");p.les_kernel="sog";p.sog_terms=2;p.train_init();p.model_les=m.model_les;
     std::copy_n(m.les_species,2,p.les_species_coeffs);std::copy_n(m.les_moment,p.get_alpha_scalar_moments(),p.les_moment_coeffs);
     auto b=atoms();p.getEFS(b);p.lr_les=false;auto bsr=atoms();p.getEFS(bsr);
     REQUIRE(a.energy_-sr.energy_==Approx(b.energy_-bsr.energy_).margin(1e-11));

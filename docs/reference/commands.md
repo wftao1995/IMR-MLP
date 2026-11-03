@@ -336,6 +336,8 @@ type and optimization needs.
 
 @note **Choosing a training command** — see the comparison table at the end of this section.
 
+`trainmtp`, `trainnlpot`, `train_linear` and the three MaxVol commands support `--legacy` (top-level settings: `legacy true`). It restores native training defaults, original checkpoint names and external v10 `.sel` persistence. See [legacy persistence mode](gpm-v2.md#legacy-persistence-mode).
+
 ### `trainmtp` — Train MTP Potential
 
 The primary training command for Moment Tensor Potentials. Fits both radial basis
@@ -383,7 +385,7 @@ Choose `--do-lbfgs` (or another optimizer) explicitly for nonlinear fitting;
 use `--linear-fit` to fit MTP linear coefficients. `fit:lfit_eng_only true` changes
 which labels a linear fit uses; it does not select an optimizer by itself.
 `train_linear` is a separate command with its own descriptor/settings requirements.
-The final `trainmtp` output is `_Trained_Potential_.mtp` in the working directory;
+The final `trainmtp` output is `_Trained_Potential_.gpm` in the working directory;
 `fit:save_to` controls trainer checkpoints.
 
 `--do-matrix-a` writes six stress rows per labelled configuration, ordered
@@ -421,7 +423,7 @@ imrmlp trainnlpot --settings=training.ini --trainset=train.cfg --validset=valid.
 | `--testset-format` | | | Held-out dataset format (empty = auto-detect) |
 | `--fixed-core` | | | Existing fixed core; fit an ordinary MTP to residual labels and write a Hybrid manifest |
 | `--fixed-core-type` | | `zbl` | Fixed core model type: `zbl` or `mtp` |
-| `--output` | `-o` | `_Trained_Potential_` | Output potential file prefix |
+| `--output` | `-o` | `_Trained_Potential_.gpm` | Output potential file prefix |
 | `--index` | `-id` | `index.map` | Index file |
 | `--do-lbfgs` | `-lbf` | `false` | Use L-BFGS optimizer (bool flag) |
 | `--do-sgd` | `-sgd` | `false` | Use SGD optimizer (bool flag) |
@@ -557,7 +559,7 @@ imrmlp train_linear --trainset=train.cfg --validset=valid.cfg -o fitted_potentia
 | `--trainset` | `-in` | `train.cfg` | Training dataset file |
 | `--validset` | `-inv` | | Validation dataset file |
 | `--trainset-format` | `-if` | `mlpcfg` | Training data format: mlpcfg, extxyz, vaspabn |
-| `--output` | `-o` | `_Trained_Potential_` | Output potential file prefix |
+| `--output` | `-o` | `_Trained_Potential_.gpm` | Output potential file prefix |
 | `--index` | `-id` | `index.map` | Index file mapping atom types to indices |
 | `--debug` | | `false` | Enable debug output (bool) |
 
@@ -2191,7 +2193,7 @@ Mode following also supports `--mode=9 --modecar-out=MODECAR`; mode 2 accepts
 
 `model_convert` writes a self-contained GPM file; `model_info` and
 `model_validate` inspect it without loading numerical blocks. See
-[GPM format, save profiles and active learning restoration](gpm-v1.md).
+[GPM format, save profiles and active learning restoration](gpm-v2.md).
 
 ### `model_convert` — Write a GPM Model Bundle
 
@@ -2239,3 +2241,5 @@ imrmlp model_validate --input resume.gpm
 - @ref reference_potential_types — potential type overview and file formats
 - @ref apps — all command implementations
 - @ref cheatsheet — quick-reference command summary
+
+Training defaults to GPM; use `--save-maxvol-state` to rebuild and embed MaxVol. See the [GPM reference](gpm-v2.md) for single-file restoration, `--state-output`, and compatibility.

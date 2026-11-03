@@ -207,12 +207,6 @@ class ActiveSelector:
     @staticmethod
     def load(filename: str, potential=None):
         """Load a legacy .sel or the bound MaxVol state in a GPM bundle."""
-        if str(filename).endswith(".gpm"):
-            from .model_bundle import ModelBundle
-            bundle = ModelBundle.load(filename)
-            if potential is not None:
-                raise ValueError("A GPM selector uses its embedded potential; load .sel to bind an external model")
-            return bundle.create_al().selector
         aselect = ActiveSelector.__new__(ActiveSelector)
         aselect._impl = _ActiveSelector.load_state(str(filename), "")
         if potential is not None:

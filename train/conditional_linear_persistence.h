@@ -1,6 +1,7 @@
 #pragma once
 
 #include "conditional_linear.h"
+#include "model_output.h"
 #include "potentials/potential_mtp_LES.h"
 #include "potentials/potential_mtp_m.h"
 #include "potentials/potential_mtpnn1.h"
@@ -33,6 +34,7 @@ std::unique_ptr<Potentials::AnyPotential> reload_mtpm(Potentials::AnyPotential &
 inline std::unique_ptr<Potentials::AnyPotential> reload(Potentials::AnyPotential &source,
                                                        const std::string &path) {
     using namespace Potentials;
+    if(GPM::is_file(path)||GPM::extension(path))return ModelBundle::load(path)->release_potential();
     if(typeid(source)==typeid(PotMTP)) return std::make_unique<PotMTP>(path);
     if(typeid(source)==typeid(PotMTP_LES)) return std::make_unique<PotMTP_LES>(path);
 #define IMRMLP_CONDITIONAL_RELOAD_MODEL(Model) \
@@ -56,6 +58,7 @@ inline std::unique_ptr<Potentials::AnyPotential> reload(Potentials::AnyPotential
 inline std::vector<std::string> conditional_linear_files(Potentials::AnyPotential &potential,
                                                         const std::string &path) {
     using namespace Potentials;
+    if(GPM::extension(path))return {path};
     if(typeid(potential)==typeid(PotMTPNN1)) return {path+".mtp",path+".nn",path+".sc"};
     std::vector<std::string> files{path};
     if(typeid(potential)==typeid(PotentialHybridScale))
@@ -77,7 +80,7 @@ inline void publish_conditional_linear(Potentials::AnyPotential &potential,
     if(!::mkdtemp(name.data())) GPERROR("Cannot create conditional model staging directory: "+path);
     struct Stage {fs::path directory;~Stage(){std::error_code error;fs::remove_all(directory,error);}} stage{fs::path(name.data())};
     const auto temporary=stage.directory/destination.filename();
-    potential.Save(temporary.string());
+    save_trained_model(potential,temporary.string());
     std::vector<fs::path> files;
     for(const auto &entry:fs::directory_iterator(stage.directory)) {
         if(!fs::is_regular_file(entry.symlink_status()) || fs::file_size(entry.path())==0)

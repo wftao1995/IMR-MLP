@@ -40,7 +40,7 @@ TEST_CASE("SR refit preserves nonlinear and composition-null parameters", "[refi
     const int model=GENERATE(0,1,2); // ordinary MTP, SOG, Coulomb LES
     std::unique_ptr<PotMTP> p;
     if(model) {
-        auto s=std::make_unique<PotMTP_LES>("tests/case-mtp-les/les.mtp");
+        auto s=std::make_unique<PotMTP_LES>("unitest/test-data/case-mtp-les/les.mtp");
         if(model==1) configure(*s,3);
         else {
             s->lr_les=true;
@@ -51,7 +51,7 @@ TEST_CASE("SR refit preserves nonlinear and composition-null parameters", "[refi
         }
         p=std::move(s);
     }
-    else {p=std::make_unique<PotMTP>("tests/case-mtp-les/les.mtp");p->train_init();}
+    else {p=std::make_unique<PotMTP>("unitest/test-data/case-mtp-les/les.mtp");p->train_init();}
     std::vector<Atoms> data;std::vector<Neighborhoods> nbhs;
     for(int k=0;k<12;++k) {auto a=frame(k);p->getEFS(a);data.push_back(a);nbhs.emplace_back(data.back(),p->cutoff);}
     for(int i=0;i<p->get_lin_coeff_size();++i) p->linear_coeffs[i]+=.03*std::cos(i);
@@ -78,7 +78,7 @@ TEST_CASE("SR refit preserves nonlinear and composition-null parameters", "[refi
 }
 
 TEST_CASE("Refit accounts for L2 and rejects invalid inputs without changing coefficients", "[refit]") {
-    PotMTP p("tests/case-mtp-les/les.mtp");p.train_init();
+    PotMTP p("unitest/test-data/case-mtp-les/les.mtp");p.train_init();
     auto a=frame(0);p.getEFS(a);
     std::vector<Atoms> data={a};std::vector<Neighborhoods> nbhs;nbhs.emplace_back(data[0],p.cutoff);
     LinearRefitSettings settings;settings.mode="sr";settings.report="";
@@ -98,7 +98,7 @@ TEST_CASE("Refit accounts for L2 and rejects invalid inputs without changing coe
 TEST_CASE("SOG refit columns match independent unit-weight complete EFS", "[refit][sog]") {
     const int channels=GENERATE(1,3);
     const bool zero=GENERATE(false,true),self=GENERATE(false,true);
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");configure(p,channels);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");configure(p,channels);
     p.remove_self_interaction=self;p.model_les.sog_include_zero=zero;p.train_init();
     auto a=frame(3);Neighborhoods nbhs(a,p.cutoff);
     const auto basis=p.linear_sog_components(a,nbhs);
@@ -119,7 +119,7 @@ TEST_CASE("SOG refit columns match independent unit-weight complete EFS", "[refi
 
 TEST_CASE("Joint SOG refit reduces the regularized objective with fixed heads and widths", "[refit][sog]") {
     const int channels=GENERATE(1,3);
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");configure(p,channels);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");configure(p,channels);
     // Include exactly redundant columns and zero/negative current weights.
     p.model_les.sog_log_bandwidths[1]=p.model_les.sog_log_bandwidths[0];
     std::vector<Atoms> data;std::vector<Neighborhoods> nbhs;
@@ -152,7 +152,7 @@ TEST_CASE("Joint SOG refit reduces the regularized objective with fixed heads an
 }
 
 TEST_CASE("Unobserved SOG weights follow L2 while force-only biases stay fixed", "[refit][sog]") {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");configure(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");configure(p);
     std::fill_n(p.les_species_coeffs,p.latent_species_count(),0.);
     std::fill_n(p.les_moment_coeffs,p.latent_moment_count(),0.);
     auto a=frame(0);p.getEFS(a);
@@ -167,7 +167,7 @@ TEST_CASE("Unobserved SOG weights follow L2 while force-only biases stay fixed",
 
 TEST_CASE("Refit uses only available labels", "[refit]") {
     const int label=GENERATE(0,1,2);
-    PotMTP p("tests/case-mtp-les/les.mtp");p.train_init();
+    PotMTP p("unitest/test-data/case-mtp-les/les.mtp");p.train_init();
     std::vector<Atoms> data;std::vector<Neighborhoods> nbhs;
     for(int k=0;k<8;++k) {
         auto a=frame(k);p.getEFS(a);
@@ -183,7 +183,7 @@ TEST_CASE("Refit uses only available labels", "[refit]") {
 
 TEST_CASE("Derived MTP heads must explicitly support conditional linear fitting", "[refit]") {
     struct OtherHead:PotMTP {using PotMTP::PotMTP;};
-    OtherHead p("tests/case-mtp-les/les.mtp");p.train_init();
+    OtherHead p("unitest/test-data/case-mtp-les/les.mtp");p.train_init();
     std::vector<Atoms> data={frame(0)};std::vector<Neighborhoods> nbhs;nbhs.emplace_back(data[0],p.cutoff);
     LinearRefitSettings settings;settings.mode="sr";settings.report="";
     REQUIRE_THROWS(linear_refit(p,data,nbhs,EFSFitWeights{},0.,settings));

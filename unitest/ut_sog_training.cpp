@@ -35,7 +35,7 @@ std::vector<double> coeffs(PotMTP_LES& p) {
 }
 
 TEST_CASE("MTP SOG full EFS gradients include radial and kernel response","[sog][training][grad]") {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p);
     const int mode=GENERATE(0,1,2,3);
     const double ew=(mode==0 || mode==3) ? .37 : 0.;
     Eigen::Matrix<double,-1,3> fw(4,3);fw<<.2,-.1,.3,-.5,.7,.1,.3,.2,-.4,.1,.2,.4;
@@ -60,7 +60,7 @@ TEST_CASE("MTP SOG full EFS gradients include radial and kernel response","[sog]
 }
 
 TEST_CASE("MTP SOG response forces and virial differentiate total energy","[sog][training]") {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p);
     auto a=atoms();p.getEFS(a);constexpr double h=1e-6;
     REQUIRE(a.charges_.empty());REQUIRE_FALSE(p.supports_total_charge_training());
     REQUIRE_THROWS_AS(p.compute_bec(a),GPException);
@@ -79,7 +79,7 @@ TEST_CASE("MTP SOG response forces and virial differentiate total energy","[sog]
 }
 
 TEST_CASE("SOG v3 roundtrip strict loading and old entry point rejection","[sog][load]") {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p);
     std::ostringstream out;p.Save(out);const auto source=out.str();
     REQUIRE(source.find("les_version = 3")!=std::string::npos);
     PotMTP_LES q;std::istringstream in(source);q.Load(in);
@@ -96,12 +96,12 @@ TEST_CASE("SOG v3 roundtrip strict loading and old entry point rejection","[sog]
     }
     PotMTP_M<m_model_mtpq2> m;std::istringstream old(source);REQUIRE_THROWS_AS(m.Load(old),GPException);
     std::istringstream valid(source);q.Load(valid);
-    PotMTP_LES coulomb("tests/case-mtp-les/les.mtp");std::ostringstream legacy;coulomb.Save(legacy);
+    PotMTP_LES coulomb("unitest/test-data/case-mtp-les/les.mtp");std::ostringstream legacy;coulomb.Save(legacy);
     std::istringstream v2(legacy.str());q.Load(v2);REQUIRE_FALSE(q.uses_sog());REQUIRE(q.model_les.sog_weights.empty());
 }
 
 TEST_CASE("SOG trainer fits kernel weights while frozen groups remain unchanged","[sog][training]") {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p);
     std::vector<Atoms> data;
     for(int n=0;n<4;++n){auto a=atoms();a.pos_[1](0)+=.15*n;a.id=n;p.getEFS(a);data.push_back(a);}
     p.model_les.sog_weights={1.7,-.4};p.train_init();
@@ -125,7 +125,7 @@ TEST_CASE("SOG trainer fits kernel weights while frozen groups remain unchanged"
 
 TEST_CASE("SOG staged schedules initialize zero heads and save resumable models","[sog][training]") {
     const std::string schedule=GENERATE(std::string("mtp_sog_from_scratch"),std::string("mtp_sog_resume"));
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p);
     const int channels=GENERATE(1,3);p.sog_channels=channels;p.train_init();
     auto target=atoms();p.getEFS(target);
     std::fill_n(p.les_species_coeffs,2*channels,0.);

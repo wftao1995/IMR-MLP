@@ -90,13 +90,13 @@ template <class Potential> void gradients(Potential& p)
 TEST_CASE(
     "Multichannel SOG sums independent EFS and differentiates every parameter", "[sog][channels]")
 {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");
     initialize(p);
     auto a = atoms();
     p.getEFS(a);
     REQUIRE(a.charges_.empty());
     REQUIRE(p.LES_all_latents.cols() == 3);
-    PotMTP sr("tests/case-mtp-les/les.mtp");
+    PotMTP sr("unitest/test-data/case-mtp-les/les.mtp");
     auto baseline = atoms();
     sr.getEFS(baseline);
     const auto kernel = p.model_les.evaluate_channels(a, p.LES_all_latents);
@@ -111,7 +111,7 @@ TEST_CASE(
     for (auto& v : f)
         v *= -2;
     for (int c = 0; c < 3; ++c) {
-        PotMTP_LES one("tests/case-mtp-les/les.mtp");
+        PotMTP_LES one("unitest/test-data/case-mtp-les/les.mtp");
         initialize(one, 1);
         std::copy_n(p.les_species_coeffs + 2 * c, 2, one.les_species_coeffs);
         std::copy_n(p.les_moment_coeffs + c * p.get_alpha_scalar_moments(),
@@ -142,12 +142,12 @@ TEST_CASE("SOG v4 roundtrips, validates dimensions, and initializes zero "
     settings.Modify("les_kernel", "sog");
     settings.Modify("sog_channels", "3");
     settings.Modify("sog_terms", "2");
-    PotMTP_LES configured("tests/case-mtp-les/les.mtp", settings);
+    PotMTP_LES configured("unitest/test-data/case-mtp-les/les.mtp", settings);
     configured.train_init();
     REQUIRE(configured.channels() == 3);
     REQUIRE(configured.model_les.sog_weights.size() == 6);
     REQUIRE(configured.initialize_zero_les_coeffs({ }, { }, .1, 42));
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");
     initialize(p);
     std::fill_n(p.les_species_coeffs + 2, 2, 0.);
     std::fill_n(
@@ -183,7 +183,7 @@ TEST_CASE("SOG v4 roundtrips, validates dimensions, and initializes zero "
         std::istringstream bad(text);
         REQUIRE_THROWS_AS(invalid.Load(bad), GPException);
     }
-    PotMTP_LES one("tests/case-mtp-les/les.mtp");
+    PotMTP_LES one("unitest/test-data/case-mtp-les/les.mtp");
     initialize(one, 1);
     std::ostringstream old;
     one.Save(old);
@@ -195,9 +195,9 @@ TEST_CASE(
     "MTP-M multichannel SOG supports full and kernel-only gradients", "[sog][channels][mtp_m]")
 {
     using M = PotMTP_M<m_model_mtpq2>;
-    PotMTP_LES reference("tests/case-mtp-les/les.mtp");
+    PotMTP_LES reference("unitest/test-data/case-mtp-les/les.mtp");
     initialize(reference, 2);
-    std::ifstream input("tests/case-mtp-les/les.mtp");
+    std::ifstream input("unitest/test-data/case-mtp-les/les.mtp");
     std::string text((std::istreambuf_iterator<char>(input)), { });
     text.resize(text.find("species_coeffs"));
     std::ostringstream source;
@@ -249,7 +249,7 @@ TEST_CASE(
 
 TEST_CASE("Multichannel kernel fitting reduces loss with frozen heads", "[sog][channels][training]")
 {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");
     initialize(p);
     std::vector<Atoms> data;
     for (int i = 0; i < 4; ++i) {

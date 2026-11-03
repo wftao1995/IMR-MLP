@@ -44,7 +44,7 @@ def prepare_sgd_fixture(path, scheduler='none', epochs=2, extra=None):
 
 
 def run_sgd(path):
-    return run_command('imrmlp', ['trainmtp', 'settings.ini', '--do-sgd', '--num_threads', '1'], path)
+    return run_command('imrmlp', ['trainmtp', 'settings.ini', '--do-sgd', '--output=_Trained_Potential_.mtp', '--num_threads', '1'], path)
 
 
 def coefficients(path):

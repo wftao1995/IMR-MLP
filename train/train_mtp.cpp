@@ -1,6 +1,7 @@
 // Copyright (c) 2026 IMR-MLP contributors
 // SPDX-License-Identifier: MIT
 
+#include "model_output.h"
 #include "train_mtp.h"
 #include "linear_efs_system.h"
 #include "linear_equilibration.h"
@@ -2408,7 +2409,7 @@ void bfgsgard(const alglib::real_1d_array &x,
     } else {
         Message("  Loss: " + std::to_string(func));
     }
-    ptrainer->SaveCheckpoint("_Current_potential_save_" + std::to_string(ptrainer->bfgs_iter) + ".mtp",
+    ptrainer->SaveCheckpoint(Training::model_checkpoint(ptrainer->CurrentSettings()["save_to"],ptrainer->bfgs_iter,"_Current_potential_save_" + std::to_string(ptrainer->bfgs_iter) + ".mtp"),
                              ptrainer->bfgs_iter % ptrainer->save_every_it == 0);
 }
 
@@ -2491,7 +2492,7 @@ void dffvec(const alglib::real_1d_array &x,
         ptrainer->display_iteration_log(funci[0]);
         ptrainer->bfgs_iter += 1;
         if (mpi.rank == 0)
-            ptrainer->save_current("_DF_save_" + std::to_string(ptrainer->bfgs_iter) + ".mtp");
+            ptrainer->save_current(Training::model_checkpoint(ptrainer->CurrentSettings()["save_to"],ptrainer->bfgs_iter,"_DF_save_" + std::to_string(ptrainer->bfgs_iter) + ".mtp"));
     } else {
         Message("  Loss: " + std::to_string(funci[0]));
     }
@@ -2551,7 +2552,7 @@ void Trainer_MTP::TrainNonLinearBFGS(int limit) {
         trainer.p_mtp->ae_set_coeffs(x, trainer.fix_radial_coeffs,
                                      trainer.fix_linear_coeffs);
         trainer.display_iteration_log(f);
-        trainer.SaveCheckpoint("_Current_potential_save_" + std::to_string(trainer.bfgs_iter) + ".mtp",
+        trainer.SaveCheckpoint(Training::model_checkpoint(trainer.CurrentSettings()["save_to"],trainer.bfgs_iter,"_Current_potential_save_" + std::to_string(trainer.bfgs_iter) + ".mtp"),
                                trainer.bfgs_iter % trainer.save_every_it == 0);
         if (trainer.linear_fit_during_bfgs && bfgs_linear_fit_step(trainer.bfgs_iter)) {
             callback.refit_pending = true;
@@ -2831,7 +2832,7 @@ void Trainer_MTP::TrainRandom() {
         display_iteration_log(loss_curr);
         if (loss_curr < loss_prev) {
             loss_prev = loss_curr;
-            p_mtp->Save("_RANDOM_IT_" + std::to_string(bfgs_iter) + ".mtp");
+            Training::save_trained_model(*p_mtp,Training::model_checkpoint(potfilesave,bfgs_iter,"_RANDOM_IT_" + std::to_string(bfgs_iter) + ".mtp"));
         }
     }
 }
@@ -2908,7 +2909,7 @@ void Trainer_MTP::TrainSGD() {
             SGDUpdate(this_batch);
             ++bfgs_iter;
         }
-        SaveCheckpoint(potfilesave + std::to_string(iepoch), iepoch % save_every_it == 0);
+        SaveCheckpoint(Training::model_checkpoint(potfilesave,iepoch,potfilesave + std::to_string(iepoch)), iepoch % save_every_it == 0);
     }
 
     // postprocessing
@@ -3285,7 +3286,7 @@ double Trainer_MTP::operator()(const Eigen::VectorXd &x_, Eigen::VectorXd &g_in)
             Message("  Loss: " + std::to_string(loss_mpi));
         }
 
-        SaveCheckpoint("_Current_potential_save_" + std::to_string(bfgs_iter) + ".mtp",
+        SaveCheckpoint(Training::model_checkpoint(potfilesave,bfgs_iter,"_Current_potential_save_" + std::to_string(bfgs_iter) + ".mtp"),
                        bfgs_iter % save_every_it == 0);
 
     MPI_Barrier(mpi.comm);
@@ -3501,7 +3502,7 @@ void Trainer_MTP::save_current(std::string fnm) {
         ladder_fin();
     }
     if (UsesGpu()) Training::publish_conditional_linear(*p_mtp, fnm);
-    else p_mtp->Save(fnm);
+    else Training::save_trained_model(*p_mtp,fnm);
     if (do_ladder) {
         ladder_up();
     }

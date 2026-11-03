@@ -22,4 +22,4 @@
 - [MTP+LES v2](les-v2_zh.md)
 - [MTP + 可训练 SOG（v3/v4）](sog_zh.md)
 - [势类型与文件格式](potential-types_zh.md)
-- [GPM v1 模型文件](gpm-v1_zh.md)
+- [GPM v2 模型文件](gpm-v2_zh.md)

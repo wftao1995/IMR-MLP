@@ -2,7 +2,6 @@
 CATCH2_LIBS = -lCatch2Main -lCatch2
 TEST_CXXFLAGS = $(CXXFLAGS) -I.
 
-TEST_DATA_ROOT ?= $(CURDIR)/tests
 UNITEST_DATA_ROOT ?= $(CURDIR)/unitest/test-data
 
 # All Catch2 test sources: unitest/ut_*.cpp
@@ -62,7 +61,6 @@ run_tests: $(CATCH2_BINS)
 	@echo "=== Running unit tests ($(BUILD_MODE) mode) ==="
 	@passed=0; failed=0; \
 	tmpdir=$$(mktemp -d /tmp/imrmlp_unitest_XXXXXX); \
-	ln -sf $(TEST_DATA_ROOT) $$tmpdir/tests; \
 	mkdir -p $$tmpdir/unitest; \
 	ln -sf $(UNITEST_DATA_ROOT) $$tmpdir/unitest/test-data; \
 	for t in $(CATCH2_BINS); do \
@@ -94,7 +92,6 @@ test-fast: deps $(TARGETSLIB) $(FAST_TEST_BINS)
 	@echo "=== Running representative unit tests ($(BUILD_MODE) mode) ==="
 	@passed=0; failed=0; \
 	tmpdir=$$(mktemp -d /tmp/imrmlp_unitest_fast_XXXXXX); \
-	ln -sf $(TEST_DATA_ROOT) $$tmpdir/tests; \
 	mkdir -p $$tmpdir/unitest; \
 	ln -sf $(UNITEST_DATA_ROOT) $$tmpdir/unitest/test-data; \
 	for t in $(FAST_TEST_BINS); do \

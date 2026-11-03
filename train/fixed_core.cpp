@@ -1,3 +1,4 @@
+#include "model_output.h"
 #include "fixed_core.h"
 #include "potentials/potential_hybrid.h"
 #include "potentials/potential_settings.h"
@@ -108,6 +109,10 @@ void save_fixed_core_hybrid(AnyPotential &residual,AnyPotential &core,
                 GPERROR("Fixed-core hybrid reload changed forces");
         if((c.stress_-a.stress_-b.stress_).norm()>1e-8*(1.+c.stress_.norm()))
             GPERROR("Fixed-core hybrid reload changed virial");
+    }
+    if(GPM::extension(path)) {
+        save_trained_model(restored,path);
+        return;
     }
     for(const auto &entry:fs::directory_iterator(stage.p)) {
         auto final=destination.parent_path()/entry.path().filename();

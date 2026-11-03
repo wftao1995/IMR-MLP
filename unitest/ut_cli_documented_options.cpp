@@ -127,7 +127,7 @@ TEST_CASE("EOS fitting stops when the fit fails", "[cli][errors]") {
 }
 
 TEST_CASE("CUR selection honors row scaling from CLI and settings", "[cli][selection]") {
-    const auto potential = std::filesystem::absolute("unitest/test-data/potential.mtp").string();
+    const auto potential = std::filesystem::absolute("unitest/test-data/portable-mtp/nonlinear.mtp").string();
     Workspace work;
     std::ofstream("index.map") << "H\nHe\n";
     std::vector<Atoms> pool;
@@ -158,6 +158,6 @@ TEST_CASE("CUR selection honors row scaling from CLI and settings", "[cli][selec
     REQUIRE(io.read(selected, "selected.xyz", "extxyz"));
     REQUIRE(selected.size() == 1);
     // With this pool, uniform scaling selects the dimer, while MLIP scaling
-    // gives greater weight to site rows and selects the four-atom structure.
-    REQUIRE(selected[0].size() == (scaling == "uniform" ? 2 : 4));
+    // gives greater weight to site rows and selects the five-atom structure with this compact nonlinear model.
+    REQUIRE(selected[0].size() == (scaling == "uniform" ? 2 : 5));
 }

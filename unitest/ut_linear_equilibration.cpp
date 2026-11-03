@@ -63,7 +63,7 @@ TEST_CASE("MTP fixed rescale and diagonal solve preserve EFS fitting", "[trainin
     INFO("fast=" << fast << " energy_only=" << energy_only << " fixed_species=" << fixed_species);
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
-    Potentials::PotMTP truth("tests/case-mtp-les/les.mtp");
+    Potentials::PotMTP truth("unitest/test-data/case-mtp-les/les.mtp");
     truth.train_init();
     truth.set_scale(.2);
     std::vector<Atoms> atoms;

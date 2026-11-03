@@ -185,7 +185,7 @@ TEST_CASE("MTP diagonal queries honor implemented and unsupported model contract
     std::unique_ptr<AnyPotential> potential;
     if (model_head) {
         // The existing fixture's radial/moment graph is also a valid MTP-M template.
-        std::ifstream input("tests/case-mtp-les/les.mtp");
+        std::ifstream input("unitest/test-data/case-mtp-les/les.mtp");
         REQUIRE(input.good());
         std::string source((std::istreambuf_iterator<char>(input)), {});
         const auto coefficients = source.find("species_coeffs");
@@ -202,7 +202,7 @@ TEST_CASE("MTP diagonal queries honor implemented and unsupported model contract
         mtpm->model.coeffs = mtpm->model_coeffs;
         potential = std::move(mtpm);
     } else {
-        potential = std::make_unique<PotMTP>("tests/case-mtp-les/les.mtp");
+        potential = std::make_unique<PotMTP>("unitest/test-data/case-mtp-les/les.mtp");
     }
     auto atom = sentinel_atoms();
     const auto before = atom;

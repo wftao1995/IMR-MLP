@@ -36,7 +36,7 @@ Atoms dimer(double distance = 2.5) {
 }
 
 TEST_CASE("Empty basis analysis supports both phased and full selection", "[basis_analysis]") {
-    Potentials::PotMTP pot("tests/test-nnmtp/_Trained_Potential_.mtp");
+    Potentials::PotMTP pot("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp");
     const bool zero_limit = GENERATE(false, true);
     BasisAnalyzer analyzer(pot, zero_limit ? 0 : 50000);
     const std::vector<Atoms> frames = zero_limit ? std::vector<Atoms>{dimer()} : std::vector<Atoms>{};
@@ -58,7 +58,7 @@ TEST_CASE("Empty basis analysis supports both phased and full selection", "[basi
 }
 
 TEST_CASE("New analysis refreshes cached data and clears previous strategy results", "[basis_analysis]") {
-    Potentials::PotMTP pot("tests/test-nnmtp/_Trained_Potential_.mtp");
+    Potentials::PotMTP pot("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp");
     BasisAnalyzer analyzer(pot);
     ReportWorkspace report;
     analyzer.run({dimer()}, std::make_unique<ThresholdPruning>(), false);
@@ -77,7 +77,7 @@ TEST_CASE("New analysis refreshes cached data and clears previous strategy resul
 }
 
 TEST_CASE("Basis selection rejects incompatible analysis results", "[basis_analysis]") {
-    Potentials::PotMTP pot("tests/test-nnmtp/_Trained_Potential_.mtp");
+    Potentials::PotMTP pot("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp");
     BasisAnalyzer analyzer(pot);
     auto result = analyzer.analyze({});
     REQUIRE_THROWS_AS(analyzer.apply_strategy(*result, nullptr), std::invalid_argument);

@@ -22,4 +22,4 @@ Commands, configuration, Python and model formats.
 - [MTP+LES v2](les-v2.md)
 - [MTP + trainable SOG (v3/v4)](sog.md)
 - [Potential Types and File Formats](potential-types.md)
-- [GPM v1 model bundle](gpm-v1.md)
+- [GPM v2 model bundle](gpm-v2.md)

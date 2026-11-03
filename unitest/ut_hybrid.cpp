@@ -165,7 +165,7 @@ TEST_CASE("hybrid shared species gradient counts atoms by type", "[hybrid]") {
     add_setting(settings, "npot", "1");
     add_setting(settings, "spcount", "2");
     add_setting(settings, "pot1:pottype", "mtp");
-    add_setting(settings, "pot1:potfile", "tests/case-train/potential.mtp");
+    add_setting(settings, "pot1:potfile", "unitest/test-data/case-train/potential.mtp");
     PotentialHybrid pot(settings);
     pot.train_init();
     auto atom = make_structure({0, 0, 1});

@@ -19,7 +19,7 @@ using Catch::Approx;
 namespace {
 struct Workspace {
     std::filesystem::path original_dir = std::filesystem::current_path();
-    std::string mtp = std::filesystem::absolute("tests/test-nnmtp/_Trained_Potential_.mtp").string();
+    std::string mtp = std::filesystem::absolute("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp").string();
     std::filesystem::path path;
     std::ostringstream warnings;
     std::ostream *old_debug;

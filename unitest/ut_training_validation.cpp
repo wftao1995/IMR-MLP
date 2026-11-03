@@ -87,7 +87,7 @@ void check_validation(TrainNonlinear &trainer, PotMTP_LES &p) {
 TEST_CASE("Validation cadence leaves L-BFGS coefficients unchanged and reports final parameters", "[training][validation]") {
     std::vector<double> previous;
     for (int interval : {1, 2, 10}) {
-        PotMTP_LES p("tests/case-mtp-les/les.mtp"); init_model(p);
+        PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp"); init_model(p);
         auto train = data(p, 3), valid = data(p, 2);
         auto tn = neighbors(train, p.cutoff), vn = neighbors(valid, p.cutoff);
         p.model_les.sog_weights[0] += .7; p.train_init();
@@ -110,7 +110,7 @@ TEST_CASE("Validation cadence leaves L-BFGS coefficients unchanged and reports f
 }
 
 TEST_CASE("Validation interval rejects zero", "[training][validation]") {
-    PotMTP_LES p("tests/case-mtp-les/les.mtp"); init_model(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp"); init_model(p);
     auto train = data(p, 1); auto tn = neighbors(train, p.cutoff);
     auto s = settings(); s.Modify("validation_interval", "0");
     TrainNonlinear trainer(s);
@@ -124,7 +124,7 @@ TEST_CASE("GPU validation preserves training gradients across cached chunks and 
     if (std::getenv("IMRMLP_REQUIRE_GPU")) { INFO(error); REQUIRE(available); }
     if (!available) SKIP("No GPU device");
     const bool cache = GENERATE(false, true);
-    PotMTP_LES p("tests/case-mtp-les/les.mtp"); init_model(p);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp"); init_model(p);
     auto train = data(p, 3), valid = data(p, 2);
     auto tn = neighbors(train, p.cutoff), vn = neighbors(valid, p.cutoff);
     auto s = settings(); TrainNonlinear cpu(s); cpu.init(train, tn, &p); cpu.init_valid(valid, vn);

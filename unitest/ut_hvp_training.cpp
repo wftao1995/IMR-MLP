@@ -108,7 +108,7 @@ TEST_CASE("HVP output validates shapes and refuses lossy formats", "[hvp][io]") 
 }
 
 TEST_CASE("MTP basis HVP reconstructs dense basis Hessians and total product", "[hvp][mtp]") {
-    Potentials::PotMTP pot("tests/case-mtp-les/les.mtp"); pot.train_init();
+    Potentials::PotMTP pot("unitest/test-data/case-mtp-les/les.mtp"); pot.train_init();
     auto a=structure(); Neighborhoods nbhs(a,pot.cutoff);
     Eigen::MatrixXd components;
     Eigen::VectorXd direction=a.hvp_directions_.col(0);
@@ -169,7 +169,7 @@ TEST_CASE("Generic nonlinear trainer includes HVP-only data in loss and gradient
 
 TEST_CASE("MTP HVP-only linear fit reduces projected Hessian error", "[hvp][training][mtp]") {
     const bool fast=GENERATE(false,true);
-    Potentials::PotMTP pot("tests/case-mtp-les/les.mtp"); pot.train_init(); pot.set_inited();
+    Potentials::PotMTP pot("unitest/test-data/case-mtp-les/les.mtp"); pot.train_init(); pot.set_inited();
     std::vector<Atoms> atoms; std::vector<Neighborhoods> nbhs;
     for(int k=0;k<5;++k) {
         auto a=structure(); a.pos_[1][0]+=.1*k; a.id=k;
@@ -190,7 +190,7 @@ TEST_CASE("MTP HVP-only linear fit reduces projected Hessian error", "[hvp][trai
 }
 
 TEST_CASE("MTP nonlinear HVP gradient matches parameter differences", "[hvp][training][mtp]") {
-    Potentials::PotMTP pot("tests/case-mtp-les/les.mtp"); pot.train_init(); pot.set_inited();
+    Potentials::PotMTP pot("unitest/test-data/case-mtp-les/les.mtp"); pot.train_init(); pot.set_inited();
     auto a=structure(); std::vector<Atoms> atoms{a};
     std::vector<Neighborhoods> nbhs; nbhs.emplace_back(a,pot.cutoff);
     Trainer_MTP trainer(settings()); trainer.init(atoms,nbhs,&pot);
@@ -238,7 +238,7 @@ TEST_CASE("HVP loss averages probes and disabled training leaves no contribution
 }
 
 TEST_CASE("LES HVP supervision differentiates full long-range forces", "[hvp][training][les]") {
-    Potentials::PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    Potentials::PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     pot.les_species_coeffs[0]=.23; pot.les_species_coeffs[1]=-.17;
     std::fill_n(pot.les_moment_coeffs,pot.get_alpha_scalar_moments(),0.);
     pot.les_moment_coeffs[0]=.35; pot.les_moment_coeffs[1]=-.21;

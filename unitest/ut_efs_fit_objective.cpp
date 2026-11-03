@@ -9,7 +9,7 @@ using namespace Potentials;
 using Catch::Approx;
 
 TEST_CASE("EFS mixed missing labels preserve loss and gradient", "[training][missing-labels]") {
-    PotMTP p("tests/case-mtp-les/les.mtp");
+    PotMTP p("unitest/test-data/case-mtp-les/les.mtp");
     Atoms a;
     a.cell_=Eigen::Matrix3d::Identity()*10.;
     a.pos_={{2.,2.,2.},{4.1,2.2,2.},{2.3,4.2,2.4},{5.,4.8,3.1}};
@@ -78,7 +78,7 @@ TEST_CASE("EFS mixed missing labels preserve loss and gradient", "[training][mis
 }
 
 TEST_CASE("MTP penalty dispatch matches explicit implementation", "[training][penalty]") {
-    PotMTP p("tests/case-mtp-les/les.mtp");
+    PotMTP p("unitest/test-data/case-mtp-les/les.mtp");
     p.train_init();
     p.reg_L2_vector[p.species_count]=.3;
     double direct=0.,dispatched=0.;
@@ -92,7 +92,7 @@ TEST_CASE("MTP penalty dispatch matches explicit implementation", "[training][pe
 }
 
 TEST_CASE("EFS scalar loss agrees with gradient objective for atomic weights", "[training][weights]") {
-    PotMTP p("tests/case-mtp-les/les.mtp");
+    PotMTP p("unitest/test-data/case-mtp-les/les.mtp");
     Atoms a;
     a.cell_=Eigen::Matrix3d::Identity()*10.;
     a.pos_={{2.,2.,2.},{4.1,2.2,2.},{2.3,4.2,2.4},{5.,4.8,3.1}};

@@ -52,7 +52,7 @@ class BMatrixBuilderSettings : public ConnectSettings
 public:
     std::string dtype = "mtm";
     std::string potfile = "potential.mtp";
-    std::string pottype = "mtp";
+    std::string pottype = "auto";
     std::string mode = "nbh";
     bool all_coeffs = false;
     std::string row_scaling = "uniform";
@@ -235,6 +235,8 @@ public:
     void set_config_metadata(const std::string &dtype, const std::string &mode,
                              const GPSettings &settings = GPSettings{});
 
+    Potentials::AnyPotential *target_potential() const;
+
     Mode mode = Nbh;
 
 private:
@@ -270,3 +272,8 @@ std::unique_ptr<BMatrixBuilder> make_builder(
 
 std::unique_ptr<BMatrixBuilder> make_builder(
     const BMatrixBuilderSettings &builder_settings, GPSettings &settings);
+
+/// Bind a builder to the effective in-memory model (no source-file reload).
+std::unique_ptr<BMatrixBuilder> make_builder(
+    const BMatrixBuilderSettings &builder_settings, GPSettings &settings,
+    Potentials::AnyPotential &potential);

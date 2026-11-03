@@ -3,6 +3,7 @@
 
 #include "maxvol/active_selector.h"
 #include "potentials/model_bundle.h"
+#include "potentials/model_elements.h"
 #include "potentials/gpm_codec.h"
 #include "active_learn/gpm_al.h"
 #include "io/gpio.h"
@@ -365,7 +366,6 @@ int ActiveSelector::add_candidate(Atoms &cfg)
     invalidate_grading();
     cfg_row_start_.push_back(cfg_row_start_.back());
     cfgs_.push_back(cfg);
-    is_new_.push_back(false);
 
     int nrows = builder_->build_rows(cfgs_.back(), B_, weight, pow_scale);
     cfg_row_start_.back() = previous_rows+nrows;
@@ -400,7 +400,6 @@ int ActiveSelector::add_candidates_parallel(std::vector<Atoms> &cfgs)
 
     const size_t base = cfgs_.size();
     cfgs_.insert(cfgs_.end(), cfgs.begin(), cfgs.end());
-    is_new_.insert(is_new_.end(), cfgs.size(), false);
 
     std::vector<RowBlock> blocks(cfgs.size());
 
@@ -442,7 +441,6 @@ int ActiveSelector::add_candidates_unbuilt(std::vector<Atoms> &cfgs)
     invalidate_grading();
     if (cfgs.empty()) return 0;
     cfgs_.insert(cfgs_.end(), cfgs.begin(), cfgs.end());
-    is_new_.insert(is_new_.end(), cfgs.size(), false);
     has_full_B_ = false;
     return static_cast<int>(cfgs.size());
 }
@@ -538,7 +536,6 @@ int ActiveSelector::add_candidates_mpi(std::vector<Atoms> &cfgs,
     std::vector<int> rank_offsets(size, 0);
     int row = old_rows;
     cfgs_.insert(cfgs_.end(), cfgs.begin(), cfgs.end());
-    is_new_.insert(is_new_.end(), cfgs.size(), false);
 
     for (int i = 0; i < ncfg; ++i) {
         const int nrows = root_row_counts[i];
@@ -572,7 +569,6 @@ bool ActiveSelector::append_built_candidates_from(const ActiveSelector &other)
         B_.middleRows(old_rows, add_rows) = other.B_;
 
     cfgs_.insert(cfgs_.end(), other.cfgs_.begin(), other.cfgs_.end());
-    is_new_.insert(is_new_.end(), other.is_new_.begin(), other.is_new_.end());
 
     for (size_t i = 1; i < other.cfg_row_start_.size(); ++i)
         cfg_row_start_.push_back(old_rows + other.cfg_row_start_[i]);
@@ -588,7 +584,6 @@ void ActiveSelector::clear_candidates()
     reset_selection_status();
     B_.resize(0, n_coeff_);
     cfgs_.clear();
-    is_new_.clear();
     cfg_row_start_.clear();
     cfg_row_start_.push_back(0);
     selected_cfgs_.clear();
@@ -745,6 +740,7 @@ int ActiveSelector::select(double thr) { threshold = thr; return select(); }
 
 int ActiveSelector::select()
 {
+    validate_gpm_binding();
     if(gpm_rebuild_full_) {rebuild_B_from_configs();gpm_rebuild_full_=false;}
     invalidate_grading();
     if (select_mode == "online" && builder_ && !cfgs_.empty())
@@ -916,24 +912,27 @@ bool ActiveSelector::build_compact_selected_state(
 
 int ActiveSelector::select_streaming(std::vector<Atoms> &cfgs)
 {
+    validate_gpm_binding();
     clear_candidates();
     cfgs_ = cfgs;
-    is_new_.assign(cfgs_.size(), false);
     return select_streaming_current();
 }
 
 int ActiveSelector::select_streaming()
 {
+    validate_gpm_binding();
     return select_streaming_current();
 }
 
 int ActiveSelector::select_streaming_mpi(MPI_Comm comm)
 {
+    validate_gpm_binding();
     return select_streaming_current(comm, true);
 }
 
 int ActiveSelector::select_online()
 {
+    validate_gpm_binding();
     return select_online_current();
 }
 
@@ -2343,6 +2342,7 @@ double ActiveSelector::grade_one(
 
 double ActiveSelector::grade(Atoms &cfg)
 {
+    validate_gpm_binding();
     if (B_full_.rows() == 0 || !builder_) return 1e10;
 
     // Build B rows for this config alone
@@ -2467,7 +2467,6 @@ bool ActiveSelector::set_active_rows_for_grading(
     cfgs_.clear();
     if (all_cfgs)
         cfgs_ = *all_cfgs;
-    is_new_.assign(cfgs_.size(), false);
     cfg_row_start_.clear();
     cfg_row_start_.push_back(0);
     cfg_row_start_.push_back(k);
@@ -2549,6 +2548,7 @@ bool ActiveSelector::broadcast_grading_state(MPI_Comm comm,
 void ActiveSelector::grade_all(std::vector<Atoms> &cfgs,
                                 std::vector<double> &grades)
 {
+    validate_gpm_binding();
     grades.resize(cfgs.size());
     if (!builder_ || !prepare_grading()) {
         std::fill(grades.begin(), grades.end(), 1e10);
@@ -2594,6 +2594,7 @@ void ActiveSelector::grade_all(std::vector<Atoms> &cfgs,
 
 void ActiveSelector::compute_grades(std::vector<double> &grades)
 {
+    validate_gpm_binding();
     int nc = num_candidates();
     grades.clear();
     if (nc == 0 || selected_row_indices_.empty() || B_full_.rows() == 0) {
@@ -2667,21 +2668,36 @@ void ActiveSelector::compute_grades(std::vector<double> &grades)
 // Persistence  (v10 — virtual rows + convergence metadata)
 // ═══════════════════════════════════════════════════════════════════════════
 
+void ActiveSelector::validate_gpm_binding() const {
+    if(gpm_target_)GPM::require(Potentials::ModelBundle::fingerprint(*gpm_target_)==gpm_fingerprint_,
+                               "model changed since GPM MaxVol binding; rebuild selection");
+}
+
 void ActiveSelector::save_state(const std::string &filename,
                                  const std::string &index_file,
                                  const std::string &pot_file,
                                  const std::string &pottype) const
 {
+    validate_gpm_binding();
     if(GPM::extension(filename)) {
         std::unique_ptr<Potentials::potential_wrapper> loaded;
-        Potentials::AnyPotential *model=nullptr;
-        if(auto *b=dynamic_cast<PotEFSBuilder*>(builder_))model=&b->potential();
-        else if(!pot_file.empty()){loaded=std::make_unique<Potentials::potential_wrapper>(pot_file,pottype);model=loaded->pot;}
+        Potentials::AnyPotential *model=gpm_target_;
+        if(!model)if(auto *b=dynamic_cast<PotEFSBuilder*>(builder_))model=&b->potential();
+        if(!model)if(auto *b=dynamic_cast<DescriptorBuilder*>(builder_))model=b->target_potential();
+        if(!model&&!pot_file.empty()){loaded=std::make_unique<Potentials::potential_wrapper>(pot_file,pottype);model=loaded->pot;}
         GPM::require(model,"GPM selector export requires its target potential");
         GPM::Writer w;Potentials::GPMCodecAccess::encode(w,*model);
         w.manifest["species"]=w.manifest["models"].get<GPM::Object>().at("root").get<GPM::Object>().at("species");
-        w.manifest["model_fingerprint"]=GPM::Value(Potentials::ModelBundle::fingerprint(*model));
-        AL::GPMALAccess::encode_selector(w,*const_cast<ActiveSelector*>(this),*model);w.save(filename);return;
+        AL::GPMALAccess::encode_selector(w,*const_cast<ActiveSelector*>(this),*model);
+        if(gpm_source_) {
+            const auto &old=gpm_source_->manifest;
+            for(const auto &[key,value]:old)if(!w.manifest.count(key)&&key!="blocks")w.manifest[key]=value;
+            auto &al=w.manifest.at("active_learning").get<GPM::Object>();
+            for(const auto &[key,value]:GPM::object(GPM::at(old,"active_learning")))
+                if(!al.count(key))al[key]=value;
+            w.retain_blocks(gpm_source_);
+        }
+        w.save(filename);return;
     }
 
     std::ofstream ofs(filename, std::ios::binary);
@@ -2812,6 +2828,60 @@ void ActiveSelector::save_state(const std::string &filename,
 void ActiveSelector::load_state(const std::string &filename,
                                  const std::string &index_file)
 {
+    if(GPM::is_file(filename)||GPM::extension(filename)) {
+        auto bundle=Potentials::ModelBundle::load(filename);
+        auto restored=AL::GPMALAccess::decode_selector(*bundle->source(),&bundle->potential());
+        if(builder_) {
+            Potentials::AnyPotential *previous=nullptr;
+            if(auto *b=dynamic_cast<PotEFSBuilder*>(builder_))previous=&b->potential();
+            if(auto *b=dynamic_cast<DescriptorBuilder*>(builder_))previous=b->target_potential();
+            if(previous)GPM::require(Potentials::ModelBundle::fingerprint(*previous)==restored->gpm_fingerprint_,
+                                    "explicit potential differs from GPM MaxVol target");
+        }
+        GPSettings model;model.Modify("potfile",filename);
+        const auto elements=Potentials::probe_model_elements(model);
+        if(!index_file.empty()) {
+            GPIO io;io.install_species_map(index_file,true,elements,false);
+            if(!elements.empty()){GPIO declared;declared.setmap(elements);GPM::require(io.getmap()==declared.getmap(),"index map conflicts with GPM species order");}
+        }
+        restored->gpm_owner_=std::move(bundle);restored->gpm_source_=restored->gpm_owner_->source();
+
+        using std::swap;
+#define SWAP(x) swap(x,restored->x)
+        SWAP(gpm_rebuild_full_);
+        SWAP(gpm_legacy_unverified_);
+        SWAP(mv_);
+        SWAP(n_coeff_);
+        SWAP(log_det_);
+        SWAP(using_stream_state_);
+        SWAP(has_full_B_);
+        SWAP(grading_prepared_);
+        SWAP(converged_);
+        SWAP(max_remaining_grade_);
+        SWAP(termination_reason_);
+        SWAP(B_);
+        SWAP(cfg_row_start_);
+        SWAP(cfgs_);
+
+        SWAP(selected_cfgs_);
+        SWAP(selected_config_indices_);
+        SWAP(selected_row_indices_);
+        SWAP(selected_row_refs_);
+        SWAP(stream_swap_history_);
+        SWAP(stream_stats_);
+        SWAP(stream_rows_);
+        SWAP(online_state_);
+        SWAP(online_processed_cfgs_);
+        SWAP(B_full_);
+        SWAP(builder_);SWAP(own_builder_);SWAP(pending_builder_);
+        SWAP(threshold);SWAP(weight);SWAP(pow_scale);SWAP(init_mode);SWAP(init_value);SWAP(max_swaps);
+        SWAP(select_mode);SWAP(stream_mode);SWAP(stream_chunk_size);SWAP(stream_fast_passes);SWAP(stream_fast_shortlist);
+        SWAP(stream_cache_mode);SWAP(stream_memory_limit_mb);
+        SWAP(gpm_owner_);SWAP(gpm_source_);SWAP(gpm_target_);SWAP(gpm_fingerprint_);
+#undef SWAP
+        return;
+    }
+    gpm_source_.reset();gpm_target_=nullptr;gpm_fingerprint_.clear();
     auto clear_loaded_state = [&]() {
         cfgs_.clear();
         selected_cfgs_.clear();
@@ -2819,7 +2889,6 @@ void ActiveSelector::load_state(const std::string &filename,
         selected_row_indices_.clear();
         selected_row_refs_.clear();
         stream_swap_history_.clear();
-        is_new_.clear();
         n_coeff_ = builder_ ? builder_->coeff_count() : 0;
         B_.resize(0, n_coeff_);
         B_full_.resize(0, n_coeff_);
@@ -3063,7 +3132,6 @@ void ActiveSelector::load_state(const std::string &filename,
         }
     }
 
-    is_new_.assign(cfgs_.size(), false);
 
     // Rebuild selected_config_indices_ from the persisted row ranges.
     selected_config_indices_.clear();
@@ -3100,6 +3168,19 @@ void ActiveSelector::load_state(const std::string &filename,
 
 void ActiveSelector::init_builder(Potentials::AnyPotential &pot)
 {
+    if(!gpm_fingerprint_.empty())GPM::require(
+        Potentials::ModelBundle::fingerprint(pot)==gpm_fingerprint_,"potential differs from GPM MaxVol target");
+    // train_init() resets regularizers. A matching GPM rebind must retain the
+    // complete model identity, including its trained regularization metadata.
+    struct BoundRegularizers {
+        Potentials::AnyPotential *model=nullptr;
+        std::vector<double> l1,l2;
+        ~BoundRegularizers(){if(model){model->reg_L1_vector.swap(l1);model->reg_L2_vector.swap(l2);}}
+    } regularizers;
+    if(!gpm_fingerprint_.empty()) {
+        regularizers.l1=pot.reg_L1_vector;regularizers.l2=pot.reg_L2_vector;regularizers.model=&pot;
+    }
+
     invalidate_grading();
     if (!pending_builder_.valid)
         GPERROR("Load a MaxVol state before reconstructing its builder");
@@ -3136,12 +3217,24 @@ void ActiveSelector::init_builder(Potentials::AnyPotential &pot)
     if (own_builder_) delete builder_;
     builder_ = rebuilt.release();
     own_builder_ = true;
+    if(!gpm_fingerprint_.empty())gpm_target_=&pot;
 }
 
 // ── State file inspection / extraction ──────────────────────────────────────
 
 void ActiveSelector::dump_state(const std::string &filename, std::ostream &out)
 {
+    if(GPM::is_file(filename)||GPM::extension(filename)) {
+        GPM::Reader reader(filename);auto state=AL::GPMALAccess::decode_selector(reader);
+        out << "format:      GPM v2\nmethod:      maxvol\n"
+            << "n_coeffs:    " << state->n_coeff_ << "\n"
+            << "candidates:  " << state->cfgs_.size() << "\n"
+            << "selected:    " << state->selected_cfgs_.size() << "\n"
+            << "select_mode: " << state->select_mode << "\n"
+            << "converged:   " << (state->converged_?"yes":"no") << "\n"
+            << "reason:      " << state->termination_reason_ << "\n";
+        return;
+    }
     std::ifstream ifs(filename, std::ios::binary);
     if (!ifs) GPERROR("Cannot open MaxVol state: " + filename);
     ifs.exceptions(std::ios::failbit | std::ios::badbit);
@@ -3372,6 +3465,16 @@ void ActiveSelector::export_configs(const std::string &filename,
                                      bool selected_only,
                                      const std::string &index_file)
 {
+    if(GPM::is_file(filename)||GPM::extension(filename)) {
+        GPM::Reader reader(filename);auto state=AL::GPMALAccess::decode_selector(reader);
+        GPSettings model;model.Modify("potfile",filename);
+        GPIO io;const auto elements=Potentials::probe_model_elements(model);
+        io.install_species_map(index_file,!index_file.empty(),elements,false);
+        if(!index_file.empty()&&!elements.empty()){GPIO declared;declared.setmap(elements);GPM::require(io.getmap()==declared.getmap(),"index map conflicts with GPM species order");}
+        auto &configs=selected_only?state->selected_cfgs_:state->cfgs_;
+        if(!io.write(configs,output_file,"extxyz"))GPERROR("Cannot export GPM MaxVol configurations: "+output_file);
+        return;
+    }
     std::ifstream ifs(filename, std::ios::binary);
     if (!ifs) GPERROR("Cannot open MaxVol state: " + filename);
     ifs.exceptions(std::ios::failbit | std::ios::badbit);

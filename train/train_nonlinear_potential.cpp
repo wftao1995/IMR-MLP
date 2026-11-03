@@ -1,6 +1,7 @@
 // Copyright (c) 2026 IMR-MLP contributors
 // SPDX-License-Identifier: MIT
 
+#include "model_output.h"
 #include "runtime/mtp/gpu-direct/gpu_backend.h"
 #include "train_nonlinear_potential.h"
 #include "conditional_linear_persistence.h"
@@ -1820,7 +1821,7 @@ void TrainNonlinear::TrainLinearRefitImpl(bool validate_final) {
     for(const auto &atom:training_set_) if(atom.size()) {sample=&atom;break;}
     try {
         Training::collective_try([&] {
-            if(mpi.rank==0) Training::publish_conditional_linear(*p_pot,potfilesave+".pre-refit",sample);
+            if(mpi.rank==0) Training::publish_conditional_linear(*p_pot,Training::model_output_suffix(potfilesave,".pre-refit"),sample);
         });
         auto observation_settings=linear_refit_settings;
         observation_settings.hvp=hvp_fit;observation_settings.hessian=hessian_fit;
@@ -1942,7 +1943,7 @@ void TrainNonlinear::TrainNonLinearSGD(int epochs) {
             ++bfgs_iter;
         }
         if (iepoch % save_every_it == 0)
-            Training::collective_try([&] { save_current(potfilesave + std::to_string(iepoch)); });
+            Training::collective_try([&] { save_current(Training::model_checkpoint(potfilesave,iepoch,potfilesave + std::to_string(iepoch))); });
     }
 
     // postprocessing
@@ -2402,7 +2403,7 @@ void TrainNonlinear::SaveCGPoint(const std::string &path) {
     // Preserve the entire filename, including compression suffixes. Save()
     // implementations with sidecars are not part of CG's publication contract.
     const fs::path temporary = stage.path / destination.filename();
-    p_pot->Save(temporary.string());
+    Training::save_trained_model(*p_pot,temporary.string());
     std::size_t entries = 0;
     for (const auto &entry : fs::directory_iterator(stage.path)) {
         ++entries;
@@ -2458,7 +2459,7 @@ void TrainNonlinear::TrainCG() {
     // The low-level optimizer stays pure CG. Its accepted checkpoints and final
     // endpoint cannot overwrite the destination of the conditional result.
     linear_refit_settings.mode="off";
-    potfilesave=destination+".cg.snapshot";
+    potfilesave=Training::model_output_suffix(destination,".cg.snapshot");
     try {
         TrainScheduled("cg");
     } catch(...) {
@@ -2499,7 +2500,7 @@ double TrainNonlinear::operator()(const Eigen::VectorXd &x_, Eigen::VectorXd &g_
         }
 
         if (bfgs_iter % save_every_it == 0 && mpi.rank == 0)
-            save_current("_Current_potential_save_" + std::to_string(bfgs_iter) + ".mtp");
+            save_current(Training::model_checkpoint(potfilesave,bfgs_iter,"_Current_potential_save_" + std::to_string(bfgs_iter) + ".mtp"));
 
     MPI_Barrier(mpi.comm);
 
@@ -2672,7 +2673,7 @@ void TrainNonlinear::TrainNonLinearCG(int limit) {
                 Training::collective_try([&] { ValidateAcceptedPoint(alg_x.getcontent(), iteration); });
                 Training::collective_try([&] {
                     if (iteration % save_every_it == 0)
-                        SaveCGPoint(fmt::format("{}.iter-{:06d}.mtp", potfilesave, iteration));
+                        SaveCGPoint(Training::model_checkpoint(potfilesave,iteration,fmt::format("{}.iter-{:06d}.mtp", potfilesave, iteration)));
                 });
             }
         };
@@ -2796,7 +2797,7 @@ void TrainNonlinear::TrainNonLinearCG(int limit) {
 void TrainNonlinear::save_current(std::string fnm) {
     RequireCurrentParameterLayout();
     if (mpi.rank == 0)
-        p_pot->Save(fnm);
+        Training::save_trained_model(*p_pot,fnm);
 }
 
 void TrainNonlinear::save_accepted_checkpoint(
@@ -2809,8 +2810,8 @@ void TrainNonlinear::save_accepted_checkpoint(
         cumulative_iteration % save_every_it != 0)
         return;
     SetOptimizerCoeffs(coeffs.getcontent());
-    save_current(fmt::format(
-        "{}.iter-{:06d}.mtp", potfilesave, cumulative_iteration));
+    save_current(Training::model_checkpoint(potfilesave,cumulative_iteration,fmt::format(
+        "{}.iter-{:06d}.mtp", potfilesave, cumulative_iteration)));
 }
 
 void TrainNonlinear::test_curv(int ind, double nudge) {

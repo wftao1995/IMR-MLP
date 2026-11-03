@@ -168,7 +168,7 @@ TEST_CASE("BondOrder gradient vs finite-difference", "[descriptors][grad][bondor
 TEST_CASE("MTM gradient vs finite-difference", "[descriptors][grad][mtm]")
 {
     // Load potential.mtp from test data directory
-    std::string pot_path = "tests/case-descriptors/potential.mtp";
+    std::string pot_path = "unitest/test-data/case-descriptors/potential.mtp";
     if (!GPIO::file_exist(pot_path)) {
         WARN("potential.mtp not found at " << pot_path << " — skipping MTM gradient test");
         return;

@@ -1,6 +1,8 @@
 // Copyright (c) 2026 IMR-MLP contributors
 // SPDX-License-Identifier: MIT
 
+#include "training_output.h"
+#include "persistence_mode.h"
 #include "train/training_data.h"
 #include "potentials/potential_mtp.h"
 #include "potentials/model_elements.h"
@@ -88,7 +90,10 @@ int trainmtp(int argc, char *argv[]) {
     string infilev = "";
     string informat = "";
     string invformat = "";
-    string poutfile = "_Trained_Potential_.mtp";
+    string poutfile = "_Trained_Potential_.gpm";
+    bool save_maxvol_state=false;
+    PersistenceMode persistence;
+    persistence.RegisterConsole(cmdopts);
     string settingfile = "";
     GPSettings settings;
     bool do_linear_only = false;
@@ -115,6 +120,10 @@ int trainmtp(int argc, char *argv[]) {
     bool check_grad = false;
     bool check_grad_all = false;
 
+    cmdopts.addop(poutfile,"output","o","Final model output (default GPM; explicit native paths remain supported)");
+    cmdopts.addop(save_maxvol_state,"save-maxvol-state","","Rebuild MaxVol on the training set and embed it in the final GPM",false,0);
+    cmdopts.attach_settings("builder:","Final GPM MaxVol builder",[](std::ostream &out){BMatrixBuilderSettings b;b.dtype="pot_efs";b.ListSettings(out,"builder:");});
+    cmdopts.attach_settings("selector:","Final GPM MaxVol selector",[](std::ostream &out){ActiveSelector().ListSettings(out,"selector:");});
     cmdopts.addop(debug, "debug", "", "Enable debug output stream", false, 1, 10)
            .addop(indexfile, "index", "id", "Index file mapping atom types to indices")
            .addop(pfile, "potfile", "pot", "Potential file")
@@ -155,6 +164,7 @@ int trainmtp(int argc, char *argv[]) {
             settings.Print();
         }
         apply_settings_to_cmdopts(cmdopts, settings);
+        persistence.training_defaults(settings,poutfile,"_Trained_Potential_.mtp","potential.mtp","potential.gpm",save_maxvol_state);
     });
     Training::collective_try([&] {
         Trainer_MTP preflight(settings.ExtractSubSettings("fit"));
@@ -194,6 +204,8 @@ int trainmtp(int argc, char *argv[]) {
         }
     }
 
+    Training::validate_training_output(poutfile,save_maxvol_state);
+    if(save_maxvol_state&&!has_training_action)GPERROR("--save-maxvol-state requires a training action");
     // Validate the final settings/CLI choice before input or output side effects.
     if (debug) {
         std::ofstream *debugfs = new std::ofstream("DEBUG" + mpi.fnm_ending);
@@ -323,18 +335,18 @@ int trainmtp(int argc, char *argv[]) {
             trainer.TrainDF();
         if (do_random) {
             trainer.TrainRandom();
-            goto end;
+            if(!save_maxvol_state)goto end;
         }
     }
     trainer.ladder_fin();
     if (has_training_action) {
-        Training::collective_try([&] {
-            if (mpi.rank != 0) return;
-            if (trainer.UsesGpu())
-                Training::publish_conditional_linear(potential, poutfile, atoms.empty() ? nullptr : &atoms.front());
-            else
-                potential.Save(poutfile);
-        });
+        Training::publish_training_result(poutfile,save_maxvol_state,[&](const std::string &output) {
+            Training::collective_try([&] {
+                if(mpi.rank!=0)return;
+                if(trainer.UsesGpu())Training::publish_conditional_linear(potential,output,atoms.empty()?nullptr:&atoms.front());
+                else Training::save_trained_model(potential,output);
+            });
+        },settings,iobj,infile,informat);
         if (trainer.UsesGpu() && mpi.rank == 0) {
             if (do_linear_only) print_gpu_linear_report(trainer.GetGpuLinearReport());
             else {

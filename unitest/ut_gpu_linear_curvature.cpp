@@ -434,7 +434,7 @@ struct Capture {
 };
 int invoke() {
     CMDOption::global_cmdopts=CMDOption::CommandLineOptions();
-    std::vector<std::string> args{"trainmtp","--linear-fit","--potfile=input.mtp","--trainset=train.bin",
+    std::vector<std::string> args{"trainmtp","--output=_Trained_Potential_.mtp","--linear-fit","--potfile=input.mtp","--trainset=train.bin",
         "--trainset-format=bin","--index=index.map","--settings=fit.ini"};
     std::vector<char *> argv;for(auto &arg:args)argv.push_back(arg.data());return trainmtp(argv.size(),argv.data());
 }

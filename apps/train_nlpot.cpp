@@ -1,6 +1,8 @@
 // Copyright (c) 2026 IMR-MLP contributors
 // SPDX-License-Identifier: MIT
 
+#include "training_output.h"
+#include "persistence_mode.h"
 #include "train/training_data.h"
 #include "potentials/potential_wrapper.h"
 #include "potentials/model_elements.h"
@@ -42,7 +44,10 @@ int trainnlpot(int argc, char *argv[]) {
     string informat = "";
     string invformat = "";
     string intestformat = "";
-    string poutfile = "_Trained_Potential_";
+    string poutfile = "_Trained_Potential_.gpm";
+    bool save_maxvol_state=false;
+    PersistenceMode persistence;
+    persistence.RegisterConsole(cmdopts);
     string fixed_core_file, fixed_core_type = "zbl";
     std::vector<Potentials::HessianMatrix> fc2;
     string settingfile = "";
@@ -64,6 +69,9 @@ int trainnlpot(int argc, char *argv[]) {
     bool check_grad = false;
     bool check_grad_all = false;
 
+    cmdopts.attach_settings("builder:","Final GPM MaxVol builder",[](std::ostream &out){BMatrixBuilderSettings b;b.dtype="pot_efs";b.ListSettings(out,"builder:");});
+    cmdopts.attach_settings("selector:","Final GPM MaxVol selector",[](std::ostream &out){ActiveSelector().ListSettings(out,"selector:");});
+    cmdopts.addop(save_maxvol_state,"save-maxvol-state","","Rebuild MaxVol on the training set and embed it in the final GPM",false,0);
     cmdopts.addop(debug, "debug", "", "Enable debug output stream", false, 0, 10)
         .addop(indexfile, "index", "id", "Index file mapping atom types to indices")
         .addop(balance_atomic_fitness, "balance-atomic-fitness", "bw", "Load balancing, when not all forces are fitted", false, 0)
@@ -103,6 +111,7 @@ int trainnlpot(int argc, char *argv[]) {
         settings.Print();
     }
     apply_settings_to_cmdopts(cmdopts, settings);
+    persistence.training_defaults(settings,poutfile,"_Trained_Potential_","potential_fitted","potential_fitted.gpm",save_maxvol_state);
     // Reject unsupported requests before reading data, initializing a model,
     // constructing neighborhoods, or creating any training output.
     Message("Construct trainer");
@@ -120,6 +129,7 @@ int trainnlpot(int argc, char *argv[]) {
           || do_calcgrad || check_grad || check_grad_all || do_curv_test
           || linear_refit_enabled))
         GPERROR("trainnlpot: select a training or diagnostic action, or enable fit:linear_refit");
+    Training::validate_training_output(poutfile,save_maxvol_state);
     if (debug) {
         std::ofstream *debugfs = new std::ofstream("DEBUG" + mpi.fnm_ending);
         SetStreamForDebug(debugfs);
@@ -258,13 +268,14 @@ int trainnlpot(int argc, char *argv[]) {
                 else if (!do_cg) active.TrainLinearRefit();
             });
         auto &active = result.final_trainer ? *result.final_trainer : trainer;
-        if (fixed_core) Training::collective_try([&] {
-            if(mpi.rank==0) Training::save_fixed_core_hybrid(*p_pot,*fixed_core,poutfile,
-                atoms.empty()?nullptr:&atoms.front());
-        });
-        else if (do_varpro || linear_refit_enabled) active.SaveConditionalResult(poutfile);
-        else if (do_cg) active.SaveCGResult(poutfile);
-        else Training::collective_try([&] { if (mpi.rank == 0) p_pot->Save(poutfile); });
+        Training::publish_training_result(poutfile,save_maxvol_state,[&](const std::string &output) {
+            if(fixed_core)Training::collective_try([&]{
+                if(mpi.rank==0)Training::save_fixed_core_hybrid(*p_pot,*fixed_core,output,atoms.empty()?nullptr:&atoms.front());
+            });
+            else if(do_varpro||linear_refit_enabled)active.SaveConditionalResult(output);
+            else if(do_cg)active.SaveCGResult(output);
+            else Training::collective_try([&]{if(mpi.rank==0)Training::save_trained_model(*p_pot,output);});
+        },settings,iobj,infile,informat);
         if (mpi.rank == 0) {
             if (result.selected_multiplier)
                 Message("Selected L2 multiplier: " + std::to_string(*result.selected_multiplier));

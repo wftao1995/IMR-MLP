@@ -57,9 +57,9 @@ static void remove_prefix_outputs(const std::string &prefix)
 
 TEST_CASE("PotMTPNN1 regularizes NN coefficients at the correct offset", "[nnmtp][regularization]")
 {
-    Potentials::PotMTPNN1 pot(nnmtp_settings("tests/test-nnmtp/_Trained_Potential_.mtp",
-                                             "tests/test-nnmtp/_Trained_Potential_.nn",
-                                             "tests/test-nnmtp/_Trained_Potential_.sc"));
+    Potentials::PotMTPNN1 pot(nnmtp_settings("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
+                                             "unitest/test-data/test-nnmtp/_Trained_Potential_.nn",
+                                             "unitest/test-data/test-nnmtp/_Trained_Potential_.sc"));
     pot.train_init();
     std::fill(pot.reg_L1_vector.begin(), pot.reg_L1_vector.end(), 0.0);
     std::fill(pot.reg_L2_vector.begin(), pot.reg_L2_vector.end(), 1.0);
@@ -86,10 +86,10 @@ TEST_CASE("PotMTPNN1 Load rejects missing species coeffs", "[nnmtp][load]")
 {
     const std::string prefix = "/tmp/ut_nnmtp_missing_sc";
     remove_prefix_outputs(prefix);
-    std::filesystem::copy_file("tests/test-nnmtp/_Trained_Potential_.mtp",
+    std::filesystem::copy_file("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
                                prefix + ".mtp",
                                std::filesystem::copy_options::overwrite_existing);
-    std::filesystem::copy_file("tests/test-nnmtp/_Trained_Potential_.nn",
+    std::filesystem::copy_file("unitest/test-data/test-nnmtp/_Trained_Potential_.nn",
                                prefix + ".nn",
                                std::filesystem::copy_options::overwrite_existing);
 
@@ -99,7 +99,7 @@ TEST_CASE("PotMTPNN1 Load rejects missing species coeffs", "[nnmtp][load]")
 
 TEST_CASE("PotMTPNN1 saves two-layer NN coefficients to .nn", "[nnmtp][nn2]")
 {
-    Potentials::PotMTPNN1 pot(nnmtp_settings("tests/test-nnmtp/_Trained_Potential_.mtp",
+    Potentials::PotMTPNN1 pot(nnmtp_settings("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
                                              "/tmp/ut_nnmtp_missing_input.nn",
                                              "/tmp/ut_nnmtp_missing_input.sc",
                                              2));
@@ -124,10 +124,10 @@ TEST_CASE("nnmtp command writes descriptor normalization with per-site statistic
 
     std::vector<std::string> args = {
         "nnmtp",
-        "--potfile=tests/test-nnmtp/_Trained_Potential_.mtp",
-        "--data=tests/test-nnmtp/sub.cfg",
+        "--potfile=unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
+        "--data=unitest/test-data/test-nnmtp/sub.cfg",
         "--input-format=mlpcfg",
-        "--index=tests/test-nnmtp/index.map",
+        "--index=unitest/test-data/test-nnmtp/index.map",
         "--output=" + prefix,
         "--initmtp=false",
         "--normalize=true",
@@ -137,11 +137,11 @@ TEST_CASE("nnmtp command writes descriptor normalization with per-site statistic
     REQUIRE(nnmtp(static_cast<int>(argv.size()), argv.data()) == 0);
 
     GPIO io;
-    io.readmap("tests/test-nnmtp/index.map");
+    io.readmap("unitest/test-data/test-nnmtp/index.map");
     std::vector<Atoms> atoms;
-    io.read(atoms, "tests/test-nnmtp/sub.cfg", "mlpcfg");
+    io.read(atoms, "unitest/test-data/test-nnmtp/sub.cfg", "mlpcfg");
 
-    Potentials::PotMTP pot("tests/test-nnmtp/_Trained_Potential_.mtp");
+    Potentials::PotMTP pot("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp");
     std::vector<double> desc;
     std::vector<double> sum(pot.alpha_scalar_moments, 0.0);
     std::vector<double> sqsum(pot.alpha_scalar_moments, 0.0);
@@ -196,7 +196,7 @@ static Atoms nnmtp_dimer() {
 TEST_CASE("NNMTP factory reload preserves both network architectures", "[nnmtp][io]") {
     const int layers = GENERATE(1, 2);
     const bool legacy = GENERATE(false, true);
-    Potentials::PotMTPNN1 original(nnmtp_settings("tests/test-nnmtp/_Trained_Potential_.mtp",
+    Potentials::PotMTPNN1 original(nnmtp_settings("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
                                                 "unused.nn", "unused.sc", layers));
     std::vector<double> coefficients(original.nn_coeff_size, 0.03);
     if (layers == 1) {
@@ -248,12 +248,12 @@ TEST_CASE("NNMTP rejects descriptor dimension mismatches at both loading entry p
         IMRMLPNN::NN2lay wrong(1, 2, 2, 1);
         wrong.dump_coeffs("mismatch.nn");
     }
-    auto settings = nnmtp_settings("tests/test-nnmtp/_Trained_Potential_.mtp",
-                                   "mismatch.nn", "tests/test-nnmtp/_Trained_Potential_.sc", layers);
+    auto settings = nnmtp_settings("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
+                                   "mismatch.nn", "unitest/test-data/test-nnmtp/_Trained_Potential_.sc", layers);
     REQUIRE_THROWS_WITH(Potentials::PotMTPNN1(settings), Catch::Matchers::ContainsSubstring("input dimension"));
-    std::filesystem::copy_file("tests/test-nnmtp/_Trained_Potential_.mtp", "mismatch.mtp",
+    std::filesystem::copy_file("unitest/test-data/test-nnmtp/_Trained_Potential_.mtp", "mismatch.mtp",
                               std::filesystem::copy_options::overwrite_existing);
-    std::filesystem::copy_file("tests/test-nnmtp/_Trained_Potential_.sc", "mismatch.sc",
+    std::filesystem::copy_file("unitest/test-data/test-nnmtp/_Trained_Potential_.sc", "mismatch.sc",
                               std::filesystem::copy_options::overwrite_existing);
     REQUIRE_THROWS_WITH(Potentials::PotMTPNN1(std::string("mismatch")), Catch::Matchers::ContainsSubstring("input dimension"));
 }
@@ -261,7 +261,7 @@ TEST_CASE("NNMTP rejects descriptor dimension mismatches at both loading entry p
 TEST_CASE("NNMTP energy-only paths preserve forces and stress", "[nnmtp]") {
     const bool omp = GENERATE(false, true);
     const bool add = GENERATE(false, true);
-    Potentials::PotMTPNN1 pot(std::string("tests/test-nnmtp/_Trained_Potential_"));
+    Potentials::PotMTPNN1 pot(std::string("unitest/test-data/test-nnmtp/_Trained_Potential_"));
     auto atom = nnmtp_dimer();
     Neighborhoods nbhs(atom, pot.cutoff);
     pot.getEFS(atom, nbhs);
@@ -278,7 +278,7 @@ TEST_CASE("NNMTP energy-only paths preserve forces and stress", "[nnmtp]") {
 }
 
 TEST_CASE("NNMTP save reports species coefficient output failures", "[nnmtp][io]") {
-    Potentials::PotMTPNN1 pot(std::string("tests/test-nnmtp/_Trained_Potential_"));
+    Potentials::PotMTPNN1 pot(std::string("unitest/test-data/test-nnmtp/_Trained_Potential_"));
     std::filesystem::create_directory("blocked-nn.sc");
     REQUIRE_THROWS_WITH(pot.Save("blocked-nn"), Catch::Matchers::ContainsSubstring("blocked-nn.sc"));
     std::filesystem::remove("blocked-nn.sc");
@@ -310,8 +310,8 @@ struct NNCommandWorkspace {
     int run(std::vector<std::string> extra = {}) {
         CMDOption::global_cmdopts.reset();
         std::vector<std::string> args = {
-            "nnmtp", "--potfile=tests/test-nnmtp/_Trained_Potential_.mtp",
-            "--index=tests/test-nnmtp/index.map", "--input-format=mlpcfg",
+            "nnmtp", "--potfile=unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
+            "--index=unitest/test-data/test-nnmtp/index.map", "--input-format=mlpcfg",
             "--data=" + data(), "--output=" + prefix(), "--initmtp=false", "--nneuron=4"
         };
         args.insert(args.end(), extra.begin(), extra.end());

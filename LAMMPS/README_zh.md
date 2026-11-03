@@ -241,7 +241,7 @@ run 0
 GPM 可自动推断势类型；旧格式需显式给出 `pottype`，可能还需 `settings` 与配套资源。
 电荷/隐变量 compute、GPU 设备分配与总电荷约束按 [native 说明（英文）](USER-MLIP/native/README.md)设置。
 GPM 是模型文件格式，转换为 GPM 不会扩大接口的模型支持范围；详见
-[GPM 模型说明](../docs/reference/gpm-v1_zh.md)。
+[GPM 模型说明](../docs/reference/gpm-v2_zh.md)。
 
 ## 6. 热流、主动学习与热力学积分
 

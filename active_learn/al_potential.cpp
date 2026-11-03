@@ -110,7 +110,9 @@ std::unique_ptr<ALPotential> ALPotential::load_maxvol(
 ALScore ALPotential::evaluate(Atoms &atom)
 {
     GPM::require(!embedded_pending_,"initialize embedded AL with its potential before scoring");
-    if(bound_model_)GPM::require(Potentials::ModelBundle::fingerprint(*bound_model_)==bound_fingerprint_,"AL target changed; rebuild state");
+    auto *maxvol=dynamic_cast<MaxVolScorer*>(scorer_.get());
+    const bool selector_checks=maxvol&&maxvol->selector()&&maxvol->selector()->state_potential()==bound_model_;
+    if(bound_model_&&!selector_checks)GPM::require(Potentials::ModelBundle::fingerprint(*bound_model_)==bound_fingerprint_,"AL target changed; rebuild state");
     if (scorer_)
         return scorer_->evaluate(atom);
     return ALScore{};
@@ -301,7 +303,6 @@ ActiveSelector *ALPotential::maxvol_selector() {auto *s=dynamic_cast<MaxVolScore
 void ALPotential::save(const std::string &path,Potentials::AnyPotential &model) {
     GPM::Writer writer;Potentials::GPMCodecAccess::encode(writer,model);
     writer.manifest["species"]=writer.manifest["models"].get<GPM::Object>().at("root").get<GPM::Object>().at("species");
-    writer.manifest["model_fingerprint"]=GPM::Value(Potentials::ModelBundle::fingerprint(model));
     GPMALAccess::encode(writer,*this,model);writer.save(path);
 }
 } // namespace AL

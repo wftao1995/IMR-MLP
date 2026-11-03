@@ -29,7 +29,7 @@ def write_settings(path, extra=None):
 
 
 def run(path, *flags, command='trainmtp'):
-    return run_command('imrmlp', [command, 'settings.ini', '--num_threads', '1', *flags], path)
+    return run_command('imrmlp', [command, 'settings.ini', '--num_threads', '1', '--output=_Trained_Potential_.mtp', *flags], path)
 
 
 INVALID_ACTIONS = [

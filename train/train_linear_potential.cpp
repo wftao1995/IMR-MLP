@@ -1,6 +1,7 @@
 // Copyright (c) 2026 IMR-MLP contributors
 // SPDX-License-Identifier: MIT
 
+#include "model_output.h"
 #include "train_linear_potential.h"
 #include "utils/comm.h"
 #include "train/collective_error.h"
@@ -455,5 +456,5 @@ void TrainerLinearPotential::evaluate_errors(const std::vector<Atoms> &reference
 void TrainerLinearPotential::save_current(const std::string &fnm)
 {
     if (!initialized_) GPERROR("Linear trainer must be initialized before saving");
-    p_pot->Save(fnm);
+    Training::save_trained_model(*p_pot,fnm);
 }

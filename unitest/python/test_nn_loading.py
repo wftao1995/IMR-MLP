@@ -12,7 +12,7 @@ import pytest
 pytest.importorskip('imrmlp._imrmlp')
 from imrmlp import Atoms, Potential
 
-FIXTURE = Path(__file__).resolve().parents[2] / 'tests/test-nnmtp/_Trained_Potential_'
+FIXTURE = Path(__file__).resolve().parents[2] / 'unitest/test-data/test-nnmtp/_Trained_Potential_'
 
 
 def write_model(tmp_path, layers, inputs=None):

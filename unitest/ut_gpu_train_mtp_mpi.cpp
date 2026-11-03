@@ -228,7 +228,7 @@ int run_cli(const Workspace &work,const GPSettings &fit,const std::string &name,
         explicit CurrentDirectory(const fs::path &next) {fs::current_path(next);}
         ~CurrentDirectory() {fs::current_path(previous);}
     } directory(work.path);
-    std::vector<std::string> args{"trainmtp","--linear-fit",
+    std::vector<std::string> args{"trainmtp","--output=_Trained_Potential_.mtp","--linear-fit",
         "--settings="+(mpi.rank==malformed_rank?malformed_ini:ini).string(),
         "--potfile="+(work.path/(mpi.rank==missing_rank?"missing.mtp":"input.mtp")).string(),
         "--trainset="+(work.path/"train.bin").string(),

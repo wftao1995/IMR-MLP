@@ -88,7 +88,7 @@ GPM 自动识别模型类型并内嵌资源；旧输入必须显式指定 `potty
 应在 `pair_style` 和 `pair_coeff` 之后定义相应 compute，更换模型后重新创建。
 观测量前提及模型/GPU 支持范围见 [plugin 说明](../README.md)。restart 行为也与 plugin 一致；
 恢复 restart 时需保留引用的模型和设置文件。加载 GPM 不会激活 AL。
-详见 [GPM 规范](../../../../docs/reference/gpm-v1_zh.md)。
+详见 [GPM 规范](../../../../docs/reference/gpm-v2_zh.md)。
 
 ## 验证
 

@@ -325,13 +325,13 @@ TEST_CASE("GPU center energy weights seed local model adjoints", "[gpu][gpu-radi
 TEST_CASE("GPU short range primitive omits explicitly delegated LES", "[gpu][gpu-radial-coverage][short-range]")
 {
     if(!gpu_available())SKIP("No GPU device");
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");p.train_init();
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");p.train_init();
     REQUIRE(p.lr_les);REQUIRE_FALSE(p.uses_sog());
     MTPGpuEvaluator evaluator;std::string error;
     REQUIRE_FALSE(evaluator.initialize(p,0,&error));
     REQUIRE(evaluator.initialize_short_range(p,0,&error));REQUIRE(evaluator.sog_definition()==nullptr);
     auto a=geometry(2),cpu=a,gpu=a;Neighborhoods n(a,p.cutoff);
-    PotMTP reference("tests/case-mtp-les/les.mtp");reference.getEFS(cpu,n);
+    PotMTP reference("unitest/test-data/case-mtp-les/les.mtp");reference.getEFS(cpu,n);
     MTPGpuBatch batch;REQUIRE(batch.build(a,n,&error));
     REQUIRE(batch.evaluate(evaluator,gpu,false,&error));equal_efs(gpu,cpu);
     REQUIRE(p.lr_les);REQUIRE(evaluator.update_coefficients(p,&error));

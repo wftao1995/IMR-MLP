@@ -23,7 +23,7 @@ using namespace Eigen;
 namespace {
 struct Workspace {
     std::filesystem::path original = std::filesystem::current_path(), path;
-    std::string model = std::filesystem::absolute("tests/case-mtp-les/les.mtp").string();
+    std::string model = std::filesystem::absolute("unitest/test-data/case-mtp-les/les.mtp").string();
     CMDOption::CommandLineOptions saved = CMDOption::global_cmdopts;
     int threads = omp_num_threads;
     Workspace() {

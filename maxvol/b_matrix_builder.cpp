@@ -11,6 +11,10 @@
 #include "descriptors/descriptor_BispectrumSO4.h"
 #include "potentials/potential_mtp.h"
 #include "potentials/potential_wrapper.h"
+#include "potentials/potential_hybrid.h"
+#include "potentials/potential_hybrid_scale.h"
+#include "potentials/potential_hybmtp.h"
+#include <set>
 #include "utils/gputils.h"
 #include <fmt/format.h>
 #include <stdexcept>
@@ -116,7 +120,27 @@ PotEFSBuilder::~PotEFSBuilder() = default;
 
 void PotEFSBuilder::init_from_potential()
 {
-    if (pot_) pot_->train_init();
+    if (pot_) {
+        // Preparing Jacobian workspaces must not change a GPM's model identity.
+        // Composite train_init() also initializes its children.
+        struct Entry {Potentials::AnyPotential *model;std::vector<double> l1,l2;};
+        std::vector<Entry> saved;
+        if(pot_->gpm_source) {
+            std::set<Potentials::AnyPotential*> seen;
+            std::function<void(Potentials::AnyPotential&)> collect=[&](auto &model) {
+                if(!seen.insert(&model).second)return;
+                saved.push_back({&model,model.reg_L1_vector,model.reg_L2_vector});
+                std::vector<const Potentials::AnyPotential*> children;
+                if(auto *h=dynamic_cast<Potentials::PotentialHybrid*>(&model))children=h->children();
+                else if(auto *h=dynamic_cast<Potentials::PotentialHybridScale*>(&model))children=h->children();
+                else if(auto *h=dynamic_cast<Potentials::PotMTPHyb3*>(&model))for(auto *child:h->children())children.push_back(child);
+                for(auto *child:children)collect(*const_cast<Potentials::AnyPotential*>(child));
+            };
+            collect(*pot_);
+        }
+        struct Restore {std::vector<Entry> &saved;~Restore(){for(auto &e:saved){e.model->reg_L1_vector.swap(e.l1);e.model->reg_L2_vector.swap(e.l2);}}} restore{saved};
+        pot_->train_init();
+    }
     ncols_ = pot_ ? pot_->get_NL_coeffs_count() : 0;
     grad_buf_.resize(ncols_);
 }
@@ -347,6 +371,12 @@ DescriptorBuilder::DescriptorBuilder(std::unique_ptr<Descriptors> desc,
       ncols_(desc_->feature_size()) {}
 
 DescriptorBuilder::~DescriptorBuilder() = default;
+
+Potentials::AnyPotential *DescriptorBuilder::target_potential() const {
+    if(owned_pot_)return owned_pot_.get();
+    if(auto *mtp=dynamic_cast<DescriptorMTM*>(desc_))return &mtp->pot();
+    return nullptr;
+}
 
 int DescriptorBuilder::coeff_count() const { return ncols_; }
 double DescriptorBuilder::cutoff() const { return desc_->cutoff_; }
@@ -806,5 +836,23 @@ make_builder(const BMatrixBuilderSettings &builder_settings, GPSettings &setting
     }
     if (builder)
         builder->row_scaling = row_scaling_mode_from_string(builder_settings.row_scaling);
+    return builder;
+}
+
+std::unique_ptr<BMatrixBuilder> make_builder(const BMatrixBuilderSettings &bs,
+    GPSettings &settings,Potentials::AnyPotential &potential) {
+    std::unique_ptr<BMatrixBuilder> builder;
+    if(bs.dtype=="pot_efs"||bs.dtype=="mtp_energy") {
+        auto b=std::make_unique<PotEFSBuilder>(potential);
+        b->linear_only=!bs.all_coeffs;b->w_energy=bs.w_energy;b->w_site=bs.w_site;
+        b->w_force=bs.w_force;b->w_stress=bs.w_stress;builder=std::move(b);
+    } else if(bs.dtype=="mtm"||bs.dtype=="mtp"||bs.dtype=="mtp_scalar") {
+        auto *mtp=dynamic_cast<Potentials::PotMTP*>(&potential);
+        if(!mtp)GPERROR("MaxVol mtm requires an MTP model; use builder:dtype pot_efs");
+        auto b=std::make_unique<DescriptorBuilder>(std::make_unique<DescriptorMTM>(*mtp));
+        b->set_config_metadata(bs.dtype,bs.mode,settings);b->mode=bs.mode=="cfg"?DescriptorBuilder::Cfg:DescriptorBuilder::Nbh;
+        builder=std::move(b);
+    } else builder=make_builder(bs,settings);
+    if(builder)builder->row_scaling=row_scaling_mode_from_string(bs.row_scaling);
     return builder;
 }

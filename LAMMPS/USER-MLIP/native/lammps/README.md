@@ -96,7 +96,7 @@ applicable compute after `pair_style` and `pair_coeff`, and recreate it after
 replacing the model. See the [plugin guide](../README.md) for observable conditions
 and model/GPU support. Restart semantics also match the plugin. Keep
 referenced model/settings files available for restart. Loading GPM does not
-activate AL. See the [GPM specification](../../../../docs/reference/gpm-v1.md).
+activate AL. See the [GPM specification](../../../../docs/reference/gpm-v2.md).
 
 ## Verification
 

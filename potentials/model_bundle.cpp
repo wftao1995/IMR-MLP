@@ -11,23 +11,12 @@
 namespace Potentials {
 using namespace GPM;
 namespace {
-void digest_fields(SHA256 &hash,const Value &value,const std::function<std::string(const std::string&)> &block_hash) {
-    if(value.is<Object>()) {
-        const auto &o=value.get<Object>();auto block=o.find("block");
-        if(block!=o.end()) {auto h=block_hash(string(block->second));hash.update(h.data(),h.size());}
-        for(const auto &p:o)digest_fields(hash,p.second,block_hash);
-    } else if(value.is<Array>())for(const auto &v:value.get<Array>())digest_fields(hash,v,block_hash);
-}
-std::string fingerprint_writer(const Writer&w) {
-    const auto &models=w.manifest.at("models");std::string json=models.serialize();SHA256 h;h.update(json.data(),json.size());
-    digest_fields(h,models,[&](const std::string&id){return w.block_hash(id);});return hex(h.finish());
-}
 void publish(Writer&w,const std::string&path) {
     w.save(path);
 }
 Writer encode(AnyPotential&p) {
     Writer w;GPMCodecAccess::encode(w,p);w.manifest["species"]=w.manifest["models"].get<Object>().at("root").get<Object>().at("species");
-    w.manifest["model_fingerprint"]=Value(fingerprint_writer(w));return w;
+    return w;
 }
 }
 ModelBundle::~ModelBundle()=default;
@@ -54,34 +43,37 @@ void ModelBundle::validate(const std::string &path) {
     auto bundle=load(path);bundle->source_->validate();
     for(const auto &[id,node]:object(at(bundle->source_->manifest,"models")))
         if(id!=string(at(bundle->source_->manifest,"root_model")))GPMCodecAccess::decode(*bundle->source_,id);
-    require(fingerprint(bundle->potential())==string(at(bundle->source_->manifest,"model_fingerprint")),"model fingerprint mismatch");
     if(bundle->source_->manifest.count("active_learning")){GPSettings options;bundle->create_al(options);}
 }
 AnyPotential &ModelBundle::potential()const {require(bool(potential_),"bundle no longer owns a potential");return *potential_;}
 std::unique_ptr<AnyPotential> ModelBundle::release_potential(){return std::move(potential_);}
 std::string ModelBundle::type(const AnyPotential&p){return GPMCodecAccess::type(p);}
-std::string ModelBundle::fingerprint(AnyPotential&p){auto w=encode(p);return string(w.manifest.at("model_fingerprint"));}
+std::string ModelBundle::fingerprint(AnyPotential&p){auto w=encode(p);return model_signature(w);}
 void ModelBundle::save_potential(AnyPotential&p,const std::string&path,Profile profile) {
     auto w=encode(p);
     if(p.gpm_source && profile!=Profile::Inference) {
         const auto &old=p.gpm_source->manifest;
-        bool same=string(at(old,"model_fingerprint"))==string(w.manifest.at("model_fingerprint"));
-        require(same||!old.count("active_learning"),"model changed; rebuild AL state or explicitly save inference profile");
-        if(same){require(profile!=Profile::Resume||old.count("active_learning"),"resume profile requires AL state");Writer preserved;preserved.preserve(p.gpm_source);publish(preserved,path);return;}
-        for(const char*key:{"provenance","extensions"})if(old.count(key))w.manifest[key]=old.at(key);
+        if(old.count("active_learning")) {
+            const auto &al=object(at(old,"active_learning"));
+            require(binding_signature(w,*p.gpm_source,binding_configuration(old))==string(at(al,"binding_signature")),
+                    "model changed; rebuild AL state or explicitly save inference profile");
+            Writer preserved;preserved.preserve(p.gpm_source);publish(preserved,path);return;
+        }
+        for(const auto &[key,value]:old)if(!w.manifest.count(key)&&key!="blocks")w.manifest[key]=value;
+        w.retain_blocks(p.gpm_source);
     }
-    require(profile!=Profile::Resume||p.gpm_source&&p.gpm_source->manifest.count("active_learning"),"resume profile requires AL state");
+    require(profile!=Profile::Resume,"resume profile requires AL state");
     publish(w,path);
 }
 void ModelBundle::save(const std::string&path,Profile profile) {
     if(pending_&&pending_->manifest.count("active_learning")&&profile!=Profile::Inference) {
         require(profile!=Profile::Resume||pending_->manifest.count("active_learning"),"resume profile requires AL state");
-        require(fingerprint(potential())==string(at(pending_->manifest,"model_fingerprint")),"model changed after binding AL state");publish(*pending_,path);
+        auto current=encode(potential());
+        require(binding_signature(current,*pending_,binding_configuration(pending_->manifest))==string(at(object(at(pending_->manifest,"active_learning")),"binding_signature")),"model changed after binding AL state");publish(*pending_,path);
     } else save_potential(potential(),path,profile);
 }
 std::unique_ptr<AL::ALPotential> ModelBundle::create_al(const GPSettings&overrides) {
     require(bool(source_),"no embedded AL source");
-    require(fingerprint(potential())==string(at(source_->manifest,"model_fingerprint")),"model differs from embedded AL target");
     auto al=AL::GPMALAccess::decode(*source_,potential(),overrides);
     al->bundle_owner_=shared_from_this();return al;
 }

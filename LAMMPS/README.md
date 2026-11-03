@@ -282,7 +282,7 @@ GPM allows the potential type to be inferred; legacy formats need an explicit
 latent-variable computes, GPU placement and total-charge constraints follow the
 [native guide](USER-MLIP/native/README.md). GPM is a model file format; converting
 to it does not expand the model coverage of an interface. See the
-[GPM model guide](../docs/reference/gpm-v1.md).
+[GPM model guide](../docs/reference/gpm-v2.md).
 
 ## 6. Heat current, active learning and thermodynamic integration
 

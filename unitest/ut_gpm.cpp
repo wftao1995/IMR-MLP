@@ -1,3 +1,4 @@
+#include "potentials/gpm_state.h"
 #include <catch2/catch_all.hpp>
 #include "potentials/model_bundle.h"
 #include "potentials/gpm_codec.h"
@@ -18,6 +19,8 @@
 #include "gpm_fixture.h"
 #include "LAMMPS/USER-MLIP/standalone/tests/radial_fixture.h"
 #include "potentials/native_inference.h"
+#include "train/model_output.h"
+#include "active_learn/al_scorer.h"
 #include <filesystem>
 #include <spawn.h>
 #include <sys/wait.h>
@@ -88,7 +91,7 @@ TEST_CASE("GPM child validation", "[.gpm-child]") {
 }
 }
 
-TEST_CASE("GPM SHA and binary contract", "[gpm]") {
+TEST_CASE("GPM v2 binary contract and AL signature primitive", "[gpm]") {
     REQUIRE(GPM::hash(std::string("abc"))=="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     REQUIRE(GPM::hash(std::string())=="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     REQUIRE_THROWS(GPM::parse("{\"x\":1,\"x\":2}"));
@@ -269,11 +272,10 @@ TEST_CASE("GPM validates lazy payloads and preserves optional extensions atomica
     w.add("optional","u8",{3},GPM::Bytes{1,2,3});w.save(dir.file("extra.gpm"));
     auto bundle=ModelBundle::load(dir.file("extra.gpm"));bundle->save(dir.file("copy.gpm"));
     REQUIRE(ModelBundle::inspect(dir.file("copy.gpm")).at("extensions")==w.manifest.at("extensions"));
-    GPM::Reader extra(dir.file("extra.gpm"));auto offset=extra.info("optional").offset;
-    std::fstream file(dir.file("extra.gpm"),std::ios::in|std::ios::out|std::ios::binary);unsigned char header[64];file.read(reinterpret_cast<char*>(header),64);file.seekp(GPM::get_le(header+24,8)+offset);file.put('X');file.close();
-    REQUIRE_NOTHROW(ModelBundle::load(dir.file("extra.gpm")));REQUIRE_THROWS(ModelBundle::validate(dir.file("extra.gpm")));
-    GPM::Writer broken;broken.preserve(std::make_shared<GPM::Reader>(dir.file("extra.gpm")));
+    GPM::Writer broken;broken.preserve(reader);broken.add("invalid","u8",{1},GPM::Bytes{1},"unknown");
     REQUIRE_THROWS(broken.save(dir.file("copy.gpm")));REQUIRE_NOTHROW(ModelBundle::validate(dir.file("copy.gpm")));
+    std::filesystem::resize_file(dir.file("extra.gpm"),std::filesystem::file_size(dir.file("extra.gpm"))-1);
+    REQUIRE_THROWS(ModelBundle::load(dir.file("extra.gpm")));
     auto altered=[&](const std::function<void(GPM::Object&)> &change){GPM::Writer bad;bad.preserve(reader);change(bad.manifest);REQUIRE_THROWS([&]{bad.save(dir.file("bad.gpm"));ModelBundle::load(dir.file("bad.gpm"));}());};
     altered([](auto&o){o["root_model"]=GPM::Value("missing");});
     altered([](auto&o){o["required_features"]=GPM::Value(GPM::Array{GPM::Value("future-required")});});
@@ -350,4 +352,116 @@ TEST_CASE("GPM legacy MaxVol import verifies model rows", "[gpm][al]") {
     REQUIRE(restored->maxvol_selector()->termination_reason()==selector.termination_reason());
     auto &other=dynamic_cast<PotMTP&>(bundle->potential());other.radial_coeffs[0]+=.4;
     REQUIRE_THROWS_WITH(bundle->attach_selector(legacy),Catch::Matchers::ContainsSubstring("rows do not match"));
+}
+
+TEST_CASE("GPM selector restores independently and remains bound through continuation", "[gpm][maxvol]") {
+    Directory dir;PotMTP model;load_swap_fixture(model,1,false);model.set_element_map({{0,"H"}});
+    const std::string mode=GENERATE("full","stream","online");CAPTURE(mode);
+    ActiveSelector original(new PotEFSBuilder(model));original.select_mode=mode;
+    std::vector<Atoms> pool;
+    for(int i=0;i<5;++i){auto a=swap_lattice(2,1);a.pos_[0][0]+=.05*i;pool.push_back(a);}
+    if(mode=="full")original.add_candidates_parallel(pool);else original.add_candidates_unbuilt(pool);
+    original.select();model.reg_L2_vector.assign(model.get_NL_coeffs_count(),.025);original.save_state(dir.file());
+    const auto metadata=ModelBundle::inspect(dir.file());
+    const auto &maxvol=GPM::object(GPM::at(GPM::object(GPM::at(metadata,"active_learning")),"maxvol"));
+    REQUIRE_FALSE(GPM::object(GPM::at(maxvol,"state")).count("is_new_"));
+    ActiveSelector restored;restored.load_state(dir.file());REQUIRE(restored.state_potential());
+    REQUIRE(restored.select_mode==mode);REQUIRE(restored.num_candidates()==5);
+    auto *target=restored.state_potential();const auto ridge=target->reg_L2_vector;
+    restored.init_builder(*target);REQUIRE(target->reg_L2_vector==ridge);
+    REQUIRE(restored.selected_indices()==original.selected_indices());
+    auto probe=pool.back();REQUIRE(restored.grade(probe)==Catch::Approx(original.grade(probe)).epsilon(1e-8));
+    AL::MaxVolScorer scorer(dir.file());REQUIRE(scorer.evaluate(probe).uncertainty==Catch::Approx(original.grade(probe)).epsilon(1e-8));
+    scorer.init_builder(model);REQUIRE(model.reg_L2_vector==ridge);
+    REQUIRE(scorer.evaluate(probe).uncertainty==Catch::Approx(original.grade(probe)).epsilon(1e-8));
+    auto candidate=probe;candidate.pos_[1][1]+=.1;
+    restored.add_candidate(candidate);restored.select();restored.save_state(dir.file());
+    ModelBundle::validate(dir.file());
+    std::ostringstream summary;ActiveSelector::dump_state(dir.file(),summary);
+    REQUIRE(summary.str().find("maxvol")!=std::string::npos);
+    ActiveSelector::export_configs(dir.file(),dir.file("history.xyz"),false);
+    GPIO io;io.setmap({"H"});std::vector<Atoms> history;
+    REQUIRE(io.read(history,dir.file("history.xyz"),"extxyz"));REQUIRE(history.size()==6);
+    ActiveSelector twice;twice.load_state(dir.file());twice.save_state(dir.file());
+    auto &bound=dynamic_cast<PotMTP&>(*twice.state_potential());bound.moment_coeffs[0]+=.1;
+    REQUIRE_THROWS(twice.grade(probe));REQUIRE_THROWS(twice.save_state(dir.file()));
+    REQUIRE_NOTHROW(ModelBundle::validate(dir.file()));
+    REQUIRE_THROWS(restored.init_builder(bound));
+}
+
+TEST_CASE("GPM selector updates retain session policy candidate pool and extensions", "[gpm][maxvol][al]") {
+    Directory dir;PotMTP model;load_swap_fixture(model,1,false);model.set_element_map({{0,"H"}});
+    ActiveSelector original(new PotEFSBuilder(model));auto a=swap_lattice(2,1);
+    original.add_candidate(a);original.select();original.save_state(dir.file());
+    auto bundle=ModelBundle::load(dir.file());GPSettings overrides;overrides.Modify("threshold","-1");
+    auto session=bundle->create_al(overrides);session->check(a);session->save(dir.file("session.gpm"),bundle->potential());
+    auto source=std::make_shared<GPM::Reader>(dir.file("session.gpm"));GPM::Writer extended;extended.preserve(source);
+    extended.manifest["extensions"]=GPM::Value(GPM::Object{{"future",GPM::Value("retained")}});
+    extended.add("future/payload","u8",{3},GPM::Bytes{2,4,6});extended.save(dir.file("extended.gpm"));
+    ActiveSelector resumed;resumed.load_state(dir.file("extended.gpm"));a.pos_[0][0]+=.1;
+    resumed.add_candidate(a);resumed.select();resumed.save_state(dir.file("extended.gpm"));
+    GPM::Reader result(dir.file("extended.gpm"));REQUIRE(result.read("future/payload")==GPM::Bytes{2,4,6});
+    REQUIRE(result.manifest.at("extensions")==extended.manifest.at("extensions"));
+    const auto &before=GPM::object(source->manifest.at("active_learning"));
+    const auto &after=GPM::object(result.manifest.at("active_learning"));
+    REQUIRE(before.at("policy")==after.at("policy"));REQUIRE(before.at("candidate_pool")==after.at("candidate_pool"));
+    auto continued=ModelBundle::load(dir.file("extended.gpm"))->create_al(GPSettings{});
+    REQUIRE(continued->pool().size()==1);ModelBundle::validate(dir.file("extended.gpm"));
+}
+
+TEST_CASE("Training GPM inference output drops obsolete AL without weakening ordinary saves", "[gpm][train]") {
+    Directory dir;PotMTP model;load_swap_fixture(model,1,false);
+    ActiveSelector selector(new PotEFSBuilder(model));auto a=swap_lattice(2,1);selector.add_candidate(a);selector.select();selector.save_state(dir.file());
+    auto bundle=ModelBundle::load(dir.file());auto &trained=dynamic_cast<PotMTP&>(bundle->potential());trained.moment_coeffs[0]+=.05;
+    REQUIRE_THROWS(trained.Save(dir.file("ordinary.gpm")));
+    Training::save_trained_model(trained,dir.file("trained.gpm"));
+    REQUIRE_FALSE(ModelBundle::inspect(dir.file("trained.gpm")).count("active_learning"));
+    auto loaded=ModelBundle::load(dir.file("trained.gpm"));equivalent(trained,loaded->potential(),a);
+    REQUIRE(Training::model_checkpoint("model.gpm",10,"")=="model.iter-000010.gpm");
+    REQUIRE(Training::model_checkpoint("model.mtp",10,"old10.mtp")=="old10.mtp");
+}
+
+TEST_CASE("GPM row preparation retains the supplied model fingerprint", "[gpm][maxvol]") {
+    Directory dir;PotMTP model;load_swap_fixture(model,1,false);model.train_init();
+    model.reg_L2_vector.assign(model.get_NL_coeffs_count(),.125);model.Save(dir.file());
+    auto bundle=ModelBundle::load(dir.file());const auto before=ModelBundle::fingerprint(bundle->potential());
+    ActiveSelector selector(new PotEFSBuilder(bundle->potential()));
+    REQUIRE(ModelBundle::fingerprint(bundle->potential())==before);
+    auto a=swap_lattice(2,1);selector.add_candidate(a);selector.select();selector.save_state(dir.file("session.gpm"));
+    auto restored=ModelBundle::load(dir.file("session.gpm"));
+    REQUIRE(ModelBundle::fingerprint(restored->potential())==before);
+    const auto manifest=ModelBundle::inspect(dir.file("session.gpm"));
+    REQUIRE_FALSE(manifest.count("model_fingerprint"));
+    REQUIRE(GPM::string(GPM::at(GPM::object(GPM::at(manifest,"active_learning")),"binding_signature")).size()==64);
+    ModelBundle::validate(dir.file("session.gpm"));
+}
+
+TEST_CASE("GPM v2 packs arrays and preserves scalar edge values", "[gpm][format]") {
+    Directory dir;GPM::Writer writer;GPM::NumericPool pool(writer,"history");GPM::Array records;
+    for(int n:{2,3,4}) {
+        std::vector<Eigen::Vector3d> positions(n,Eigen::Vector3d(1.,2.,3.));
+        std::vector<int> empty;double zero=-0.,infinity=std::numeric_limits<double>::infinity();
+        GPM::State state(writer,"history/"+std::to_string(n),&pool);
+        state.field("positions",positions);state.field("empty",empty);state.field("zero",zero);state.field("infinity",infinity);
+        records.emplace_back(state.fields());
+    }
+    pool.finish();writer.manifest["records"]=GPM::Value(records);writer.save(dir.file());
+    GPM::Reader reader(dir.file());REQUIRE(reader.blocks.size()==1);
+    REQUIRE(reader.info("history/arrays/positions/f64").raw_size==9*3*sizeof(double));
+    for(const auto &entry:GPM::array(GPM::at(reader.manifest,"blocks")))REQUIRE_FALSE(GPM::object(entry).count("sha256"));
+    GPM::BlockCache cache;
+    for(size_t i=0;i<records.size();++i) {
+        GPM::State state(reader,GPM::object(records[i]),&cache);
+        std::vector<Eigen::Vector3d> positions;std::vector<int> empty;double zero=1.,infinity=0.;
+        state.field("positions",positions);state.field("empty",empty);state.field("zero",zero);state.field("infinity",infinity);
+        REQUIRE(positions.size()==i+2);REQUIRE(positions.back()==Eigen::Vector3d(1.,2.,3.));
+        REQUIRE(empty.empty());REQUIRE(std::signbit(zero));REQUIRE(std::isinf(infinity));
+    }
+    REQUIRE(cache.size()==1);
+    auto invalid=GPM::object(records[0]);GPM::object(invalid.at("positions"));
+    invalid.at("positions").get<GPM::Object>()["start"]=GPM::count(1000000);
+    std::vector<Eigen::Vector3d> positions;GPM::State bad(reader,invalid);
+    REQUIRE_THROWS(bad.field("positions",positions));
+    std::fstream old(dir.file(),std::ios::in|std::ios::out|std::ios::binary);old.seekp(8);old.put(1);old.close();
+    REQUIRE_THROWS_WITH(GPM::Reader(dir.file()),Catch::Matchers::ContainsSubstring("unsupported major version"));
 }

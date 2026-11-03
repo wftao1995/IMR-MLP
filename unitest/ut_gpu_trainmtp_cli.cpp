@@ -60,7 +60,7 @@ void settings(const std::string &backend, bool fast, const std::string &extra = 
         << "fit:energy_weight 1\nfit:force_weight .05\nfit:stress_weight .001\n" << extra;
 }
 std::vector<std::string> arguments() {
-    return {"trainmtp", "--linear-fit", "--potfile=input.mtp", "--trainset=train.bin",
+    return {"trainmtp", "--output=_Trained_Potential_.mtp", "--linear-fit", "--potfile=input.mtp", "--trainset=train.bin",
         "--trainset-format=bin", "--index=index.map", "--settings=fit.ini"};
 }
 std::string contents(const fs::path &path) {

@@ -224,8 +224,8 @@
               "render": true
             },
             {
-              "source": "docs/reference/gpm-v1.md",
-              "slug": "reference/gpm-v1",
+              "source": "docs/reference/gpm-v2.md",
+              "slug": "reference/gpm-v2",
               "render": true
             }
           ]

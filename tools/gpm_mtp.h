@@ -18,14 +18,19 @@ inline Object named_settings(const std::string &text) {
     return out;
 }
 inline Value vector_block(Writer&w,const std::string &id,const std::vector<double>&v,std::vector<uint64_t> shape={}) {
-    if(shape.empty())shape={v.size()};w.add(id,"f64",shape,encode_f64(v.data(),v.size()));return Value(Object{{"block",Value(id)}});
+    if(shape.empty())shape={v.size()};if(v.empty()){Array dims;for(auto n:shape)dims.push_back(count(n));return Value(Object{{"dtype",Value("f64")},{"shape",Value(dims)}});}w.add(id,"f64",shape,encode_f64(v.data(),v.size()));return Value(Object{{"block",Value(id)}});
 }
-inline std::vector<double> values(const Reader&r,const Value &reference) {return decode_f64(r,string(at(object(reference),"block")));}
+inline std::vector<double> values(const Reader&r,const Value &reference) {
+    const auto &o=object(reference);if(!o.count("block")){uint64_t n=1;for(const auto &dim:array(at(o,"shape")))n=checked_mul(n,decimal(dim));require(n==0&&string(at(o,"dtype"))=="f64","invalid empty numeric array");return {};}
+    return decode_f64(r,string(at(o,"block")));
+}
 inline std::vector<int32_t> indices(const Reader&r,const Value &reference) {
-    auto id=string(at(object(reference),"block"));require(r.info(id).dtype=="i32","expected index block");auto b=r.read(id);
+    const auto &o=object(reference);if(!o.count("block")){uint64_t n=1;for(const auto &dim:array(at(o,"shape")))n=checked_mul(n,decimal(dim));require(n==0&&string(at(o,"dtype"))=="i32","invalid empty index array");return {};}
+    auto id=string(at(o,"block"));require(r.info(id).dtype=="i32","expected index block");auto b=r.read(id);
     std::vector<int32_t> result(b.size()/4);for(size_t i=0;i<result.size();++i){uint32_t x=get_le(b.data()+i*4,4);std::memcpy(&result[i],&x,4);}return result;
 }
 inline Value index_block(Writer&w,const std::string&id,const std::vector<int32_t>&v,std::vector<uint64_t> shape) {
+    if(v.empty()){Array dims;for(auto n:shape)dims.push_back(count(n));return Value(Object{{"dtype",Value("i32")},{"shape",Value(dims)}});}
     Bytes b(v.size()*4);for(size_t i=0;i<v.size();++i)put_le(b.data()+4*i,static_cast<uint32_t>(v[i]),4);
     w.add(id,"i32",shape,std::move(b));return Value(Object{{"block",Value(id)}});
 }

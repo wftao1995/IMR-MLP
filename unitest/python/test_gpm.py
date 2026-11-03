@@ -1,5 +1,4 @@
 import json
-import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -28,15 +27,16 @@ def test_gpm_fresh_process_and_explicit_type(tmp_path):
     ModelBundle.validate(path)
     raw = path.read_bytes()
     magic, major, minor, flags, size, offset, digest = struct.unpack('<8sHHIQQ32s', raw[:64])
-    assert (magic, major, minor, flags) == (b'GPMLMODL', 1, 0, 0)
+    assert (magic, major, minor, flags) == (b'GPMLMODL', 2, 0, 0)
     assert offset == (64 + size + 63) // 64 * 64
-    assert hashlib.sha256(raw[64:64 + size]).digest() == digest
+    assert digest == bytes(32)
+    assert 'model_fingerprint' not in json.loads(raw[64:64 + size])
     for block in json.loads(raw[64:64 + size])['blocks']:
         assert all(isinstance(block[key], str) for key in ('offset', 'stored_size', 'raw_size'))
         assert int(block['offset']) % 64 == 0
         start = offset + int(block['offset'])
         assert block['codec'] == 'none'
-        assert hashlib.sha256(raw[start:start + int(block['raw_size'])]).hexdigest() == block['sha256']
+        assert 'sha256' not in block
     expected = atoms()
     bundle.potential.calculate(expected)
     import imrmlp
@@ -68,7 +68,7 @@ print('GPM_RESULT='+json.dumps([a.energy, a.forces.tolist()]))
         ModelBundle.load(path).create_al()
 
 
-def test_gpm_default_save_preserves_and_corruption_is_detected(tmp_path):
+def test_gpm_default_save_preserves_and_truncation_is_detected(tmp_path):
     path = tmp_path / "model.gpm"
     Potential.from_settings(settings()).save(path)
     p = Potential(path)
@@ -76,9 +76,8 @@ def test_gpm_default_save_preserves_and_corruption_is_detected(tmp_path):
     p.save(copy)
     ModelBundle.validate(copy)
     data = bytearray(copy.read_bytes())
-    data[-1] ^= 1
-    copy.write_bytes(data)
-    with pytest.raises(RuntimeError, match="checksum"):
+    copy.write_bytes(data[:-1])
+    with pytest.raises(RuntimeError, match="bounds|truncated"):
         ModelBundle.validate(copy)
     with pytest.raises(RuntimeError, match="requires AL"):
         ModelBundle.load(path).save(copy, profile="resume")

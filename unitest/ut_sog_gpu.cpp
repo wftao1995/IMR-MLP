@@ -53,7 +53,7 @@ TEST_CASE("SOG GPU full EFS preserves channels zero self and energy-only", "[sog
     const int channels=GENERATE(1,3,16);
     const bool zero=GENERATE(false,true),self=GENERATE(false,true),ordered=GENERATE(false,true);
     CAPTURE(channels,zero,self,ordered);
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p,channels);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p,channels);
     p.model_les.sog_include_zero=zero;p.remove_self_interaction=self;p.train_init();
     auto cpu=geometry(),gpu=cpu;p.getEFS(cpu);Neighborhoods nbhs(gpu,p.cutoff);
     MTPGpuEvaluator evaluator;MTPGpuBatch batch;std::string error;
@@ -75,7 +75,7 @@ TEST_CASE("SOG GPU full EFS preserves channels zero self and energy-only", "[sog
 TEST_CASE("SOG GPU complete parameter VJP matches CPU and finite differences", "[sog][gpu][grad]") {
     if(!available())SKIP("No GPU device");
     const int channels=GENERATE(1,3);const bool ordered=GENERATE(false,true);
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p,channels);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p,channels);
     auto a=geometry();Neighborhoods nbhs(a,p.cutoff);std::string error;
     MTPGpuEvaluator evaluator;MTPGpuBatch batch;REQUIRE(evaluator.initialize(p,0,&error));INFO(error);
     batch.configure_gradient_reduction(ordered,128);REQUIRE(batch.build(a,nbhs,&error));REQUIRE(batch.evaluate(evaluator,a,true,&error));
@@ -109,7 +109,7 @@ TEST_CASE("SOG GPU complete parameter VJP matches CPU and finite differences", "
 
 TEST_CASE("SOG GPU device loss chunks and frozen kernel fitting", "[sog][gpu][training]") {
     if(!available())SKIP("No GPU device");
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p,3);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p,3);
     std::vector<Atoms> data;
     for(int i=0;i<3;++i){auto a=geometry();a.pos_[1][0]+=.15*i;a.id=i;p.getEFS(a);data.push_back(a);}
     p.model_les.sog_weights[0]+=1.;p.train_init();
@@ -130,7 +130,7 @@ TEMPLATE_TEST_CASE("GPU resident inputs survive updates and reject stale batch s
                    "[gpu][cache]", PotMTP, PotMTP_LES) {
     if (!available()) SKIP("No GPU device");
     const bool ordered = GENERATE(false, true);
-    TestType p("tests/case-mtp-les/les.mtp");
+    TestType p("unitest/test-data/case-mtp-les/les.mtp");
     if constexpr (std::is_same_v<TestType, PotMTP_LES>) initialize(p, 3);
     else { p.train_init(); p.set_inited(); }
     auto a = geometry(), reference = a;
@@ -266,7 +266,7 @@ TEMPLATE_TEST_CASE("GPU resident inputs survive updates and reject stale batch s
 TEST_CASE("SOG GPU handles empty grids and maximum Gaussian count", "[sog][gpu][edge]") {
     if(!available())SKIP("No GPU device");
     const bool empty_grid=GENERATE(false,true);
-    PotMTP_LES p("tests/case-mtp-les/les.mtp");initialize(p,1);
+    PotMTP_LES p("unitest/test-data/case-mtp-les/les.mtp");initialize(p,1);
     p.sog_terms=256;p.model_les.sog_weights.resize(256,.001);
     p.model_les.sog_log_bandwidths.resize(256,-.3);
     if(empty_grid){p.dl=100.;p.model_les.sog_include_zero=false;}
@@ -298,10 +298,10 @@ TEMPLATE_TEST_CASE("SOG GPU MTP-M heads preserve frozen optimizer layouts",
     GPSettings settings;settings.Modify("n_input","3");settings.Modify("n_neuron","4");
     settings.Modify("n_neuron2","3");settings.Modify("activation_function","TANH");
     p.model.init(settings);
-    std::ifstream file("tests/case-mtp-les/les.mtp");
+    std::ifstream file("unitest/test-data/case-mtp-les/les.mtp");
     std::string source((std::istreambuf_iterator<char>(file)),{});
     source.resize(source.find("species_coeffs"));
-    PotMTP ref("tests/case-mtp-les/les.mtp");
+    PotMTP ref("unitest/test-data/case-mtp-les/les.mtp");
     source+="les_species_coeffs = {0.23, -0.17, 0.2, -0.1, 0.1, 0.1}\nles_moment_coeffs = {";
     for(int i=0;i<3*ref.alpha_scalar_moments;++i){if(i)source+=", ";source+=std::to_string(.03*std::sin(i+1.));}
     source+="}\n";

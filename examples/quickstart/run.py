@@ -65,7 +65,7 @@ fit:bfgs_maxiteration 30
     for split in ('train', 'valid'):
         run(f'label-{split}', 'calc_efs', f'{split}-input.cfg', f'{split}.cfg',
             '--potfile', 'reference.mtp', '--pottype', 'mtp', '--index', 'index.map')
-    run('linear-fit', 'trainmtp', 'fit.ini', '--linear-fit')
+    run('linear-fit', 'trainmtp', 'fit.ini', '--linear-fit', '--output', '_Trained_Potential_.mtp')
     # trainmtp writes this final snapshot in its current working directory.
     (work/'fitted.mtp').write_bytes((work/'_Trained_Potential_.mtp').read_bytes())
     run('validation', 'calc_err', '--input', 'valid.cfg', '--potfile', 'fitted.mtp',

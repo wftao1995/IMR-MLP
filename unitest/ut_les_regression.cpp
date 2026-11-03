@@ -31,7 +31,7 @@ void init_les(PotMTP_LES& pot) {
 }
 
 std::string saved_les() {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     init_les(pot);
     std::ostringstream out;
     pot.Save(out);
@@ -41,11 +41,11 @@ std::string saved_les() {
 using MTPM = PotMTP_M<m_model_mtpq2>;
 void init_m_les(MTPM& pot) {
     // Reuse the fixture's radial basis and moment graph, with an MTP-M head.
-    std::ifstream input("tests/case-mtp-les/les.mtp");
+    std::ifstream input("unitest/test-data/case-mtp-les/les.mtp");
     REQUIRE(input.good());
     std::string source((std::istreambuf_iterator<char>(input)),{});
     source.resize(source.find("species_coeffs"));
-    PotMTP reference("tests/case-mtp-les/les.mtp");
+    PotMTP reference("unitest/test-data/case-mtp-les/les.mtp");
     const int n=reference.get_alpha_scalar_moments();
     source+="les_species_coeffs = {0.23, -0.17}\nles_moment_coeffs = {";
     for (int i=0;i<n;++i) {
@@ -66,7 +66,7 @@ void init_m_les(MTPM& pot) {
 }
 
 TEST_CASE("LES energy-only gradient uses the complete parameter layout", "[les][regression][grad]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     init_les(pot);
     const bool enabled=GENERATE(false,true);
     pot.lr_les=enabled;
@@ -137,12 +137,12 @@ TEST_CASE("LES coefficient blocks require complete finite values and delimiters"
 }
 
 TEST_CASE("LES reload clears activation coefficients and omitted model settings", "[les][regression][load]") {
-    PotMTP_LES pot("tests/case-mtp-les/les.mtp");
+    PotMTP_LES pot("unitest/test-data/case-mtp-les/les.mtp");
     init_les(pot);
     pot.les_cutoff_mode="reference_hard";
     pot.les_response_parity=-1;
     pot.remove_self_interaction=false;
-    std::ifstream plain("tests/case-mtp-les/_Trained_Potential_.mtp");
+    std::ifstream plain("unitest/test-data/case-mtp-les/_Trained_Potential_.mtp");
     REQUIRE_NOTHROW(pot.Load(plain));
     REQUIRE_FALSE(pot.lr_les);
     REQUIRE(pot.les_response_parity==1);
@@ -150,7 +150,7 @@ TEST_CASE("LES reload clears activation coefficients and omitted model settings"
     REQUIRE(pot.remove_self_interaction);
     for (int i=0;i<pot.species_count;++i) REQUIRE(pot.les_species_coeffs[i]==0.);
     for (int i=0;i<pot.get_alpha_scalar_moments();++i) REQUIRE(pot.les_moment_coeffs[i]==0.);
-    PotMTP reference("tests/case-mtp-les/_Trained_Potential_.mtp");
+    PotMTP reference("unitest/test-data/case-mtp-les/_Trained_Potential_.mtp");
     auto actual=les_atoms(),expected=les_atoms();
     pot.getEFS(actual);reference.getEFS(expected);
     REQUIRE(actual.energy_==Approx(expected.energy_).margin(1e-12));
@@ -255,6 +255,6 @@ TEST_CASE("LES rejects removed fields in model files and settings", "[les][regre
     REQUIRE_THROWS_WITH(headed_model.Load(headed_input), message);
     GPSettings settings;
     settings.Modify(field, "1");
-    REQUIRE_THROWS_WITH(PotMTP_LES("tests/case-mtp-les/les.mtp", settings), message);
-    REQUIRE_THROWS_WITH(MTPM("tests/case-mtp-les/les.mtp", settings), message);
+    REQUIRE_THROWS_WITH(PotMTP_LES("unitest/test-data/case-mtp-les/les.mtp", settings), message);
+    REQUIRE_THROWS_WITH(MTPM("unitest/test-data/case-mtp-les/les.mtp", settings), message);
 }

@@ -15,7 +15,8 @@ namespace AL { struct GPMALAccess; }
 #include <string>
 #include <vector>
 
-namespace Potentials { class AnyPotential; }
+namespace Potentials { class AnyPotential; class ModelBundle; }
+namespace GPM { class Reader; }
 class StreamRowStore;
 
 /// Stored builder metadata recovered from a state file.
@@ -167,9 +168,12 @@ public:
                     const std::string &index_file = "",
                     const std::string &pot_file = "",
                     const std::string &pottype = "") const;
-    /// Throws on missing or invalid state files and clears loaded selection data.
+    /// Throws on missing or invalid files. GPM loads publish only after validation.
     void load_state(const std::string &filename,
                     const std::string &index_file = "");
+    /// Non-null for a self-contained GPM state; owned by this selector.
+    Potentials::AnyPotential *state_potential() const { return gpm_target_; }
+    const BuilderParams &builder_parameters() const { return pending_builder_; }
 
     /// Reconstruct the builder from stored params + a user-provided
     /// potential. Must be called after load_state() and before grade().
@@ -195,6 +199,11 @@ public:
                      int nrows);
 
 private:
+    std::shared_ptr<Potentials::ModelBundle> gpm_owner_;
+    std::shared_ptr<GPM::Reader> gpm_source_;
+    Potentials::AnyPotential *gpm_target_ = nullptr;
+    std::string gpm_fingerprint_;
+    void validate_gpm_binding() const;
     bool gpm_rebuild_full_ = false;
     bool gpm_legacy_unverified_ = false;
     int select_streaming_current();
@@ -235,7 +244,6 @@ private:
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> B_;
     std::vector<int>    cfg_row_start_{0};
     std::vector<Atoms>  cfgs_;
-    std::vector<bool>   is_new_;
 
     std::vector<Atoms> selected_cfgs_;
     std::vector<int>   selected_config_indices_;

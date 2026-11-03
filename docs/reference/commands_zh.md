@@ -309,6 +309,8 @@ imrmlp calc_neb neb_config.ini
 
 @note **选择合适的训练命令** — 参见本节末尾的对比表。
 
+`trainmtp`、`trainnlpot`、`train_linear` 和三个 MaxVol 命令支持 `--legacy`（顶层配置为 `legacy true`），统一恢复原生训练输出、旧检查点命名和外部 v10 `.sel` 默认行为。详见 [legacy 持久化模式](gpm-v2_zh.md)。
+
 ### `trainmtp` — 训练 MTP 势
 
 矩张量势的主要训练命令。将径向基系数和线性种类/矩系数同时拟合到
@@ -354,7 +356,7 @@ imrmlp trainmtp --trainset=train.cfg --validset=valid.cfg --potfile=init.mtp --d
 非线性拟合需显式选择 `--do-lbfgs` 等优化器；MTP 线性系数拟合使用
 `--linear-fit`。`fit:lfit_eng_only true` 控制线性拟合使用的标签，不会自行选择
 优化器。`train_linear` 是另一条命令，有自己的描述符与设置要求。`trainmtp`
-最终输出为当前工作目录下的 `_Trained_Potential_.mtp`，`fit:save_to` 指定训练检查点。
+最终输出为当前工作目录下的 `_Trained_Potential_.gpm`，`fit:save_to` 指定训练检查点。
 
 `--do-matrix-a` 对每个有应力标签的构型输出六行，顺序为
 `xx, xy, xz, yy, yz, zz`。非对角行的基函数系数和目标值同时乘 `sqrt(2)`，
@@ -386,7 +388,7 @@ imrmlp trainnlpot --settings=training.ini --trainset=train.cfg --validset=valid.
 | `--testset-format` | | | 留出数据集格式（空 = 自动检测） |
 | `--fixed-core` | | | 已有固定核心；对残差标签拟合普通 MTP 并输出 Hybrid manifest |
 | `--fixed-core-type` | | `zbl` | 固定核心类型：`zbl` 或 `mtp` |
-| `--output` | `-o` | `_Trained_Potential_` | 输出势文件前缀 |
+| `--output` | `-o` | `_Trained_Potential_.gpm` | 输出势文件前缀 |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--debug` | | `false` | 调试输出（布尔值） |
 | `--do-lbfgs` | `-lbf` | `false` | 使用 L-BFGS 优化器（布尔标志） |
@@ -516,7 +518,7 @@ imrmlp train_linear --trainset=train.cfg --validset=valid.cfg -o fitted_potentia
 | `--trainset` | `-in` | `train.cfg` | 训练数据集文件 |
 | `--validset` | `-inv` | | 验证数据集文件（默认：无） |
 | `--trainset-format` | `-if` | `mlpcfg` | 训练数据格式：mlpcfg、extxyz、vaspabn |
-| `--output` | `-o` | `_Trained_Potential_` | 输出势文件前缀 |
+| `--output` | `-o` | `_Trained_Potential_.gpm` | 输出势文件前缀 |
 | `--index` | `-id` | `index.map` | 原子类型索引文件 |
 | `--debug` | | `false` | 启用调试输出（布尔） |
 
@@ -2053,7 +2055,7 @@ imrmlp dimer dimer.ini
 
 `model_convert` 写出自包含的 GPM 文件；`model_info` 与 `model_validate`
 在不读取数值块的情况下检查该文件。参见
-[GPM 格式、保存模式和主动学习恢复](gpm-v1_zh.md)。
+[GPM 格式、保存模式和主动学习恢复](gpm-v2_zh.md)。
 
 ### `model_convert` — 写出 GPM 模型包
 
@@ -2101,3 +2103,5 @@ imrmlp model_validate --input resume.gpm
 - @ref reference_potential_types — 势类型总览与文件格式
 - @ref apps — 所有命令实现
 - @ref cheatsheet — 命令速查表
+
+训练默认输出 GPM；可用 `--save-maxvol-state` 重建并嵌入 MaxVol。单文件恢复、`--state-output` 和兼容说明见 [GPM 参考](gpm-v2_zh.md)。

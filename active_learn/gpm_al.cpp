@@ -25,13 +25,14 @@ void atom_fields(State&a,Atoms&p) {
     for(auto &v:p.pos_)require(v.allFinite(),"nonfinite AL coordinates");
 }
 Value structures(Writer&w,const std::string&id,std::vector<Atoms>&cfgs) {
-    Array records;for(size_t i=0;i<cfgs.size();++i){State s(w,id+"/"+std::to_string(i));atom_fields(s,cfgs[i]);records.emplace_back(s.fields());}
+    NumericPool pool(w,id);Array records;for(size_t i=0;i<cfgs.size();++i){State s(w,id+"/"+std::to_string(i),&pool);atom_fields(s,cfgs[i]);records.emplace_back(s.fields());}
+    pool.finish();
     // Keep the potentially large configuration directory out of the file header.
-    std::string json=Value(records).serialize();Bytes bytes(json.begin(),json.end());const auto size=bytes.size();w.add(id,"u8",{size},std::move(bytes));return Value(Object{{"block",Value(id)},{"version",Value(1.0)}});
+    std::string json=Value(records).serialize();Bytes bytes(json.begin(),json.end());const auto size=bytes.size();w.add(id,"u8",{size},std::move(bytes));return Value(Object{{"block",Value(id)},{"version",Value(2.0)}});
 }
 std::vector<Atoms> structures(const Reader&r,const Value&v) {
-    auto id=string(at(object(v),"block"));require(integer(at(object(v),"version"))==1,"unsupported structure version");auto bytes=r.read(id);auto records=parse(std::string(bytes.begin(),bytes.end()));
-    const auto &list=array(records);std::vector<Atoms> result(list.size());for(size_t i=0;i<list.size();++i){State s(r,object(list[i]));atom_fields(s,result[i]);}return result;
+    auto id=string(at(object(v),"block"));require(integer(at(object(v),"version"))==2,"unsupported structure version");auto bytes=r.read(id);auto records=parse(std::string(bytes.begin(),bytes.end()));
+    BlockCache cache;const auto &list=array(records);std::vector<Atoms> result(list.size());for(size_t i=0;i<list.size();++i){State s(r,object(list[i]),&cache);atom_fields(s,result[i]);}return result;
 }
 void builder_fields(State&a,BuilderParams&p) {
 #define F(x) a.field(#x,p.x)
@@ -45,17 +46,15 @@ void row_fields(State&a,std::vector<BRowRef>&refs) {
     if(!a.reading())for(size_t i=0;i<refs.size();++i){const auto &r=refs[i];rows.row(i)<<r.cfg_index,r.local_row,r.global_row,int(r.kind),r.atom_index,r.component;}
     a.field("row_references",rows);if(a.reading()){refs.resize(rows.rows());for(size_t i=0;i<refs.size();++i){require(rows(i,3)>=0&&rows(i,3)<=int(BRowKind::Unknown),"invalid row kind");refs[i]={rows(i,0),rows(i,1),rows(i,2),BRowKind(rows(i,3)),rows(i,4),rows(i,5)};}}
 }
-template<class Get> std::string binding_hash(const std::string &model,const Value &config,Get get) {
-    SHA256 hash;hash.update(model.data(),model.size());auto text=config.serialize();hash.update(text.data(),text.size());
-    std::function<void(const Value&)> walk=[&](const Value &v){if(v.is<Object>()){auto &o=v.get<Object>();if(o.count("block")){auto sum=get(string(o.at("block")));hash.update(sum.data(),sum.size());}for(const auto &entry:o)walk(entry.second);}else if(v.is<Array>())for(const auto &entry:v.get<Array>())walk(entry);};
-    walk(config);return hex(hash.finish());
-}
 Object binding(Writer&w,const std::string&mode) {
-    return {{"version",Value(1.0)},{"method",Value(mode)},{"target_model",Value("root")},{"model_fingerprint",at(w.manifest,"model_fingerprint")}};
+    return {{"version",Value(1.0)},{"method",Value(mode)},{"target_model",Value("root")}};
 }
 }
 
 Object GPMALAccess::selector(Writer&w,ActiveSelector&p,Potentials::AnyPotential&pot) {
+    p.validate_gpm_binding();
+    if(!p.gpm_fingerprint_.empty()&&p.gpm_target_!=&pot)require(Potentials::ModelBundle::fingerprint(pot)==p.gpm_fingerprint_,
+                                         "supplied model differs from GPM MaxVol target");
     BuilderParams pb=p.pending_builder_;
     if(auto *b=dynamic_cast<PotEFSBuilder*>(p.builder_)){pb.dtype="pot_efs";pb.mode="cfg";pb.w_energy=b->w_energy;pb.w_site=b->w_site;pb.w_force=b->w_force;pb.w_stress=b->w_stress;pb.linear_only=b->linear_only;pb.valid=true;}
     else if(auto *b=dynamic_cast<DescriptorBuilder*>(p.builder_)){pb.dtype=b->dtype_;pb.mode=b->mode==DescriptorBuilder::Nbh?"nbh":"cfg";pb.settings=b->settings_;pb.valid=true;}
@@ -70,6 +69,10 @@ Object GPMALAccess::selector(Writer&w,ActiveSelector&p,Potentials::AnyPotential&
     }
     // Bind legacy states only after checking their rows against the supplied
     // model. Dimension equality alone does not establish compatibility.
+    struct Regularizers {
+        Potentials::AnyPotential &model;std::vector<double> l1,l2;
+        ~Regularizers(){model.reg_L1_vector.swap(l1);model.reg_L2_vector.swap(l2);}
+    } regularizers{pot,pot.reg_L1_vector,pot.reg_L2_vector};
     ActiveSelector check;check.pending_builder_=pb;check.n_coeff_=p.n_coeff_;check.init_builder(pot);
     int previous=-1;OnlineRowMatrix rows;bool verified_source=false;
     for(size_t i=0;i<refs.size();++i){const auto &ref=refs[i];
@@ -84,29 +87,31 @@ Object GPMALAccess::selector(Writer&w,ActiveSelector&p,Potentials::AnyPotential&
     State a(w,"al/maxvol/state");
 #define F(x) a.field(#x,p.x)
     F(n_coeff_);F(threshold);F(weight);F(pow_scale);F(init_mode);F(init_value);F(max_swaps);F(select_mode);F(stream_mode);F(stream_chunk_size);F(stream_fast_passes);F(stream_fast_shortlist);
-    F(converged_);F(max_remaining_grade_);F(termination_reason_);F(online_processed_cfgs_);F(cfg_row_start_);F(is_new_);F(selected_config_indices_);
+    F(converged_);F(max_remaining_grade_);F(termination_reason_);F(online_processed_cfgs_);F(cfg_row_start_);F(selected_config_indices_);
 #undef F
     a.field("active_matrix",C);row_fields(a,refs);bool online=p.online_state_.valid();a.field("online",online);
     return {{"builder",Value(builder.fields())},{"state",Value(a.fields())},{"history",structures(w,"al/maxvol/history",p.cfgs_)},{"selected",structures(w,"al/maxvol/selected",p.selected_cfgs_)}};
 }
-std::unique_ptr<ActiveSelector> GPMALAccess::selector(const Reader&r,const Object&o,Potentials::AnyPotential&pot) {
+std::unique_ptr<ActiveSelector> GPMALAccess::selector(const Reader&r,const Object&o,Potentials::AnyPotential *pot) {
     auto owner=std::make_unique<ActiveSelector>();auto &p=*owner;State builder(r,object(at(o,"builder")));builder_fields(builder,p.pending_builder_);
     State a(r,object(at(o,"state")));
 #define F(x) a.field(#x,p.x)
     F(n_coeff_);F(threshold);F(weight);F(pow_scale);F(init_mode);F(init_value);F(max_swaps);F(select_mode);F(stream_mode);F(stream_chunk_size);F(stream_fast_passes);F(stream_fast_shortlist);
-    F(converged_);F(max_remaining_grade_);F(termination_reason_);F(online_processed_cfgs_);F(cfg_row_start_);F(is_new_);F(selected_config_indices_);
+    F(converged_);F(max_remaining_grade_);F(termination_reason_);F(online_processed_cfgs_);F(cfg_row_start_);F(selected_config_indices_);
 #undef F
     a.field("active_matrix",p.B_full_);row_fields(a,p.selected_row_refs_);bool online;a.field("online",online);
     p.cfgs_=structures(r,at(o,"history"));p.selected_cfgs_=structures(r,at(o,"selected"));
     require(p.n_coeff_>0&&p.B_full_.cols()==p.n_coeff_&&p.B_full_.rows()>0&&p.B_full_.allFinite()&&p.selected_row_refs_.size()==size_t(p.B_full_.rows()),"invalid MaxVol active matrix");
-    require(p.cfg_row_start_.size()==p.cfgs_.size()+1&&!p.cfg_row_start_.empty()&&p.cfg_row_start_[0]==0&&std::is_sorted(p.cfg_row_start_.begin(),p.cfg_row_start_.end())&&p.online_processed_cfgs_<=p.cfgs_.size()&&p.is_new_.size()==p.cfgs_.size(),"invalid MaxVol processing state");
+    require(p.cfg_row_start_.size()==p.cfgs_.size()+1&&!p.cfg_row_start_.empty()&&p.cfg_row_start_[0]==0&&std::is_sorted(p.cfg_row_start_.begin(),p.cfg_row_start_.end())&&p.online_processed_cfgs_<=p.cfgs_.size(),"invalid MaxVol processing state");
     for(const auto &ref:p.selected_row_refs_)require(ref.cfg_index<0 || (ref.cfg_index<int(p.cfgs_.size())&&ref.local_row>=0&&ref.global_row>=p.cfg_row_start_[ref.cfg_index]&&ref.global_row<p.cfg_row_start_[ref.cfg_index+1]),"invalid active row reference");
     p.selected_row_indices_.resize(p.B_full_.rows());std::iota(p.selected_row_indices_.begin(),p.selected_row_indices_.end(),0);p.has_full_B_=false;p.using_stream_state_=true;
     if(online)require(p.online_state_.initialize_from_rows(p.B_full_,p.selected_row_refs_),"cannot restore online factorization");
-    p.gpm_rebuild_full_=p.select_mode=="full";p.init_builder(pot);require(p.prepare_grading(),"cannot restore MaxVol grading");return owner;
+    p.gpm_rebuild_full_=p.select_mode=="full";
+    if(!pot)return owner;
+    p.init_builder(*pot);require(p.prepare_grading(),"cannot restore MaxVol grading");return owner;
 }
 void GPMALAccess::encode_selector(Writer&w,ActiveSelector&s,Potentials::AnyPotential&p) {
-    auto o=binding(w,"maxvol");o["maxvol"]=Value(selector(w,s,p));o["binding_fingerprint"]=Value(binding_hash(string(at(o,"model_fingerprint")),at(object(o["maxvol"]),"builder"),[&](const std::string&id){return w.block_hash(id);}));w.manifest["active_learning"]=Value(o);
+    auto o=binding(w,"maxvol");o["maxvol"]=Value(selector(w,s,p));o["binding_signature"]=Value(binding_signature(w,maxvol_binding_configuration(object(o["maxvol"]))));w.manifest["active_learning"]=Value(o);
 }
 void GPMALAccess::encode(Writer&w,ALPotential&p,Potentials::AnyPotential&pot) {
     require(p.scorer_!=nullptr,"no active AL scorer");
@@ -119,16 +124,37 @@ void GPMALAccess::encode(Writer&w,ALPotential&p,Potentials::AnyPotential&pot) {
 #undef F
     o["policy"]=Value(a.fields());o["candidate_pool"]=structures(w,"al/candidates",p.pool_);
 }
+std::unique_ptr<ActiveSelector> GPMALAccess::decode_selector(const Reader &r,
+    Potentials::AnyPotential *pot) {
+    require(r.manifest.count("active_learning"),"GPM has no MaxVol state; run maxvol_select first");
+    const auto &o=object(at(r.manifest,"active_learning"));
+    require(integer(at(o,"version"))==1,"unsupported AL version");
+    if(o.count("required_features"))require(array(at(o,"required_features")).empty(),"unsupported AL capability");
+    require(string(at(o,"method"))=="maxvol","GPM does not contain MaxVol state");
+    require(string(at(o,"target_model"))==string(at(r.manifest,"root_model")),"AL target model mismatch");
+    const auto builder=maxvol_binding_configuration(object(at(o,"maxvol")));
+    require(string(at(o,"binding_signature"))==binding_signature(r,builder),"AL builder binding mismatch");
+    const auto fingerprint=model_signature(r);
+    if(pot)require(Potentials::ModelBundle::fingerprint(*pot)==fingerprint,"AL model fingerprint mismatch");
+    auto result=selector(r,object(at(o,"maxvol")),pot);
+    result->gpm_target_=pot;result->gpm_fingerprint_=fingerprint;
+    if(pot)result->gpm_source_=pot->gpm_source;
+    return result;
+}
+
 std::unique_ptr<ALPotential> GPMALAccess::decode(const Reader&r,Potentials::AnyPotential&pot,const GPSettings&overrides) {
     require(overrides["state_file"].empty()&&overrides["committee_prefix"].empty(),"embedded AL conflicts with external state");
     const auto &o=object(at(r.manifest,"active_learning"));require(integer(at(o,"version"))==1,"unsupported AL version");
     if(o.count("required_features"))require(array(at(o,"required_features")).empty(),"unsupported AL capability");
-    require(string(at(o,"target_model"))==string(at(r.manifest,"root_model"))&&string(at(o,"model_fingerprint"))==Potentials::ModelBundle::fingerprint(pot),"AL model fingerprint mismatch");
+    require(string(at(o,"target_model"))==string(at(r.manifest,"root_model")),"AL target model mismatch");
+    if(string(at(o,"method"))!="maxvol") {
+        require(string(at(o,"binding_signature"))==binding_signature(r,binding_configuration(r.manifest)),"AL binding mismatch");
+        require(Potentials::ModelBundle::fingerprint(pot)==model_signature(r),"AL model fingerprint mismatch");
+    }
     auto p=std::make_unique<ALPotential>();p->mode_name_=string(at(o,"method"));
     require(overrides["mode"].empty()||overrides["mode"]==p->mode_name_,"explicit AL method conflicts with embedded state");
     if(p->mode_name_=="maxvol"){
-        require(string(at(o,"binding_fingerprint"))==binding_hash(string(at(o,"model_fingerprint")),at(object(at(o,"maxvol")),"builder"),[&](const std::string&id){return r.info(id).sha256;}),"AL builder binding mismatch");
-        auto selected=selector(r,object(at(o,"maxvol")),pot);auto s=std::make_unique<MaxVolScorer>();s->as_=selected.release();s->own_selector_=true;s->loaded_=true;s->builder_initialized_=true;s->cutoff_=pot.cutoff;p->scorer_=std::move(s);}
+        auto selected=decode_selector(r,&pot);auto s=std::make_unique<MaxVolScorer>();s->as_=selected.release();s->own_selector_=true;s->loaded_=true;s->builder_initialized_=true;s->cutoff_=pot.cutoff;p->scorer_=std::move(s);}
     else require(false,"unsupported AL method");
     if(o.count("policy")){State a(r,object(o.at("policy")));
 #define F(x) a.field(#x,p->x)

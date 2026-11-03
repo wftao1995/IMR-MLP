@@ -47,7 +47,7 @@ std::string make_mtp_m_template_file()
     const std::string path = "/tmp/ut_mtp_m_template.mtp";
     std::ifstream in;
     for (const std::string& candidate : {
-             "tests/test-nnmtp/_Trained_Potential_.mtp",
+             "unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
              "unitest/test-data/potential.mtp",
              "../../unitest/test-data/potential.mtp",
              "../../../unitest/test-data/potential.mtp",

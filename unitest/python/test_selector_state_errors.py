@@ -22,7 +22,7 @@ def state(tmp_path):
     io = _GPIO()
     io.read_map(str(index))
     atoms = io.read(str(source))
-    selector = _ActiveSelector(str(ROOT / 'unitest/test-data/potential.mtp'))
+    selector = _ActiveSelector(str(ROOT / 'unitest/test-data/portable-mtp/les.mtp'))
     selector.add_candidates(atoms)
     selector.select()
     path = tmp_path / 'valid.sel'
