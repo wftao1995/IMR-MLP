@@ -3448,7 +3448,7 @@ PYBIND11_MODULE(_imrmlp, m)
     m.def("get_num_threads", &get_omp_max_threads, "Get this thread's requested OpenMP team size");
 
     // ── Version ──
-    m.attr("__version__") = "1.2.4";
+    m.attr("__version__") = "1.2.5";
 
 #if IMRMLP_MPI
     m.attr("has_mpi") = true;

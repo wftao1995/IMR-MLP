@@ -61,7 +61,7 @@ $(VERSION_HEADER):
 	  build_date="$$(date +%Y-%m-%d)"; build_stamp="$$(date +%s)"; \
 	  build_target="$$(uname -m)"; \
 	  printf '%s\n' '#pragma once' \
-	    '#define PROJECT_VERSION "1.2.4"' \
+	    '#define PROJECT_VERSION "1.2.5"' \
 	    "#define GIT_COMMIT_ID \"$$commit\"" \
 	    "#define BUILD_DATE \"$$build_date\"" \
 	    "#define BUILD_TARGET \"$$build_target\"" \

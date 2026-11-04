@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "imrmlp"
-version = "1.2.4"
+version = "1.2.5"
 description = "Python bindings for IMR-MLP MLIP simulation framework"
 requires-python = ">=3.10"
 authors = [

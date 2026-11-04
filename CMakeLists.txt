@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(IMR-MLP VERSION 1.2.4 LANGUAGES CXX)
+project(IMR-MLP VERSION 1.2.5 LANGUAGES CXX)
 find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development.Module)
 find_program(IMRMLP_MAKE NAMES gmake make REQUIRED)
 set(IMRMLP_BUILD_JOBS 4 CACHE STRING "Parallel Make compilation jobs")
