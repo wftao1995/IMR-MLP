@@ -8,7 +8,9 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(mlip / gpudirect, PairMLIPGpuDirect)
+// clang-format off
+PairStyle(mlip/gpudirect, PairMLIPGpuDirect)
+// clang-format on
 
 #else
 

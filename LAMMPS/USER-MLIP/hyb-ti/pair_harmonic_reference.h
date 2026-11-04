@@ -4,7 +4,9 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(harmonic / reference, PairHarmonicReference)
+// clang-format off
+PairStyle(harmonic/reference, PairHarmonicReference)
+// clang-format on
 
 #else
 

@@ -20,7 +20,9 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(mlip / opt - les, PairMLIPOPTLES)
+// clang-format off
+PairStyle(mlip/opt-les, PairMLIPOPTLES)
+// clang-format on
 
 #else
 

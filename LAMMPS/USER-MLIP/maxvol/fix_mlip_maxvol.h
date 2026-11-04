@@ -3,7 +3,9 @@
 
 #ifdef FIX_CLASS
 
-FixStyle(mlip / maxvol, FixMLIPMaxVol)
+// clang-format off
+FixStyle(mlip/maxvol, FixMLIPMaxVol)
+// clang-format on
 
 #else
 #ifndef LMP_FIX_MLIP_MAXVOL_H

@@ -5,8 +5,10 @@
 /* Per-atom latent charges exported by pair_style mlip/opt-les. */
 #ifdef COMPUTE_CLASS
 
-ComputeStyle(mlip / les / charge, ComputeMLIPLESCharge)
-    ComputeStyle(mlip / sog / latent, ComputeMLIPLESCharge)
+// clang-format off
+ComputeStyle(mlip/les/charge, ComputeMLIPLESCharge)
+    ComputeStyle(mlip/sog/latent, ComputeMLIPLESCharge)
+// clang-format on
 
 #else
 #ifndef LMP_COMPUTE_MLIP_LES_CHARGE_H

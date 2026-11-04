@@ -17,7 +17,9 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(mlip / opt / omp, PairMLIPOMP)
+// clang-format off
+PairStyle(mlip/opt/omp, PairMLIPOMP)
+// clang-format on
 
 #else
 

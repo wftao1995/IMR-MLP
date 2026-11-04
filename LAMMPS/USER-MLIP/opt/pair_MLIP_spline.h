@@ -17,7 +17,9 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(mlip / spline, PairMLIPSpline)
+// clang-format off
+PairStyle(mlip/spline, PairMLIPSpline)
+// clang-format on
 
 #else
 

@@ -1,6 +1,8 @@
 /* -*- c++ -*- */
 #ifdef PAIR_CLASS
-PairStyle(mlip / native, PairMLIPNative)
+// clang-format off
+PairStyle(mlip/native, PairMLIPNative)
+// clang-format on
 #else
 #ifndef LMP_PAIR_MLIP_NATIVE_H
 #define LMP_PAIR_MLIP_NATIVE_H

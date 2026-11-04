@@ -1,7 +1,9 @@
 /* -*- c++ -*- */
 #ifdef COMPUTE_CLASS
-ComputeStyle(mlip / native / charge, ComputeMLIPNativeCharge)
-    ComputeStyle(mlip / native / latent, ComputeMLIPNativeLatent)
+// clang-format off
+ComputeStyle(mlip/native/charge, ComputeMLIPNativeCharge)
+    ComputeStyle(mlip/native/latent, ComputeMLIPNativeLatent)
+// clang-format on
 #else
 #ifndef LMP_COMPUTE_MLIP_NATIVE_H
 #define LMP_COMPUTE_MLIP_NATIVE_H
