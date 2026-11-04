@@ -67,7 +67,7 @@ TEST_CASE("Legacy LAMMPS readers reject removed Yukawa sections before consuming
             std::istringstream input(tag + section +
                 "\n0 0 1.0 0.8 5.0\nradial_basis_type = RBChebyshev\n");
             REQUIRE_THROWS_WITH(MLIPLegacyReader::read_radial_basis_type(input),
-                               Catch::Matchers::ContainsSubstring("have been removed and are unsupported"));
+                               Catch::Matchers::ContainsSubstring("are unsupported"));
             std::string next;
             REQUIRE(bool(input >> next));
             REQUIRE(next == "0");

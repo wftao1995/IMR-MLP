@@ -199,7 +199,7 @@ one-based `(i,j)` indices with `i <= j` in strict ascending order; lower blocks
 are reconstructed by transposition, and only nonzero blocks need storage. Units
 are Å and eV (FC: eV/Å²). The reference should satisfy the acoustic sum rule and
 have stable nontranslational modes — the adapter does not fit or stabilize the
-Hessian. Files written by `atoms-agent`'s `gpmain ti_fit_fc` remain compatible.
+Hessian.
 
 ## Validation and regression
 
@@ -223,7 +223,5 @@ input.
 - The LAMMPS adapter neither fits nor stabilizes the Hessian; a non-positive or
   ASR-violating reference is used as given.
 - Restart of the pair state is not supported.
-- Historical `debye/opt` and `ti/debye` adapters are not included in this
-  release.
 - GPU execution of the harmonic reference requires separate device validation;
   `mlip/gpudirect` does not cover this style.

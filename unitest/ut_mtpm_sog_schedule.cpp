@@ -50,7 +50,7 @@ public:
 };
 struct StageData {
     std::filesystem::path directory=std::filesystem::temp_directory_path()/
-        ("atoms-agent-mtpm-stages-"+std::to_string(getpid()));
+        ("imrmlp-mtpm-stages-"+std::to_string(getpid()));
     std::vector<Atoms> atoms;std::vector<Neighborhoods> neighbors;
     StageData(double cutoff) {
         std::filesystem::create_directories(directory);

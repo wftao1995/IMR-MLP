@@ -40,7 +40,7 @@ suite does not replace the full suite. After `make python`, run
 I/O matrix and external-runtime integration tests; `pytest` includes them.
 Optional external dependencies can still cause skips in either Python suite.
 
-Some historical tests need research data not distributed here. Set
+Some scientific regression tests need external research data. Set
 `TEST_DATA_ROOT=/path/to/tests` and `UNITEST_DATA_ROOT=/path/to/unitest/test-data`
 on the `make test` command when you have these fixtures. Report missing inputs
 separately from numerical/assertion failures. To test the public workflow alone:

@@ -2,8 +2,8 @@
 
 [English](trainmtp-gpu.md)
 
-普通 `PotMTP`、`radial_mode=0` 的 FP64 GPU 支持移植自 atoms-agent 的
-`34163139`，观测内核取自 `e843cb32`。CPU 是默认后端；显式请求不匹配的后端会报错。
+FP64 GPU 训练支持普通 `PotMTP`，要求 `radial_mode=0`。
+CPU 是默认后端；显式请求不匹配的后端会报错。
 
 ```sh
 make BUILD_MODE=cuda -j4 imrmlp
@@ -44,7 +44,7 @@ HVP 使用保存的原始方向，线性求解前后使用独立 CPU `H*v` 验�
 非线性 GPU 训练拒绝曲率标签/损失；HIP 线性曲率尚不支持。
 派生/LES/SOG/MTP-M、ladder、修正项和 additive EFS 不在本入口 GPU 支持范围内，
 可用的更多模型族见 [trainnlpot GPU 支持](cuda_zh.md)。DF、随机搜索、species-only、
-矩阵导出和曲率诊断拒绝 GPU 请求。公开版已移除的 Shapeev BFGS 不随本次移植恢复。
+矩阵导出和曲率诊断拒绝 GPU 请求。
 
 MPI 使用 `BUILD_MODE=mpi-cuda` 或 `mpi-hip`。完整构型属于单个 rank，支持不均与空本地分片；
 所有 rank 必须使用相同数学目标、模型和优化器设置，设备及资源预算可不同。
@@ -53,4 +53,4 @@ MPI 使用 `BUILD_MODE=mpi-cuda` 或 `mpi-hip`。完整构型属于单个 rank�
 其中时间不等于完整命令墙钟，不构成普遍加速承诺。
 
 HIP/DCU 改用 `BUILD_MODE=hip HIP_ARCH=<设备架构>`、`fit:device hip` 与
-`build/hip/imrmlp-hip`。当前移植的本地实机验证使用 CUDA；HIP 需在对应硬件验证。
+`build/hip/imrmlp-hip`。本地实机验证使用 CUDA；HIP 需在对应硬件验证。

@@ -23,7 +23,7 @@ using namespace GPM;
 // Native writers are optional; the base implementation may write nothing.
 void check_native(const Object &models,const std::string &id) {
     const auto &node=object(at(models,id));const auto type=string(at(node,"type"));
-    static const std::set<std::string> supported={"mtp","mtp_m","mtp_les","mtpnn1","mtp_edq","mtp_edqrd",
+    static const std::set<std::string> supported={"mtp","mtp_m","mtp_les","mtpnn1",
         "hmtp","hybrid","hybrid_scale","eam_trainable","eampoly","lj612","zbl","mindist",
         "sw","tersoff","pair_table","threebody_table","descriptor_linear"};
     require(supported.count(type),"native export is not supported for model type: "+type);

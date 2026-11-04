@@ -1,7 +1,6 @@
 """Public descriptor values and Cartesian/strain derivatives have owned results.
 
-Self-contained regressions migrated from the external binding suite. Invariant
-features have symmetric strain derivatives; the off-diagonal checks establish
+Invariant features have symmetric strain derivatives; the off-diagonal checks establish
 normalization and sign, and do not distinguish a pure transpose.
 """
 import numpy as np

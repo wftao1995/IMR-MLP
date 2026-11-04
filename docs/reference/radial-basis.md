@@ -77,5 +77,5 @@ Values and derivatives through second order are zero outside
 
 Specialized classes retained by the C++ API are `RBChebyshev`,
 `RBChebyCos`, `RBChebyshevPoly4`, `RBChebyshevPoly5`, `RBPolyB`, and
-`RBPolyBCos`. Removed specialized radial-basis names are not accepted as
-potential-file aliases; rewrite them explicitly as `RBChebyshevConfigurable`.
+`RBPolyBCos`. For configurable radial bases in potential files, use
+`RBChebyshevConfigurable`.

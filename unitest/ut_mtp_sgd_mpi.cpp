@@ -69,7 +69,7 @@ TEST_CASE("MTP SGD matches whole-data updates with uneven and empty MPI shards",
     const int count = partition == 0 ? 1 : partition == 1 ? mpi.size + 1 : 4;
     Data whole(count, false, partition == 2, force_only), local(count, true, partition == 2, force_only);
     const auto stem = (std::filesystem::temp_directory_path() /
-        ("atoms-agent-mtp-sgd-" + std::to_string(getpid()))).string();
+        ("imrmlp-mtp-sgd-" + std::to_string(getpid()))).string();
     Eigen::VectorXd expected;
     self_reference([&] {
         Trainer_MTP trainer(controls(stem + ".self"));

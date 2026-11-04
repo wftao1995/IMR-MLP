@@ -155,7 +155,7 @@ TEMPLATE_TEST_CASE("MPI GPU CG accepts EFS steps with empty shards and SOG stage
     const int count=GENERATE(1,7);
     Sample<TestType> local(count,true);
     long root_pid=mpi.rank==0 ? getpid() : 0;MPI_Bcast(&root_pid,1,MPI_LONG,0,mpi.comm);
-    const auto directory=std::filesystem::temp_directory_path()/("atoms-agent-mpi-gpu-cg-"+std::to_string(root_pid));
+    const auto directory=std::filesystem::temp_directory_path()/("imrmlp-mpi-gpu-cg-"+std::to_string(root_pid));
     Training::collective_try([&] {if(mpi.rank==0) std::filesystem::create_directories(directory);});
     const auto path=(directory/"result.mtp").string();
     auto s=settings(true);s.Modify("save_to",path);s.Modify("bfgs_maxiteration","2");
@@ -217,7 +217,7 @@ TEST_CASE("MPI GPU NN2 SOG stages match whole-data CPU accepted results", "[gpu]
     const int world_rank=mpi.rank;
     NN2Sample whole(count,false),local(count,true),whole_valid(1,false),local_valid(1,true);
     long root_pid=mpi.rank==0 ? getpid() : 0;MPI_Bcast(&root_pid,1,MPI_LONG,0,mpi.comm);
-    const auto directory=std::filesystem::temp_directory_path()/("atoms-agent-nn2-mpi-cg-"+std::to_string(root_pid));
+    const auto directory=std::filesystem::temp_directory_path()/("imrmlp-nn2-mpi-cg-"+std::to_string(root_pid));
     Training::collective_try([&] {if(mpi.rank==0) std::filesystem::create_directories(directory);});
     auto controls=settings(false);controls.Modify("training_schedule",schedule);
     controls.Modify("sr_stage_iterations","1");controls.Modify("les_stage_iterations","1");controls.Modify("joint_stage_iterations","1");

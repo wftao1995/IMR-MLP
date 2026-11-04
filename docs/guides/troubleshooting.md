@@ -113,7 +113,7 @@ repair incorrect atom correspondence.
 
 ## A regression requires missing data
 
-Historical scientific regressions can need external potentials and datasets.
+Scientific regressions can need external potentials and datasets.
 Read the test's fixture requirements; a missing dataset does not demonstrate
 an algorithm failure. The [quickstart](../../examples/quickstart/README.md)
 uses only supplied synthetic inputs and is suitable for checking a fresh build.

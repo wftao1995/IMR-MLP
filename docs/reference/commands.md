@@ -59,8 +59,7 @@ Gzip is enabled by default; disable it with `make USE_GZIP=0`. Disabled gzip
 is still recognized and rejected, rather than treated as plain text. If you
 add `-DUSE_GZIP` manually to CXXFLAGS, also add `-lz` to the link flags.
 
-Zstandard support and its build option have been removed. `.zst` paths and
-input recognized as Zstandard are rejected. Decompress existing `.zst` files
+`.zst` paths and input recognized as Zstandard are rejected. Decompress existing `.zst` files
 externally before using them, or convert them to gzip.
 
 ---
@@ -683,7 +682,6 @@ coordinates differ when request masks select only some groups.
 | `mtp_m` with LES/SOG | Above plus `C(S+B)` latent charges and `2CK` SOG kernel parameters | All operations, including reinitialization and head conversion with explicit target configuration |
 | `mtp_les` | Ordinary MTP plus independent charge heads and Coulomb/SOG kernel | All operations; new SOG models require weights and log bandwidths |
 | `mtpnn1` | MTP descriptor, NN1/NN2 weights, input normalization, species energy offsets | All operations; new heads require `nnhidden`, and `nnhidden2` for `nnlay 2` |
-| `mtp_edq`, `mtp_edqrd` | Separate energy/charge MTPs; `S-1` redistribution logits | All operations; new models require `sr_potfile` and `charge_potfile` |
 | `hmtp`, `hybrid` | MTP children, switching/shared parameters, optional hybrid ZBL child | All operations; new models require `npot` and each child's type/template |
 | `hybrid_scale` | Child parameters plus feature/radius/boundary settings | All operations for supported children; complete EAMPoly children can be reused, but their species migration is undefined |
 | MTM `descriptor_linear` | MTP descriptor and separately indexed linear head | All operations; basis ordering also permutes the linear head |
@@ -691,11 +689,10 @@ coordinates differ when request masks select only some groups.
 
 Each MTP branch retains split radial bases. Element permutation updates all
 species groups, ordered pairs and metadata; basis ordering also updates NN input
-weights/normalization and linear heads. EDQRd weights are rebased to the new last
-species, retaining old physical ratios. L1/L2 penalties follow the actual
-optimizer coordinates. An operation fails if a penalty becomes inseparable
-under a reference-gauge change. Borrowed parameter storage and HC/rR corrections
-without defined adapters are rejected before publication.
+weights/normalization and linear heads. L1/L2 penalties follow the actual
+optimizer coordinates. An operation fails if a coupled penalty cannot be
+preserved. Borrowed parameter storage and HC/rR corrections without defined
+adapters are rejected before publication.
 
 For a new SOG model, provide `pot:les_kernel sog`, `pot:sog_channels`,
 `pot:sog_weights` and `pot:sog_log_bandwidths` (the last two contain `C*K`
@@ -712,12 +709,10 @@ Composite offset fitting requires an explicit energy-branch path:
 ```sh
 imrmlp initmtpm --input hybrid.gpm --output fitted.gpm --dataset train.xyz \
   --format extxyz --fit-species-offsets --offset-target pot1
-imrmlp initmtpm --input edqrd.gpm --output fitted.gpm --dataset train.xyz \
-  --format extxyz --fit-species-offsets --offset-target short_range
 ```
 
 Nested targets use paths such as `pot2/pot1`; `root` selects the root energy
-head. Charge and descriptor branches are invalid offset targets. Fitting uses
+head. Descriptor branches are invalid offset targets. Fitting uses
 the complete model's energy response, including fixed branches and
 position-dependent mixing weights, and rejects rank-deficient responses.
 A constant change to one weighted branch need not give a constant total-energy
@@ -730,8 +725,6 @@ native formats can include manifests/sidecars; GPM always contains the complete
 model. Old dataset-driven MTP-M configuration and output conventions remain
 compatible. Adjusted/reinitialized GPMs use inference saving and discard old AL
 state; rebuild selection before continuing active learning.
-
-EDQ/EDQRd is implemented only in atoms-agent. This public repository has no such model family and reports an explicit unsupported-type error.
 
 ## Training Command Selection Guide
 

@@ -245,12 +245,10 @@ copying the model or moving restart files. It records ordered species pairs,
 basis definitions and FP64 matrix values. The reader rejects malformed,
 duplicate, incompatible or nonfinite cache data.
 
-This checkout does **not** register the historical `mtp-export-standalone` CLI
-command. Do not run it as an `imrmlp` subcommand. If an external compatible
-exporter supplied the footer, retain the original model and record that exporter
-and build. Re-export a newly trained or saved model rather than transplanting a
-footer between models. Ordinary native Save operations do not preserve these
-standalone comments.
+Retain the original model and record the tool and build that supplied its
+footer. Regenerate the footer for a newly trained or saved model rather than
+transplanting it between models. Ordinary native Save operations do not preserve
+these standalone comments.
 
 A model without this footer remains loadable. Its PolyB matrices are initialized
 at load time with the bundled Eigen version (see `vendor/eigen3/SOURCE.txt`),
@@ -315,9 +313,8 @@ to compare every requested E/F/W flag combination with `mlip/native` on the same
 files. Native output is also checked against the independent formula. The oracle
 requires IMR-MLP separately; it never enters the candidate runtime/plugin link.
 The optional `tests/radial_lammps.py` oracle additionally requires an external
-`--gpmain` executable providing `mtp-export-standalone`; this checkout's
-`imrmlp` does not provide that command. With that dependency available, it
-compares all six heads with an independent native plugin across the six dedicated radial families, a flipped
+`--gpmain` executable providing `mtp-export-standalone`. It compares all six
+heads with an independent native plugin across the six dedicated radial families, a flipped
 configurable basis, mixed ordered pairs, one-term bases and eight-term PolyB.
 Supply `--gpmain`, `--native-lmp`, `--native-plugin`, `--cpu-lmp`, optional
 `--omp-lmp`/`--gpu-lmp`, and a new `--work` directory. `--modes` selects the

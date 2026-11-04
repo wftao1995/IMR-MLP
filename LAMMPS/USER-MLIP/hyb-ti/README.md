@@ -99,4 +99,3 @@ The test checks an analytic two-atom spring's energy, forces and per-atom energy
 periodic translation, all storage modes, `hybrid/scaled`, and invalid FC input.
 `tests/lammps_runner.cpp` can be linked with the pair source and a matching
 upstream LAMMPS library to register the style without modifying upstream sources.
-Historical `debye/opt` and `ti/debye` adapters are not included.

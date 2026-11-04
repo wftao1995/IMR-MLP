@@ -1,8 +1,7 @@
 # MTP transport interface for LAMMPS
 
-This directory is a self-contained CPU/MPI LAMMPS interface. It does not
-include or inherit from `USER-MLIP/opt`, does not use the modified `Atom`
-class in `MLIP_FLUX`, and can coexist with all existing MLIP style names.
+This directory is a self-contained CPU/MPI LAMMPS interface using the standard
+LAMMPS `Atom` class. It can coexist with other MLIP style names.
 It supports linear short-range MTP models; nonlinear MTP-M heads and LES/SOG
 long-range terms are outside this interface. Run the commands below from the
 repository root.
@@ -56,8 +55,8 @@ LAMMPS/USER-MLIP/transport/install.sh --uninstall /path/to/lammps/src
 
 For a manual install, copy all base files listed in `base_files` inside
 `LAMMPS/USER-MLIP/transport/install.sh` into the top-level LAMMPS `src` directory. Copy the two `_omp`
-files as well only for an OPENMP-enabled build. Do not copy `atom.cpp` or
-`atom.h` from the historical `MLIP_FLUX` directory.
+files as well only for an OPENMP-enabled build. Use LAMMPS's own `atom.cpp` and
+`atom.h`.
 
 ## Pair styles and standard per-atom virial
 

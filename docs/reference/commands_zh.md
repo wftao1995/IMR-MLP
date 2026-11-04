@@ -53,7 +53,7 @@ imrmlp relax relax.ini                              # 设置文件
 gzip 默认启用，可用 `make USE_GZIP=0` 关闭。禁用后仍会识别 gzip 并报错，
 不会按明文处理。若手动在 CXXFLAGS 中添加 `-DUSE_GZIP`，还需在链接参数中添加 `-lz`。
 
-Zstandard 支持及其构建开关已移除。`.zst` 路径和识别为 Zstandard 的输入会被拒绝。
+`.zst` 路径和识别为 Zstandard 的输入会被拒绝。
 旧 `.zst` 文件需先在外部解压，或转换成 gzip 后再使用。
 
 ---
@@ -632,16 +632,14 @@ request mask 只选择部分参数组时，物理参数布局与优化器坐标�
 | `mtp_m`（LES/SOG） | 另有 `C(S+B)` 电荷潜变量和 `2CK` 个 SOG 核参数 | 全部操作；换头须显式提供目标头配置 |
 | `mtp_les` | 普通 MTP 加独立电荷头及 Coulomb/SOG 核 | 全部操作；新 SOG 必须提供权重与对数带宽 |
 | `mtpnn1` | MTP 描述符、NN1/NN2、输入归一化、元素能量偏移 | 全部操作；新头须提供 `nnhidden`，`nnlay 2` 另需 `nnhidden2` |
-| `mtp_edq`、`mtp_edqrd` | 独立能量/电荷 MTP，`S-1` 个重分配 logit | 全部操作；新模型须提供 `sr_potfile` 和 `charge_potfile` |
 | `hmtp`、`hybrid` | MTP 子模型、切换/共享参数、hybrid 可选 ZBL | 全部操作；新模型须提供 `npot` 和各子模型类型、模板 |
 | `hybrid_scale` | 子模型及特征、半径、边界设置 | 已支持子模型可执行全部操作；完整 EAMPoly 可复用，但未定义其元素迁移 |
 | MTM `descriptor_linear` | MTP 描述符及独立索引的线性头 | 全部操作；基组重排同步迁移线性头 |
 | `committee` 及未知修正项 | 集成或未定义的额外参数布局 | 明确报错，使用相应模型工作流 |
 
 各 MTP 分支保留分裂径向基。元素置换同步更新所有元素参数、有向元素对和 metadata；
-基组重排同步更新 NN 输入权重、归一化及线性头。EDQRd 以新的末元素重设参考规范，
-保留原有元素的物理权重比。L1/L2 正则项按实际优化器坐标迁移；参考规范变换使惩罚
-无法继续按单坐标表达时明确失败。借用参数存储及缺少适配定义的 HC/rR 修正项在发布前拒绝。
+基组重排同步更新 NN 输入权重、归一化及线性头。L1/L2 正则项按实际优化器坐标迁移；
+无法保留的耦合正则项会明确报错。借用参数存储及缺少适配定义的 HC/rR 修正项在发布前拒绝。
 
 新 SOG 模型须提供 `pot:les_kernel sog`、`pot:sog_channels`、`pot:sog_weights`、
 `pot:sog_log_bandwidths`，后两项均含 `C*K` 个值。已有核定义从 GPM 恢复。
@@ -655,11 +653,9 @@ hybrid_scale 切换配置随模型保留。完整兼容 GPM 不再依赖外部�
 ```sh
 imrmlp initmtpm --input hybrid.gpm --output fitted.gpm --dataset train.xyz \
   --format extxyz --fit-species-offsets --offset-target pot1
-imrmlp initmtpm --input edqrd.gpm --output fitted.gpm --dataset train.xyz \
-  --format extxyz --fit-species-offsets --offset-target short_range
 ```
 
-嵌套目标使用 `pot2/pot1` 等路径，`root` 选择根模型能量头。电荷和描述符分支不能
+嵌套目标使用 `pot2/pot1` 等路径，`root` 选择根模型能量头。描述符分支不能
 作为偏移目标。拟合基于完整模型的能量响应，计入固定分支及位置相关混合权重，响应
 矩阵秩不足时明确失败。对一个加权分支增加常数不一定使总能量增加常数。
 MTM 线性头没有独立元素能量偏移。显式归一化调整所选 MTP 的 moment 通道；
@@ -668,8 +664,6 @@ MTM 线性头没有独立元素能量偏移。显式归一化调整所选 MTP �
 指定传统输出文件名即可保存原生格式。复合势原生格式可包含清单和旁文件；GPM 始终
 自包含完整模型。旧的数据驱动 MTP-M 配置和输出约定保持兼容。调整或重初始化后的
 GPM 按 inference 语义保存并移除旧 AL 状态；继续主动学习前须重建选样状态。
-
-EDQ/EDQRd 仅在 atoms-agent 中实现；本公开仓库没有该模型家族，调用时明确报不支持的类型。
 
 ## 训练命令选择指南
 

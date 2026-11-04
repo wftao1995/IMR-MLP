@@ -2,8 +2,7 @@
 
 [中文](trainmtp-gpu_zh.md)
 
-FP64 GPU training for ordinary `PotMTP`, `radial_mode=0`, is ported from
-atoms-agent `34163139`, using observation kernels from `e843cb32`. CPU remains
+FP64 GPU training supports ordinary `PotMTP` with `radial_mode=0`. CPU remains
 the default; explicitly requesting an unavailable backend fails.
 
 ```sh
@@ -54,7 +53,7 @@ is unsupported. Derived/LES/SOG/MTP-M models, ladder topology changes,
 corrections and additive EFS are excluded from this GPU entry point; see
 [trainnlpot GPU support](cuda.md) for broader model families. DF, random search,
 species-only fitting, matrix exports and curvature diagnostics reject GPU
-requests. The public branch's removed Shapeev BFGS is not reintroduced.
+requests.
 
 Use `BUILD_MODE=mpi-cuda` or `mpi-hip` for MPI. Complete structures belong to one
 rank, including uneven and empty local shards. Mathematical/model/optimizer

@@ -18,7 +18,7 @@ inline std::string read_radial_basis_type(std::istream &input) {
         if (!(input >> token))
             throw std::runtime_error("Unexpected end of MTP header before radial_basis_type");
         if (token == "yuk_coeffs" || token == "yuk3_coeffs")
-            throw std::runtime_error("Yukawa coefficient sections (yuk_coeffs/yuk3_coeffs) have been removed and are unsupported");
+            throw std::runtime_error("Yukawa coefficient sections (yuk_coeffs/yuk3_coeffs) are unsupported");
         return token;
     };
 

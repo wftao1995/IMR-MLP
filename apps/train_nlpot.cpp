@@ -103,7 +103,7 @@ int trainnlpot(int argc, char *argv[]) {
 
     if (cmdopts.displayhelp) {
         if (mpi.rank == 0) cmdopts.showhelp(std::cout);
-        return 0; // all ranks return to gpmain's MPI_Finalize
+        return 0; // all ranks return to the main entry point's MPI_Finalize
     }
     if (GPIO::file_exist(settingfile)) {
         Message("Loading settings");

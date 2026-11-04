@@ -17,18 +17,18 @@ extern "C" void lammpsplugin_init(void *lmp, void *handle, void *regfunc)
   plugin.version = LAMMPS_VERSION;
   plugin.style = "pair";
   plugin.name = "mlip/native";
-  plugin.info = "atoms-agent native MTP-family inference";
-  plugin.author = "atoms-agent contributors";
+  plugin.info = "IMR-MLP native MTP-family inference";
+  plugin.author = "IMR-MLP contributors";
   plugin.creator.v1 = reinterpret_cast<lammpsplugin_factory1 *>(&create_pair);
   plugin.handle = handle;
   register_plugin(&plugin,lmp);
   plugin.style = "compute";
   plugin.name = "mlip/native/charge";
-  plugin.info = "atoms-agent native physical-response charges";
+  plugin.info = "IMR-MLP native physical-response charges";
   plugin.creator.v2 = reinterpret_cast<lammpsplugin_factory2 *>(&create_charge);
   register_plugin(&plugin,lmp);
   plugin.name = "mlip/native/latent";
-  plugin.info = "atoms-agent native latent variables";
+  plugin.info = "IMR-MLP native latent variables";
   plugin.creator.v2 = reinterpret_cast<lammpsplugin_factory2 *>(&create_latent);
   register_plugin(&plugin,lmp);
 }

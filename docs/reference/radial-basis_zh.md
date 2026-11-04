@@ -72,5 +72,4 @@ radial_basis_type = RBChebyshevConfigurable
 
 C++ API 中保留的专用类为 `RBChebyshev`、`RBChebyCos`、
 `RBChebyshevPoly4`、`RBChebyshevPoly5`、`RBPolyB` 和
-`RBPolyBCos`。已删除的专用径向基名称不再作为势文件别名接受，
-需要显式改写为 `RBChebyshevConfigurable`。
+`RBPolyBCos`。势文件中的可配置径向基使用 `RBChebyshevConfigurable`。

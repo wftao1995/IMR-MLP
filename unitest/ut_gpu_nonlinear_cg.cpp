@@ -17,7 +17,7 @@ bool cg_gpu_available() {
 }
 struct CGFiles {
     std::filesystem::path directory=std::filesystem::temp_directory_path()/
-        ("atoms-agent-gpu-cg-"+std::to_string(getpid()));
+        ("imrmlp-gpu-cg-"+std::to_string(getpid()));
     CGFiles() {std::filesystem::create_directories(directory);}
     ~CGFiles() {std::error_code error;std::filesystem::remove_all(directory,error);}
 };

@@ -6,7 +6,7 @@ Linear fitting for potentials implementing the generic linear interface.
 
 Wraps TrainerLinearPotential with a clean Python API for
 linear least-squares fitting of descriptor_linear potentials. Ordinary MTP
-uses the dedicated ``gpmain trainmtp --linear-fit`` command.
+uses the dedicated ``imrmlp trainmtp --linear-fit`` command.
 """
 
 from __future__ import annotations

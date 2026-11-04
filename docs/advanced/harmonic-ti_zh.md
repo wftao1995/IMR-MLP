@@ -174,7 +174,7 @@ end
 原子行格式为 `id type x y z`。块索引从 1 开始，要求 `i <= j` 且严格升序；
 下三角块由转置重建，只需存储非零块。单位为 Å 与 eV（FC 为 eV/Å²）。
 参考文件应满足声学求和规则并具有稳定的非平移模态——适配器不会拟合或
-稳定化 Hessian。由 `atoms-agent` 的 `gpmain ti_fit_fc` 写出的文件仍然兼容。
+稳定化 Hessian。
 
 ## 验证与回归
 
@@ -196,5 +196,4 @@ python3 LAMMPS/USER-MLIP/hyb-ti/tests/run_regression.py /path/to/lmp --ranks 2
 - LAMMPS 适配器既不拟合也不稳定化 Hessian；非正定或违反 ASR 的参考文件
   会按原样使用。
 - 不支持 pair 状态的 restart。
-- 历史上的 `debye/opt` 与 `ti/debye` 适配器不包含在本发布中。
 - 简谐参考的 GPU 执行需要单独的设备验证；`mlip/gpudirect` 不覆盖该风格。

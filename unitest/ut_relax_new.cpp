@@ -463,7 +463,7 @@ TEST_CASE("FilterLC reduces to nullspace and reconstructs constrained coordinate
     drv->x << 1.25, 0.75, 4.0; // satisfies x0 + x1 = 2
     drv->g << 3.0, 5.0, 7.0;
 
-    const std::string fnm = "/tmp/atoms_agent_lc_constraint.dat";
+    const std::string fnm = "/tmp/imrmlp_lc_constraint.dat";
     {
         std::ofstream ofs(fnm);
         ofs << "1 3\n";

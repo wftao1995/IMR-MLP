@@ -188,7 +188,7 @@ imrmlp maxvol_extend --legacy --potfile _Trained_Potential_.mtp --state-file _Tr
 ```
 
 This mode changes persistence conventions, not fitting or selection algorithms.
-It does not reintroduce the removed `is_new_` field or enable GPM major version 1.
+GPM major version 1 is not supported.
 
 ## Export GPM to native model files
 
@@ -219,8 +219,8 @@ relative child paths and preserves training flags and mixing configuration.
 Move the entire exported file set together. An MTM-backed `descriptor_linear`
 also exports `<output>.descriptor.mtp`, referenced relative to its model file.
 
-Native export supports `mtp`, `mtp_m`, `mtp_les`, `mtpnn1`, `mtp_edq`,
-`mtp_edqrd`, `hmtp`, `hybrid`, `hybrid_scale`, `eam_trainable`, `eampoly`,
+Native export supports `mtp`, `mtp_m`, `mtp_les`, `mtpnn1`,
+`hmtp`, `hybrid`, `hybrid_scale`, `eam_trainable`, `eampoly`,
 `lj612`, `zbl`, `mindist`, `sw`, `tersoff`, `pair_table`, `threebody_table`
 and `descriptor_linear`. Families without a complete reloadable native writer
 (including MEAM, EAM alloy/FS tables, committees and external runtime models)

@@ -243,7 +243,7 @@ TEST_CASE("MTP-M LES full parameter gradients include the descriptor response", 
     }
 }
 
-TEST_CASE("LES rejects removed fields in model files and settings", "[les][regression][errors]") {
+TEST_CASE("LES rejects unsupported fields in model files and settings", "[les][regression][errors]") {
     const std::string field = GENERATE("lr_k_cutoff", "les_output_scaling",
         "les_stress_fd_nudge", "enable_indirect_force", "remove_net_charge");
     auto message = Catch::Matchers::ContainsSubstring("Unsupported LES field: " + field);

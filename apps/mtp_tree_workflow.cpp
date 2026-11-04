@@ -3,10 +3,6 @@
 #include "potentials/gpm_codec.h"
 #include "potentials/potential_mtp_LES.h"
 #include "potentials/potential_mtpnn1.h"
-#if __has_include("potentials/potential_mtp_edqrd.h")
-#include "potentials/potential_mtp_edqrd.h"
-#define MTP_WORKFLOW_EDQ
-#endif
 #include "potentials/potential_hybrid.h"
 #include "potentials/potential_hybrid_scale.h"
 #include "potentials/potential_hybmtp.h"
@@ -138,14 +134,6 @@ std::vector<int> morph(Graph &g,const std::string &id,const Adjustment &op,const
             for(size_t i=0;i<p.size();++i)for(int j=0;j<cols;++j)next[(i+1)*cols+j]=weights[(p[i]+1)*cols+j];state["input_weights"]=g.numeric(next,{uint64_t(rows),uint64_t(cols)});
             for(const auto *key:{"mean","inverse_std"}){auto old=values(*g.reader,state.at(key)),v=old;for(size_t i=0;i<p.size();++i)v[i+1]=old[p[i]+1];state[key]=g.numeric(v,{uint64_t(rows),1});}
         }
-    } else if(type=="mtp_edq"||type=="mtp_edqrd") {
-        auto &state=node.at("state").get<Object>();auto old=values(*g.reader,state.at("redistribution_logits"));
-        {
-            require(old.size()==size_t(s-1),"Invalid EDQRd reference gauge");old.push_back(0.);std::vector<double> next(n-1);const double reference=old[plan.source.back()];
-            for(int i=0;i<n-1;++i)next[i]=old[plan.source[i]]-reference;
-            if(random){std::uniform_real_distribution<double> uniform(-.1,.1);std::vector<double> logits(n);for(int i=0;i<n;++i)logits[i]=plan.fresh[i]?uniform(rng):old[plan.source[i]];for(int i=0;i<n-1;++i)next[i]=logits[i]-logits.back();}
-            state["redistribution_logits"]=g.numeric(next,{uint64_t(next.size()),1});
-        }
     } else if(type=="descriptor_linear") {
         require(child_permutations.count("descriptor"),"Only MTM-backed descriptor_linear supports MTP adjustments");
         if(op.basis!="keep") {
@@ -210,7 +198,7 @@ std::unique_ptr<AnyPotential> adjust_tree(AnyPotential &model,const Adjustment &
             }
             const auto map=parameter_sources(*old,op,plan,layout);std::vector<double> next(map.size());std::vector<bool> seen(weights.size());
             for(size_t i=0;i<map.size();++i)if(map[i]>=0){next[i]=weights[map[i]];seen[map[i]]=true;}
-            for(size_t i=0;i<weights.size();++i)require(seen[i]||weights[i]==0.,"Cannot preserve coupled/gauge regularization at "+id+"; remove that penalty before changing its reference gauge");
+            for(size_t i=0;i<weights.size();++i)require(seen[i]||weights[i]==0.,"Cannot preserve coupled regularization at "+id+"; remove that penalty before adjusting the model");
             changed.node(id).at("common").get<Object>()[key]=changed.numeric(next);
         }
     }
@@ -342,16 +330,15 @@ struct Builder {
                     }
                     source=load(input,factory);if(requested.empty()&&(config["pottype"].empty()||config["pottype"]=="auto"))type=ModelBundle::type(*source);
                 }
-            } else if(magic=="EDQRD"||magic=="pottype"||fs::exists(input+".nn")||fs::exists(input+"_sub1")) {
+            } else if(magic=="pottype"||fs::exists(input+".nn")||fs::exists(input+"_sub1")) {
                 auto factory=config;
                 if(magic=="pottype"){std::string declared;*stream>>declared;factory.Modify("pottype",declared);}
-                else if(magic=="EDQRD")factory.Modify("pottype","mtp_edqrd");
                 else if(fs::exists(input+".nn"))factory.Modify("pottype","mtpnn1");
                 else {factory.Modify("pottype","hmtp");factory.Modify("potlevel",fs::exists(input+"_sub3")?"3":"2");}
                 source=load(input,factory);if(requested.empty()&&(config["pottype"].empty()||config["pottype"]=="auto"))type=ModelBundle::type(*source);
             }
         }
-        if(source)require(type==ModelBundle::type(*source)||((type=="mtp_edq"||type=="mtp_edqrd")&&(ModelBundle::type(*source)=="mtp_edq"||ModelBundle::type(*source)=="mtp_edqrd"))||type=="mtp"||type=="mtp_m"||type=="mtp_les"||type=="mtpnn1"||type=="descriptor_linear","Changing composite families requires explicit child templates");
+        if(source)require(type==ModelBundle::type(*source)||type=="mtp"||type=="mtp_m"||type=="mtp_les"||type=="mtpnn1"||type=="descriptor_linear","Changing composite families requires explicit child templates");
         if(source&&names.empty())names=model_elements(*source);
         if(source&&!reset&&!names.empty()){const auto existing=model_elements(*source);require(existing.empty()||existing==names,"Use adjustmtp to change existing element identities");}
         if(source&&!reset&&(type=="mtp_les"||type=="mtp_m")) {
@@ -403,24 +390,6 @@ struct Builder {
             if(matching&&!reset)model->species_coeffs=dynamic_cast<PotMTPNN1&>(*source).species_coeffs;
             model->set_inited();return model;
         }
-        if(type=="mtp_edq"||type=="mtp_edqrd") {
-#ifdef MTP_WORKFLOW_EDQ
-            if(source&&!reset&&ModelBundle::type(*source)==type)return source;
-            if(source) {
-                auto &old=dynamic_cast<PotMTP_EDQRd&>(*source);config.Modify("sr_potfile",saved(old.short_range_model()));config.Modify("charge_potfile",saved(old.charge_model()));
-                if(config["default_total_charge"].empty())config.Modify("default_total_charge",std::to_string(old.default_total_charge));
-                if(config["total_charge_attribute"].empty())config.Modify("total_charge_attribute",old.total_charge_attribute);
-                if(config["ewald_real_cutoff"].empty())config.Modify("ewald_real_cutoff",std::to_string(old.electrostatics.real_cutoff));
-                if(config["ewald_force_accuracy"].empty())config.Modify("ewald_force_accuracy",std::to_string(old.electrostatics.force_accuracy));
-            }
-            require(!config["sr_potfile"].empty()&&!config["charge_potfile"].empty(),"EDQ initialization requires explicit sr_potfile and charge_potfile");
-            auto sr=leaf(GPSettings(),config["sr_potfile"],"mtp"),charge=leaf(GPSettings(),config["charge_potfile"],"mtp");
-            config.Modify("sr_potfile",saved(*sr));config.Modify("charge_potfile",saved(*charge));config.Modify("potfile","");config.Modify("pottype",type);
-            return std::make_unique<PotMTP_EDQRd>(config,type=="mtp_edq"?PotMTP_EDQRd::Mode::EDQ:PotMTP_EDQRd::Mode::EDQRd);
-#else
-            require(false,"EDQ/EDQRd is not implemented in this repository");
-#endif
-        }
         if(type=="hybrid"||type=="hybrid_scale"||type=="hmtp") {
             if(source&&!reset) {
                 bool structural=false;for(const auto &[key,value]:config.settings)if(key!="potfile"&&key!="pottype"&&key!="typemap"&&!value.empty())structural=true;
@@ -462,7 +431,7 @@ struct Builder {
 std::string resolve(Graph &graph,std::string path) {
     auto id=string(graph.writer.manifest.at("root_model"));if(path.empty()||path=="root")return id;
     if(path.starts_with("root/"))path.erase(0,5);std::replace(path.begin(),path.end(),'.','/');std::istringstream in(path);std::string role;
-    while(std::getline(in,role,'/')){require(!role.empty(),"Empty offset target path component");require(role!="charge"&&role!="charge_model"&&role!="descriptor","Offset targets must be energy branches, not charges or descriptors");const auto &children=object(graph.node(id).at("children"));require(children.count(role),"Unknown offset target: "+path);id=string(children.at(role));}return id;
+    while(std::getline(in,role,'/')){require(!role.empty(),"Empty offset target path component");require(role!="descriptor","Offset targets must be energy branches, not descriptors");const auto &children=object(graph.node(id).at("children"));require(children.count(role),"Unknown offset target: "+path);id=string(children.at(role));}return id;
 }
 void dataset_operations(std::unique_ptr<AnyPotential> &model,const std::string &dataset,const std::string &format,const std::string &index,bool explicit_index,bool fit,bool normalize,const std::string &target) {
     require(!(fit||normalize)||!dataset.empty(),"Offset fitting and normalization require a dataset");if(dataset.empty())return;
@@ -480,7 +449,7 @@ void dataset_operations(std::unique_ptr<AnyPotential> &model,const std::string &
         require(mean.allFinite()&&m2.allFinite(),"Nonfinite descriptor statistics at "+id);Message("Basis statistics "+id+": sites="+std::to_string(sites)+", mean norm="+std::to_string(mean.norm()));
     }
     if(!fit&&!normalize)return;
-    const auto root_type=string(graph.node(root).at("type"));const bool composite=root_type=="hybrid"||root_type=="hybrid_scale"||root_type=="hmtp"||root_type=="mtp_edq"||root_type=="mtp_edqrd";
+    const auto root_type=string(graph.node(root).at("type"));const bool composite=root_type=="hybrid"||root_type=="hybrid_scale"||root_type=="hmtp";
     require(!composite||!target.empty(),"Composite offset fitting/normalization requires --offset-target");
     const auto id=resolve(graph,target);auto &node=graph.node(id);const auto kind=string(node.at("type"));
     require(kind=="mtp"||kind=="mtp_m"||kind=="mtp_les"||kind=="mtpnn1","Target has no independent elemental energy offsets: "+id);

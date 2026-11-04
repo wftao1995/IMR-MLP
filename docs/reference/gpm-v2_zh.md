@@ -179,8 +179,7 @@ imrmlp maxvol_sample --legacy --potfile _Trained_Potential_.mtp --input candidat
 imrmlp maxvol_extend --legacy --potfile _Trained_Potential_.mtp --state-file _Trained_Potential_.mtp.sel --candidates candidates.xyz
 ```
 
-此模式只切换持久化约定，不回退训练或选样算法，也不恢复已移除的 `is_new_` 字段，
-不增加 GPM 主版本 1 的兼容性。
+此模式只切换持久化约定，不改变训练或选样算法。GPM 主版本 1 不受支持。
 
 ## 将 GPM 导出为原生模型文件
 
@@ -206,7 +205,7 @@ GPM 元素表完整时额外生成 `model.mtp.index.map`；`model.mtp.ini` 记�
 需一起移动整套导出文件。基于 MTM 的 `descriptor_linear` 还会导出
 `<output>.descriptor.mtp`，通过相对模型文件的路径引用。
 
-原生导出支持 `mtp`、`mtp_m`、`mtp_les`、`mtpnn1`、`mtp_edq`、`mtp_edqrd`、
+原生导出支持 `mtp`、`mtp_m`、`mtp_les`、`mtpnn1`、
 `hmtp`、`hybrid`、`hybrid_scale`、`eam_trainable`、`eampoly`、`lj612`、`zbl`、
 `mindist`、`sw`、`tersoff`、`pair_table`、`threebody_table`、`descriptor_linear`。
 没有完整可重载原生写入器的模型（包括 MEAM、EAM alloy/FS 表格、committee 和

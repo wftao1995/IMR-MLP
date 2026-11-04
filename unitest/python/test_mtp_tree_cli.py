@@ -5,12 +5,10 @@ import pytest
 from test_gpm_workflow_cli import prepare_fixture, run
 from test_cli_error_paths import run_command
 
-FAMILIES=['les','sog','mtpm_sog','nn1','nn2','edq','edqrd','hybrid','scale','hmtp','linear']
+FAMILIES=['les','sog','mtpm_sog','nn1','nn2','hybrid','scale','hmtp','linear']
 
 
 def prepare(path, family):
-    if family in ['edq','edqrd'] and not (Path(__file__).resolve().parents[2]/'potentials/potential_mtp_edqrd.h').exists():
-        pytest.skip('EDQ/EDQRd model family is absent in this repository')
     prepare_fixture(path)
     text=(path/'base.mtp').read_text()
     text=text[:text.index('radial_coeffs')]+text[text.index('alpha_moments_count'):]
@@ -21,7 +19,6 @@ def prepare(path, family):
         common+='pot:pottype mtp_les\npot:les_kernel '+('sog' if family=='sog' else 'coulomb')+'\n'
     elif family=='mtpm_sog':common+='pot:pottype mtp_m\npot:extmodel mtp_m_n2\npot:n_input 2\npot:n_neuron 3\npot:n_neuron2 2\npot:lr_les true\npot:les_kernel sog\n'
     elif family in ['nn1','nn2']:common+=f'pot:pottype mtpnn1\npot:nnlay {1 if family=="nn1" else 2}\npot:nnhidden 3\npot:nnhidden2 2\n'
-    elif family in ['edq','edqrd']:common+=f'pot:pottype mtp_{family}\npot:sr_potfile template.mtp\npot:charge_potfile template.mtp\n'
     elif family in ['hybrid','scale','hmtp']:
         common+='pot:pottype '+{'hybrid':'hybrid','scale':'hybrid_scale','hmtp':'hmtp'}[family]+'\npot:npot 2\npot:pot1:pottype mtp\npot:pot1:potfile template.mtp\n'
         if family=='hybrid':common+='pot:pot2:pottype zbl\npot:pot2:r0 0.5\npot:pot2:r1 2\n'
@@ -73,7 +70,7 @@ def test_initialize_reuse_reinitialize_and_adjust_full_model_tree(tmp_path,famil
     np.testing.assert_allclose(labels(tmp_path,'reordered.gpm','independent.cfg'),expected,rtol=1e-8,atol=1e-9)
 
 
-@pytest.mark.parametrize('family,target',[('hybrid','pot1'),('scale','pot2'),('edq','short_range'),('edqrd','short_range')])
+@pytest.mark.parametrize('family,target',[('hybrid','pot1'),('scale','pot2')])
 def test_composite_offset_fit_uses_complete_model_response(tmp_path,family,target):
     prepare(tmp_path,family)
     # Three geometries with a known +0.4 eV per-atom correction.
@@ -95,9 +92,9 @@ def test_composite_offset_fit_uses_complete_model_response(tmp_path,family,targe
     np.testing.assert_allclose(energies,wanted,atol=1e-8,rtol=1e-8)
 
 
-def test_bad_charge_offset_target_preserves_existing_output(tmp_path):
-    prepare(tmp_path,'edqrd');(tmp_path/'old.gpm').write_bytes(b'keep')
-    result=run_command('imrmlp',['initmtpm','--input=tree.gpm','--output=old.gpm','--dataset=periodic.xyz','--format=extxyz','--fit-species-offsets','--offset-target=charge'],tmp_path)
+def test_descriptor_offset_target_preserves_existing_output(tmp_path):
+    prepare(tmp_path,'nn1');(tmp_path/'old.gpm').write_bytes(b'keep')
+    result=run_command('imrmlp',['initmtpm','--input=tree.gpm','--output=old.gpm','--dataset=periodic.xyz','--format=extxyz','--fit-species-offsets','--offset-target=descriptor'],tmp_path)
     assert result.returncode!=0
     assert 'energy branches' in result.stderr
     assert (tmp_path/'old.gpm').read_bytes()==b'keep'
@@ -115,13 +112,11 @@ def test_composite_settings_entry_and_combined_statistics(tmp_path):
     np.testing.assert_allclose(labels(tmp_path,'direct.gpm','direct.cfg'),labels(tmp_path,'tree.gpm','tree.cfg'),atol=1e-9,rtol=1e-8)
 
 
-def test_absent_public_model_family_fails_before_publication(tmp_path):
-    if (Path(__file__).resolve().parents[2]/'potentials/potential_mtp_edqrd.h').exists():
-        pytest.skip('Only applies to repositories without EDQ/EDQRd')
+def test_unknown_model_family_preserves_existing_output(tmp_path):
     prepare(tmp_path,'hybrid');(tmp_path/'old.gpm').write_bytes(b'keep')
-    result=run_command('imrmlp',['initmtpm','--input=template.mtp','--type=mtp_edqrd','--output=old.gpm'],tmp_path)
+    result=run_command('imrmlp',['initmtpm','--input=template.mtp','--type=unknown_test_model','--output=old.gpm'],tmp_path)
     assert result.returncode!=0
-    assert 'not implemented in this repository' in result.stderr
+    assert 'Initialization is not defined for model family: unknown_test_model' in result.stderr
     assert (tmp_path/'old.gpm').read_bytes()==b'keep'
 
 

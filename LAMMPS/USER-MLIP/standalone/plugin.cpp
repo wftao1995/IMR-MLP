@@ -25,7 +25,7 @@ extern "C" void lammpsplugin_init(void *lmp, void *handle, void *regfunc)
     plugin.version = LAMMPS_VERSION;
     plugin.style = "pair";
     plugin.info = "Independent MTP-M FP64 inference";
-    plugin.author = "atoms-agent contributors";
+    plugin.author = "IMR-MLP contributors";
     plugin.handle = handle;
     plugin.name = "mlip/opt";
     plugin.creator.v1 = reinterpret_cast<lammpsplugin_factory1 *>(&create_opt);

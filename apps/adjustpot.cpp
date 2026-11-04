@@ -50,7 +50,6 @@ int adjustmtp(int argc, char *argv[]) {
             if(config["pottype"]=="auto"&&!GPM::is_file(infile)&&!GPM::extension(infile)) {
                 auto stream=open_ifile(infile);std::string magic;if(stream)*stream>>magic;
                 if(magic=="pottype"){std::string declared;*stream>>declared;config.Modify("pottype",declared);}
-                else if(magic=="EDQRD")config.Modify("pottype","mtp_edqrd");
                 else if(MTPWorkflow::fs::exists(infile+".nn"))config.Modify("pottype","mtpnn1");
                 else if(MTPWorkflow::fs::exists(infile+"_sub1")){config.Modify("pottype","hmtp");config.Modify("potlevel",MTPWorkflow::fs::exists(infile+"_sub3")?"3":"2");}
             }
