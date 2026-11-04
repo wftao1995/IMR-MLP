@@ -1,0 +1,3 @@
+# Keep the original empty potential_tag header, including its trailing space.
+# These golden inputs are checked byte-for-byte against their source SHA-256.
+*.mtp whitespace=-blank-at-eol
