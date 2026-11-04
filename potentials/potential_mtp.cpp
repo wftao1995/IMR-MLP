@@ -841,26 +841,27 @@ void Potentials::PotMTP::ReorderByLevelGroup() {
             if (a.first < b.first) return true;
             return false;
         });
-    int mom_prev = 0;
-    int levcurr = 0;
-    lev_scalar_count.resize(max_level + 1, 0);
+    // Operand grouping can interleave scalar and non-scalar coordinates.
+    // Coordinate gaps do not indicate dependency levels; use the graph levels.
+    std::vector<int> moment_levels(alpha_moments_count, 0);
+    for (const auto &[old_id, new_id] : index_nonbasic_old_to_new)
+        moment_levels.at(new_id) = bidlev.at(old_id);
+    lev_scalar_count.assign(max_level + 1, 0);
     for (int i = 0; i < alpha_scalar_moments; ++i) {
         alpha_moment_mapping[i] = tmp_moment_coeffs[i].first;
         moment_coeffs[i] = tmp_moment_coeffs[i].second;
-        if (alpha_moment_mapping[i] == mom_prev++) {
-            ++lev_scalar_count[levcurr];
-        } else {
-            ++levcurr;
-            mom_prev = alpha_moment_mapping[i] + 1;
-            ++lev_scalar_count[levcurr];
-        }
+        ++lev_scalar_count.at(moment_levels.at(alpha_moment_mapping[i]));
     }
-    int tmp_accu = 0;
-    lev_scalar_nodes.resize(max_level+1, 0);
-    for (int i = 1; i <= max_level; ++i) {
-        tmp_accu += lev_scalar_count[i - 1];
-        lev_scalar_nodes[i] = alpha_moment_mapping[tmp_accu];
+    // A ladder prefix ends at the first moment in the following level,
+    // including levels without selected scalar outputs.
+    lev_scalar_nodes.assign(max_level + 1, alpha_moments_count);
+    lev_scalar_nodes[0] = 0;
+    for (int id = alpha_index_basic_count; id < alpha_moments_count; ++id) {
+        const int level = moment_levels[id];
+        if (level > 0) lev_scalar_nodes[level] = std::min(lev_scalar_nodes[level], id);
     }
+    for (int level = max_level - 1; level > 0; --level)
+        lev_scalar_nodes[level] = std::min(lev_scalar_nodes[level], lev_scalar_nodes[level + 1]);
 }
 
 void PotMTP::Save(const std::string &potf) {
@@ -1517,26 +1518,27 @@ void PotMTP::ReorderByLevel() {
             if (a.first < b.first) return true;
             return false;
         });
-    int mom_prev = 0;
-    int levcurr = 0;
-    lev_scalar_count.resize(max_level + 1, 0);
+    // Operand grouping can interleave scalar and non-scalar coordinates.
+    // Coordinate gaps do not indicate dependency levels; use the graph levels.
+    std::vector<int> moment_levels(alpha_moments_count, 0);
+    for (const auto &[old_id, new_id] : index_nonbasic_old_to_new)
+        moment_levels.at(new_id) = bidlev.at(old_id);
+    lev_scalar_count.assign(max_level + 1, 0);
     for (int i = 0; i < alpha_scalar_moments; ++i) {
         alpha_moment_mapping[i] = tmp_moment_coeffs[i].first;
         moment_coeffs[i] = tmp_moment_coeffs[i].second;
-        if (alpha_moment_mapping[i] == mom_prev++) {
-            ++lev_scalar_count[levcurr];
-        } else {
-            ++levcurr;
-            mom_prev = alpha_moment_mapping[i] + 1;
-            ++lev_scalar_count[levcurr];
-        }
+        ++lev_scalar_count.at(moment_levels.at(alpha_moment_mapping[i]));
     }
-    int tmp_accu = 0;
-    lev_scalar_nodes.resize(max_level+1, 0);
-    for (int i = 1; i <= max_level; ++i) {
-        tmp_accu += lev_scalar_count[i - 1];
-        lev_scalar_nodes[i] = alpha_moment_mapping[tmp_accu];
+    // A ladder prefix ends at the first moment in the following level,
+    // including levels without selected scalar outputs.
+    lev_scalar_nodes.assign(max_level + 1, alpha_moments_count);
+    lev_scalar_nodes[0] = 0;
+    for (int id = alpha_index_basic_count; id < alpha_moments_count; ++id) {
+        const int level = moment_levels[id];
+        if (level > 0) lev_scalar_nodes[level] = std::min(lev_scalar_nodes[level], id);
     }
+    for (int level = max_level - 1; level > 0; --level)
+        lev_scalar_nodes[level] = std::min(lev_scalar_nodes[level], lev_scalar_nodes[level + 1]);
 }
 
 void PotMTP::getEFS(Atoms &atom) {

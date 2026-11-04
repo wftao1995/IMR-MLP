@@ -138,3 +138,23 @@ def test_mpi_full_tree_restore_and_migration(tmp_path,family):
     result=launch('adjustmtp','--input=tree.gpm','--output=mpi-adjusted.gpm','--append-elements','He','--new-species-init=clone','--clone-from','0','--basis-order=level-group')
     assert result.returncode==0,result.stdout+result.stderr
     np.testing.assert_allclose(labels(tmp_path,'mpi-adjusted.gpm','mpi.cfg'),expected,atol=1e-9,rtol=1e-8)
+
+
+@pytest.mark.parametrize('family',['mtp','mtp_m','hybrid'])
+def test_generated_high_order_basis_preserves_predictions_on_repeated_sort(tmp_path,family):
+    (tmp_path/'basis.ini').write_text('max_lev 16\nmax_dim 4\nmax_mu 2\nmax_nv 4\nmax_poly 8\nmu_wei 2\nnv_wei 1\ndim_wei 2\nmode 3\nmaxiter 2\nw1 1\nw2 4\n')
+    run(tmp_path,'mtmbasis','--settings=basis.ini','--potfile=basis.mtp')
+    (tmp_path/'template.mtp').write_text((tmp_path/'basis.mtp_0').read_text().replace('min_dist = 2','min_dist = 0.5'))
+    config='pot:pottype '+family+'\n'
+    if family=='mtp_m':config+='pot:extmodel mtp_m_n2\npot:n_input 2\npot:n_neuron 3\npot:n_neuron2 2\n'
+    if family=='hybrid':config+='pot:npot 2\npot:pot1:pottype mtp\npot:pot1:potfile template.mtp\npot:pot2:pottype zbl\npot:pot2:r0 1\npot:pot2:r1 2\n'
+    (tmp_path/'model.ini').write_text(config)
+    (tmp_path/'periodic.xyz').write_text('3\nLattice="12 0 0 0 12 0 0 0 12" pbc="T T T" Properties=species:S:1:pos:R:3\nH 1 1 1\nHe 2.3 1.2 1\nH 1.4 3 1.3\n')
+    run(tmp_path,'initmtpm','--input=template.mtp','--settings=model.ini','--elements','H','He','--output=model.gpm')
+    expected=labels(tmp_path,'model.gpm','before.cfg')
+    for order in ['level','level-group']:
+        run(tmp_path,'adjustmtp','--input=model.gpm','--output=sorted.gpm','--basis-order='+order)
+        run(tmp_path,'model_validate','--input=sorted.gpm')
+        np.testing.assert_allclose(labels(tmp_path,'sorted.gpm','sorted.cfg'),expected,atol=1e-9,rtol=1e-8)
+        run(tmp_path,'adjustmtp','--input=sorted.gpm','--output=twice.gpm','--basis-order='+order)
+        np.testing.assert_allclose(labels(tmp_path,'twice.gpm','twice.cfg'),expected,atol=1e-9,rtol=1e-8)

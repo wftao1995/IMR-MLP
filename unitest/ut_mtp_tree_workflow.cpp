@@ -51,3 +51,27 @@ TEST_CASE("Grouped basis sorting preserves interleaved accumulation targets", "[
     MTPWorkflow::save(*adjusted,output);auto reloaded=ModelBundle::load(output);
     compare(reloaded->potential(),atoms,expected);
 }
+
+TEST_CASE("Basis levels follow graph dependencies across scalar coordinate gaps", "[mtp][workflow][tree]") {
+    const std::string order=GENERATE("level","level-group");
+    const bool derived=GENERATE(false,true);
+    std::ostringstream text;
+    text << "MTP\nversion = 1.1.0\npotential_name = MTP1m\nscaling = 1\nspecies_count = 1\npotential_tag =\n"
+         << "radial_basis_type = RBChebyshev\nmin_dist = 0.5\nmax_dist = 5\nradial_basis_size = 2\nradial_funcs_count = 1\nradial_coeffs\n0-0\n{0.03, 0.01}\n"
+         << "alpha_moments_count = 5\nalpha_index_basic_count = 3\nalpha_index_basic = {{0,0,0,0}, {0,0,0,0}, {0,0,0,0}}\n"
+         << "alpha_index_times_count = 2\nalpha_index_times = {{0,0,1,3}, {1,1,1,4}}\n"
+         << "alpha_scalar_moments = " << (derived?3:2) << "\nalpha_moment_mapping = " << (derived?"{0,2,4}":"{0,2}")
+         << "\nspecies_coeffs = {-0.2}\nmoment_coeffs = " << (derived?"{0.01,0.02,0.03}":"{0.01,0.02}") << '\n';
+    std::istringstream input(text.str());PotMTP source;source.Load(input);
+    auto atoms=swap_lattice(2,1),expected=atoms;source.getEFS(expected);
+    for(int repeat=0;repeat<2;++repeat) {
+        if(order=="level")source.ReorderByLevel();else source.ReorderByLevelGroup();
+        MTPWorkflow::validate_graph(source);compare(source,atoms,expected);
+        REQUIRE(source.lev_scalar_count==std::vector<int>{2,derived?1:0});
+        REQUIRE(source.lev_scalar_nodes==std::vector<int>{0,3});
+        REQUIRE(source.lev_times_count==std::vector<int>{0,2});
+    }
+    MTPWorkflow::Stage stage;const auto output=(stage.path/"sparse.gpm").string();
+    MTPWorkflow::save(source,output);auto reloaded=ModelBundle::load(output);
+    compare(reloaded->potential(),atoms,expected);
+}
