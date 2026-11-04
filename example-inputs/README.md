@@ -34,6 +34,10 @@ The gzip inputs (`.gz`) work with the default build. `compressed/example.xyz.zst
 requires `USE_ZSTD=1` and libzstd; otherwise the reader reports
 `Zstandard compression is not supported`.
 
+Reference decks cap `relax:maxiteration`, `fit:bfgs_maxiteration`, and
+`fit:lbfgspp:maxit` at 2000. Raise a limit explicitly when a production run
+needs more iterations.
+
 These are templates, not self-contained calculations. Copy a suitable file to a
 new run directory, replace the input/model paths and check the species map.
 Relative paths resolve from the directory where you launch `imrmlp`, even when
