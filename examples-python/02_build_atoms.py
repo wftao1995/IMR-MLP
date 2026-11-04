@@ -6,19 +6,22 @@
 
 演示 Atoms 对象的创建和属性访问。
 """
+
 import numpy as np
 from imrmlp import Atoms
 
 # ── 构造 FCC-Al 4 原子晶胞 ───────────────────────────────────────────
 a0 = 4.05  # Å
 atoms = Atoms(
-    numbers=np.array([13, 13, 13, 13]),          # Al = 原子序数 13
-    positions=np.array([
-        [0.0, 0.0, 0.0],
-        [a0/2, a0/2, 0.0],
-        [a0/2, 0.0, a0/2],
-        [0.0, a0/2, a0/2],
-    ]),
+    numbers=np.array([13, 13, 13, 13]),  # Al = 原子序数 13
+    positions=np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [a0 / 2, a0 / 2, 0.0],
+            [a0 / 2, 0.0, a0 / 2],
+            [0.0, a0 / 2, a0 / 2],
+        ]
+    ),
     cell=np.eye(3) * a0,
     elements=["Al"],
 )

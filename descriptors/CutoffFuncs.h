@@ -9,9 +9,10 @@
  */
 #ifndef IMRMLP_CUTOFFFUNCS_H
 #define IMRMLP_CUTOFFFUNCS_H
+
 class CutoffFunctions
 {
-public:
+  public:
     /** List of available cutoff function types.
      *
      * Most cutoff types allow the definition of an inner cutoff
@@ -50,16 +51,17 @@ public:
         CT_POLY4
     };
 
-private:
+  private:
     CutoffType cutofftype_;
     double radius_ = 5.0;
-    double radinv_ = 0.2;                                                           // inverse of radius
-    double radinner_ = 1.0;                                                         // inner cutoff
-    double iw = 4.0;                                                                // inverse width of cutoff function @f$\frac{1}{r_c - r_{ci}}@f$.
-    double alpha_;                                                            // Cutoff function parameter for `CT_POLYn` and `CT_EXP` @f$\alpha@f$.
-    double (CutoffFunctions::*fPtr)(double r) const;                          //Function pointer to fcut
-    double (CutoffFunctions::*dfPtr)(double r) const;                         // Function pointer to df.
-    void (CutoffFunctions::*fdfPtr)(double r, double &fc, double &dfc) const; // Function pointer to fdf.
+    double radinv_ = 0.2;   // inverse of radius
+    double radinner_ = 1.0; // inner cutoff
+    double iw = 4.0;        // inverse width of cutoff function @f$\frac{1}{r_c - r_{ci}}@f$.
+    double alpha_;          // Cutoff function parameter for `CT_POLYn` and `CT_EXP` @f$\alpha@f$.
+    double (CutoffFunctions::*fPtr)(double r) const;  //Function pointer to fcut
+    double (CutoffFunctions::*dfPtr)(double r) const; // Function pointer to df.
+    void (CutoffFunctions::*fdfPtr)(double r, double &fc,
+                                    double &dfc) const; // Function pointer to fdf.
 
     // Cutoff functions
     // double fHARD(double r) const;
@@ -102,27 +104,51 @@ private:
     double dfEXP(double r) const;
     void fdfEXP(double r, double &fc, double &dfc) const;
 
-public:
+  public:
     // Constructor, initializes to CT_HARD
     CutoffFunctions();
-    ~CutoffFunctions(){};
+    ~CutoffFunctions() {};
     /** Set cutoff type.
      * @param[in] ctype  Type of cutoff function to use.
     */
     void setCutoffType(CutoffType const ctype);
-    inline CutoffType getCutoffType(void) const { return cutofftype_; };
+
+    inline CutoffType getCutoffType(void) const
+    {
+        return cutofftype_;
+    };
+
     void setCutoffRadius(double radius, double const cutoffInner = 1.0);
-    inline double getCutoffRadius(void) const { return radius_; };
+
+    inline double getCutoffRadius(void) const
+    {
+        return radius_;
+    };
+
     void setCutoffParameter(double const alpha);
-    inline double getCutoffParameter(void) const { return alpha_; };
-    inline double fHARD(double) const { return 1; };
-    inline double dfHARD(double) const { return 0; };
+
+    inline double getCutoffParameter(void) const
+    {
+        return alpha_;
+    };
+
+    inline double fHARD(double) const
+    {
+        return 1;
+    };
+
+    inline double dfHARD(double) const
+    {
+        return 0;
+    };
+
     inline void fdfHARD(double, double &fc, double &dfc) const
     {
         fc = 1.0;
         dfc = 0.0;
         return;
     };
+
     /** Cutoff function
      * parameter r
      * */
@@ -133,6 +159,7 @@ public:
         else
             return (this->*fPtr)(r);
     }
+
     // derivative of cutoff
     inline double dfcut(double r) const
     {
@@ -141,6 +168,7 @@ public:
         else
             return (this->*dfPtr)(r);
     }
+
     // cutoff and derivative calculated also
     inline void fdfcut(double r, double &fc, double &dfc) const
     {

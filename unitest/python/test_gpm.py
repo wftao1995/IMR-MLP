@@ -11,13 +11,20 @@ from imrmlp import Atoms, ModelBundle, Potential
 
 
 def settings():
-    return {"pottype": "lj612", "typemap": "", "ntypes": "1",
-            "0-0": "0.13 1.7", "cut:0-0": "5", "ele:0": "0.07"}
+    return {
+        "pottype": "lj612",
+        "typemap": "",
+        "ntypes": "1",
+        "0-0": "0.13 1.7",
+        "cut:0-0": "5",
+        "ele:0": "0.07",
+    }
 
 
 def atoms():
-    return Atoms(positions=[[0, 0, 0], [2.1, 0.1, 0.2]],
-                 cell=np.eye(3) * 20, numbers=[0, 0], pbc=[False] * 3)
+    return Atoms(
+        positions=[[0, 0, 0], [2.1, 0.1, 0.2]], cell=np.eye(3) * 20, numbers=[0, 0], pbc=[False] * 3
+    )
 
 
 def test_gpm_fresh_process_and_explicit_type(tmp_path):
@@ -30,8 +37,8 @@ def test_gpm_fresh_process_and_explicit_type(tmp_path):
     assert (magic, major, minor, flags) == (b'GPMLMODL', 2, 0, 0)
     assert offset == (64 + size + 63) // 64 * 64
     assert digest == bytes(32)
-    assert 'model_fingerprint' not in json.loads(raw[64:64 + size])
-    for block in json.loads(raw[64:64 + size])['blocks']:
+    assert 'model_fingerprint' not in json.loads(raw[64 : 64 + size])
+    for block in json.loads(raw[64 : 64 + size])['blocks']:
         assert all(isinstance(block[key], str) for key in ('offset', 'stored_size', 'raw_size'))
         assert int(block['offset']) % 64 == 0
         start = offset + int(block['offset'])
@@ -40,9 +47,13 @@ def test_gpm_fresh_process_and_explicit_type(tmp_path):
     expected = atoms()
     bundle.potential.calculate(expected)
     import imrmlp
+
     root = Path(imrmlp.__file__).resolve().parent.parent
     from imrmlp import _imrmlp
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(root), str(Path(_imrmlp.__file__).parent)]))
+
+    env = dict(
+        os.environ, PYTHONPATH=os.pathsep.join([str(root), str(Path(_imrmlp.__file__).parent)])
+    )
     code = """
 import json, sys
 import numpy as np
@@ -52,11 +63,21 @@ a=Atoms(positions=[[0,0,0],[2.1,.1,.2]],cell=np.eye(3)*20,numbers=[0,0],pbc=[Fal
 p.calculate(a)
 print('GPM_RESULT='+json.dumps([a.energy, a.forces.tolist()]))
 """
-    run = subprocess.run([sys.executable, "-c", code, str(path)], cwd=tmp_path,
-                         env=env, capture_output=True, text=True)
+    run = subprocess.run(
+        [sys.executable, "-c", code, str(path)],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
     assert run.returncode == 0, run.stderr
-    actual = json.loads(next(line.split("=", 1)[1] for line in run.stdout.splitlines()
-                             if line.startswith("GPM_RESULT=")))
+    actual = json.loads(
+        next(
+            line.split("=", 1)[1]
+            for line in run.stdout.splitlines()
+            if line.startswith("GPM_RESULT=")
+        )
+    )
     assert actual[0] == pytest.approx(expected.energy, abs=1e-12)
     np.testing.assert_allclose(actual[1], expected.forces, atol=1e-12)
     with pytest.raises(RuntimeError, match="type conflicts"):
@@ -85,6 +106,7 @@ def test_gpm_default_save_preserves_and_truncation_is_detected(tmp_path):
 
 def test_gpm_explicit_al_resume_and_selection(tmp_path):
     from imrmlp.al import ActiveSelector
+
     source = Path(__file__).resolve().parents[2] / 'unitest/test-data/potential.mtp'
     selector = ActiveSelector(potfile=source, dtype='pot_efs', select_mode='full')
     a = atoms()

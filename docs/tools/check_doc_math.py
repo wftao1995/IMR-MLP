@@ -2,6 +2,7 @@
 # Copyright (c) 2026 IMR-MLP contributors
 # SPDX-License-Identifier: MIT
 """Compile the TeX in generated HTML with the site's local MathJax runtime."""
+
 import argparse
 from html.parser import HTMLParser
 import json
@@ -33,15 +34,19 @@ class Formulas(HTMLParser):
         if self.skipped:
             return
         for match in MATH.finditer(data):
-            self.formulas.append(dict(
-                line=self.getpos()[0] + data.count('\n', 0, match.start()),
-                tex=match[1] if match[1] is not None else match[2],
-                display=match[2] is not None))
+            self.formulas.append(
+                dict(
+                    line=self.getpos()[0] + data.count('\n', 0, match.start()),
+                    tex=match[1] if match[1] is not None else match[2],
+                    display=match[2] is not None,
+                )
+            )
 
 
 def check_math(directories, mathjax=None):
-    runtime = Path(mathjax or os.environ.get(
-        'MATHJAX_DIR', ROOT / 'build/docs-deps/node_modules/mathjax/es5')).resolve()
+    runtime = Path(
+        mathjax or os.environ.get('MATHJAX_DIR', ROOT / 'build/docs-deps/node_modules/mathjax/es5')
+    ).resolve()
     if not (runtime / 'node-main.js').is_file():
         raise RuntimeError('Local MathJax is missing; run make doc-deps or set MATHJAX_DIR')
     formulas, count = [], 0
@@ -50,11 +55,16 @@ def check_math(directories, mathjax=None):
             raise RuntimeError(f'{directory}: missing index.html')
         for page in sorted(directory.rglob('*.html')):
             count += 1
-            formulas.extend(dict(file=str(page), **formula)
-                            for formula in Formulas(page.read_text()).formulas)
+            formulas.extend(
+                dict(file=str(page), **formula) for formula in Formulas(page.read_text()).formulas
+            )
     result = subprocess.run(
         ['node', str(ROOT / 'docs/tools/check_doc_math.cjs'), str(runtime)],
-        input=json.dumps(formulas), text=True, capture_output=True, check=True)
+        input=json.dumps(formulas),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     report = json.loads(result.stdout)
     report.update(pages=count, formulas=len(formulas))
     return report
@@ -67,8 +77,10 @@ def main():
     report = check_math(args.directories)
     for error in report['errors']:
         print(f"{error['file']}:{error['line']}: {error['error']}\n  {error['tex']}")
-    print(f"MathJax: {report['formulas']} formulas ({report['unique']} unique) "
-          f"in {report['pages']} HTML pages; {len(report['errors'])} errors")
+    print(
+        f"MathJax: {report['formulas']} formulas ({report['unique']} unique) "
+        f"in {report['pages']} HTML pages; {len(report['errors'])} errors"
+    )
     return bool(report['errors'])
 
 

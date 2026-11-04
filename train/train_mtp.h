@@ -38,14 +38,16 @@ using size_t = std::size_t;
 
 // Rank-local GPU timings/counters; data and effective-ridge objectives are global.
 // The before point is after the legacy CPU orthogonalization, before solving.
-struct GpuLinearReport {
+struct GpuLinearReport
+{
     std::string backend = "cpu", algorithm;
     bool verified = false;
     double data_before = 0, data_after = 0;
     double predicted_data_before = 0, predicted_data_after = 0;
     double quadratic_tolerance_before = 0, quadratic_tolerance_after = 0;
     double objective_before = 0, objective_after = 0;
-    std::vector<double> effective_l2; // Full native indices; fixed species are excluded from objectives.
+    std::vector<double>
+        effective_l2; // Full native indices; fixed species are excluded from objectives.
     Training::LinearEFSOptions options;
     Training::LinearEFSStatistics gpu_stats;
     Training::LinearCurvatureStatistics curvature_stats;
@@ -56,7 +58,8 @@ struct GpuLinearReport {
 };
 
 // Cumulative rank-local work; optimizer decisions and regularization stay on CPU.
-struct GpuMTPNonlinearReport {
+struct GpuMTPNonlinearReport
+{
     std::size_t evaluations = 0, validation_evaluations = 0, batches = 0;
     std::size_t gradient_evaluations = 0, peak_device_bytes = 0;
     double evaluation_seconds = 0;
@@ -64,7 +67,7 @@ struct GpuMTPNonlinearReport {
 
 class Trainer_MTP : public ConnectSettings
 {
-private:
+  private:
     struct GpuNonlinearState;
     std::shared_ptr<GpuNonlinearState> gpu_nonlinear_;
     GpuMTPNonlinearReport gpu_nonlinear_report_;
@@ -104,7 +107,7 @@ private:
     std::size_t GpuCurvatureOwnedBytes() const;
     std::size_t GpuCurvatureRowCount(const std::vector<Atoms> &) const;
     std::size_t GpuCurvatureReserve(const Potentials::PotMTP &, const std::vector<Atoms> &,
-                                   const std::vector<Neighborhoods> &, bool allocating) const;
+                                    const std::vector<Neighborhoods> &, bool allocating) const;
     void CheckGpuCurvatureHost(Potentials::PotMTP &, const std::vector<Atoms> &,
                                const std::vector<Neighborhoods> &, bool initialized);
 
@@ -113,17 +116,22 @@ private:
     int n_size_mat = 0;
     int n_radial_coeffs = 0;
     int n_relax_coeffs = 0;
-    struct LayoutSnapshot {
-        const Potentials::PotMTP *potential=nullptr;
-        int coefficients=0, species=0;
-        bool current() const {
-            return potential && potential->get_coeff_size()==coefficients && potential->species_count==species;
+
+    struct LayoutSnapshot
+    {
+        const Potentials::PotMTP *potential = nullptr;
+        int coefficients = 0, species = 0;
+
+        bool current() const
+        {
+            return potential && potential->get_coeff_size() == coefficients &&
+                   potential->species_count == species;
         }
     };
+
     LayoutSnapshot training_layout_, ladder_output_layout_;
     void CaptureParameterLayout();
-    void RequireCurrentParameterLayout(bool allow_ladder_output=false) const;
-
+    void RequireCurrentParameterLayout(bool allow_ladder_output = false) const;
 
     alglib::real_2d_array lin_matrix, lin_matrix_F, lin_matrix_S; // A^T * A
     alglib::real_2d_array lin_matrix_mpi, lin_matrix_F_mpi, lin_matrix_S_mpi;
@@ -135,7 +143,8 @@ private:
     int n_lfit_data = 0; // for each core
     int n_lfit_data_all = 0;
     int n_lfit_data_E = 0, n_lfit_data_F = 0, n_lfit_data_S = 0;
-    Eigen::Matrix<double, -1, -1, Eigen::RowMajor> eigen_lin_matrix_A, eigen_lin_matrix, eigen_lin_matrix_mpi;
+    Eigen::Matrix<double, -1, -1, Eigen::RowMajor> eigen_lin_matrix_A, eigen_lin_matrix,
+        eigen_lin_matrix_mpi;
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> eigen_lin_matrix_F, eigen_lin_matrix_S;
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> eigen_lin_matrix_F_mpi, eigen_lin_matrix_S_mpi;
     Eigen::VectorXd eigen_lin_vector_A, eigen_lin_vector, eigen_lin_vector_mpi, weight_list;
@@ -150,7 +159,8 @@ private:
     alglib::real_1d_array update_vector_last;
     alglib::real_1d_array scale;
     Eigen::VectorXd x_in, g_in;
-    Eigen::VectorXd scaling_coeffs; // scaling of problem, scale each parameter to about magnitute of 1.0
+    Eigen::VectorXd
+        scaling_coeffs; // scaling of problem, scale each parameter to about magnitute of 1.0
 
     double loss;
     double loss_mpi;
@@ -176,9 +186,9 @@ private:
     bool force_radial_randominit = false;
 
     // Common variables
-    size_t train_set_size;     // on current node
-    size_t train_set_size_aligned;   // upper bound
-    size_t train_set_size_all; // all nodes
+    size_t train_set_size;         // on current node
+    size_t train_set_size_aligned; // upper bound
+    size_t train_set_size_all;     // all nodes
 
     size_t valid_set_size = 0;
     size_t valid_set_size_all = 0;
@@ -186,7 +196,7 @@ private:
     // Weight flags
     bool reg_init = false;
     double reg_L2 = 1e-10; // L2, @todo: rename to reg_L2
-    double reg_L1 = 0; // L1
+    double reg_L1 = 0;     // L1
     Training::HVPFitSettings hvp_fit;
     double weight_hessian = 0;
     double weight_hessian_power = 0.0;
@@ -206,7 +216,8 @@ private:
     double randomupw = 0.1;
     double weight_stress_power = 1.0; // weight = weight_stress / (atom.size())^weight_stress_power
     double weight_penatly = 1.0e-6;   // make basis orthogonal
-    double weight_force_norm_d = 0.1; // to target, wgt *= weight_force_norm_d / (weight_force_norm_d + weight_force_norm_f^weight_force_norm_p)
+    double weight_force_norm_d =
+        0.1; // to target, wgt *= weight_force_norm_d / (weight_force_norm_d + weight_force_norm_f^weight_force_norm_p)
     double weight_force_norm_f = 0;
     double weight_force_norm_p = 1.0;
 
@@ -221,9 +232,9 @@ private:
     double sgd_decay_rate = 0.95;
     int sgd_decay_steps = 10;
     double sgd_final_lr = 0.0;
-    double clip_gradient = 0.0;       // 0 = no clipping
-    int sgd_warmup_steps = 0;         // 0 = no warmup
-    double sgd_warmup_lr = 0.0;       // starting LR for warmup
+    double clip_gradient = 0.0; // 0 = no clipping
+    int sgd_warmup_steps = 0;   // 0 = no warmup
+    double sgd_warmup_lr = 0.0; // starting LR for warmup
 
     // BFGS|CG related
     double bfgs_conv_tol = 1e-3;
@@ -260,15 +271,29 @@ private:
     int bfgs_last_linear_fit_iter = -1;
     void RefitBFGS(const char *reason);
 
-public:
+  public:
     void SaveCheckpoint(const std::string &, bool enabled = true);
-    bool UsesGpu() const { return UsesGpuLinear(); }
+
+    bool UsesGpu() const
+    {
+        return UsesGpuLinear();
+    }
+
     void ValidateGpuSettings() const;
     void ValidateGpuNonlinearSettings() const;
-    const GpuMTPNonlinearReport &GetGpuNonlinearReport() const { return gpu_nonlinear_report_; }
+
+    const GpuMTPNonlinearReport &GetGpuNonlinearReport() const
+    {
+        return gpu_nonlinear_report_;
+    }
+
     bool UsesGpuLinear() const;
     void ValidateGpuLinearSettings() const;
-    const GpuLinearReport &GetGpuLinearReport() const { return gpu_linear_report_; }
+
+    const GpuLinearReport &GetGpuLinearReport() const
+    {
+        return gpu_linear_report_;
+    }
 
     ErrorMonitor emonitor, emonitor_valid;
     bool fix_radial_coeffs = false;
@@ -282,12 +307,15 @@ public:
     std::vector<int> train_set_inds_aligned;
     double loss_f_prev;
 
-    inline double get_ploss() {return ploss ;};
+    inline double get_ploss()
+    {
+        return ploss;
+    };
 
     // ladder fitting
     bool do_ladder = false;
     int ladder_cutoff = 10;
-    int ladder_last   = 0;
+    int ladder_last = 0;
     int n_scalars_save;
     Potentials::PotMTP *p_ladder = nullptr;
 
@@ -318,11 +346,13 @@ public:
     std::unique_ptr<Training::SGDScheduler> sgd_scheduler;
 
     Trainer_MTP();
+
     Trainer_MTP(const GPSettings &_settings)
     {
         InitSettings();
         ApplySettings(_settings);
     }
+
     ~Trainer_MTP();
 
     void ReBalance();
@@ -372,14 +402,12 @@ public:
     void TrainDF();
     int DFConstraintCount() const;
     void DFConstraintBounds(alglib::real_1d_array &bounds) const;
-    void EvaluateDFConstraints(const alglib::real_1d_array &x,
-                               alglib::real_1d_array &values) const;
+    void EvaluateDFConstraints(const alglib::real_1d_array &x, alglib::real_1d_array &values) const;
     void FitDFLinear();
 
     void AccumulateGard(double &f, alglib::real_1d_array &gard);
     void AccumulateLoss(double &f);
     void AccumulateTestErr(double &f);
-
 
     // LBFGSpp with LO linesearch, or others
     void TrainNonLinearLBFGS(int it_limit);
@@ -397,7 +425,6 @@ public:
 
     void save_current(std::string fnm);
 
-
     // compute curvture of a single compoment, give val, der and estimated curvture
     void test_curv(int ind, double nudge);
     // check symoblic results and numerically results
@@ -406,7 +433,8 @@ public:
     void get_ATA();
     void get_A();
 
-    int get_relaxed_coeffs_count(void) const {
+    int get_relaxed_coeffs_count(void) const
+    {
         return n_relax_coeffs;
     }
 
@@ -415,8 +443,10 @@ public:
 
     void display_iteration_log(double &f);
 
-    inline int nconf() const { return training_set_.size(); };
+    inline int nconf() const
+    {
+        return training_set_.size();
+    };
 };
-
 
 #endif

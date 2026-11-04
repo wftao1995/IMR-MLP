@@ -17,7 +17,7 @@ def test_online_al_rejects_removed_mode():
 
 
 def test_maxvol_and_cur_remain_usable():
-    matrix = np.array([[1., 0.], [0., 1.], [1., 1.], [2., -1.]])
+    matrix = np.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [2.0, -1.0]])
     selector = imrmlp.MaxVol()
     rows = selector.select_rows(matrix, 2)
     assert len(set(rows)) == 2

@@ -7,11 +7,13 @@
 #include "potentials/potential_mtp.h"
 #include <array>
 
-namespace Training {
+namespace Training
+{
 
 // Residuals are centered at the input model's coefficients to avoid subtracting
 // two large total energies when evaluating a good fit. No regularization here.
-struct EFSQuadratic {
+struct EFSQuadratic
+{
     Eigen::MatrixXd gram;
     Eigen::VectorXd residual_rhs;
     double residual_norm = 0;
@@ -22,8 +24,9 @@ struct EFSQuadratic {
     double loss(const Eigen::VectorXd &delta) const;
 };
 
-class LinearEFSSystem {
-public:
+class LinearEFSSystem
+{
+  public:
     std::array<EFSQuadratic, 3> channels; // E, F, full 3x3 virial
     Eigen::VectorXd anchor;
 
@@ -35,7 +38,7 @@ public:
     void reduce(); // collective over mpi.comm, same result on every rank
     Eigen::MatrixXd matrix(double we, double wf, double ws) const;
     Eigen::VectorXd rhs(double we, double wf, double ws) const;
-    Eigen::MatrixXd root_factor(double we,double wf,double ws) const;
+    Eigen::MatrixXd root_factor(double we, double wf, double ws) const;
     double loss(const Eigen::VectorXd &coeffs, double we, double wf, double ws) const;
     void require_observations(double we, double wf, double ws) const;
 };

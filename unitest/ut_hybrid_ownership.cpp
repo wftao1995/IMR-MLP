@@ -11,16 +11,23 @@ using Catch::Approx;
 using Potentials::PotentialHybrid;
 using Potentials::PotMTP;
 
-namespace {
-struct ModelFile {
+namespace
+{
+struct ModelFile
+{
     std::filesystem::path directory, path;
-    ModelFile() {
-        auto pattern = (std::filesystem::temp_directory_path() / "imrmlp-hybrid-owner-XXXXXX").string();
+
+    ModelFile()
+    {
+        auto pattern =
+            (std::filesystem::temp_directory_path() / "imrmlp-hybrid-owner-XXXXXX").string();
         const char *created = mkdtemp(pattern.data());
-        if (!created) throw std::runtime_error("Cannot create Hybrid ownership fixture");
+        if (!created)
+            throw std::runtime_error("Cannot create Hybrid ownership fixture");
         directory = created;
         path = directory / "model.mtp";
-        try {
+        try
+        {
             // Exact tracked LAMMPS/USER-MLIP/transport/tests/simple_analytic.mtp,
             // embedded to keep this regression independent of test CWD/data.
             std::ofstream output(path);
@@ -48,14 +55,19 @@ species_coeffs = {0.125}
 moment_coeffs = {0.75}
 )mtp";
             output.close();
-            if (!output) throw std::runtime_error("Cannot write Hybrid ownership fixture");
-        } catch (...) {
+            if (!output)
+                throw std::runtime_error("Cannot write Hybrid ownership fixture");
+        }
+        catch (...)
+        {
             std::error_code error;
             std::filesystem::remove_all(directory, error);
             throw;
         }
     }
-    ~ModelFile() {
+
+    ~ModelFile()
+    {
         std::error_code error;
         std::filesystem::remove_all(directory, error);
     }
@@ -74,7 +86,8 @@ GPSettings settings_for(const ModelFile &file, bool invalid_second)
 }
 }
 
-TEST_CASE("Hybrid construction failure releases an already loaded MTP buffer", "[hybrid][ownership]")
+TEST_CASE("Hybrid construction failure releases an already loaded MTP buffer",
+          "[hybrid][ownership]")
 {
     ModelFile file;
     // The first MTP is fully loaded and its OMP scratch initialized before
@@ -83,12 +96,16 @@ TEST_CASE("Hybrid construction failure releases an already loaded MTP buffer", "
     for (int attempt = 0; attempt < 3; ++attempt)
     {
         CAPTURE(attempt);
-        try {
+        try
+        {
             PotentialHybrid invalid(settings_for(file, true));
             FAIL("Hybrid unexpectedly accepted an unsupported second type");
-        } catch (const GPException &error) {
-            REQUIRE_THAT(std::string(error.What()), Catch::Matchers::ContainsSubstring(
-                "hybrid: unsupported sub-potential type: invalid_ownership_probe"));
+        }
+        catch (const GPException &error)
+        {
+            REQUIRE_THAT(std::string(error.What()),
+                         Catch::Matchers::ContainsSubstring(
+                             "hybrid: unsupported sub-potential type: invalid_ownership_probe"));
         }
     }
 }
@@ -117,7 +134,9 @@ TEST_CASE("Hybrid successful construction transfers both MTP buffers once", "[hy
     auto actual = expected;
     reference.getEFS(expected);
     hybrid.getEFS(actual);
-    REQUIRE(actual.energy_ == Approx(2 * expected.energy_ - expected.size() * reference.species_coeffs[0]).margin(1e-12));
+    REQUIRE(
+        actual.energy_ ==
+        Approx(2 * expected.energy_ - expected.size() * reference.species_coeffs[0]).margin(1e-12));
     REQUIRE(actual.forces_.size() == expected.forces_.size());
     for (int i = 0; i < expected.size(); ++i)
         REQUIRE((actual.forces_[i] - 2 * expected.forces_[i]).norm() < 1e-12);

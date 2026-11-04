@@ -4,6 +4,7 @@ MPI acceptance after building the matching executable:
   python unitest/python/test_trainmtp_grad_output_cli.py \
     --mpi-executable /absolute/build/mpi/imrmlp-mpi --work-root /tmp/trainmtp-grad-mpi
 """
+
 import argparse
 import json
 import math
@@ -21,9 +22,13 @@ GRADIENT = 'output_grad_info'
 
 
 def prepare_grad_fixture(path, failure=None):
-    path = prepare_sgd_fixture(path, extra={
-        'pot:pottype': 'mtp', 'pot:potfile': 'base.mtp',
-    })
+    path = prepare_sgd_fixture(
+        path,
+        extra={
+            'pot:pottype': 'mtp',
+            'pot:potfile': 'base.mtp',
+        },
+    )
     if failure == 'directory':
         (path / GRADIENT).mkdir()
     elif failure == 'full_device':
@@ -56,7 +61,7 @@ def compare_reference(path, reference):
     # Each species energy coefficient occurs twice, so its derivative is E+100.
     loss = float((reference / 'output_loss_info').read_text())
     assert values[96:98] == pytest.approx([2 * math.sqrt(loss)] * 2, rel=5e-14)
-    assert max(abs(value) for value in values) > 1.
+    assert max(abs(value) for value in values) > 1.0
     return values
 
 
@@ -64,9 +69,13 @@ def test_trainmtp_calc_grad_writes_127_precise_reference_values_without_training
     path = prepare_grad_fixture(tmp_path / 'dedicated')
     reference = prepare_grad_fixture(tmp_path / 'reference')
     original = (path / 'base.mtp').read_bytes()
-    result = run_command('imrmlp', ['trainmtp', 'settings.ini', '--calc-grad', '--num_threads', '1'], path)
+    result = run_command(
+        'imrmlp', ['trainmtp', 'settings.ini', '--calc-grad', '--num_threads', '1'], path
+    )
     assert result.returncode == 0, result.stdout + result.stderr
-    baseline = run_command('imrmlp', ['trainnlpot', 'settings.ini', '--calc-grad', '--num_threads', '1'], reference)
+    baseline = run_command(
+        'imrmlp', ['trainnlpot', 'settings.ini', '--calc-grad', '--num_threads', '1'], reference
+    )
     assert baseline.returncode == 0, baseline.stdout + baseline.stderr
     compare_reference(path, reference)
     check_no_training_output(path, original)
@@ -79,7 +88,9 @@ def test_trainmtp_calc_grad_output_failures_return_nonzero_and_preserve_source(t
         pytest.skip('/dev/full unavailable')
     path = prepare_grad_fixture(tmp_path, failure)
     original = (path / 'base.mtp').read_bytes()
-    result = run_command('imrmlp', ['trainmtp', 'settings.ini', '--calc-grad', '--num_threads', '1'], path)
+    result = run_command(
+        'imrmlp', ['trainmtp', 'settings.ini', '--calc-grad', '--num_threads', '1'], path
+    )
     assert result.returncode == 1, result.stdout + result.stderr
     assert GRADIENT in result.stdout + result.stderr
     assert 'Finished' not in result.stdout
@@ -105,15 +116,32 @@ def run_mpi_acceptance(executable, work_root, ranks=(2, 3)):
     results = []
 
     def run(path, rank_count, command):
-        cmd = ['mpiexec', '--bind-to', 'none', '-n', str(rank_count), str(executable),
-               command, 'settings.ini', '--calc-grad', '--num_threads', '1']
+        cmd = [
+            'mpiexec',
+            '--bind-to',
+            'none',
+            '-n',
+            str(rank_count),
+            str(executable),
+            command,
+            'settings.ini',
+            '--calc-grad',
+            '--num_threads',
+            '1',
+        ]
         with (work_root / 'commands.txt').open('a') as output:
             output.write(f'cwd={path}\n' + ' '.join(cmd) + '\n')
         process = subprocess.run(cmd, cwd=path, env=env, capture_output=True, text=True, timeout=45)
         (path / 'stdout.log').write_text(process.stdout)
         (path / 'stderr.log').write_text(process.stderr)
-        results.append({'ranks': rank_count, 'command': command,
-                        'directory': str(path), 'returncode': process.returncode})
+        results.append(
+            {
+                'ranks': rank_count,
+                'command': command,
+                'directory': str(path),
+                'returncode': process.returncode,
+            }
+        )
         (work_root / 'results.json').write_text(json.dumps(results, indent=2) + '\n')
         return process
 
@@ -122,7 +150,9 @@ def run_mpi_acceptance(executable, work_root, ranks=(2, 3)):
     assert baseline.returncode == 0, baseline.stdout + baseline.stderr
     for rank_count in ranks:
         for failure in (None, 'directory', 'full_device'):
-            path = prepare_grad_fixture(work_root / f'n{rank_count}-{failure or "success"}', failure)
+            path = prepare_grad_fixture(
+                work_root / f'n{rank_count}-{failure or "success"}', failure
+            )
             original = (path / 'base.mtp').read_bytes()
             result = run(path, rank_count, 'trainmtp')
             if failure is None:
@@ -133,7 +163,9 @@ def run_mpi_acceptance(executable, work_root, ranks=(2, 3)):
                 assert GRADIENT in result.stdout + result.stderr
                 assert 'Finished' not in result.stdout
                 # imrmlp reports the same root-output error on every participating rank.
-                assert (result.stdout + result.stderr).count('Training failure on rank 0:') == rank_count
+                assert (result.stdout + result.stderr).count(
+                    'Training failure on rank 0:'
+                ) == rank_count
             check_no_training_output(path, original)
     return results
 
@@ -144,4 +176,9 @@ if __name__ == '__main__':
     parser.add_argument('--work-root', type=Path, required=True)
     parser.add_argument('--ranks', type=int, nargs='+', default=[2, 3])
     arguments = parser.parse_args()
-    print(json.dumps(run_mpi_acceptance(arguments.mpi_executable, arguments.work_root, arguments.ranks), indent=2))
+    print(
+        json.dumps(
+            run_mpi_acceptance(arguments.mpi_executable, arguments.work_root, arguments.ranks),
+            indent=2,
+        )
+    )

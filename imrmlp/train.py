@@ -37,6 +37,7 @@ class TrainResult:
     train_hvp_loss : float
         Weighted HVP loss per training structure.
     """
+
     feature_count: int
     train_erms: float
     train_frms: float
@@ -52,6 +53,7 @@ class NonlinearTrainResult(TrainResult):
     Hessian RMS is unweighted over all matrix entries. Hessian losses are
     weighted per structure; validation metrics are None without validation data.
     """
+
     loss: float
     iterations: int
     valid_erms: Optional[float] = None
@@ -86,20 +88,45 @@ class NonlinearTrainer:
     RMS is unweighted over all matrix entries, and loss is per structure.
     """
 
-    def __init__(self, *, energy_weight=1.0, force_weight=0.01,
-                 stress_weight=0.0001, max_iterations=200,
-                 trainable_groups=None, save_to="potential_fitted.mtp", **settings):
-        if isinstance(max_iterations, bool) or int(max_iterations) != max_iterations or max_iterations < 1:
+    def __init__(
+        self,
+        *,
+        energy_weight=1.0,
+        force_weight=0.01,
+        stress_weight=0.0001,
+        max_iterations=200,
+        trainable_groups=None,
+        save_to="potential_fitted.mtp",
+        **settings,
+    ):
+        if (
+            isinstance(max_iterations, bool)
+            or int(max_iterations) != max_iterations
+            or max_iterations < 1
+        ):
             raise ValueError("max_iterations must be a positive integer")
         self._settings = {
-            "energy_weight": str(energy_weight), "force_weight": str(force_weight),
-            "stress_weight": str(stress_weight), "bfgs_maxiteration": str(int(max_iterations)),
-            "save_to": str(save_to), **{str(k): str(v) for k, v in settings.items()},
+            "energy_weight": str(energy_weight),
+            "force_weight": str(force_weight),
+            "stress_weight": str(stress_weight),
+            "bfgs_maxiteration": str(int(max_iterations)),
+            "save_to": str(save_to),
+            **{str(k): str(v) for k, v in settings.items()},
         }
-        weights = [float(self._settings.get(k, 0)) for k in
-                   ("energy_weight", "force_weight", "stress_weight", "hvp_weight", "hessian_weight")]
+        weights = [
+            float(self._settings.get(k, 0))
+            for k in (
+                "energy_weight",
+                "force_weight",
+                "stress_weight",
+                "hvp_weight",
+                "hessian_weight",
+            )
+        ]
         if any(not math.isfinite(w) or w < 0 for w in weights) or not any(weights):
-            raise ValueError("EFS, HVP and full Hessian weights must be finite, nonnegative and not all zero")
+            raise ValueError(
+                "EFS, HVP and full Hessian weights must be finite, nonnegative and not all zero"
+            )
         if trainable_groups is not None:
             if isinstance(trainable_groups, str):
                 trainable_groups = [trainable_groups]
@@ -107,10 +134,16 @@ class NonlinearTrainer:
                 raise ValueError("trainable_groups must contain at least one group")
             self._settings["trainable_groups"] = " ".join(trainable_groups)
 
-    def train(self, potential, training_set: List[Atoms],
-              validation_set: Optional[List[Atoms]] = None, *,
-              test_set: Optional[List[Atoms]] = None, fixed_core=None,
-              hybrid_output: Optional[str] = None) -> NonlinearTrainResult:
+    def train(
+        self,
+        potential,
+        training_set: List[Atoms],
+        validation_set: Optional[List[Atoms]] = None,
+        *,
+        test_set: Optional[List[Atoms]] = None,
+        fixed_core=None,
+        hybrid_output: Optional[str] = None,
+    ) -> NonlinearTrainResult:
         """Fit train data and evaluate held-out test data only at the final model.
 
         ``refit_train_valid=true`` fits the combined train/validation data after
@@ -123,7 +156,8 @@ class NonlinearTrainer:
         use ``validation_metric`` and ``regularization_multipliers``.
         """
         result = _fit_nonlinear(
-            potential.inner, [a._impl for a in training_set],
+            potential.inner,
+            [a._impl for a in training_set],
             [] if validation_set is None else [a._impl for a in validation_set],
             self._settings,
             [] if test_set is None else [a._impl for a in test_set],
@@ -169,33 +203,36 @@ class LinearTrainer:
     >>> print(f"Features: {result.feature_count}, E_RMSE: {result.train_erms:.4f}")
     """
 
-    def __init__(self,
-                 energy_weight: float = 1.0,
-                 force_weight: float = 0.01,
-                 stress_weight: float = 0.0001,
-                 energy_pow: float = 1.0,
-                 force_pow: float = 0.0,
-                 stress_pow: float = 1.0,
-                 reg_L2: float = 1e-10,
-                 save_to: str = "potential_fitted.mtp",
-                 hvp_weight: float = 0.0,
-                 hvp_pow: float = 0.0,
-                 hvp_fd_step: float = 1e-4,
-                 ):
+    def __init__(
+        self,
+        energy_weight: float = 1.0,
+        force_weight: float = 0.01,
+        stress_weight: float = 0.0001,
+        energy_pow: float = 1.0,
+        force_pow: float = 0.0,
+        stress_pow: float = 1.0,
+        reg_L2: float = 1e-10,
+        save_to: str = "potential_fitted.mtp",
+        hvp_weight: float = 0.0,
+        hvp_pow: float = 0.0,
+        hvp_fd_step: float = 1e-4,
+    ):
         self._impl = _LinearTrainer()
-        self._impl.set_params({
-            "energy_weight": str(energy_weight),
-            "force_weight": str(force_weight),
-            "stress_weight": str(stress_weight),
-            "energy_pow": str(energy_pow),
-            "force_pow": str(force_pow),
-            "stress_pow": str(stress_pow),
-            "weight_L2": str(reg_L2),
-            "save_to": save_to,
-            "hvp_weight": str(hvp_weight),
-            "hvp_pow": str(hvp_pow),
-            "hvp_fd_step": str(hvp_fd_step),
-        })
+        self._impl.set_params(
+            {
+                "energy_weight": str(energy_weight),
+                "force_weight": str(force_weight),
+                "stress_weight": str(stress_weight),
+                "energy_pow": str(energy_pow),
+                "force_pow": str(force_pow),
+                "stress_pow": str(stress_pow),
+                "weight_L2": str(reg_L2),
+                "save_to": save_to,
+                "hvp_weight": str(hvp_weight),
+                "hvp_pow": str(hvp_pow),
+                "hvp_fd_step": str(hvp_fd_step),
+            }
+        )
         self._save_to = save_to
 
     def train(self, potential, training_set: List[Atoms]) -> TrainResult:
@@ -209,8 +246,8 @@ class LinearTrainer:
             TrainResult with training statistics.
         """
         pot_inner: _AnyPotential = (
-            potential.inner if hasattr(potential, 'inner')
-            else potential._impl.inner)
+            potential.inner if hasattr(potential, 'inner') else potential._impl.inner
+        )
 
         cpp_atoms = [a._impl for a in training_set]
         self._impl.init(cpp_atoms, pot_inner)
@@ -229,8 +266,8 @@ class LinearTrainer:
     def assemble(self, potential, training_set: List[Atoms]):
         """Assemble the design matrix without solving."""
         pot_inner: _AnyPotential = (
-            potential.inner if hasattr(potential, 'inner')
-            else potential._impl.inner)
+            potential.inner if hasattr(potential, 'inner') else potential._impl.inner
+        )
         cpp_atoms = [a._impl for a in training_set]
         self._impl.init(cpp_atoms, pot_inner)
         self._impl.assemble()

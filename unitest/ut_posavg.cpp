@@ -62,8 +62,8 @@ TEST_CASE("Average positions follow repeated periodic crossings", "[posavg]")
     atom.pos_ = {{9.8, 0, 0}};
     atom.chemmap_ = {0};
     const std::vector<double> positions = wrapped
-        ? std::vector<double>{9.8, .2, 4.9, 9.6, .2}
-        : std::vector<double>{9.8, 10.2, 14.9, 19.6, 20.2};
+                                              ? std::vector<double>{9.8, .2, 4.9, 9.6, .2}
+                                              : std::vector<double>{9.8, 10.2, 14.9, 19.6, 20.2};
     ComputePosavg avg;
     avg.init(atom);
     for (double x : positions)
@@ -75,7 +75,8 @@ TEST_CASE("Average positions follow repeated periodic crossings", "[posavg]")
     REQUIRE(avg.atomacc.pos_[0][0] == Approx(periodic || !wrapped ? 14.94 : 4.94));
 }
 
-TEST_CASE("Average positions unwrap only periodic lattice directions in changing skew cells", "[posavg]")
+TEST_CASE("Average positions unwrap only periodic lattice directions in changing skew cells",
+          "[posavg]")
 {
     Atoms atom;
     atom.cell_ << 10, 0, 0, 2, 8, 0, 1, 3, 12;
@@ -83,7 +84,8 @@ TEST_CASE("Average positions unwrap only periodic lattice directions in changing
     atom.pbc_ = {true, false, true};
     atom.cartesian = GENERATE(false, true);
     atom.chemmap_ = {0};
-    auto position = [&](const Eigen::RowVector3d &fractional, double scale) -> Eigen::RowVector3d {
+    auto position = [&](const Eigen::RowVector3d &fractional, double scale) -> Eigen::RowVector3d
+    {
         if (atom.cartesian)
             return fractional * (scale * cell);
         return fractional;
@@ -115,7 +117,8 @@ TEST_CASE("Average positions unwrap only periodic lattice directions in changing
     REQUIRE(avg.atomacc.pos_[0].isApprox(atom.pos_[0]));
 }
 
-TEST_CASE("Position average explicitly selects Cartesian or fractional averaging", "[posavg]") {
+TEST_CASE("Position average explicitly selects Cartesian or fractional averaging", "[posavg]")
+{
     Atoms first;
     first.cell_ = 10 * Eigen::Matrix3d::Identity();
     first.pos_ = {{1, 0, 0}};
@@ -125,7 +128,8 @@ TEST_CASE("Position average explicitly selects Cartesian or fractional averaging
     second.pos_[0][0] = 3;
     const bool fractional = GENERATE(false, true);
     PositionAverageOptions options;
-    options.coordinates = fractional ? AverageCoordinates::Fractional : AverageCoordinates::Cartesian;
+    options.coordinates =
+        fractional ? AverageCoordinates::Fractional : AverageCoordinates::Cartesian;
     ComputePosavg average(options);
     average.init(first);
     average.accumulate(first);
@@ -136,7 +140,8 @@ TEST_CASE("Position average explicitly selects Cartesian or fractional averaging
     REQUIRE(average.atomacc.pos_[0][0] == Approx(fractional ? 1.925 : 2.0));
 }
 
-TEST_CASE("Position average drift correction uses masses and rejects variable cells", "[posavg]") {
+TEST_CASE("Position average drift correction uses masses and rejects variable cells", "[posavg]")
+{
     Atoms first;
     first.cell_ = 10 * Eigen::Matrix3d::Identity();
     first.pos_ = {{1, 0, 0}, {3, 0, 0}};
@@ -155,13 +160,15 @@ TEST_CASE("Position average drift correction uses masses and rejects variable ce
     average.compute();
     REQUIRE(average.atomacc.pos_[0][0] == Approx(remove_drift ? .775 : 1.1));
     REQUIRE(average.atomacc.pos_[1][0] == Approx(remove_drift ? 3.075 : 3.4));
-    if (remove_drift) {
+    if (remove_drift)
+    {
         second.cell_ *= 1.1;
         REQUIRE_THROWS_AS(average.accumulate(second), std::invalid_argument);
     }
 }
 
-TEST_CASE("Wrapped average output does not lose winding on further accumulation", "[posavg]") {
+TEST_CASE("Wrapped average output does not lose winding on further accumulation", "[posavg]")
+{
     Atoms atom;
     atom.cell_ = 10 * Eigen::Matrix3d::Identity();
     atom.pos_ = {{9.8, 0, 0}};
@@ -180,7 +187,8 @@ TEST_CASE("Wrapped average output does not lose winding on further accumulation"
     REQUIRE(average.atomacc.pos_[0][0] == Approx(.2));
 }
 
-TEST_CASE("Position averaging drops incomplete site-energy labels", "[posavg]") {
+TEST_CASE("Position averaging drops incomplete site-energy labels", "[posavg]")
+{
     Atoms first;
     first.cell_ = 10 * Eigen::Matrix3d::Identity();
     first.pos_ = {{1, 2, 3}};
@@ -198,7 +206,8 @@ TEST_CASE("Position averaging drops incomplete site-energy labels", "[posavg]") 
     REQUIRE(average.atomacc.pos_[0][0] == Catch::Approx(2));
 }
 
-TEST_CASE("Position averaging accepts mixed input coordinate representations", "[posavg]") {
+TEST_CASE("Position averaging accepts mixed input coordinate representations", "[posavg]")
+{
     Atoms first;
     first.cell_ = 10 * Eigen::Matrix3d::Identity();
     first.pos_ = {{1, 2, 3}};

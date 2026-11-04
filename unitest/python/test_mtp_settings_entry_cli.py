@@ -1,4 +1,5 @@
 """Settings-only MTP initialization and adjustment, with CLI precedence."""
+
 import os
 from pathlib import Path
 import shutil
@@ -14,7 +15,9 @@ HEAD = 'pot:extmodel mtp_m_n2\npot:n_input 2\npot:n_neuron 3\npot:n_neuron2 2\n'
 
 @pytest.fixture
 def template(tmp_path):
-    shutil.copyfile(ROOT / 'unitest/test-data/mtp-basis-corpus/shapeev-06.mtp', tmp_path / 'template.mtp')
+    shutil.copyfile(
+        ROOT / 'unitest/test-data/mtp-basis-corpus/shapeev-06.mtp', tmp_path / 'template.mtp'
+    )
     return tmp_path
 
 
@@ -33,7 +36,7 @@ def test_initialize_entirely_from_settings_without_dataset(template, kind, custo
     output = 'initial.gpm' if custom_output else '_Initialized_Potential_.gpm'
     # Exercise both the top-level type option and the old pot:pottype spelling.
     config = 'input template.mtp\nelements H He\nrandomize false\n'
-    config += ('type mtp\n' if kind == 'mtp' else 'pot:pottype mtp_m\n' + HEAD)
+    config += 'type mtp\n' if kind == 'mtp' else 'pot:pottype mtp_m\n' + HEAD
     if custom_output:
         config += 'output initial.gpm\n'
     write(path, 'init.ini', config)
@@ -46,8 +49,18 @@ def test_initialize_entirely_from_settings_without_dataset(template, kind, custo
     if kind == 'mtp_m':
         assert node['configuration']['metadata']['nn']['hidden_layers'] == [3, 2]
     write(path, 'head.ini', HEAD if kind == 'mtp_m' else '')
-    run(path, 'initmtpm', '--input=template.mtp', '--type=' + kind,
-        '--elements', 'H', 'He', '--output=cli.gpm', '--randomize=false', '--settings=head.ini')
+    run(
+        path,
+        'initmtpm',
+        '--input=template.mtp',
+        '--type=' + kind,
+        '--elements',
+        'H',
+        'He',
+        '--output=cli.gpm',
+        '--randomize=false',
+        '--settings=head.ini',
+    )
     assert (path / output).read_bytes() == (path / 'cli.gpm').read_bytes()
     assert not (path / 'train.cfg').exists()
     assert not (path / 'index.map').exists()
@@ -55,10 +68,23 @@ def test_initialize_entirely_from_settings_without_dataset(template, kind, custo
 
 def test_initialization_cli_options_override_settings(template):
     path = template
-    write(path, 'init.ini', 'input missing.mtp\noutput keep.gpm\ntype unknown\nelements Li\nrandomize false\n')
+    write(
+        path,
+        'init.ini',
+        'input missing.mtp\noutput keep.gpm\ntype unknown\nelements Li\nrandomize false\n',
+    )
     (path / 'keep.gpm').write_bytes(b'keep existing result')
-    run(path, 'initmtpm', '--settings=init.ini', '--input=template.mtp',
-        '--output=chosen.gpm', '--type=mtp', '--elements', 'H', 'He')
+    run(
+        path,
+        'initmtpm',
+        '--settings=init.ini',
+        '--input=template.mtp',
+        '--output=chosen.gpm',
+        '--type=mtp',
+        '--elements',
+        'H',
+        'He',
+    )
     run(path, 'model_validate', '--input=chosen.gpm')
     assert elements(path / 'chosen.gpm') == ['H', 'He']
     assert (path / 'keep.gpm').read_bytes() == b'keep existing result'
@@ -66,8 +92,17 @@ def test_initialization_cli_options_override_settings(template):
 
 @pytest.fixture
 def initialized(template):
-    run(template, 'initmtpm', '--input=template.mtp', '--type=mtp', '--elements', 'H', 'He',
-        '--output=initial.gpm', '--randomize=false')
+    run(
+        template,
+        'initmtpm',
+        '--input=template.mtp',
+        '--type=mtp',
+        '--elements',
+        'H',
+        'He',
+        '--output=initial.gpm',
+        '--randomize=false',
+    )
     return template
 
 
@@ -75,7 +110,11 @@ def initialized(template):
 def test_adjustment_settings_apply_paths_and_species_permutation(initialized, mode):
     path = initialized
     before = (path / 'initial.gpm').read_bytes()
-    output = {'custom': 'chosen.gpm', 'default': '_Adjusted_Potential_.gpm', 'inplace': 'initial.gpm'}[mode]
+    output = {
+        'custom': 'chosen.gpm',
+        'default': '_Adjusted_Potential_.gpm',
+        'inplace': 'initial.gpm',
+    }[mode]
     config = 'input initial.gpm\nneworder 1 0\nbasis-order level-group\n'
     if mode != 'default':
         config += 'output ' + output + '\n'
@@ -93,8 +132,10 @@ def test_adjustment_settings_apply_paths_and_species_permutation(initialized, mo
 
 def test_adjustment_settings_support_extension_and_cli_overrides(initialized):
     path = initialized
-    config = ('input missing.gpm\noutput keep.gpm\nappend-elements Li\n'
-              'new-species-init clone\nclone-from 1\nneworder 2 0 1\nbasis-order level-group\n')
+    config = (
+        'input missing.gpm\noutput keep.gpm\nappend-elements Li\n'
+        'new-species-init clone\nclone-from 1\nneworder 2 0 1\nbasis-order level-group\n'
+    )
     write(path, 'adjust.ini', config)
     (path / 'keep.gpm').write_bytes(b'keep existing result')
     run(path, 'adjustmtp', '--settings=adjust.ini', '--input=initial.gpm', '--output=chosen.gpm')
@@ -102,16 +143,28 @@ def test_adjustment_settings_support_extension_and_cli_overrides(initialized):
     assert elements(path / 'chosen.gpm') == ['Li', 'H', 'He']
     assert (path / 'keep.gpm').read_bytes() == b'keep existing result'
     # Explicit vector options also override the deck's permutation.
-    run(path, 'adjustmtp', '--settings=adjust.ini', '--input=initial.gpm',
-        '--output=override.gpm', '--neworder', '0', '1', '2')
+    run(
+        path,
+        'adjustmtp',
+        '--settings=adjust.ini',
+        '--input=initial.gpm',
+        '--output=override.gpm',
+        '--neworder',
+        '0',
+        '1',
+        '2',
+    )
     assert elements(path / 'override.gpm') == ['H', 'He', 'Li']
 
 
-@pytest.mark.parametrize('command,config', [
-    ('initmtpm', 'input missing.mtp\noutput old.gpm\ntype mtp\n'),
-    ('initmtpm', 'input template.mtp\noutput old.gpm\ntype unknown\n'),
-    ('adjustmtp', 'input initial.gpm\noutput old.gpm\nneworder 0 0\n'),
-])
+@pytest.mark.parametrize(
+    'command,config',
+    [
+        ('initmtpm', 'input missing.mtp\noutput old.gpm\ntype mtp\n'),
+        ('initmtpm', 'input template.mtp\noutput old.gpm\ntype unknown\n'),
+        ('adjustmtp', 'input initial.gpm\noutput old.gpm\nneworder 0 0\n'),
+    ],
+)
 def test_settings_failures_preserve_existing_output(initialized, command, config):
     path = initialized
     (path / 'old.gpm').write_bytes(b'keep existing result')
@@ -156,12 +209,31 @@ def test_mpi_settings_entry_and_collective_error(template, ranks):
     env = os.environ.copy()
     env['LD_LIBRARY_PATH'] = str(executable.parent) + ':' + env.get('LD_LIBRARY_PATH', '')
     env['OMP_NUM_THREADS'] = '1'
+
     def launch(command, settings):
-        return subprocess.run(['mpiexec', '-n', str(ranks), str(executable), command,
-                               '--settings=' + settings, '--num_threads=1'], cwd=template,
-                              env=env, text=True, capture_output=True, timeout=30)
-    write(template, 'init.ini', 'input template.mtp\noutput initial.gpm\nelements H He\n'
-          'pot:pottype mtp_m\nrandomize false\n' + HEAD)
+        return subprocess.run(
+            [
+                'mpiexec',
+                '-n',
+                str(ranks),
+                str(executable),
+                command,
+                '--settings=' + settings,
+                '--num_threads=1',
+            ],
+            cwd=template,
+            env=env,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+    write(
+        template,
+        'init.ini',
+        'input template.mtp\noutput initial.gpm\nelements H He\n'
+        'pot:pottype mtp_m\nrandomize false\n' + HEAD,
+    )
     result = launch('initmtpm', 'init.ini')
     assert result.returncode == 0, result.stdout + result.stderr
     write(template, 'adjust.ini', 'input initial.gpm\noutput reordered.gpm\nneworder 1 0\n')

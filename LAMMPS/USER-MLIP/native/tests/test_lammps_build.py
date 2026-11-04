@@ -4,6 +4,7 @@
 Synthetic flag files exercise CUDA/HIP selection without claiming device
 compilation or execution. Pass a real upstream tree and existing IMR-MLP library.
 """
+
 import argparse
 import json
 from pathlib import Path
@@ -22,13 +23,27 @@ class BuildContract(unittest.TestCase):
         stamp = self.work / "flags"
         stamp.write_text(flags)
         build = self.work / "build"
-        result = subprocess.run([
-            "cmake", "-S", str(ENTRY), "-B", str(build),
-            f"-DLAMMPS_SOURCE_DIR={source or UPSTREAM}",
-            f"-DIMRMLP_NATIVE_BACKEND={backend}", f"-DIMRMLP_LIBRARY={LIBRARY}",
-            f"-DIMRMLP_FLAGS_FILE={stamp}", "-DBUILD_TESTING=OFF",
-            "-DPKG_PLUGIN=OFF", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", *extra,
-        ], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=90)
+        result = subprocess.run(
+            [
+                "cmake",
+                "-S",
+                str(ENTRY),
+                "-B",
+                str(build),
+                f"-DLAMMPS_SOURCE_DIR={source or UPSTREAM}",
+                f"-DIMRMLP_NATIVE_BACKEND={backend}",
+                f"-DIMRMLP_LIBRARY={LIBRARY}",
+                f"-DIMRMLP_FLAGS_FILE={stamp}",
+                "-DBUILD_TESTING=OFF",
+                "-DPKG_PLUGIN=OFF",
+                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                *extra,
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=90,
+        )
         if error:
             self.assertNotEqual(result.returncode, 0, result.stdout)
             self.assertIn(error, result.stdout)
@@ -50,12 +65,17 @@ class BuildContract(unittest.TestCase):
                 self.assertIn("pair_mlip_native.h", pair)
                 self.assertIn("compute_mlip_native.h", compute)
                 commands = json.loads((build / "compile_commands.json").read_text())
-                native = [x for x in commands if Path(x["file"]).name in
-                          ("pair_mlip_native.cpp", "compute_mlip_native.cpp")]
+                native = [
+                    x
+                    for x in commands
+                    if Path(x["file"]).name in ("pair_mlip_native.cpp", "compute_mlip_native.cpp")
+                ]
                 self.assertEqual(len(native), 2)
                 self.assertTrue(all("-DIMRMLP_MPI" in x["command"] for x in native))
                 self.assertFalse(any("native_plugin.cpp" in x["file"] for x in commands))
-                self.assertFalse(any("-DIMRMLP_MPI" in x["command"] for x in commands if x not in native))
+                self.assertFalse(
+                    any("-DIMRMLP_MPI" in x["command"] for x in commands if x not in native)
+                )
                 cache = (build / "CMakeCache.txt").read_text()
                 self.assertNotIn("CMAKE_CUDA_COMPILER:", cache)
                 self.assertNotIn("CMAKE_HIP_COMPILER:", cache)
@@ -77,7 +97,10 @@ class BuildContract(unittest.TestCase):
         self.configure(flags="-DIMRMLP_MPI -DIMRMLP_GPU", error="Inconsistent GPU backend")
 
     def test_reject_missing_gpml_library(self):
-        self.configure(extra=[f"-DIMRMLP_LIBRARY={self.work / 'missing.so'}"], error="Build the matching MPI IMR-MLP")
+        self.configure(
+            extra=[f"-DIMRMLP_LIBRARY={self.work / 'missing.so'}"],
+            error="Build the matching MPI IMR-MLP",
+        )
 
     def test_reject_missing_upstream(self):
         self.configure(source=self.work / "missing", error="LAMMPS_SOURCE_DIR must identify")

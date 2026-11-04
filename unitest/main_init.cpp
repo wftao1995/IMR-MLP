@@ -15,14 +15,18 @@
 #include <ios>
 #include <iostream>
 
-namespace {
+namespace
+{
 
-struct MainInit {
-    MainInit() {
+struct MainInit
+{
+    MainInit()
+    {
         std::ios_base::sync_with_stdio(false);
         std::cin.tie(nullptr);
     }
 };
+
 MainInit g_main_init;
 
-}  // namespace
+} // namespace

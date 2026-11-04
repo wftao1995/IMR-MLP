@@ -14,7 +14,8 @@
 #include "tools/tools.h"
 #include "tools/chem.h"
 
-void NeighborhoodsClusterShellSimple::construct(Atoms &atom, const double cutoff_inner, const double cutoff_outer)
+void NeighborhoodsClusterShellSimple::construct(Atoms &atom, const double cutoff_inner,
+                                                const double cutoff_outer)
 {
     const int size = atom.size();
 
@@ -47,7 +48,8 @@ void NeighborhoodsClusterShellSimple::construct(Atoms &atom, const double cutoff
                                     int indj = boxes[i + l1][j + l2][k + l3][t];
                                     Eigen::RowVector3d rij = pos[indj] - pos[indi];
                                     double dij = rij.norm();
-                                    if ((dij < cutoff_outer) && (dij > cutoff_inner) && (indi != indj) && (indi <= indices_orig[indj]))
+                                    if ((dij < cutoff_outer) && (dij > cutoff_inner) &&
+                                        (indi != indj) && (indi <= indices_orig[indj]))
                                     {
                                         NeighborhoodSimple &nebi = nbhs[indi];
 
@@ -82,12 +84,15 @@ void NeighborhoodsClusterShellSimple::construct(Atoms &atom, const double cutoff
 #endif // BOXED_NEBH
 }
 
-void NeighborhoodsClusterShellSimple::init(Atoms &atom, const double cutoff_inner, const double cutoff_outer)
+void NeighborhoodsClusterShellSimple::init(Atoms &atom, const double cutoff_inner,
+                                           const double cutoff_outer)
 {
     this->init_double(atom, cutoff_inner, cutoff_outer);
 }
 
-NeighborhoodsClusterShellSimple::NeighborhoodsClusterShellSimple(Atoms &atom, const double cutoff_inner, const double cutoff_outer)
+NeighborhoodsClusterShellSimple::NeighborhoodsClusterShellSimple(Atoms &atom,
+                                                                 const double cutoff_inner,
+                                                                 const double cutoff_outer)
 {
     init(atom, cutoff_inner, cutoff_outer);
 }

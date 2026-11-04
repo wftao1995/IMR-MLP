@@ -20,23 +20,25 @@ PairStyle(mlip/transport/omp,PairMLIPTransportOMP)
 #include "OPENMP/thr_omp.h"
 #endif
 
-namespace LAMMPS_NS {
+namespace LAMMPS_NS
+{
 
-class PairMLIPTransportOMP : public PairMLIPTransport, public ThrOMP {
- public:
-  explicit PairMLIPTransportOMP(class LAMMPS *);
-  ~PairMLIPTransportOMP() override;
+class PairMLIPTransportOMP : public PairMLIPTransport, public ThrOMP
+{
+  public:
+    explicit PairMLIPTransportOMP(class LAMMPS *);
+    ~PairMLIPTransportOMP() override;
 
-  void init_style() override;
-  void compute(int, int) override;
+    void init_style() override;
+    void compute(int, int) override;
 
- private:
-  std::vector<Scratch> thread_scratch_;
-  void allocate_thread_scratch();
-  void destroy_thread_scratch();
+  private:
+    std::vector<Scratch> thread_scratch_;
+    void allocate_thread_scratch();
+    void destroy_thread_scratch();
 };
 
-}    // namespace LAMMPS_NS
+} // namespace LAMMPS_NS
 
 #endif
 #endif

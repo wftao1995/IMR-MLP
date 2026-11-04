@@ -20,14 +20,17 @@ TEST_CASE("AL FPS selects distinct candidates including zero-distance ties", "[a
 {
     const bool identical = GENERATE(false, true);
     AL::ALPotential al;
-    for (int i = 0; i < 4; ++i) al.add_to_pool(candidate(i, identical));
+    for (int i = 0; i < 4; ++i)
+        al.add_to_pool(candidate(i, identical));
     al.finalize(3, "al-fps.xyz");
     REQUIRE(al.pool_size() == 3);
     std::set<std::string> ids;
-    for (const auto &atom : al.pool()) ids.insert(atom.features_.at("audit_id"));
+    for (const auto &atom : al.pool())
+        ids.insert(atom.features_.at("audit_id"));
     REQUIRE(ids.size() == 3);
     REQUIRE(al.pool()[0].features_.at("audit_id") == "0");
-    if (!identical) REQUIRE(al.pool()[1].features_.at("audit_id") == "3");
+    if (!identical)
+        REQUIRE(al.pool()[1].features_.at("audit_id") == "3");
     std::filesystem::remove("al-fps.xyz");
 }
 
@@ -35,10 +38,12 @@ TEST_CASE("AL export failures throw", "[al][errors]")
 {
     AL::ALPotential al;
     al.add_to_pool(candidate(0, true));
-    SECTION("missing directory") {
+    SECTION("missing directory")
+    {
         REQUIRE_THROWS(al.finalize(1, "al-missing-directory/out.xyz"));
     }
-    SECTION("write failure") {
+    SECTION("write failure")
+    {
         if (std::filesystem::exists("/dev/full"))
             REQUIRE_THROWS(al.finalize(1, "/dev/full"));
     }

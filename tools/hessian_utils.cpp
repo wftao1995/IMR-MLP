@@ -7,8 +7,10 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace HessianUtils {
-namespace {
+namespace HessianUtils
+{
+namespace
+{
 
 void validate_dense_hessian(const Eigen::MatrixXd &hessian)
 {
@@ -22,7 +24,8 @@ void validate_masses(const std::vector<double> &masses, Eigen::Index natoms)
 {
     if (static_cast<Eigen::Index>(masses.size()) != natoms)
         throw std::invalid_argument("Mass count does not match Hessian atom count");
-    for (double mass : masses) {
+    for (double mass : masses)
+    {
         if (!std::isfinite(mass) || mass <= 0.0)
             throw std::invalid_argument("All atomic masses must be finite and positive");
     }
@@ -48,8 +51,10 @@ void from_dense(const Eigen::MatrixXd &dense, Potentials::HessianMatrix &hessian
     const int natoms = static_cast<int>(dense.rows() / 3);
     const Eigen::MatrixXd symmetric = 0.5 * (dense + dense.transpose());
     hessian.resize(natoms);
-    for (int i = 0; i < natoms; ++i) {
-        for (int j = i; j < natoms; ++j) {
+    for (int i = 0; i < natoms; ++i)
+    {
+        for (int j = i; j < natoms; ++j)
+        {
             const Eigen::Matrix3d block = symmetric.block<3, 3>(3 * i, 3 * j);
             hessian(i, j) = block;
             hessian(j, i) = block.transpose();
@@ -62,10 +67,11 @@ void symmetrize_blocks(Potentials::HessianMatrix &hessian)
     if (hessian.size < 0 ||
         hessian.hessian.size() != static_cast<size_t>(hessian.size * hessian.size))
         throw std::invalid_argument("Invalid block Hessian storage");
-    for (int i = 0; i < hessian.size; ++i) {
-        for (int j = i; j < hessian.size; ++j) {
-            const Eigen::Matrix3d block = 0.5 *
-                (hessian(i, j) + hessian(j, i).transpose());
+    for (int i = 0; i < hessian.size; ++i)
+    {
+        for (int j = i; j < hessian.size; ++j)
+        {
+            const Eigen::Matrix3d block = 0.5 * (hessian(i, j) + hessian(j, i).transpose());
             hessian(i, j) = block;
             hessian(j, i) = block.transpose();
         }
@@ -115,7 +121,8 @@ Eigen::MatrixXd mass_weighted_translation_basis(const std::vector<double> &masse
     const Eigen::Index dim = 3 * static_cast<Eigen::Index>(masses.size());
     Eigen::MatrixXd translations = Eigen::MatrixXd::Zero(dim, 3);
     double total_mass = 0.0;
-    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(masses.size()); ++i) {
+    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(masses.size()); ++i)
+    {
         total_mass += masses[i];
         const double root_mass = std::sqrt(masses[i]);
         for (int axis = 0; axis < 3; ++axis)

@@ -8,23 +8,32 @@
 #include <memory>
 #include <string>
 
-class ActiveSelector;  // fwd (global scope)
+class ActiveSelector; // fwd (global scope)
 
-namespace Potentials { class AnyPotential; }
+namespace Potentials
+{
+class AnyPotential;
+}
 
-namespace AL { class ALPotential; }
+namespace AL
+{
+class ALPotential;
+}
 
-namespace AL {
+namespace AL
+{
 
-struct ALScore {
-    double uncertainty = 0;   // scalar: higher = more interesting
+struct ALScore
+{
+    double uncertainty = 0; // scalar: higher = more interesting
 };
 
 /// @brief Abstract scoring interface for on-the-fly active learning.
 ///
 /// MaxVolScorer grades extrapolation against a stored active set.
-class ALScorer {
-public:
+class ALScorer
+{
+  public:
     virtual ~ALScorer() = default;
     virtual ALScore evaluate(Atoms &atom) = 0;
     virtual double cutoff() const = 0;
@@ -33,30 +42,49 @@ public:
 
 // ── MaxVol-based scorer ──────────────────────────────────────────────────
 
-class MaxVolScorer : public ALScorer {
+class MaxVolScorer : public ALScorer
+{
     friend struct GPMALAccess;
-public:
+
+  public:
     MaxVolScorer() = default;
     ~MaxVolScorer() override;
-    explicit MaxVolScorer(const std::string &state_file,
-                          const std::string &index_file = "");
+    explicit MaxVolScorer(const std::string &state_file, const std::string &index_file = "");
 
-    void load_state(const std::string &state_file,
-                    const std::string &index_file = "");
+    void load_state(const std::string &state_file, const std::string &index_file = "");
 
     /// Reconstruct the internal builder from stored descriptor metadata
     /// + a user-provided potential.  Pass through to ActiveSelector.
     void init_builder(Potentials::AnyPotential &pot);
 
     ALScore evaluate(Atoms &atom) override;
-    double cutoff() const override { return cutoff_; }
-    std::string name() const override { return "maxvol"; }
 
-    void set_cutoff(double r) { cutoff_ = r; }
-    ActiveSelector *selector() { return as_; }
-    bool loaded() const { return loaded_; }
+    double cutoff() const override
+    {
+        return cutoff_;
+    }
 
-private:
+    std::string name() const override
+    {
+        return "maxvol";
+    }
+
+    void set_cutoff(double r)
+    {
+        cutoff_ = r;
+    }
+
+    ActiveSelector *selector()
+    {
+        return as_;
+    }
+
+    bool loaded() const
+    {
+        return loaded_;
+    }
+
+  private:
     ActiveSelector *as_ = nullptr;
     double cutoff_ = 5.0;
     bool loaded_ = false;
@@ -72,9 +100,10 @@ private:
 /// Usage (NEB):
 ///   auto al = al_create_setup(settings.ExtractSubSettings("al"));
 ///   if (al.scorer) { neb.al_scorer_ = al.scorer; neb.on_the_fly_flag = true; }
-struct ALSetup {
-    ALScorer *scorer = nullptr;               // points into al_pot
-    std::unique_ptr<ALPotential> al_pot;       // owns scorer
+struct ALSetup
+{
+    ALScorer *scorer = nullptr;          // points into al_pot
+    std::unique_ptr<ALPotential> al_pot; // owns scorer
 };
 
 /// Create an AL scorer + modifier from GPSettings (one-stop entry).

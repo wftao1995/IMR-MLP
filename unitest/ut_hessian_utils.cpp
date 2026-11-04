@@ -23,9 +23,7 @@ TEST_CASE("Block Hessian symmetrization averages transpose partners", "[hessian]
 {
     Potentials::HessianMatrix blocks;
     blocks.resize(2);
-    blocks(0, 0) << 1.0, 2.0, 3.0,
-                    4.0, 5.0, 6.0,
-                    7.0, 8.0, 9.0;
+    blocks(0, 0) << 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0;
     blocks(0, 1) = 2.0 * Eigen::Matrix3d::Identity();
     blocks(1, 0) = 4.0 * Eigen::Matrix3d::Identity();
     HessianUtils::symmetrize_blocks(blocks);
@@ -44,12 +42,9 @@ TEST_CASE("Mass coordinates repeat each atomic square root", "[hessian][mass]")
 TEST_CASE("Acoustic sum-rule residual retains Cartesian components", "[hessian][asr]")
 {
     Eigen::Matrix3d spring;
-    spring << 2.0, 0.2, 0.0,
-              0.2, 3.0, 0.1,
-              0.0, 0.1, 4.0;
+    spring << 2.0, 0.2, 0.0, 0.2, 3.0, 0.1, 0.0, 0.1, 4.0;
     Eigen::MatrixXd hessian(6, 6);
-    hessian << spring, -spring,
-              -spring, spring;
+    hessian << spring, -spring, -spring, spring;
     REQUIRE(HessianUtils::acoustic_sum_rule_residual(hessian).isZero(1e-14));
     hessian(0, 4) += 0.25;
     const Eigen::MatrixXd residual = HessianUtils::acoustic_sum_rule_residual(hessian);
@@ -59,8 +54,6 @@ TEST_CASE("Acoustic sum-rule residual retains Cartesian components", "[hessian][
 
 TEST_CASE("Mass-weighted helpers reject inconsistent masses", "[hessian][mass]")
 {
-    REQUIRE_THROWS_AS(HessianUtils::sqrt_mass_coordinates({}),
-                      std::invalid_argument);
-    REQUIRE_THROWS_AS(HessianUtils::sqrt_mass_coordinates({1.0, 0.0}),
-                      std::invalid_argument);
+    REQUIRE_THROWS_AS(HessianUtils::sqrt_mass_coordinates({}), std::invalid_argument);
+    REQUIRE_THROWS_AS(HessianUtils::sqrt_mass_coordinates({1.0, 0.0}), std::invalid_argument);
 }

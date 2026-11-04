@@ -50,7 +50,7 @@ struct ComputeOptions
 /// by calling the concrete class methods directly.
 class Descriptors
 {
-public:
+  public:
     double cutoff_;
 
     Descriptors() = default;
@@ -66,8 +66,7 @@ public:
     /// Compute descriptors with additional options (derivatives).
     /// The default implementation discards \p opts and calls the two-argument
     /// overload.  Subclasses that support options override this method.
-    virtual void compute(Neighborhood &nbh, Eigen::VectorXd &out,
-                         const ComputeOptions & /*opts*/)
+    virtual void compute(Neighborhood &nbh, Eigen::VectorXd &out, const ComputeOptions & /*opts*/)
     {
         compute(nbh, out);
     }
@@ -80,14 +79,26 @@ public:
     // the Hessian uses flattened neighbor-major xyz indexing. Unsupported
     // implementations throw without changing outputs. No feature Hessian
     // tensor is part of this interface.
-    virtual bool supports_weighted_site_hvp() const { return false; }
-    virtual bool supports_weighted_site_hessian() const { return false; }
+    virtual bool supports_weighted_site_hvp() const
+    {
+        return false;
+    }
+
+    virtual bool supports_weighted_site_hessian() const
+    {
+        return false;
+    }
+
     virtual void compute_weighted_site_hvp(Neighborhood &, const Eigen::VectorXd &,
-        const DescriptorSiteMatrix &, double &, DescriptorSiteMatrix &, DescriptorSiteMatrix &) {
+                                           const DescriptorSiteMatrix &, double &,
+                                           DescriptorSiteMatrix &, DescriptorSiteMatrix &)
+    {
         throw std::runtime_error("Descriptor weighted site HVP is not supported");
     }
-    virtual void compute_weighted_site_hessian(Neighborhood &, const Eigen::VectorXd &,
-        double &, DescriptorSiteMatrix &, Eigen::MatrixXd &) {
+
+    virtual void compute_weighted_site_hessian(Neighborhood &, const Eigen::VectorXd &, double &,
+                                               DescriptorSiteMatrix &, Eigen::MatrixXd &)
+    {
         throw std::runtime_error("Descriptor weighted site Hessian is not supported");
     }
 

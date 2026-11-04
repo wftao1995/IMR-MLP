@@ -10,14 +10,16 @@
 
 class NeighborhoodsVoroRad : public NeighborhoodsVoro
 {
-private:
+  private:
     ;
 
-public:
-    NeighborhoodsVoroRad(){};
-    ~NeighborhoodsVoroRad(){};
-    NeighborhoodsVoroRad(Atoms &atom, std::map<int, double> &radii, const int voro_edge_upto, const double surftol, const double edgetol, const int numneigh);
-    void construct(Atoms &atom, std::map<int, double> &radii, const double surftol, const double edgetol, const int numneigh);
+  public:
+    NeighborhoodsVoroRad() {};
+    ~NeighborhoodsVoroRad() {};
+    NeighborhoodsVoroRad(Atoms &atom, std::map<int, double> &radii, const int voro_edge_upto,
+                         const double surftol, const double edgetol, const int numneigh);
+    void construct(Atoms &atom, std::map<int, double> &radii, const double surftol,
+                   const double edgetol, const int numneigh);
 };
 
 #endif // _MLGP_NEIGHBORHOOD_VORO_RADI_H

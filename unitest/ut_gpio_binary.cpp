@@ -18,9 +18,7 @@ TEST_CASE("GPIO recognizes documented vasprun.xml format name", "[gpio][vasprun]
 static Atoms make_binary_io_atom()
 {
     Atoms atom;
-    atom.cell_ << 4.0, 0.2, 0.1,
-                  0.0, 5.0, 0.3,
-                  0.0, 0.0, 6.0;
+    atom.cell_ << 4.0, 0.2, 0.1, 0.0, 5.0, 0.3, 0.0, 0.0, 6.0;
     atom.pos_ = {{0.1, 0.2, 0.3}, {1.1, 1.2, 1.3}, {2.1, 2.2, 2.3}};
     atom.chemmap_ = {0, 1, 0};
     atom.pbc_ = {{true, false, true}};
@@ -34,9 +32,7 @@ static Atoms make_binary_io_atom()
     atom.have_energy = true;
     atom.fenergy_ = -12.25;
     atom.have_fenergy = true;
-    atom.stress_ << 1.0, 0.1, 0.2,
-                    0.1, 2.0, 0.3,
-                    0.2, 0.3, 3.0;
+    atom.stress_ << 1.0, 0.1, 0.2, 0.1, 2.0, 0.3, 0.2, 0.3, 3.0;
     atom.have_stress = true;
 
     atom.features_["label"] = "roundtrip";
@@ -52,11 +48,9 @@ static Atoms make_binary_io_atom()
     atom.local_attribs_i_["group"].resize(3);
     atom.local_attribs_i_["group"] << 1, 2, 1;
     atom.local_attribs_v_["descriptor"].resize(2, 3);
-    atom.local_attribs_v_["descriptor"] << 1.0, 2.0, 3.0,
-                                           4.0, 5.0, 6.0;
+    atom.local_attribs_v_["descriptor"] << 1.0, 2.0, 3.0, 4.0, 5.0, 6.0;
     atom.local_attribs_vi_["neighbors"].resize(2, 3);
-    atom.local_attribs_vi_["neighbors"] << 1, 2, 3,
-                                           4, 5, 6;
+    atom.local_attribs_vi_["neighbors"] << 1, 2, 3, 4, 5, 6;
     return atom;
 }
 
@@ -77,7 +71,8 @@ TEST_CASE("GPIO binary mlpcfg round-trips Atoms fields", "[gpio][binary]")
     REQUIRE(output.cell_.isApprox(input.cell_));
     REQUIRE(output.chemmap_ == input.chemmap_);
     REQUIRE(output.pbc_ == input.pbc_);
-    for (int i = 0; i < input.size(); ++i) {
+    for (int i = 0; i < input.size(); ++i)
+    {
         REQUIRE(output.pos_[i].isApprox(input.pos_[i]));
         REQUIRE(output.forces_[i].isApprox(input.forces_[i]));
         REQUIRE(output.velocities_[i].isApprox(input.velocities_[i]));
@@ -91,43 +86,45 @@ TEST_CASE("GPIO binary mlpcfg round-trips Atoms fields", "[gpio][binary]")
     REQUIRE(output.stress_.isApprox(input.stress_));
     REQUIRE(output.features_ == input.features_);
     REQUIRE(output.global_attribs_d_.at("temperature") == Approx(300.0));
-    REQUIRE(output.global_attribs_v_.at("box_origin").isApprox(input.global_attribs_v_.at("box_origin")));
+    REQUIRE(output.global_attribs_v_.at("box_origin")
+                .isApprox(input.global_attribs_v_.at("box_origin")));
     REQUIRE(output.global_attribs_i_.at("step") == 42);
     REQUIRE(output.global_attribs_vi_.at("shape") == input.global_attribs_vi_.at("shape"));
     REQUIRE(output.local_attribs_d_.at("weight").isApprox(input.local_attribs_d_.at("weight")));
     REQUIRE(output.local_attribs_i_.at("group") == input.local_attribs_i_.at("group"));
-    REQUIRE(output.local_attribs_v_.at("descriptor").isApprox(input.local_attribs_v_.at("descriptor")));
+    REQUIRE(
+        output.local_attribs_v_.at("descriptor").isApprox(input.local_attribs_v_.at("descriptor")));
     REQUIRE(output.local_attribs_vi_.at("neighbors") == input.local_attribs_vi_.at("neighbors"));
 }
-
 
 TEST_CASE("GPIO binary version 2 defaults to fully periodic", "[gpio][binary][pbc]")
 {
     using namespace gpio_binary;
-    std::stringstream buffer(std::ios::in|std::ios::out|std::ios::binary);
-    const std::uint32_t old_version=2;
-    const std::int32_t natoms=1;
-    REQUIRE(write_span(buffer,MAGIC,sizeof(MAGIC)));
-    REQUIRE(write_value(buffer,old_version));
-    REQUIRE(write_value(buffer,natoms));
-    const Eigen::Matrix3d cell=5.0*Eigen::Matrix3d::Identity();
-    const Eigen::RowVector3d position(1.0,2.0,3.0);
-    const int type=0;
-    REQUIRE(write_tag(buffer,Tag::Cell));
-    REQUIRE(write_span(buffer,cell.data(),9));
-    REQUIRE(write_tag(buffer,Tag::Positions));
-    REQUIRE(write_span(buffer,position.data(),3));
-    REQUIRE(write_tag(buffer,Tag::Types));
-    REQUIRE(write_value(buffer,type));
-    REQUIRE(write_tag(buffer,Tag::End));
+    std::stringstream buffer(std::ios::in | std::ios::out | std::ios::binary);
+    const std::uint32_t old_version = 2;
+    const std::int32_t natoms = 1;
+    REQUIRE(write_span(buffer, MAGIC, sizeof(MAGIC)));
+    REQUIRE(write_value(buffer, old_version));
+    REQUIRE(write_value(buffer, natoms));
+    const Eigen::Matrix3d cell = 5.0 * Eigen::Matrix3d::Identity();
+    const Eigen::RowVector3d position(1.0, 2.0, 3.0);
+    const int type = 0;
+    REQUIRE(write_tag(buffer, Tag::Cell));
+    REQUIRE(write_span(buffer, cell.data(), 9));
+    REQUIRE(write_tag(buffer, Tag::Positions));
+    REQUIRE(write_span(buffer, position.data(), 3));
+    REQUIRE(write_tag(buffer, Tag::Types));
+    REQUIRE(write_value(buffer, type));
+    REQUIRE(write_tag(buffer, Tag::End));
     buffer.seekg(0);
     Atoms output;
     GPIO reader;
-    REQUIRE(reader.read_one(output,buffer,"bin"));
-    REQUIRE(output.pbc_==std::array<bool,3>{{true,true,true}});
+    REQUIRE(reader.read_one(output, buffer, "bin"));
+    REQUIRE(output.pbc_ == std::array<bool, 3>{{true, true, true}});
 }
 
-TEST_CASE("BIN preserves declared full Hessians and HVP-only labels", "[gpio][binary][hessian]") {
+TEST_CASE("BIN preserves declared full Hessians and HVP-only labels", "[gpio][binary][hessian]")
+{
     auto atom = make_binary_io_atom();
     atom.hessian_ = Eigen::MatrixXd::Identity(9, 9);
     atom.have_hessian = true;
@@ -135,7 +132,7 @@ TEST_CASE("BIN preserves declared full Hessians and HVP-only labels", "[gpio][bi
     std::stringstream rejected(std::ios::in | std::ios::out | std::ios::binary);
     REQUIRE(io.write_one(atom, rejected, "bin"));
     Atoms dense;
-    REQUIRE(io.read_one(dense,rejected,"bin"));
+    REQUIRE(io.read_one(dense, rejected, "bin"));
     REQUIRE(dense.have_hessian);
     REQUIRE(dense.hessian_.isApprox(atom.hessian_));
     REQUIRE(atom.have_hessian);

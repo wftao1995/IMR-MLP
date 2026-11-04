@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Descriptor and paired-error commands fail cleanly on invalid I/O or data."""
+
 from pathlib import Path
 
 import pytest
@@ -14,8 +15,10 @@ def xyz(energy=1, forces=True, species=('H', 'H')):
     header = f'{len(species)}\nLattice="12 0 0 0 12 0 0 0 12" Properties={properties}'
     if energy is not None:
         header += f' energy={energy}'
-    rows = [f'{symbol} {1 + 2.5 * i} 1 1' + (' 0 0 0' if forces else '')
-            for i, symbol in enumerate(species)]
+    rows = [
+        f'{symbol} {1 + 2.5 * i} 1 1' + (' 0 0 0' if forces else '')
+        for i, symbol in enumerate(species)
+    ]
     return header + '\n' + '\n'.join(rows) + '\n'
 
 
@@ -27,11 +30,31 @@ def inputs(tmp_path):
     (tmp_path / 'settings.ini').write_text('bondorder:cutoff 5\n')
 
 
-@pytest.mark.parametrize('failure', ['missing_input', 'empty_input', 'missing_output_directory',
-                                    'full_device', 'missing_potential', 'invalid_potential'])
+@pytest.mark.parametrize(
+    'failure',
+    [
+        'missing_input',
+        'empty_input',
+        'missing_output_directory',
+        'full_device',
+        'missing_potential',
+        'invalid_potential',
+    ],
+)
 def test_descriptor_failures_return_nonzero_without_aborting(tmp_path, inputs, failure):
-    args = ['calc_descriptors', '--input', 'input.xyz', '--dtype', 'bondorder',
-            '--settings', 'settings.ini', '--output', 'output.xyz', '--num_threads', '2']
+    args = [
+        'calc_descriptors',
+        '--input',
+        'input.xyz',
+        '--dtype',
+        'bondorder',
+        '--settings',
+        'settings.ini',
+        '--output',
+        'output.xyz',
+        '--num_threads',
+        '2',
+    ]
     if failure == 'missing_input':
         (tmp_path / 'input.xyz').unlink()
     elif failure == 'empty_input':
@@ -54,8 +77,15 @@ def test_descriptor_failures_return_nonzero_without_aborting(tmp_path, inputs, f
 
 def test_mtp_descriptor_results_match_across_thread_counts(tmp_path, inputs):
     (tmp_path / 'input.xyz').write_text(xyz() * 3)
-    args = ['calc_descriptors', '--input', 'input.xyz', '--potfile',
-            ROOT / 'unitest/test-data/potential.mtp', '--output', 'desc.xyz']
+    args = [
+        'calc_descriptors',
+        '--input',
+        'input.xyz',
+        '--potfile',
+        ROOT / 'unitest/test-data/potential.mtp',
+        '--output',
+        'desc.xyz',
+    ]
     outputs = []
     for threads in (1, 2):
         result = run_command('imrmlp', args + ['--num_threads', str(threads)], tmp_path)

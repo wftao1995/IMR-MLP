@@ -12,25 +12,34 @@
 #include "apps/trj_rmdrift.cpp"
 #undef main
 
-namespace {
-int run(std::vector<std::string> args) {
+namespace
+{
+int run(std::vector<std::string> args)
+{
     CMDOption::global_cmdopts.reset();
     std::vector<char *> argv;
-    for (auto &arg : args) argv.push_back(arg.data());
+    for (auto &arg : args)
+        argv.push_back(arg.data());
     return command_maps.at(args[0]).first(argv.size(), argv.data());
 }
 
-struct Directory {
+struct Directory
+{
     std::filesystem::path previous = std::filesystem::current_path();
     std::filesystem::path path;
-    Directory() {
+
+    Directory()
+    {
         char pattern[] = "/tmp/imrmlp_apps_utilities_XXXXXX";
         const char *directory = mkdtemp(pattern);
-        if (!directory) throw std::runtime_error("Cannot create audit directory");
+        if (!directory)
+            throw std::runtime_error("Cannot create audit directory");
         path = directory;
         std::filesystem::current_path(path);
     }
-    ~Directory() {
+
+    ~Directory()
+    {
         CMDOption::global_cmdopts.reset();
         std::filesystem::current_path(previous);
         std::filesystem::remove_all(path);
@@ -38,7 +47,9 @@ struct Directory {
 };
 }
 
-TEST_CASE("Trajectory drift uses atomic masses rather than neighbor radii", "[apps][trajectory][audit]") {
+TEST_CASE("Trajectory drift uses atomic masses rather than neighbor radii",
+          "[apps][trajectory][audit]")
+{
     Directory directory;
     // Internal motion with exactly zero mass-weighted drift: 1*0.5 + 4*(-0.125)=0.
     std::ofstream("index.map") << "H 0.4 1\nHe 0.4 4\n";
@@ -62,7 +73,9 @@ TEST_CASE("Trajectory drift uses atomic masses rather than neighbor radii", "[ap
     CHECK(average.pos_[1][0] == Catch::Approx(2.9375).margin(1e-12));
 }
 
-TEST_CASE("Standalone drift removal centers the physical mass distribution", "[apps][trajectory][audit]") {
+TEST_CASE("Standalone drift removal centers the physical mass distribution",
+          "[apps][trajectory][audit]")
+{
     Directory directory;
     const bool explicit_mass = GENERATE(false, true);
     std::ofstream("index.map") << (explicit_mass ? "H 0.4 1\nHe 0.4 4\n" : "H 0.4\nHe 0.4\n");
@@ -74,15 +87,16 @@ TEST_CASE("Standalone drift removal centers the physical mass distribution", "[a
     GPIO io;
     REQUIRE(io.write_one(atom, "input.bin", "bin"));
     std::vector<std::string> args{"trj_rmdrift", "--input=input.bin", "--output=centered.bin",
-        "--input-format=bin", "--output-format=bin"};
+                                  "--input-format=bin", "--output-format=bin"};
     std::vector<char *> argv;
-    for (auto &arg : args) argv.push_back(arg.data());
+    for (auto &arg : args)
+        argv.push_back(arg.data());
     CMDOption::global_cmdopts.reset();
     REQUIRE(trj_rmdrift_audit_main(argv.size(), argv.data()) == 0);
     Atoms centered;
     REQUIRE(io.read_one(centered, "centered.bin", "bin"));
     const double h = explicit_mass ? 1 : Chemicals::atomic_masses[1];
     const double he = explicit_mass ? 4 : Chemicals::atomic_masses[2];
-    CHECK((h*centered.pos_[0]+he*centered.pos_[1]).norm() < 1e-12);
-    CHECK((centered.pos_[1]-centered.pos_[0]).isApprox(atom.pos_[1]-atom.pos_[0], 1e-12));
+    CHECK((h * centered.pos_[0] + he * centered.pos_[1]).norm() < 1e-12);
+    CHECK((centered.pos_[1] - centered.pos_[0]).isApprox(atom.pos_[1] - atom.pos_[0], 1e-12));
 }

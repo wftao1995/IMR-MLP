@@ -27,7 +27,9 @@ from typing import Optional, List, Dict
 import numpy as np
 
 from ase.calculators.calculator import (
-    Calculator, PropertyNotImplementedError, all_changes,
+    Calculator,
+    PropertyNotImplementedError,
+    all_changes,
 )
 
 from .potential import Potential
@@ -68,12 +70,14 @@ class IMRMLPCalculator(Calculator):
 
     implemented_properties = ['energy', 'energies', 'forces', 'stress', 'charges']
 
-    def __init__(self,
-                 filename: Optional[str] = None,
-                 potential: Optional[Potential] = None,
-                 pottype: str = "auto",
-                 elements: Optional[List[str]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        filename: Optional[str] = None,
+        potential: Optional[Potential] = None,
+        pottype: str = "auto",
+        elements: Optional[List[str]] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         if potential is not None:
@@ -81,8 +85,7 @@ class IMRMLPCalculator(Calculator):
         elif filename is not None:
             self._pot = Potential(str(filename), pottype)
         else:
-            raise ValueError(
-                "Either 'filename' or 'potential' must be provided")
+            raise ValueError("Either 'filename' or 'potential' must be provided")
 
         self._elements = None if elements is None else list(elements)
         self._type_map: Optional[Dict[int, int]] = None
@@ -99,8 +102,8 @@ class IMRMLPCalculator(Calculator):
     def check_state(self, atoms, tol=1e-15):
         changes = super().check_state(atoms, tol=tol)
         if self.atoms is not None and (
-                self._effective_total_charge(self.atoms)
-                != self._effective_total_charge(atoms)):
+            self._effective_total_charge(self.atoms) != self._effective_total_charge(atoms)
+        ):
             changes.append('total_charge')
         return changes
 
@@ -138,11 +141,11 @@ class IMRMLPCalculator(Calculator):
         elif 'energies' in properties:
             raise PropertyNotImplementedError(
                 "The potential did not return complete finite per-atom energies "
-                "consistent with the total energy")
+                "consistent with the total energy"
+            )
 
         charges = imrmlp.charges
-        if (charges is not None and charges.shape == (len(imrmlp),)
-                and np.all(np.isfinite(charges))):
+        if charges is not None and charges.shape == (len(imrmlp),) and np.all(np.isfinite(charges)):
             self.results['charges'] = np.array(charges, dtype=np.float64, copy=True)
 
         if 'forces' in properties and imrmlp.forces is not None:
@@ -152,10 +155,10 @@ class IMRMLPCalculator(Calculator):
             # Native virial = -dE/dstrain; ASE uses +dE/dstrain / volume.
             s = imrmlp.stress
             volume = self.atoms.get_volume()
-            self.results['stress'] = -np.array([
-                s[0, 0], s[1, 1], s[2, 2],
-                s[1, 2], s[0, 2], s[0, 1]
-            ], dtype=np.float64) / volume
+            self.results['stress'] = (
+                -np.array([s[0, 0], s[1, 1], s[2, 2], s[1, 2], s[0, 2], s[0, 1]], dtype=np.float64)
+                / volume
+            )
 
     def _ase_to_imrmlp(self, atoms) -> Atoms:
         """Convert ASE Atoms to imrmlp Atoms."""

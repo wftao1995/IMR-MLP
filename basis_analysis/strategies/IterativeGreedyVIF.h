@@ -6,7 +6,8 @@
 
 #include "../Decorrelator.h"
 
-namespace BasisAnalysis {
+namespace BasisAnalysis
+{
 
 /// Iteratively remove the feature with the highest VIF until all VIFs are
 /// below the target threshold.
@@ -17,20 +18,20 @@ namespace BasisAnalysis {
 ///   3. If max(VIF) > vif_target, remove the feature with max VIF and repeat.
 ///
 /// Optionally also enforces an upper bound on the number of features.
-class IterativeGreedyVIF : public Decorrelator {
-public:
+class IterativeGreedyVIF : public Decorrelator
+{
+  public:
     /// @param vif_target    Stop when max(VIF) <= this (default 5.0)
     /// @param max_features  Maximum features to retain, in addition to the VIF target (0 = no limit)
     IterativeGreedyVIF(double vif_target = 5.0, int max_features = 0);
 
     std::string name() const override;
-    std::pair<std::set<int>, std::set<int>>
-    select(const CorrelationResult &corr,
-           int nscalar) override;
+    std::pair<std::set<int>, std::set<int>> select(const CorrelationResult &corr,
+                                                   int nscalar) override;
 
-private:
+  private:
     double vif_target_;
-    int max_features_;  // 0 = unlimited
+    int max_features_; // 0 = unlimited
 };
 
 } // namespace BasisAnalysis

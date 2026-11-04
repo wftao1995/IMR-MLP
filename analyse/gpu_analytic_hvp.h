@@ -5,9 +5,13 @@
 
 #include "gpu_force_fd.h"
 
-namespace Potentials { class PotMTP; }
+namespace Potentials
+{
+class PotMTP;
+}
 
-namespace HessianGpu {
+namespace HessianGpu
+{
 
 // Allocation-free public size guard, also usable without constructing Atoms.
 std::size_t checked_analytic_hvp_dof(std::size_t atoms);
@@ -24,8 +28,9 @@ std::size_t analytic_geometry_bytes(const Atoms &, bool copied = false);
 // minimum simultaneous host storage before any snapshot or probe allocation.
 // Returns 3*N after size_t/index checks. External storage is counted, not owned.
 std::size_t analytic_hvp_preflight(const Atoms &, const double *direction,
-    std::size_t direction_count, const Potentials::AnyPotential &, double cutoff,
-    const HessianExecutionSettings &, std::size_t external_host_bytes = 0);
+                                   std::size_t direction_count, const Potentials::AnyPotential &,
+                                   double cutoff, const HessianExecutionSettings &,
+                                   std::size_t external_host_bytes = 0);
 
 // The source must already have passed analytic_hvp_preflight. Checks the
 // geometry allocation before copying, keeps no EFS/curvature/metadata labels,
@@ -39,8 +44,8 @@ Atoms analytic_geometry_copy(const Atoms &, const HessianExecutionSettings &,
 // Model conversion/runtime, fixed call-stack/error-message bookkeeping,
 // caller-owned data and NumPy forcecast are excluded.
 Eigen::VectorXd analytic_hvp(const Atoms &, const Eigen::VectorXd &direction,
-    const Potentials::AnyPotential &, double cutoff,
-    const HessianExecutionSettings &, HessianExecutionReport &,
-    std::size_t external_host_bytes = 0);
+                             const Potentials::AnyPotential &, double cutoff,
+                             const HessianExecutionSettings &, HessianExecutionReport &,
+                             std::size_t external_host_bytes = 0);
 
 } // namespace HessianGpu

@@ -8,69 +8,105 @@
 #include <algorithm>
 #include <stdexcept>
 #include <set>
+
 // TODO: trans_reduce, primi_reduce: deal with per-atom properties, e.g. forces.
-// TODO: Use descriptor to check if symmetry operation may exist. 
+// TODO: Use descriptor to check if symmetry operation may exist.
 //       i.e inverse symmetry can be checked with vector sum.
-namespace Symmetry3D {
-namespace {
-std::vector<Eigen::RowVector3d> translation_candidates(Atoms& atom,const ReductionSearchOptions& options) {
+namespace Symmetry3D
+{
+namespace
+{
+std::vector<Eigen::RowVector3d> translation_candidates(Atoms &atom,
+                                                       const ReductionSearchOptions &options)
+{
     std::vector<Eigen::RowVector3d> result;
-    auto append=[&](int anchor) {
-        for(int j=0;j<atom.size();++j) {
-            if(j==anchor)continue;
-            if(options.enabled && options.prefilter && atom.chemmap_[anchor]!=atom.chemmap_[j])continue;
-            result.push_back(atom.get_rab(anchor,j));
+    auto append = [&](int anchor)
+    {
+        for (int j = 0; j < atom.size(); ++j)
+        {
+            if (j == anchor)
+                continue;
+            if (options.enabled && options.prefilter && atom.chemmap_[anchor] != atom.chemmap_[j])
+                continue;
+            result.push_back(atom.get_rab(anchor, j));
         }
     };
-    if(options.enabled && options.rare_anchor) {
-        const auto counts=atom.types_count_map();
-        const auto rare=std::min_element(counts.begin(),counts.end(),[](const auto& a,const auto& b){return a.second<b.second;});
-        int anchor=0;while(atom.chemmap_[anchor]!=rare->first)++anchor;
-        if(anchor)append(anchor);
+    if (options.enabled && options.rare_anchor)
+    {
+        const auto counts = atom.types_count_map();
+        const auto rare = std::min_element(counts.begin(), counts.end(),
+                                           [](const auto &a, const auto &b)
+                                           {
+                                               return a.second < b.second;
+                                           });
+        int anchor = 0;
+        while (atom.chemmap_[anchor] != rare->first)
+            ++anchor;
+        if (anchor)
+            append(anchor);
     }
     // Retain original-anchor candidates as a completeness backstop. Only exact
     // identical vectors may be cached; approximate bins cannot reject trials.
     append(0);
-    if(options.enabled && options.order_candidates)
-        std::stable_sort(result.begin(),result.end(),[](const auto& a,const auto& b){return a.squaredNorm()<b.squaredNorm();});
+    if (options.enabled && options.order_candidates)
+        std::stable_sort(result.begin(), result.end(),
+                         [](const auto &a, const auto &b)
+                         {
+                             return a.squaredNorm() < b.squaredNorm();
+                         });
     return result;
 }
-template<size_t N> bool repeated_candidate(const std::array<double,N>& key,std::set<std::array<double,N>>& cache,
-    const ReductionSearchOptions& options,ReductionSearchStats* stats) {
-    if(!options.enabled || !options.cache_candidates)return false;
-    if(cache.count(key)) {if(stats)++stats->cache_hits;return true;}
-    if(cache.size()<options.cache_capacity)cache.insert(key);
+
+template <size_t N>
+bool repeated_candidate(const std::array<double, N> &key, std::set<std::array<double, N>> &cache,
+                        const ReductionSearchOptions &options, ReductionSearchStats *stats)
+{
+    if (!options.enabled || !options.cache_candidates)
+        return false;
+    if (cache.count(key))
+    {
+        if (stats)
+            ++stats->cache_hits;
+        return true;
+    }
+    if (cache.size() < options.cache_capacity)
+        cache.insert(key);
     return false;
 }
+
 // Geometry kernels below consume Cartesian positions. Restore the caller's
 // representation using the final cell, including after nested reductions.
-struct ReductionCoordinateScope {
-    Atoms& atoms;
+struct ReductionCoordinateScope
+{
+    Atoms &atoms;
     bool restore_fractional;
 
-    explicit ReductionCoordinateScope(Atoms& value)
+    explicit ReductionCoordinateScope(Atoms &value)
         : atoms(value), restore_fractional(!value.cartesian)
     {
-        if (restore_fractional) atoms.to_cartesian();
+        if (restore_fractional)
+            atoms.to_cartesian();
     }
 
     ~ReductionCoordinateScope()
     {
-        if (restore_fractional && atoms.cartesian) atoms.to_fractional();
+        if (restore_fractional && atoms.cartesian)
+            atoms.to_fractional();
     }
 };
 
 // Validate before wrapping positions or constructing a periodic neighborhood.
 // Use the same inverse needed by the algorithms, without an absolute volume
 // cutoff: small and left-handed, but representable, cells remain admissible.
-void validate_reduction_input(const Atoms& atoms, double tol)
+void validate_reduction_input(const Atoms &atoms, double tol)
 {
     if (atoms.pos_.empty())
         throw std::invalid_argument("Cell reduction requires a nonempty structure");
     if (atoms.pos_.size() != atoms.chemmap_.size())
         throw std::invalid_argument("Cell reduction requires matching position and species counts");
     if (!std::isfinite(tol) || tol <= 0 || !std::isfinite(5.0 * tol))
-        throw std::invalid_argument("Cell reduction requires a positive finite tolerance with finite 5*tol");
+        throw std::invalid_argument(
+            "Cell reduction requires a positive finite tolerance with finite 5*tol");
     if (!atoms.cell_.allFinite())
         throw std::invalid_argument("Cell reduction requires a finite, nonsingular cell");
     const double determinant = atoms.cell_.determinant();
@@ -79,7 +115,8 @@ void validate_reduction_input(const Atoms& atoms, double tol)
     const Eigen::Matrix3d inverse = atoms.cell_.inverse();
     if (!inverse.allFinite())
         throw std::invalid_argument("Cell reduction requires a finite cell inverse");
-    for (const auto& position : atoms.pos_) {
+    for (const auto &position : atoms.pos_)
+    {
         if (!position.allFinite())
             throw std::invalid_argument("Cell reduction requires finite atom positions");
         if (atoms.cartesian && !atoms.is_nonperiodic() && !(position * inverse).allFinite())
@@ -87,31 +124,36 @@ void validate_reduction_input(const Atoms& atoms, double tol)
     }
 }
 
-void validate_primitive_periodicity(const Atoms& atoms)
+void validate_primitive_periodicity(const Atoms &atoms)
 {
     if (!atoms.pbc_[0] || !atoms.pbc_[1] || !atoms.pbc_[2])
-        throw std::invalid_argument("3D primitive reduction requires full periodicity; use trans_reduce for mixed or nonperiodic structures");
+        throw std::invalid_argument(
+            "3D primitive reduction requires full periodicity; use trans_reduce for mixed or nonperiodic structures");
 }
 
-void copy_reduction_properties(const Atoms& source, Atoms& reduced)
+void copy_reduction_properties(const Atoms &source, Atoms &reduced)
 {
     reduced.id = source.id;
-    for (const char* key : {"label", "config_type"}) {
+    for (const char *key : {"label", "config_type"})
+    {
         const auto found = source.features_.find(key);
         if (found != source.features_.end())
             reduced.features_.emplace(found->first, found->second);
     }
     // These frame labels are extensive; normalize at each successful reduction.
     const double scale = static_cast<double>(reduced.size()) / source.size();
-    if (source.have_energy) {
+    if (source.have_energy)
+    {
         reduced.energy_ = source.energy_ * scale;
         reduced.have_energy = true;
     }
-    if (source.have_fenergy) {
+    if (source.have_fenergy)
+    {
         reduced.fenergy_ = source.fenergy_ * scale;
         reduced.have_fenergy = true;
     }
-    if (source.have_stress) {
+    if (source.have_stress)
+    {
         reduced.stress_ = source.stress_ * scale;
         reduced.have_stress = true;
     }
@@ -191,21 +233,29 @@ void copy_reduction_properties(const Atoms& source, Atoms& reduced)
  * - The integer multiplicity tolerance (1e-3) and geometric tolerance tol may need
  *   adjustment for numerical noise or non-orthogonal cells.
  */
-int trans_reduce(Atoms& atom, double tol) {return trans_reduce(atom,tol,ReductionSearchOptions{},nullptr);}
+int trans_reduce(Atoms &atom, double tol)
+{
+    return trans_reduce(atom, tol, ReductionSearchOptions{}, nullptr);
+}
 
-int trans_reduce(Atoms& atom, double tol,const ReductionSearchOptions& options,ReductionSearchStats* stats)
+int trans_reduce(Atoms &atom, double tol, const ReductionSearchOptions &options,
+                 ReductionSearchStats *stats)
 {
     validate_reduction_input(atom, tol);
     ReductionCoordinateScope coordinates(atom);
     int osize = atom.size();
-    auto get_prd = [](const Eigen::RowVector3d& vec, const Atoms& atom, std::map<int, int> &types_count, NeighborhoodKD& nbhs, int& cdir, double tol) {
+    auto get_prd = [](const Eigen::RowVector3d &vec, const Atoms &atom,
+                      std::map<int, int> &types_count, NeighborhoodKD &nbhs, int &cdir, double tol)
+    {
         cdir = -1;
         Eigen::RowVector3d cellvec;
-        for (int idir = 0; idir < 3; ++idir) {
+        for (int idir = 0; idir < 3; ++idir)
+        {
             if (!atom.pbc_[idir])
                 continue;
             cellvec = atom.cell_.row(idir);
-            if ((cellvec.cross(vec)).norm() < tol) {
+            if ((cellvec.cross(vec)).norm() < tol)
+            {
                 cdir = idir;
                 break;
             }
@@ -218,21 +268,28 @@ int trans_reduce(Atoms& atom, double tol,const ReductionSearchOptions& options,R
             nexp = round(nexpd);
         else
             return 0;
-        if (nexp == 0) return 0;
+        if (nexp == 0)
+            return 0;
         // check if atom is splitable by atoms count
-        for (auto &it : types_count) {
-            if (it.second % nexp != 0) return 0;
+        for (auto &it : types_count)
+        {
+            if (it.second % nexp != 0)
+                return 0;
         }
         return nexp;
     };
     std::vector<int> mappings;
-    auto check_isprd = [&mappings, &tol](Atoms& atom, NeighborhoodKD& nbhskdt, Eigen::RowVector3d& vec, int nprd, int cdir) {
+    auto check_isprd = [&mappings, &tol](Atoms &atom, NeighborhoodKD &nbhskdt,
+                                         Eigen::RowVector3d &vec, int nprd, int cdir)
+    {
         mappings.assign(atom.size(), -1);
-        for (int iat = 0; iat < atom.size(); ++iat) {
+        for (int iat = 0; iat < atom.size(); ++iat)
+        {
             if (mappings[iat] >= 0)
                 continue;
             int ivl = 0;
-            for (int iprd = 1; iprd < nprd; ++iprd) {
+            for (int iprd = 1; iprd < nprd; ++iprd)
+            {
                 Eigen::RowVector3d pnew = atom.pos_[iat] + iprd * vec;
                 atom.wrap(pnew);
                 int nid = nbhskdt.find_atom(pnew.data(), tol);
@@ -254,8 +311,10 @@ int trans_reduce(Atoms& atom, double tol,const ReductionSearchOptions& options,R
         atnew.pbc_ = atom.pbc_;
         atnew.cell_.row(cdir) = atom.cell_.row(cdir) / nprd;
         int ct = 0;
-        for (int iat = 0; iat < atom.size(); ++iat) {
-            if (mappings[iat] == -1) {
+        for (int iat = 0; iat < atom.size(); ++iat)
+        {
+            if (mappings[iat] == -1)
+            {
                 atnew.pos_[ct] = atom.pos_[iat];
                 atnew.chemmap_[ct] = atom.chemmap_[iat];
                 ++ct;
@@ -268,37 +327,55 @@ int trans_reduce(Atoms& atom, double tol,const ReductionSearchOptions& options,R
 
     atom.wrap();
     int dir = -1;
-    auto& posref = atom.pos_[0];
+    auto &posref = atom.pos_[0];
     int chemref = atom.chemmap_[0];
     // build kd-tree, todo: test rcut
     bool isprd = true;
-    while (isprd) {
+    while (isprd)
+    {
         isprd = false;
         NeighborhoodKD nbhskd(&atom, 5.0 * tol);
         auto types_count = atom.types_count_map();
-        if(stats)++stats->geometry_stages;
-        std::set<std::array<double,3>> cache;
-        const auto candidates=options.enabled ? translation_candidates(atom,options) : std::vector<Eigen::RowVector3d>{};
-        const size_t count=options.enabled ? candidates.size() : size_t(atom.size()-1);
-        for(size_t candidate=0;candidate<count;++candidate) {
-            auto posdiff=options.enabled ? candidates[candidate] : atom.get_rab(0,int(candidate)+1);
-            if(stats)++stats->candidates;
-            if(options.enabled && options.prefilter && posdiff.squaredNorm()==0.) {
-                if(stats)++stats->necessary_rejections;continue;
+        if (stats)
+            ++stats->geometry_stages;
+        std::set<std::array<double, 3>> cache;
+        const auto candidates = options.enabled ? translation_candidates(atom, options)
+                                                : std::vector<Eigen::RowVector3d>{};
+        const size_t count = options.enabled ? candidates.size() : size_t(atom.size() - 1);
+        for (size_t candidate = 0; candidate < count; ++candidate)
+        {
+            auto posdiff =
+                options.enabled ? candidates[candidate] : atom.get_rab(0, int(candidate) + 1);
+            if (stats)
+                ++stats->candidates;
+            if (options.enabled && options.prefilter && posdiff.squaredNorm() == 0.)
+            {
+                if (stats)
+                    ++stats->necessary_rejections;
+                continue;
             }
-            if(options.enabled && options.cache_candidates) {
-                const std::array<double,3> key={posdiff[0],posdiff[1],posdiff[2]};
-                if(repeated_candidate(key,cache,options,stats))continue;
+            if (options.enabled && options.cache_candidates)
+            {
+                const std::array<double, 3> key = {posdiff[0], posdiff[1], posdiff[2]};
+                if (repeated_candidate(key, cache, options, stats))
+                    continue;
             }
             int n = get_prd(posdiff, atom, types_count, nbhskd, dir, tol);
-            if (n < 2) {
-                if(stats)++stats->necessary_rejections;continue;
+            if (n < 2)
+            {
+                if (stats)
+                    ++stats->necessary_rejections;
+                continue;
             }
-            if(stats)++stats->full_checks;
+            if (stats)
+                ++stats->full_checks;
             isprd = check_isprd(atom, nbhskd, posdiff, n, dir);
-            if (isprd) {
+            if (isprd)
+            {
                 break;
-            } else {
+            }
+            else
+            {
                 continue;
             }
         }
@@ -307,9 +384,13 @@ int trans_reduce(Atoms& atom, double tol,const ReductionSearchOptions& options,R
     return osize / atom.size();
 }
 
-int trans_reduce_1d(Atoms& atom, int cdir, double tol) {return trans_reduce_1d(atom,cdir,tol,ReductionSearchOptions{},nullptr);}
+int trans_reduce_1d(Atoms &atom, int cdir, double tol)
+{
+    return trans_reduce_1d(atom, cdir, tol, ReductionSearchOptions{}, nullptr);
+}
 
-int trans_reduce_1d(Atoms& atom, int cdir, double tol,const ReductionSearchOptions& options,ReductionSearchStats* stats)
+int trans_reduce_1d(Atoms &atom, int cdir, double tol, const ReductionSearchOptions &options,
+                    ReductionSearchStats *stats)
 {
     if (cdir < 0 || cdir > 2)
         throw std::invalid_argument("Cell reduction direction must be 0, 1 or 2");
@@ -318,7 +399,9 @@ int trans_reduce_1d(Atoms& atom, int cdir, double tol,const ReductionSearchOptio
         return 1;
     ReductionCoordinateScope coordinates(atom);
     int osize = atom.size();
-    auto get_prd = [](const Eigen::RowVector3d& vec, const Atoms& atom, std::map<int, int> &types_count, NeighborhoodKD& nbhs, int cdir, double tol) {
+    auto get_prd = [](const Eigen::RowVector3d &vec, const Atoms &atom,
+                      std::map<int, int> &types_count, NeighborhoodKD &nbhs, int cdir, double tol)
+    {
         Eigen::RowVector3d cellvec = atom.cell_.row(cdir);
         if ((cellvec.cross(vec)).norm() > tol)
             return 0;
@@ -328,21 +411,28 @@ int trans_reduce_1d(Atoms& atom, int cdir, double tol,const ReductionSearchOptio
             nexp = round(nexpd);
         else
             return 0;
-        if (nexp == 0) return 0;
+        if (nexp == 0)
+            return 0;
         // check if atom is splitable by atoms count
-        for (auto &it : types_count) {
-            if (it.second % nexp != 0) return 0;
+        for (auto &it : types_count)
+        {
+            if (it.second % nexp != 0)
+                return 0;
         }
         return nexp;
     };
     std::vector<int> mappings;
-    auto check_isprd = [&](Atoms& atom, NeighborhoodKD& nbhskdt, Eigen::RowVector3d& vec, int nprd, int cdir) {
+    auto check_isprd =
+        [&](Atoms &atom, NeighborhoodKD &nbhskdt, Eigen::RowVector3d &vec, int nprd, int cdir)
+    {
         mappings.assign(atom.size(), -1);
-        for (int iat = 0; iat < atom.size(); ++iat) {
+        for (int iat = 0; iat < atom.size(); ++iat)
+        {
             if (mappings[iat] >= 0)
                 continue;
             int ivl = 0;
-            for (int iprd = 1; iprd < nprd; ++iprd) {
+            for (int iprd = 1; iprd < nprd; ++iprd)
+            {
                 Eigen::RowVector3d pnew = atom.pos_[iat] + iprd * vec;
                 atom.wrap(pnew);
                 int nid = nbhskdt.find_atom(pnew.data(), tol);
@@ -364,8 +454,10 @@ int trans_reduce_1d(Atoms& atom, int cdir, double tol,const ReductionSearchOptio
         atnew.pbc_ = atom.pbc_;
         atnew.cell_.row(cdir) = atom.cell_.row(cdir) / nprd;
         int ct = 0;
-        for (int iat = 0; iat < atom.size(); ++iat) {
-            if (mappings[iat] == -1) {
+        for (int iat = 0; iat < atom.size(); ++iat)
+        {
+            if (mappings[iat] == -1)
+            {
                 atnew.pos_[ct] = atom.pos_[iat];
                 atnew.chemmap_[ct] = atom.chemmap_[iat];
                 ++ct;
@@ -378,37 +470,55 @@ int trans_reduce_1d(Atoms& atom, int cdir, double tol,const ReductionSearchOptio
 
     atom.wrap();
     // Eigen::RowVector3d cellvec = atom.cell_.row(0);
-    auto& posref = atom.pos_[0];
+    auto &posref = atom.pos_[0];
     int chemref = atom.chemmap_[0];
     // build kd-tree, todo: test rcut
     bool isprd = true;
-    while (isprd) {
+    while (isprd)
+    {
         isprd = false;
         NeighborhoodKD nbhskd(&atom, 5.0 * tol);
         auto types_count = atom.types_count_map();
-        if(stats)++stats->geometry_stages;
-        std::set<std::array<double,3>> cache;
-        const auto candidates=options.enabled ? translation_candidates(atom,options) : std::vector<Eigen::RowVector3d>{};
-        const size_t count=options.enabled ? candidates.size() : size_t(atom.size()-1);
-        for(size_t candidate=0;candidate<count;++candidate) {
-            auto posdiff=options.enabled ? candidates[candidate] : atom.get_rab(0,int(candidate)+1);
-            if(stats)++stats->candidates;
-            if(options.enabled && options.prefilter && posdiff.squaredNorm()==0.) {
-                if(stats)++stats->necessary_rejections;continue;
+        if (stats)
+            ++stats->geometry_stages;
+        std::set<std::array<double, 3>> cache;
+        const auto candidates = options.enabled ? translation_candidates(atom, options)
+                                                : std::vector<Eigen::RowVector3d>{};
+        const size_t count = options.enabled ? candidates.size() : size_t(atom.size() - 1);
+        for (size_t candidate = 0; candidate < count; ++candidate)
+        {
+            auto posdiff =
+                options.enabled ? candidates[candidate] : atom.get_rab(0, int(candidate) + 1);
+            if (stats)
+                ++stats->candidates;
+            if (options.enabled && options.prefilter && posdiff.squaredNorm() == 0.)
+            {
+                if (stats)
+                    ++stats->necessary_rejections;
+                continue;
             }
-            if(options.enabled && options.cache_candidates) {
-                const std::array<double,3> key={posdiff[0],posdiff[1],posdiff[2]};
-                if(repeated_candidate(key,cache,options,stats))continue;
+            if (options.enabled && options.cache_candidates)
+            {
+                const std::array<double, 3> key = {posdiff[0], posdiff[1], posdiff[2]};
+                if (repeated_candidate(key, cache, options, stats))
+                    continue;
             }
             int n = get_prd(posdiff, atom, types_count, nbhskd, cdir, tol);
-            if (n < 2) {
-                if(stats)++stats->necessary_rejections;continue;
+            if (n < 2)
+            {
+                if (stats)
+                    ++stats->necessary_rejections;
+                continue;
             }
-            if(stats)++stats->full_checks;
+            if (stats)
+                ++stats->full_checks;
             isprd = check_isprd(atom, nbhskd, posdiff, n, cdir);
-            if (isprd) {
+            if (isprd)
+            {
                 break;
-            } else {
+            }
+            else
+            {
                 continue;
             }
         }
@@ -417,36 +527,51 @@ int trans_reduce_1d(Atoms& atom, int cdir, double tol,const ReductionSearchOptio
     return osize / atom.size();
 }
 
-int find_primitive(Atoms& atoms, double tol) {return find_primitive(atoms,tol,ReductionSearchOptions{},nullptr);}
+int find_primitive(Atoms &atoms, double tol)
+{
+    return find_primitive(atoms, tol, ReductionSearchOptions{}, nullptr);
+}
 
-int find_primitive(Atoms& atoms, double tol,const ReductionSearchOptions& options,ReductionSearchStats* stats)
+int find_primitive(Atoms &atoms, double tol, const ReductionSearchOptions &options,
+                   ReductionSearchStats *stats)
 {
     validate_reduction_input(atoms, tol);
     validate_primitive_periodicity(atoms);
     ReductionCoordinateScope coordinates(atoms);
     int n_ori = atoms.size();
-    auto get_prd = [](const Eigen::Matrix3d& S, const Eigen::Matrix3d& P, Eigen::Matrix3i& L, std::map<int, int> &types_count, double tol) {
+    auto get_prd = [](const Eigen::Matrix3d &S, const Eigen::Matrix3d &P, Eigen::Matrix3i &L,
+                      std::map<int, int> &types_count, double tol)
+    {
         // S = L * P, L must be integer in this case, since no rotation exist here
         Eigen::Matrix3d Ld = S * P.inverse();
         L = Ld.array().round().matrix().cast<int>();
         int nexpd = 0;
-        if ((Ld - L.cast<double>()).cwiseAbs().maxCoeff() < tol) {
+        if ((Ld - L.cast<double>()).cwiseAbs().maxCoeff() < tol)
+        {
             nexpd = L.determinant();
-        } else {
+        }
+        else
+        {
             return -1;
         }
-        if (nexpd == 0) return -1;
-        for (auto &it : types_count) {
-            if (it.second % nexpd != 0) return -1;
+        if (nexpd == 0)
+            return -1;
+        for (auto &it : types_count)
+        {
+            if (it.second % nexpd != 0)
+                return -1;
         }
         return nexpd;
     };
     std::vector<int> mapping;
     std::vector<Eigen::RowVector3d> latpoints;
-    auto check_prd = [&mapping, &latpoints](Atoms& atoms, NeighborhoodKD& nbhskd, const Eigen::Matrix3d& rcell, const Eigen::Matrix3i L, double tol) {
+    auto check_prd = [&mapping, &latpoints](Atoms &atoms, NeighborhoodKD &nbhskd,
+                                            const Eigen::Matrix3d &rcell, const Eigen::Matrix3i L,
+                                            double tol)
+    {
         mapping.assign(atoms.size(), -1);
         int xmin, xmax, ymin, ymax, zmin, zmax;
-        Eigen::MatrixXi Lall; // all vertix 
+        Eigen::MatrixXi Lall; // all vertix
         Lall.resize(8, 3);
         Lall.setZero();
         Lall.row(1) = L.row(0);
@@ -475,31 +600,42 @@ int find_primitive(Atoms& atoms, double tol,const ReductionSearchOptions& option
         double bbp = b.dot(rec.col(1));
         double ccp = c.dot(rec.col(2));
         constexpr double ztol = 1e-8;
-        for (int x = xmin; x <= xmax; ++x) {
-            for (int y = ymin; y <= ymax; ++y) {
-                for (int z = zmin; z <= zmax; ++z) {
+        for (int x = xmin; x <= xmax; ++x)
+        {
+            for (int y = ymin; y <= ymax; ++y)
+            {
+                for (int z = zmin; z <= zmax; ++z)
+                {
                     if (x == 0 && y == 0 && z == 0)
                         continue;
                     Eigen::Vector3d p(x, y, z);
                     double xx = p.dot(rec.col(0)) / aap;
                     double yy = p.dot(rec.col(1)) / bbp;
                     double zz = p.dot(rec.col(2)) / ccp;
-                    if (xx > -ztol && xx < 1 - ztol && yy > -ztol && yy < 1 - ztol && zz > -ztol && zz < 1 - ztol) {
+                    if (xx > -ztol && xx < 1 - ztol && yy > -ztol && yy < 1 - ztol && zz > -ztol &&
+                        zz < 1 - ztol)
+                    {
                         latpoints.emplace_back(x, y, z);
                     }
                 }
             }
         }
-        if (latpoints.size() != detL - 1) {
-            std::cerr << "ERROR: failed search lattice points, got " << latpoints.size() << " except " << detL - 1 << ", this could be a bug, please contact to the author: jtwang18s@imr.ac.cn" << std::endl;
+        if (latpoints.size() != detL - 1)
+        {
+            std::cerr << "ERROR: failed search lattice points, got " << latpoints.size()
+                      << " except " << detL - 1
+                      << ", this could be a bug, please contact to the author: jtwang18s@imr.ac.cn"
+                      << std::endl;
             std::cerr << "Matrix L: \n" << L << std::endl;
             return false;
         }
         // search
-        for (int iat = 0; iat < atoms.size(); ++iat) {
+        for (int iat = 0; iat < atoms.size(); ++iat)
+        {
             if (mapping[iat] >= 0)
                 continue;
-            for (int iprd = 0; iprd < latpoints.size(); ++iprd) {
+            for (int iprd = 0; iprd < latpoints.size(); ++iprd)
+            {
                 Eigen::RowVector3d transvec = latpoints[iprd] * rcell;
                 Eigen::RowVector3d pnew = atoms.pos_[iat] + transvec;
                 atoms.wrap(pnew);
@@ -517,8 +653,10 @@ int find_primitive(Atoms& atoms, double tol,const ReductionSearchOptions& option
         natoms.resize(atoms.size() / detL);
         copy_reduction_properties(atoms, natoms);
         int ct = 0;
-        for (int iat = 0; iat < atoms.size(); ++iat) {
-            if (mapping[iat] == -1) {
+        for (int iat = 0; iat < atoms.size(); ++iat)
+        {
+            if (mapping[iat] == -1)
+            {
                 natoms.pos_[ct] = atoms.pos_[iat];
                 natoms.chemmap_[ct] = atoms.chemmap_[iat];
                 ++ct;
@@ -533,8 +671,10 @@ int find_primitive(Atoms& atoms, double tol,const ReductionSearchOptions& option
     int min_count = std::numeric_limits<int>::max();
     auto types_count = atoms.types_count_map();
     std::vector<int> mintype_ids;
-    for (auto& t : types_count) {
-        if (t.second < min_count) {
+    for (auto &t : types_count)
+    {
+        if (t.second < min_count)
+        {
             min_type = t.first;
             min_count = t.second;
         }
@@ -543,26 +683,35 @@ int find_primitive(Atoms& atoms, double tol,const ReductionSearchOptions& option
     int sign = atoms.cell_.determinant() > 0 ? 1 : -1;
     // 2. try to build translation vectors
     bool isprd = true;
-    while (isprd) {
+    while (isprd)
+    {
         isprd = false;
         mintype_ids.clear();
-        for (int i = 0; i < atoms.size(); ++i) {
-            if (atoms.chemmap_[i] == min_type) {
+        for (int i = 0; i < atoms.size(); ++i)
+        {
+            if (atoms.chemmap_[i] == min_type)
+            {
                 id0 = i;
                 break;
             }
         }
-        for (int i = 0; i < atoms.size(); ++i) {
-            if (atoms.chemmap_[i] == min_type) {
+        for (int i = 0; i < atoms.size(); ++i)
+        {
+            if (atoms.chemmap_[i] == min_type)
+            {
                 mintype_ids.push_back(i);
             }
         }
-        if(stats)++stats->geometry_stages;
-        std::set<std::array<double,9>> candidate_cache;
-        if(options.enabled && options.order_candidates)
-            std::stable_sort(mintype_ids.begin(),mintype_ids.end(),[&](int a,int b) {
-                return atoms.get_rab(id0,a).squaredNorm()<atoms.get_rab(id0,b).squaredNorm();
-            });
+        if (stats)
+            ++stats->geometry_stages;
+        std::set<std::array<double, 9>> candidate_cache;
+        if (options.enabled && options.order_candidates)
+            std::stable_sort(mintype_ids.begin(), mintype_ids.end(),
+                             [&](int a, int b)
+                             {
+                                 return atoms.get_rab(id0, a).squaredNorm() <
+                                        atoms.get_rab(id0, b).squaredNorm();
+                             });
         // id0 - i - j - k
         Eigen::RowVector3d vx, vy, vz;
         Eigen::Matrix3d rcell;
@@ -571,58 +720,79 @@ int find_primitive(Atoms& atoms, double tol,const ReductionSearchOptions& option
         atoms.wrap();
         NeighborhoodKD nbhskd(&atoms, 5.0 * tol);
         auto types_count = atoms.types_count_map();
-        for (auto& i : mintype_ids) {
-            for (auto& j : mintype_ids) {
-                for (auto& k : mintype_ids) {
+        for (auto &i : mintype_ids)
+        {
+            for (auto &j : mintype_ids)
+            {
+                for (auto &k : mintype_ids)
+                {
                     vx = atoms.get_rab(id0, i);
                     vy = atoms.get_rab(id0, j);
                     vz = atoms.get_rab(id0, k);
-                    if (i == id0) {
+                    if (i == id0)
+                    {
                         vx = atoms.cell_.row(0);
-                    } 
-                    if (j == id0) {
+                    }
+                    if (j == id0)
+                    {
                         vy = atoms.cell_.row(1);
-                    } 
-                    if (k == id0) {
+                    }
+                    if (k == id0)
+                    {
                         vz = atoms.cell_.row(2);
-                    } 
+                    }
                     rcell.row(0) = vx;
                     rcell.row(1) = vy;
                     rcell.row(2) = vz;
                     int hand = rcell.determinant() > 0 ? 1 : -1;
-                    if (hand != sign) {
+                    if (hand != sign)
+                    {
                         vx *= -1.;
                         rcell.row(0) *= -1.;
                     }
-                    if(stats)++stats->candidates;
+                    if (stats)
+                        ++stats->candidates;
                     // Exact rank failure is necessary; never use a tolerance
                     // or a descriptor threshold to discard a candidate cell.
-                    if(options.enabled && options.prefilter && rcell.determinant()==0.) {
-                        if(stats)++stats->necessary_rejections;continue;
+                    if (options.enabled && options.prefilter && rcell.determinant() == 0.)
+                    {
+                        if (stats)
+                            ++stats->necessary_rejections;
+                        continue;
                     }
-                    if(options.enabled && options.cache_candidates) {
-                        std::array<double,9> key;
-                        for(int row=0;row<3;++row)for(int col=0;col<3;++col)key[3*row+col]=rcell(row,col);
-                        if(repeated_candidate(key,candidate_cache,options,stats))continue;
+                    if (options.enabled && options.cache_candidates)
+                    {
+                        std::array<double, 9> key;
+                        for (int row = 0; row < 3; ++row)
+                            for (int col = 0; col < 3; ++col)
+                                key[3 * row + col] = rcell(row, col);
+                        if (repeated_candidate(key, candidate_cache, options, stats))
+                            continue;
                     }
                     // now check if {vx, vy, vz} can form a new cell
                     nexp = get_prd(atoms.cell_, rcell, matL, types_count, tol);
-                    if (nexp <= 1) {
-                        if(stats)++stats->necessary_rejections;continue;
+                    if (nexp <= 1)
+                    {
+                        if (stats)
+                            ++stats->necessary_rejections;
+                        continue;
                     }
-                    if(stats)++stats->full_checks;
+                    if (stats)
+                        ++stats->full_checks;
                     // check if rcell is reallay a new cell
                     isprd = check_prd(atoms, nbhskd, rcell, matL, tol);
-                    if (isprd) {
+                    if (isprd)
+                    {
                         goto lab_out;
-                    } else {
+                    }
+                    else
+                    {
                         continue;
                     }
                 }
             }
         }
-lab_out:
-        ;
+    lab_out:;
     }
 
     return n_ori / atoms.size();
@@ -630,28 +800,33 @@ lab_out:
 
 // TODO: finish this
 // 60 < all angles < 120 deg
-int correct_cell(Atoms& atom, double tol)
+int correct_cell(Atoms &atom, double tol)
 {
     ReductionCoordinateScope coordinates(atom);
     bool proceed = true;
-    while (proceed) {
+    while (proceed)
+    {
         proceed = false;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++)
+        {
             Eigen::RowVector3d l_i = atom.cell_.row(i);
             // Vector3 l_i = Vector3(lattice[i][0], lattice[i][1], lattice[i][2]);
             for (int j = 0; j < 3; j++)
-                if (i != j) {
+                if (i != j)
+                {
                     Eigen::RowVector3d l_j = atom.cell_.row(j);
                     // Vector3 l_j = Vector3(lattice[j][0], lattice[j][1], lattice[j][2]);
                     double orig_l_j_norm2 = l_j.squaredNorm();
                     double new_l_j_norm2 = (l_j + l_i).squaredNorm();
-                    for (int itr = 1; new_l_j_norm2 < orig_l_j_norm2; itr++) {
+                    for (int itr = 1; new_l_j_norm2 < orig_l_j_norm2; itr++)
+                    {
                         l_j += l_i;
                         new_l_j_norm2 = (l_j + l_i).squaredNorm();
                         proceed = true;
                     }
                     new_l_j_norm2 = (l_j - l_i).squaredNorm();
-                    for (int itr = 1; new_l_j_norm2 < orig_l_j_norm2; itr++) {
+                    for (int itr = 1; new_l_j_norm2 < orig_l_j_norm2; itr++)
+                    {
                         l_j -= l_i;
                         new_l_j_norm2 = (l_j - l_i).squaredNorm();
                         proceed = true;
@@ -667,31 +842,35 @@ int correct_cell(Atoms& atom, double tol)
     return 0;
 }
 
-int all_reduce(Atoms& atoms, double tol) {return all_reduce(atoms,tol,ReductionSearchOptions{},nullptr);}
+int all_reduce(Atoms &atoms, double tol)
+{
+    return all_reduce(atoms, tol, ReductionSearchOptions{}, nullptr);
+}
 
-int all_reduce(Atoms& atoms, double tol,const ReductionSearchOptions& options,ReductionSearchStats* stats)
+int all_reduce(Atoms &atoms, double tol, const ReductionSearchOptions &options,
+               ReductionSearchStats *stats)
 {
     validate_reduction_input(atoms, tol);
     validate_primitive_periodicity(atoms);
     ReductionCoordinateScope coordinates(atoms);
     int n_ori = atoms.size();
     auto cold = atoms.cell_;
-    trans_reduce(atoms,tol,options,stats);
-    find_primitive(atoms,tol,options,stats);
+    trans_reduce(atoms, tol, options, stats);
+    find_primitive(atoms, tol, options, stats);
     correct_cell(atoms, tol);
     auto cnew = atoms.cell_;
     return n_ori / atoms.size();
 }
 
-int aligned_orientation(Atoms& atom, double tol)
+int aligned_orientation(Atoms &atom, double tol)
 {
     auto cellpars = atom.get_cell_parameters();
-    double& a = cellpars[0];
-    double& b = cellpars[1];
-    double& c = cellpars[2];
-    double& alpha = cellpars[3];
-    double& beta = cellpars[4];
-    double& gamma = cellpars[5];
+    double &a = cellpars[0];
+    double &b = cellpars[1];
+    double &c = cellpars[2];
+    double &alpha = cellpars[3];
+    double &beta = cellpars[4];
+    double &gamma = cellpars[5];
     // 1.
 
     // CellType ctype;
@@ -730,7 +909,7 @@ int aligned_orientation(Atoms& atom, double tol)
     return 0;
 }
 
-BravsLatt get_bravs_type(Atoms& atom, double tol)
+BravsLatt get_bravs_type(Atoms &atom, double tol)
 {
     niggli_reduce(atom, tol);
     std::vector<double> cellpars = atom.get_cell_parameters();
@@ -750,16 +929,19 @@ BravsLatt get_bravs_type(Atoms& atom, double tol)
     // }
     return best;
 }
-int find_primitive_2d(Atoms& atoms, int cdir1, int cdir2, double tol)
+
+int find_primitive_2d(Atoms &atoms, int cdir1, int cdir2, double tol)
 {
     if (cdir1 < 0 || cdir1 > 2 || cdir2 < 0 || cdir2 > 2 || cdir1 == cdir2)
         throw std::invalid_argument("2D primitive reduction requires two distinct cell directions");
     for (int axis = 0; axis < 3; ++axis)
         if (atoms.pbc_[axis] != (axis == cdir1 || axis == cdir2))
-            throw std::invalid_argument("2D primitive reduction requires exactly the selected two periodic directions");
-    if (atoms.size() == 0 || atoms.pos_.size() != atoms.chemmap_.size() ||
-        !std::isfinite(tol) || tol <= 0 || !atoms.cell_.allFinite())
-        throw std::invalid_argument("2D primitive reduction requires nonempty finite geometry and a positive tolerance");
+            throw std::invalid_argument(
+                "2D primitive reduction requires exactly the selected two periodic directions");
+    if (atoms.size() == 0 || atoms.pos_.size() != atoms.chemmap_.size() || !std::isfinite(tol) ||
+        tol <= 0 || !atoms.cell_.allFinite())
+        throw std::invalid_argument(
+            "2D primitive reduction requires nonempty finite geometry and a positive tolerance");
     Eigen::Matrix<double, 2, 3> basis;
     basis.row(0) = atoms.cell_.row(cdir1);
     basis.row(1) = atoms.cell_.row(cdir2);
@@ -769,37 +951,52 @@ int find_primitive_2d(Atoms& atoms, int cdir1, int cdir2, double tol)
         throw std::invalid_argument("2D primitive reduction requires independent periodic vectors");
     const Eigen::Matrix<double, 2, 3> dual = decomposition.solve(basis);
     if (!dual.allFinite() || (!atoms.cartesian && !atoms.cell_.fullPivLu().isInvertible()))
-        throw std::invalid_argument("2D fractional input requires a finite full cell; singular slabs must store Cartesian positions");
+        throw std::invalid_argument(
+            "2D fractional input requires a finite full cell; singular slabs must store Cartesian positions");
 
     // Work on geometry only. A rejected/no-op search must not rewrite labels or
     // the caller's coordinate representation, including a missing open cell row.
     Atoms geometry;
-    geometry.cell_ = atoms.cell_; geometry.pbc_ = atoms.pbc_;
-    geometry.pos_ = atoms.pos_; geometry.chemmap_ = atoms.chemmap_;
+    geometry.cell_ = atoms.cell_;
+    geometry.pbc_ = atoms.pbc_;
+    geometry.pos_ = atoms.pos_;
+    geometry.chemmap_ = atoms.chemmap_;
     geometry.cartesian = atoms.cartesian;
-    if (!geometry.cartesian) geometry.to_cartesian();
+    if (!geometry.cartesian)
+        geometry.to_cartesian();
     for (const auto &position : geometry.pos_)
-        if (!position.allFinite()) throw std::invalid_argument("2D primitive reduction requires finite positions");
+        if (!position.allFinite())
+            throw std::invalid_argument("2D primitive reduction requires finite positions");
     geometry.wrap();
     Atoms metric;
-    metric.cell_ = geometry.cell_; metric.pbc_ = geometry.pbc_;
+    metric.cell_ = geometry.cell_;
+    metric.pbc_ = geometry.pbc_;
     metric.pos_.resize(2);
-    auto same_position = [&](const Eigen::RowVector3d &a, const Eigen::RowVector3d &b) {
-        metric.pos_[0] = a; metric.pos_[1] = b;
+    auto same_position = [&](const Eigen::RowVector3d &a, const Eigen::RowVector3d &b)
+    {
+        metric.pos_[0] = a;
+        metric.pos_[1] = b;
         return metric.get_rab(0, 1).norm() <= tol;
     };
-    auto is_translation = [&](const Eigen::RowVector3d &translation) {
+    auto is_translation = [&](const Eigen::RowVector3d &translation)
+    {
         std::vector<bool> used(geometry.size(), false);
-        for (int i = 0; i < geometry.size(); ++i) {
+        for (int i = 0; i < geometry.size(); ++i)
+        {
             const Eigen::RowVector3d target = geometry.pos_[i] + translation;
             bool matched = false;
-            for (int j = 0; j < geometry.size(); ++j) {
+            for (int j = 0; j < geometry.size(); ++j)
+            {
                 if (!used[j] && geometry.chemmap_[i] == geometry.chemmap_[j] &&
-                    same_position(target, geometry.pos_[j])) {
-                    used[j] = true; matched = true; break;
+                    same_position(target, geometry.pos_[j]))
+                {
+                    used[j] = true;
+                    matched = true;
+                    break;
                 }
             }
-            if (!matched) return false;
+            if (!matched)
+                return false;
         }
         return true;
     };
@@ -808,71 +1005,112 @@ int find_primitive_2d(Atoms& atoms, int cdir1, int cdir2, double tol)
     // layer. Test that candidate against the WHOLE structure, not just a layer.
     const auto counts = geometry.types_count_map();
     const int least_type = std::min_element(counts.begin(), counts.end(),
-        [](const auto &a, const auto &b) { return a.second < b.second; })->first;
+                                            [](const auto &a, const auto &b)
+                                            {
+                                                return a.second < b.second;
+                                            })
+                               ->first;
     int anchor = 0;
-    while (geometry.chemmap_[anchor] != least_type) ++anchor;
+    while (geometry.chemmap_[anchor] != least_type)
+        ++anchor;
     std::vector<Eigen::RowVector2d> group{Eigen::RowVector2d::Zero()};
-    for (int i = 0; i < geometry.size(); ++i) {
-        if (geometry.chemmap_[i] != least_type) continue;
+    for (int i = 0; i < geometry.size(); ++i)
+    {
+        if (geometry.chemmap_[i] != least_type)
+            continue;
         const Eigen::RowVector3d displacement = geometry.pos_[i] - geometry.pos_[anchor];
         Eigen::RowVector2d fraction = displacement * dual.transpose();
-        if ((displacement - fraction * basis).norm() > tol) continue;
-        for (int axis = 0; axis < 2; ++axis) fraction[axis] -= std::floor(fraction[axis]);
+        if ((displacement - fraction * basis).norm() > tol)
+            continue;
+        for (int axis = 0; axis < 2; ++axis)
+            fraction[axis] -= std::floor(fraction[axis]);
         const Eigen::RowVector3d translation = fraction * basis;
         bool duplicate = false;
         for (const auto &existing : group)
-            if (same_position(translation, existing * basis)) { duplicate = true; break; }
-        if (!duplicate && is_translation(translation)) group.push_back(fraction);
+            if (same_position(translation, existing * basis))
+            {
+                duplicate = true;
+                break;
+            }
+        if (!duplicate && is_translation(translation))
+            group.push_back(fraction);
     }
     const int multiplicity = group.size();
-    if (multiplicity == 1 || geometry.size() % multiplicity != 0) return 1;
+    if (multiplicity == 1 || geometry.size() % multiplicity != 0)
+        return 1;
 
     // The finite translation group defines an index-m superlattice of Z^2.
     // Its canonical representatives plus the two original vectors contain a
     // primitive pair. Snap the inverse to an integer supercell matrix, then
     // revalidate its exact translations and all resulting atomic orbits.
-    group.emplace_back(1., 0.); group.emplace_back(0., 1.);
-    for (const auto &a : group) for (const auto &b : group) {
-        Eigen::Matrix2d transform; transform.row(0) = a; transform.row(1) = b;
-        if (transform.determinant() <= 0) continue;
-        const Eigen::Matrix2d inverse = transform.inverse();
-        if (!inverse.allFinite() || inverse.cwiseAbs().maxCoeff() > geometry.size() + 1.) continue;
-        const Eigen::Matrix<long long, 2, 2> integer = inverse.array().round().cast<long long>();
-        if (integer.determinant() != multiplicity) continue;
-        const Eigen::Matrix<double, 2, 3> primitive = integer.cast<double>().inverse() * basis;
-        if (!primitive.allFinite() || !is_translation(primitive.row(0)) || !is_translation(primitive.row(1))) continue;
+    group.emplace_back(1., 0.);
+    group.emplace_back(0., 1.);
+    for (const auto &a : group)
+        for (const auto &b : group)
+        {
+            Eigen::Matrix2d transform;
+            transform.row(0) = a;
+            transform.row(1) = b;
+            if (transform.determinant() <= 0)
+                continue;
+            const Eigen::Matrix2d inverse = transform.inverse();
+            if (!inverse.allFinite() || inverse.cwiseAbs().maxCoeff() > geometry.size() + 1.)
+                continue;
+            const Eigen::Matrix<long long, 2, 2> integer =
+                inverse.array().round().cast<long long>();
+            if (integer.determinant() != multiplicity)
+                continue;
+            const Eigen::Matrix<double, 2, 3> primitive = integer.cast<double>().inverse() * basis;
+            if (!primitive.allFinite() || !is_translation(primitive.row(0)) ||
+                !is_translation(primitive.row(1)))
+                continue;
 
-        metric.cell_.row(cdir1) = primitive.row(0);
-        metric.cell_.row(cdir2) = primitive.row(1);
-        std::vector<int> representatives, orbit_sizes;
-        for (int i = 0; i < geometry.size(); ++i) {
-            int orbit = 0;
-            for (; orbit < representatives.size(); ++orbit) {
-                const int j = representatives[orbit];
-                if (geometry.chemmap_[i] == geometry.chemmap_[j] &&
-                    same_position(geometry.pos_[i], geometry.pos_[j])) break;
+            metric.cell_.row(cdir1) = primitive.row(0);
+            metric.cell_.row(cdir2) = primitive.row(1);
+            std::vector<int> representatives, orbit_sizes;
+            for (int i = 0; i < geometry.size(); ++i)
+            {
+                int orbit = 0;
+                for (; orbit < representatives.size(); ++orbit)
+                {
+                    const int j = representatives[orbit];
+                    if (geometry.chemmap_[i] == geometry.chemmap_[j] &&
+                        same_position(geometry.pos_[i], geometry.pos_[j]))
+                        break;
+                }
+                if (orbit == representatives.size())
+                {
+                    representatives.push_back(i);
+                    orbit_sizes.push_back(0);
+                }
+                ++orbit_sizes[orbit];
             }
-            if (orbit == representatives.size()) { representatives.push_back(i); orbit_sizes.push_back(0); }
-            ++orbit_sizes[orbit];
-        }
-        metric.cell_ = geometry.cell_;
-        if (representatives.size() != geometry.size() / multiplicity ||
-            std::any_of(orbit_sizes.begin(), orbit_sizes.end(),
-                [&](int size) { return size != multiplicity; })) continue;
+            metric.cell_ = geometry.cell_;
+            if (representatives.size() != geometry.size() / multiplicity ||
+                std::any_of(orbit_sizes.begin(), orbit_sizes.end(),
+                            [&](int size)
+                            {
+                                return size != multiplicity;
+                            }))
+                continue;
 
-        Atoms reduced;
-        reduced.cell_ = geometry.cell_; reduced.pbc_ = geometry.pbc_;
-        reduced.cell_.row(cdir1) = primitive.row(0);
-        reduced.cell_.row(cdir2) = primitive.row(1);
-        for (int i : representatives) {
-            reduced.pos_.push_back(geometry.pos_[i]); reduced.chemmap_.push_back(geometry.chemmap_[i]);
+            Atoms reduced;
+            reduced.cell_ = geometry.cell_;
+            reduced.pbc_ = geometry.pbc_;
+            reduced.cell_.row(cdir1) = primitive.row(0);
+            reduced.cell_.row(cdir2) = primitive.row(1);
+            for (int i : representatives)
+            {
+                reduced.pos_.push_back(geometry.pos_[i]);
+                reduced.chemmap_.push_back(geometry.chemmap_[i]);
+            }
+            copy_reduction_properties(atoms, reduced);
+            reduced.wrap();
+            if (!atoms.cartesian)
+                reduced.to_fractional();
+            atoms = std::move(reduced);
+            return multiplicity;
         }
-        copy_reduction_properties(atoms, reduced);
-        reduced.wrap();
-        if (!atoms.cartesian) reduced.to_fractional();
-        atoms = std::move(reduced);
-        return multiplicity;
-    }
     return 1;
 }
 

@@ -6,8 +6,9 @@
 
 // Lower envelope under convex mixing of the supplied coordinates. Only
 // composition coordinates give this construction its usual phase-hull meaning.
-class LowerEnergyEnvelope {
-public:
+class LowerEnergyEnvelope
+{
+  public:
     using Coordinates = std::vector<double>;
     LowerEnergyEnvelope(const std::vector<Coordinates> &coordinates,
                         const std::vector<double> &energies);
@@ -21,7 +22,7 @@ public:
     std::size_t affine_rank() const;
     std::size_t reference_size() const;
 
-private:
+  private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

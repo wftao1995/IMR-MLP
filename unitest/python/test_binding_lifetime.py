@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Native objects release owned resources and preserve borrowed dependencies."""
+
 import ctypes
 import os
 from pathlib import Path
@@ -33,13 +34,20 @@ def run_python(code, tmp_path):
     env = os.environ.copy()
     env['PYTHONPATH'] = str(root) + ':' + env.get('PYTHONPATH', '')
     env['OMP_NUM_THREADS'] = '1'
-    result = subprocess.run([sys.executable, '-c', code, str(root)], cwd=tmp_path,
-                            env=env, capture_output=True, text=True, timeout=60)
+    result = subprocess.run(
+        [sys.executable, '-c', code, str(root)],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
     assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_relaxation_cleanup_reinitialization_and_interpreter_exit(tmp_path):
-    run_python('''
+    run_python(
+        '''
 import gc, sys, weakref
 import numpy as np
 from imrmlp import Atoms, Potential
@@ -75,14 +83,18 @@ assert wrapper() is None
 potential = Potential(sys.argv[1] + '/unitest/test-data/potential.mtp')
 driver = _Relaxation()
 driver.init(potential.inner, atoms._impl)
-''', tmp_path)
+''',
+        tmp_path,
+    )
 
 
-@pytest.mark.skipif(not Path('/proc/self/status').exists() or
-                    not hasattr(ctypes.CDLL(None), 'malloc_trim'),
-                    reason='RSS regression requires Linux and glibc')
+@pytest.mark.skipif(
+    not Path('/proc/self/status').exists() or not hasattr(ctypes.CDLL(None), 'malloc_trim'),
+    reason='RSS regression requires Linux and glibc',
+)
 def test_discarded_relaxation_objects_do_not_accumulate(tmp_path):
-    run_python('''
+    run_python(
+        '''
 import ctypes, gc
 from pathlib import Path
 from imrmlp._imrmlp import _Relaxation
@@ -104,11 +116,14 @@ after = rss()
 # The leaking holder accumulated about 50 MiB over these 600 iterations.
 # Allow allocator/runtime noise while detecting that sustained growth.
 assert after - before < 16 * 1024, (before, after)
-''', tmp_path)
+''',
+        tmp_path,
+    )
 
 
 def test_bmatrix_results_survive_cleanup_and_failed_calls(tmp_path):
-    run_python('''
+    run_python(
+        '''
 import gc, sys
 import numpy as np
 from imrmlp import Atoms
@@ -133,14 +148,18 @@ for dtype in ('mtm', 'pot_efs'):
         np.testing.assert_allclose(result, expected)
 # Keep the copied array alive through interpreter shutdown.
 assert result.flags.owndata
-''', tmp_path)
+''',
+        tmp_path,
+    )
 
 
-@pytest.mark.skipif(not Path('/proc/self/status').exists() or
-                    not hasattr(ctypes.CDLL(None), 'malloc_trim'),
-                    reason='RSS regression requires Linux and glibc')
+@pytest.mark.skipif(
+    not Path('/proc/self/status').exists() or not hasattr(ctypes.CDLL(None), 'malloc_trim'),
+    reason='RSS regression requires Linux and glibc',
+)
 def test_bmatrix_temporary_storage_does_not_accumulate(tmp_path):
-    run_python('''
+    run_python(
+        '''
 import ctypes, gc, sys
 from pathlib import Path
 import numpy as np
@@ -163,20 +182,26 @@ for _ in range(20):
 after = rss()
 # The leaked matrix and builder accumulated over 20 MiB in this workload.
 assert after - before < 8 * 1024, (before, after)
-''', tmp_path)
+''',
+        tmp_path,
+    )
 
 
-@pytest.mark.skipif(not Path('/proc/self/status').exists() or
-                    not hasattr(ctypes.CDLL(None), 'malloc_trim'),
-                    reason='RSS regression requires Linux and glibc')
+@pytest.mark.skipif(
+    not Path('/proc/self/status').exists() or not hasattr(ctypes.CDLL(None), 'malloc_trim'),
+    reason='RSS regression requires Linux and glibc',
+)
 @pytest.mark.parametrize('kind', ['potential', 'selector'])
 def test_owned_potentials_and_selectors_do_not_accumulate(tmp_path, kind):
-    run_python('''
+    run_python(
+        '''
 import ctypes, gc, sys
 from pathlib import Path
 from imrmlp._imrmlp import _PotentialWrapper, _ActiveSelector
 path = sys.argv[1] + '/unitest/test-data/potential.mtp'
-factory = ''' + ('_PotentialWrapper' if kind == 'potential' else '_ActiveSelector') + '''
+factory = '''
+        + ('_PotentialWrapper' if kind == 'potential' else '_ActiveSelector')
+        + '''
 libc = ctypes.CDLL(None)
 def rss():
     gc.collect()
@@ -193,4 +218,6 @@ for _ in range(150):
 after = rss()
 # Previously each 100 objects leaked roughly 24 MiB (selector) or 40 MiB (potential).
 assert after - before < 12 * 1024, (before, after)
-''', tmp_path)
+''',
+        tmp_path,
+    )

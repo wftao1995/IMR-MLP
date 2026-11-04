@@ -1,16 +1,23 @@
 """findint's explicit input species map must preserve chemical identities."""
+
 import shlex
 
 import pytest
 from test_cli_error_paths import run_command
 
-HOST = ('1\nLattice="4 0 0 0 4 0 0 0 4" '
-        'Properties=species:S:1:pos:R:3 pbc="T T T"\nSi 0 0 0\n')
+HOST = '1\nLattice="4 0 0 0 4 0 0 0 4" Properties=species:S:1:pos:R:3 pbc="T T T"\nSi 0 0 0\n'
 
 
 def arguments(output='output.xyz'):
-    return ['findint', '--input=host.xyz', '--input-format=extxyz',
-            '--output=' + output, '--output-format=extxyz', '--insert=C', '--top=1']
+    return [
+        'findint',
+        '--input=host.xyz',
+        '--input-format=extxyz',
+        '--output=' + output,
+        '--output-format=extxyz',
+        '--insert=C',
+        '--top=1',
+    ]
 
 
 def assert_cubic_host_and_carbon(path):
@@ -25,8 +32,11 @@ def assert_cubic_host_and_carbon(path):
 
 
 @pytest.mark.parametrize('mapping', ['O .66\nSi 1.11\n', 'Si 1.11\nO .66\n'])
-def test_findint_explicit_type_map_and_insertion_use_independent_chemical_symbols(tmp_path, mapping):
-    source = tmp_path / 'host.xyz'; source.write_text(HOST)
+def test_findint_explicit_type_map_and_insertion_use_independent_chemical_symbols(
+    tmp_path, mapping
+):
+    source = tmp_path / 'host.xyz'
+    source.write_text(HOST)
     (tmp_path / 'species.map').write_text(mapping)
     result = run_command('imrmlp', arguments() + ['--index-file=species.map'], tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -42,13 +52,16 @@ def test_findint_empty_map_option_retains_default_atomic_number_mapping(tmp_path
     assert_cubic_host_and_carbon(tmp_path / 'output.xyz')
 
 
-@pytest.mark.parametrize('contents', [None, '', '\n', '0\n1\n', 'Unknown\n', 'Si\nSi\n',
-                                      'Si junk\n', 'Si nan\n', 'O\n\nSi\n'])
+@pytest.mark.parametrize(
+    'contents',
+    [None, '', '\n', '0\n1\n', 'Unknown\n', 'Si\nSi\n', 'Si junk\n', 'Si nan\n', 'O\n\nSi\n'],
+)
 def test_findint_explicit_bad_maps_fail_before_touching_existing_output(tmp_path, contents):
     (tmp_path / 'host.xyz').write_text(HOST)
     if contents is not None:
         (tmp_path / 'bad.map').write_text(contents)
-    output = tmp_path / 'output.xyz'; output.write_bytes(b'keep original output\n')
+    output = tmp_path / 'output.xyz'
+    output.write_bytes(b'keep original output\n')
     result = run_command('imrmlp', arguments() + ['--index-file=bad.map'], tmp_path)
     assert result.returncode != 0, result.stdout + result.stderr
     message = result.stdout + result.stderr

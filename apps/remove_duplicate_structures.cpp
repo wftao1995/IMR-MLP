@@ -20,7 +20,7 @@ int remove_duplicate_structures(int argc, char *argv[])
     bool overwrite = false;
     double symprec = 1e-4;
     double volprec = 1e-3;
-    double pos_tol = 0.1;       // separate tolerance for atomic position matching
+    double pos_tol = 0.1; // separate tolerance for atomic position matching
     bool preserve = true;
     bool allow_reflections = true;
     bool fastalgo = true;
@@ -31,7 +31,8 @@ int remove_duplicate_structures(int argc, char *argv[])
         .addop(idfile, "index", "id", "index file")
         .addop(symprec, "sym-prec", "sprec", "symmetry tolerance (cell/spg)")
         .addop(volprec, "vol-prec", "vprec", "tolerance for volume comparison")
-        .addop(pos_tol, "pos-tol", "ptol", "tolerance for atomic position matching (A), default 0.1")
+        .addop(pos_tol, "pos-tol", "ptol",
+               "tolerance for atomic position matching (A), default 0.1")
         .addop(preserve, "preserve", "p", "preserve original cell, default true")
         .addop(overwrite, "overwrite", "ov", "overwrite existing output file", false, 0)
         .addop(informat, "input-format", "if")
@@ -43,8 +44,10 @@ int remove_duplicate_structures(int argc, char *argv[])
         .add_request("input")
         .phrase_options(argc, argv);
 
-    if (GPIO::file_exist(outputfile) && !overwrite) {
-        cerr << "Error: output file " << outputfile << " exists, use --overwrite to overwrite" << endl;
+    if (GPIO::file_exist(outputfile) && !overwrite)
+    {
+        cerr << "Error: output file " << outputfile << " exists, use --overwrite to overwrite"
+             << endl;
         exit(128);
     }
 
@@ -53,7 +56,8 @@ int remove_duplicate_structures(int argc, char *argv[])
     else
         iobj.readmap(idfile);
 
-    if (!iobj.read(atoms, inputfile, informat)) {
+    if (!iobj.read(atoms, inputfile, informat))
+    {
         cerr << "Failed to read input file" << endl;
         exit(128);
     }
@@ -71,7 +75,8 @@ int remove_duplicate_structures(int argc, char *argv[])
     vector<Symmetry3D::ComparableStructure> prepared;
     prepared.reserve(atoms.size());
     map<map<int, int>, vector<int>> groups;
-    for (int i = 0; i < atoms.size(); ++i) {
+    for (int i = 0; i < atoms.size(); ++i)
+    {
         prepared.push_back(comparator.prepare(atoms[i]));
         prepared.back().atoms.id = i;
         prepared.back().atoms.global_attribs_i_["oid"] = i;
@@ -80,36 +85,42 @@ int remove_duplicate_structures(int argc, char *argv[])
     // Group by composition only. Quantizing descriptors into hash buckets can
     // split equivalent structures at bucket boundaries; compare cached values instead.
     vector<vector<int>> atom_by_group;
-    for (auto &[composition, indices] : groups) atom_by_group.push_back(std::move(indices));
+    for (auto &[composition, indices] : groups)
+        atom_by_group.push_back(std::move(indices));
     cout << "Preprocess finished, " << atom_by_group.size() << " groups" << endl;
 
     // ── Deduplicate within each group (parallel) ──
     vector<int> nodup_ids;
 
-    #pragma omp parallel
+#pragma omp parallel
     {
         vector<int> nodup_private;
-        #pragma omp for schedule(dynamic)
-        for (int iit = 0; iit < (int)atom_by_group.size(); ++iit) {
+#pragma omp for schedule(dynamic)
+        for (int iit = 0; iit < (int)atom_by_group.size(); ++iit)
+        {
             auto &queue = atom_by_group[iit];
             vector<int> kept = {queue[0]};
-            for (int lid = 1; lid < (int)queue.size(); ++lid) {
+            for (int lid = 1; lid < (int)queue.size(); ++lid)
+            {
                 bool is_unique = true;
-                for (int kid : kept) {
-                    if (comparator.equivalent(prepared[kid], prepared[queue[lid]])) {
+                for (int kid : kept)
+                {
+                    if (comparator.equivalent(prepared[kid], prepared[queue[lid]]))
+                    {
                         is_unique = false;
                         break;
                     }
                 }
-                if (is_unique) kept.push_back(queue[lid]);
+                if (is_unique)
+                    kept.push_back(queue[lid]);
             }
             for (int kid : kept)
                 nodup_private.push_back(kid);
 
-            #pragma omp critical
+#pragma omp critical
             cout << "Group " << iit << " → " << kept.size() << " kept" << endl;
         }
-        #pragma omp critical
+#pragma omp critical
         nodup_ids.insert(nodup_ids.end(), nodup_private.begin(), nodup_private.end());
     }
 
@@ -118,7 +129,8 @@ int remove_duplicate_structures(int argc, char *argv[])
 
     // ── Write output ──
     vector<Atoms> outputs(nodup_ids.size());
-    for (int i = 0; i < (int)nodup_ids.size(); ++i) {
+    for (int i = 0; i < (int)nodup_ids.size(); ++i)
+    {
         int oid = nodup_ids[i];
         outputs[i] = preserve ? atoms[oid] : prepared[oid].atoms;
     }
@@ -127,10 +139,12 @@ int remove_duplicate_structures(int argc, char *argv[])
 
     {
         std::ofstream ofs(outputid);
-        if (!ofs) GPERROR("Cannot open output index file: " + outputid);
+        if (!ofs)
+            GPERROR("Cannot open output index file: " + outputid);
         fmt::print(ofs, "{}", fmt::join(nodup_ids, " "));
         ofs.close();
-        if (!ofs) GPERROR("Failed to write indices: " + outputid);
+        if (!ofs)
+            GPERROR("Failed to write indices: " + outputid);
     }
 
     return 0;

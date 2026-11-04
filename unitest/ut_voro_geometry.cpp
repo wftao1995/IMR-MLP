@@ -14,7 +14,8 @@ using Catch::Approx;
 
 namespace
 {
-std::unique_ptr<NeighborhoodsVoro> neighbors(Atoms &atoms, bool radical, double tolerance, int minimum = 0)
+std::unique_ptr<NeighborhoodsVoro> neighbors(Atoms &atoms, bool radical, double tolerance,
+                                             int minimum = 0)
 {
     std::map<int, double> radii{{0, 0.8}, {1, 1.2}};
     if (radical)
@@ -63,8 +64,7 @@ void check_unique_matches(const Neighborhood &a, const Neighborhood &b,
     {
         int matches = 0;
         for (int k = 0; k < b.nbhcount_; ++k)
-            if (a.indices_[j] == b.indices_[k] &&
-                (a.pos_[j] * rotation - b.pos_[k]).norm() < 1e-9)
+            if (a.indices_[j] == b.indices_[k] && (a.pos_[j] * rotation - b.pos_[k]).norm() < 1e-9)
                 ++matches;
         CAPTURE(j, a.indices_[j]);
         REQUIRE(matches == 1);
@@ -73,10 +73,12 @@ void check_unique_matches(const Neighborhood &a, const Neighborhood &b,
 
 void check_rotation(Atoms &atoms, bool radical, double tolerance)
 {
-    const Eigen::Matrix3d rotation = Eigen::AngleAxisd(0.7, Eigen::Vector3d(1, 2, 3).normalized()).toRotationMatrix();
+    const Eigen::Matrix3d rotation =
+        Eigen::AngleAxisd(0.7, Eigen::Vector3d(1, 2, 3).normalized()).toRotationMatrix();
     Atoms rotated(atoms);
     rotated.cell_ *= rotation;
-    for (auto &position : rotated.pos_) position *= rotation;
+    for (auto &position : rotated.pos_)
+        position *= rotation;
     const auto original = neighbors(atoms, radical, tolerance);
     const auto transformed = neighbors(rotated, radical, tolerance);
     for (int i = 0; i < atoms.size(); ++i)
@@ -100,8 +102,8 @@ TEST_CASE("Voronoi neighbors keep distinct periodic images", "[voro]")
     const double tolerance = GENERATE(0., -0.001, 0.001);
     Atoms atoms = cube(repeat);
     const auto nbhs = neighbors(atoms, radical, tolerance);
-    REQUIRE(std::accumulate(nbhs->voro_volume_each_.begin(), nbhs->voro_volume_each_.end(), 0.)
-            == Approx(atoms.get_volume()));
+    REQUIRE(std::accumulate(nbhs->voro_volume_each_.begin(), nbhs->voro_volume_each_.end(), 0.) ==
+            Approx(atoms.get_volume()));
     for (int i = 0; i < atoms.size(); ++i)
     {
         const auto &nbh = (*nbhs)[i];
@@ -122,12 +124,13 @@ TEST_CASE("Voronoi neighbors keep distinct periodic images", "[voro]")
 TEST_CASE("Radical Voronoi refinement preserves unequal-radius planes", "[voro]")
 {
     Atoms atoms = cube(2);
-    for (int i = 0; i < atoms.size(); ++i) atoms.chemmap_[i] = i % 2;
+    for (int i = 0; i < atoms.size(); ++i)
+        atoms.chemmap_[i] = i % 2;
     const auto original = neighbors(atoms, true, 0);
     const auto refined = neighbors(atoms, true, -0.001);
     REQUIRE(original->voro_volume_each_[0] != Approx(original->voro_volume_each_[1]));
-    REQUIRE(std::accumulate(refined->voro_volume_each_.begin(), refined->voro_volume_each_.end(), 0.)
-            == Approx(atoms.get_volume()));
+    REQUIRE(std::accumulate(refined->voro_volume_each_.begin(), refined->voro_volume_each_.end(),
+                            0.) == Approx(atoms.get_volume()));
     for (int i = 0; i < atoms.size(); ++i)
         REQUIRE(refined->voro_volume_each_[i] == Approx(original->voro_volume_each_[i]));
     check_rotation(atoms, true, -0.001);
@@ -164,8 +167,8 @@ TEST_CASE("Radical neighbors are resolved when a face lies behind its generating
     atoms.pos_ = {{0.5, 2, 2}, {1, 2, 2}};
     atoms.chemmap_ = {0, 1};
     const auto nbhs = neighbors(atoms, true, 0);
-    REQUIRE(std::accumulate(nbhs->voro_volume_each_.begin(), nbhs->voro_volume_each_.end(), 0.)
-            == Approx(atoms.get_volume()));
+    REQUIRE(std::accumulate(nbhs->voro_volume_each_.begin(), nbhs->voro_volume_each_.end(), 0.) ==
+            Approx(atoms.get_volume()));
     REQUIRE((*nbhs)[0].nbhcount_ > 0);
     REQUIRE((*nbhs)[1].nbhcount_ > 0);
     // The actual 0.5-Angstrom pair must survive both radical geometries:
@@ -213,8 +216,8 @@ TEST_CASE("Triclinic self-image neighbors keep the center atom ID", "[voro]")
     atoms.chemmap_ = {0, 1};
     check_rotation(atoms, radical, tolerance);
     const auto nbhs = neighbors(atoms, radical, 0);
-    REQUIRE(std::accumulate(nbhs->voro_volume_each_.begin(), nbhs->voro_volume_each_.end(), 0.)
-            == Approx(atoms.get_volume()));
+    REQUIRE(std::accumulate(nbhs->voro_volume_each_.begin(), nbhs->voro_volume_each_.end(), 0.) ==
+            Approx(atoms.get_volume()));
     for (int i = 0; i < atoms.size(); ++i)
         for (int j = 0; j < (*nbhs)[i].nbhcount_; ++j)
             if (std::abs((*nbhs)[i].pos_[j][2]) < 1e-10)
@@ -264,13 +267,14 @@ TEST_CASE("Radical face recovery never substitutes a zero self image", "[voro][v
         const Eigen::RowVector3d point = face.offset * face.normal;
         const double center_power = point.squaredNorm() - 1.2 * 1.2;
         const double other_radius = axial ? 0.8 : 1.2;
-        CHECK(center_power == Approx((point - expected).squaredNorm() -
-                                     other_radius * other_radius).margin(1e-12));
+        CHECK(center_power ==
+              Approx((point - expected).squaredNorm() - other_radius * other_radius).margin(1e-12));
     }
     REQUIRE(axial_faces == 2);
 }
 
-TEST_CASE("Radical face recovery rejects a plane without a physical generating image", "[voro][voro-recovery]")
+TEST_CASE("Radical face recovery rejects a plane without a physical generating image",
+          "[voro][voro-recovery]")
 {
     Atoms atoms;
     atoms.cell_ = Eigen::Vector3d(2, 2, 10).asDiagonal();

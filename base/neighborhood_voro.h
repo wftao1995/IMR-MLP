@@ -26,16 +26,22 @@
 #endif
 
 #ifdef HASHED_VORO
-using voro_hash=VoroIndex::NativeUInt;
-using voro_index=VoroIndex::Native;
-struct voro_index_bond : voro_index {
+using voro_hash = VoroIndex::NativeUInt;
+using voro_index = VoroIndex::Native;
+
+struct voro_index_bond : voro_index
+{
     int type;
-    voro_index_bond(std::vector<int> histogram,int value)
-        : voro_index(histogram),type(value) {}
-    bool operator<(const voro_index_bond& other)const {
-        if(voro_index::operator<(other))return true;
-        if(other.voro_index::operator<(*this))return false;
-        return type<other.type;
+
+    voro_index_bond(std::vector<int> histogram, int value) : voro_index(histogram), type(value) {}
+
+    bool operator<(const voro_index_bond &other) const
+    {
+        if (voro_index::operator<(other))
+            return true;
+        if (other.voro_index::operator<(*this))
+            return false;
+        return type < other.type;
     }
 };
 #else  // HASHED_VORO
@@ -43,9 +49,7 @@ struct voro_index
 {
     std::vector<int> index;
 
-    voro_index(std::vector<int> vec) : index(vec)
-    {
-    }
+    voro_index(std::vector<int> vec) : index(vec) {}
 
     bool operator<(const voro_index &opt) const
     {
@@ -64,19 +68,18 @@ struct voro_index
         std::string retstr = "0";
         for (int i = 2; i < index.size(); ++i)
         {
-            retstr +=(std::string)"-" + std::to_string(index[i]);
+            retstr += (std::string) "-" + std::to_string(index[i]);
         }
         return retstr;
     }
 };
+
 struct voro_index_bond
 {
     std::vector<int> index;
     int type;
 
-    voro_index_bond(std::vector<int> vec, int _type) : index(vec), type(_type)
-    {
-    }
+    voro_index_bond(std::vector<int> vec, int _type) : index(vec), type(_type) {}
 
     bool operator<(const voro_index_bond &opt) const
     {
@@ -97,7 +100,7 @@ struct voro_index_bond
         std::string retstr = "0";
         for (int i = 2; i < index.size(); ++i)
         {
-            retstr +=(std::string)"-" + std::to_string(index[i]);
+            retstr += (std::string) "-" + std::to_string(index[i]);
         }
         return retstr;
     }
@@ -107,6 +110,7 @@ typedef voro_index voro_index_type;
 typedef voro_index_bond voro_index_bond_type;
 typedef std::map<voro_index_type, int> vorotype;
 typedef std::map<voro_index_bond_type, int> vorotype_bond;
+
 struct VoroInfo
 {
     vorotype tessencount_all;
@@ -136,6 +140,7 @@ struct VoroInfo
         }
         total_count += opt.total_count;
     }
+
     // sort and print
     void outall(std::ostream &ofs, int edges)
     {
@@ -145,13 +150,17 @@ struct VoroInfo
             temp_sort.emplace_back(it);
         }
         std::sort(temp_sort.begin(), temp_sort.end(),
-                  [](std::pair<voro_index_type, int> &a, std::pair<voro_index_type, int> &b) { return a.second > b.second; });
+                  [](std::pair<voro_index_type, int> &a, std::pair<voro_index_type, int> &b)
+                  {
+                      return a.second > b.second;
+                  });
         for (auto &it : temp_sort)
         {
-            ofs << it.first.tostring(edges) << std::setw(15) << it.second
-                << std::setw(15) << static_cast<double>(it.second) / static_cast<double>(total_count) << '\n';
+            ofs << it.first.tostring(edges) << std::setw(15) << it.second << std::setw(15)
+                << static_cast<double>(it.second) / static_cast<double>(total_count) << '\n';
         }
     }
+
     // sort and print, partial
     void outpart(std::ostream &ofs, int type, int edges)
     {
@@ -161,14 +170,19 @@ struct VoroInfo
             if (it.first.type == type)
                 temp_sort.emplace_back(it);
         }
-        std::sort(temp_sort.begin(), temp_sort.end(),
-                  [](std::pair<voro_index_bond_type, int> &a, std::pair<voro_index_bond_type, int> &b) { return a.second > b.second; });
+        std::sort(
+            temp_sort.begin(), temp_sort.end(),
+            [](std::pair<voro_index_bond_type, int> &a, std::pair<voro_index_bond_type, int> &b)
+            {
+                return a.second > b.second;
+            });
         for (auto &it : temp_sort)
         {
-            ofs << it.first.tostring(edges) << std::setw(15) << it.second
-                << std::setw(15) << static_cast<double>(it.second) / static_cast<double>(total_count) << '\n';
+            ofs << it.first.tostring(edges) << std::setw(15) << it.second << std::setw(15)
+                << static_cast<double>(it.second) / static_cast<double>(total_count) << '\n';
         }
     }
+
     // all, select
     void outallcomm(std::ostream &ofs, int edges, int num)
     {
@@ -180,15 +194,22 @@ struct VoroInfo
         num = __min(num, temp_sort.size());
         size_t num_present = 0;
         std::sort(temp_sort.begin(), temp_sort.end(),
-                  [](std::pair<voro_index_type, int> &a, std::pair<voro_index_type, int> &b) { return a.second > b.second; });
+                  [](std::pair<voro_index_type, int> &a, std::pair<voro_index_type, int> &b)
+                  {
+                      return a.second > b.second;
+                  });
         for (int i = 0; i < num; ++i)
         {
             ofs << temp_sort[i].first.tostring(edges) << std::setw(15) << temp_sort[i].second
-                << std::setw(15) << static_cast<double>(temp_sort[i].second) / static_cast<double>(total_count) << '\n';
+                << std::setw(15)
+                << static_cast<double>(temp_sort[i].second) / static_cast<double>(total_count)
+                << '\n';
             num_present += temp_sort[i].second;
         }
-        ofs << "ALL_PRESENT" << std::setw(15) << num_present << std::setw(15) << static_cast<double>(num_present) / static_cast<double>(total_count) << '\n';
+        ofs << "ALL_PRESENT" << std::setw(15) << num_present << std::setw(15)
+            << static_cast<double>(num_present) / static_cast<double>(total_count) << '\n';
     }
+
     // sort and print, partial
     void outpartcomm(std::ostream &ofs, int type, int edges, int num)
     {
@@ -200,36 +221,45 @@ struct VoroInfo
         }
         num = __min(num, temp_sort.size());
         size_t num_present = 0;
-        std::sort(temp_sort.begin(), temp_sort.end(),
-                  [](std::pair<voro_index_bond_type, int> &a, std::pair<voro_index_bond_type, int> &b) { return a.second > b.second; });
+        std::sort(
+            temp_sort.begin(), temp_sort.end(),
+            [](std::pair<voro_index_bond_type, int> &a, std::pair<voro_index_bond_type, int> &b)
+            {
+                return a.second > b.second;
+            });
         for (int i = 0; i < num; ++i)
         {
             ofs << temp_sort[i].first.tostring(edges) << std::setw(15) << temp_sort[i].second
-                << std::setw(15) << static_cast<double>(temp_sort[i].second) / static_cast<double>(total_count) << '\n';
+                << std::setw(15)
+                << static_cast<double>(temp_sort[i].second) / static_cast<double>(total_count)
+                << '\n';
             num_present += temp_sort[i].second;
         }
-        ofs << "ALL_PRESENT" << std::setw(15) << num_present << std::setw(15) << static_cast<double>(num_present) / static_cast<double>(total_count) << '\n';
+        ofs << "ALL_PRESENT" << std::setw(15) << num_present << std::setw(15)
+            << static_cast<double>(num_present) / static_cast<double>(total_count) << '\n';
     }
+
     // output volume
     void outvol(std::ostream &ofs, int edges)
     {
         for (auto &it : meanvol)
         {
-            ofs << it.first.tostring(edges) << std::setw(15) << it.second / tessencount_all[it.first] << '\n';
+            ofs << it.first.tostring(edges) << std::setw(15)
+                << it.second / tessencount_all[it.first] << '\n';
         }
     }
 };
 
 class NeighborhoodsVoro : public AnyNeighborhoods
 {
-private:
+  private:
     ;
 
-protected:
+  protected:
     std::vector<int> index;
     int voro_edge_upto_; //count 3,4,5,...,voro_edge_upto_
 
-public:
+  public:
     vorotype tessencount_;
     vorotype_bond tessencount_type_;
     std::map<voro_index_type, double> vorovol_;
@@ -239,7 +269,9 @@ public:
 #endif
 
 #define N_V_ZERO 1.e-10
-    void RefineEdge(int num_faces, voro::voronoicell_neighbor *cell, std::vector<int> &index, double edgetol)
+
+    void RefineEdge(int num_faces, voro::voronoicell_neighbor *cell, std::vector<int> &index,
+                    double edgetol)
     {
         std::vector<double> vpos;
         std::vector<int> vlst;
@@ -309,8 +341,9 @@ public:
 
         return;
     }
+
 #undef N_V_ZERO
 
-    NeighborhoodsVoro(){};
-    ~NeighborhoodsVoro(){};
+    NeighborhoodsVoro() {};
+    ~NeighborhoodsVoro() {};
 };

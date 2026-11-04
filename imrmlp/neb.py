@@ -36,6 +36,7 @@ class NEBResult:
     stop_reason : str
         Structured termination reason such as ``converged`` or ``max_iterations``.
     """
+
     converged: bool
     n_iter: int
     images: List[Atoms]
@@ -150,48 +151,49 @@ class NEB:
     ...     print(f"Image {i}: {img.energy:.4f} eV")
     """
 
-    def __init__(self,
-                 potential,
-                 n_images: int = 7,
-                 spring: float = 5.0,
-                 climb: bool = False,
-                 climb_delay: int = 0,
-                 vcneb: bool = False,
-                 pressure: float = 0.0,
-                 neb_ftol: float = 1e-2,
-                 tangent_type: int = 1,
-                 sproj_type: int = 1,
-                 init_method: str = "linear",
-                 check_mic: bool = True,
-                 write_traj: bool = False,
-                 nblock: int = 5,
-                 optimizer: str = "fire",
-                 max_iter: int = 1000,
-                 max_move: float = 0.1,
-                 variable_image: bool = False,
-                 cell_weight: float = 100.0,
-                 climb_mode: str = "highest",
-                 *,
-                 periodic_subspace: bool = False,
-                 solver_policy: str = "legacy",
-                 max_cell_strain: float = 0.002,
-                 max_force_evaluations: Optional[int] = None,
-                 omp_mode: str = "images",
-                 keep_symm: bool = False,
-                 symprec: float = 1e-5,
-                 symmetry_operations: str = "",
-                 symmetry_diagnostics: str = "",
-                 perturb_amplitude: float = 0.0,
-                 perturb_seed: int = 0,
-                 symmetry_release: str = "",
-                 symmetry_release_trials: int = 3,
-                 symmetry_release_seed: int = 0,
-                 symmetry_release_steps: int = 200,
-                 symmetry_release_evaluations: int = 2001,
-                 symmetry_release_amplitude: float = .01,
-                 symmetry_release_strain: float = .001,
-                 symmetry_release_energy_tol: float = 1e-4,
-                 ):
+    def __init__(
+        self,
+        potential,
+        n_images: int = 7,
+        spring: float = 5.0,
+        climb: bool = False,
+        climb_delay: int = 0,
+        vcneb: bool = False,
+        pressure: float = 0.0,
+        neb_ftol: float = 1e-2,
+        tangent_type: int = 1,
+        sproj_type: int = 1,
+        init_method: str = "linear",
+        check_mic: bool = True,
+        write_traj: bool = False,
+        nblock: int = 5,
+        optimizer: str = "fire",
+        max_iter: int = 1000,
+        max_move: float = 0.1,
+        variable_image: bool = False,
+        cell_weight: float = 100.0,
+        climb_mode: str = "highest",
+        *,
+        periodic_subspace: bool = False,
+        solver_policy: str = "legacy",
+        max_cell_strain: float = 0.002,
+        max_force_evaluations: Optional[int] = None,
+        omp_mode: str = "images",
+        keep_symm: bool = False,
+        symprec: float = 1e-5,
+        symmetry_operations: str = "",
+        symmetry_diagnostics: str = "",
+        perturb_amplitude: float = 0.0,
+        perturb_seed: int = 0,
+        symmetry_release: str = "",
+        symmetry_release_trials: int = 3,
+        symmetry_release_seed: int = 0,
+        symmetry_release_steps: int = 200,
+        symmetry_release_evaluations: int = 2001,
+        symmetry_release_amplitude: float = 0.01,
+        symmetry_release_strain: float = 0.001,
+        symmetry_release_energy_tol: float = 1e-4,
+    ):
         if n_images < 3:
             raise ValueError("n_images must include at least two endpoints and one interior image")
         if max_iter <= 0:
@@ -215,7 +217,9 @@ class NEB:
 
         self._impl.solver_policy = solver_policy
         self._impl.max_cell_strain = max_cell_strain
-        self._impl.max_force_evaluations = 0 if max_force_evaluations is None else max_force_evaluations
+        self._impl.max_force_evaluations = (
+            0 if max_force_evaluations is None else max_force_evaluations
+        )
         self._n_images = n_images
         self._optimizer = optimizer
         self._max_iter = max_iter
@@ -235,6 +239,7 @@ class NEB:
         self._impl.write_traj = write_traj
         if write_traj or symmetry_release:
             from ._imrmlp import _GPIO
+
             self._io = _GPIO()
             self._impl.iobj = self._io
         self._impl.nblock = nblock
@@ -243,8 +248,8 @@ class NEB:
 
         self._potential = potential
         self._pot_inner: _AnyPotential = (
-            potential.inner if hasattr(potential, 'inner')
-            else potential._impl.inner)
+            potential.inner if hasattr(potential, 'inner') else potential._impl.inner
+        )
 
     def run(self, initial: Atoms, final: Atoms) -> NEBResult:
         """Run NEB between two endpoint structures.
@@ -282,8 +287,9 @@ class NEB:
         self._impl.run(self._optimizer, self._max_iter, self._max_move)
 
         # Collect results (deep copy to avoid use-after-free if NEB driver is GC'd)
-        result_images = [Atoms(_impl=a.copy(), elements=initial._elements)
-                         for a in self._impl.images]
+        result_images = [
+            Atoms(_impl=a.copy(), elements=initial._elements) for a in self._impl.images
+        ]
         result = NEBResult(
             converged=self._impl.converged,
             symmetry_release_status=self._impl.symmetry_release_status,
@@ -303,21 +309,37 @@ class NEB:
             last_cell_change=self._impl.last_cell_change,
             last_fallback=self._impl.last_fallback,
             solver_phase=self._impl.solver_phase,
-            optimizer_iteration_units=("attempts" if self._impl.solver_policy == "stable-v1"
-                                       else "legacy_optimizer_iterations"),
-            climb_delay_units=("accepted_steps" if self._impl.solver_policy == "stable-v1"
-                               else "force_evaluations"),
+            optimizer_iteration_units=(
+                "attempts"
+                if self._impl.solver_policy == "stable-v1"
+                else "legacy_optimizer_iterations"
+            ),
+            climb_delay_units=(
+                "accepted_steps" if self._impl.solver_policy == "stable-v1" else "force_evaluations"
+            ),
         )
         return result
 
     def __repr__(self) -> str:
-        return (f"NEB(n_images={self._n_images}, "
-                f"spring={self._impl.spring}, climb={self._impl.climb})")
+        return (
+            f"NEB(n_images={self._n_images}, spring={self._impl.spring}, climb={self._impl.climb})"
+        )
 
 
-def make_path_seed(images, *, settings=None, reference_cell=None, mode="sine1",
-                   seed=0, sign=1, amplitude=0.01, strain=0.001,
-                   atoms=None, center=None, radius=0.0):
+def make_path_seed(
+    images,
+    *,
+    settings=None,
+    reference_cell=None,
+    mode="sine1",
+    seed=0,
+    sign=1,
+    amplitude=0.01,
+    strain=0.001,
+    atoms=None,
+    center=None,
+    radius=0.0,
+):
     """Generate a bounded complete-path seed without a potential or EFS calls.
 
     ``settings`` uses unprefixed native NEB names (e.g. ``vcneb``,
@@ -328,16 +350,28 @@ def make_path_seed(images, *, settings=None, reference_cell=None, mode="sine1",
     """
     import numpy as np
     from ._imrmlp import _neb_path_seed
+
     if len(images) < 3:
         raise ValueError("At least three complete images are required")
     if any(image._elements != images[0]._elements for image in images):
         raise ValueError("All images must use the same element mapping")
-    config = {k: str(v).lower() if isinstance(v, bool) else str(v)
-              for k, v in (settings or {}).items()}
+    config = {
+        k: str(v).lower() if isinstance(v, bool) else str(v) for k, v in (settings or {}).items()
+    }
     if config.get("vcneb", "false") == "true" and reference_cell is None:
         raise ValueError("VC path seeds require the original reference_cell")
     reference = np.eye(3) if reference_cell is None else np.asarray(reference_cell, dtype=float)
-    native, info = _neb_path_seed([image._impl for image in images], config,
-        reference, mode, seed, sign, amplitude, strain, [] if atoms is None else list(atoms),
-        -1 if center is None else center, radius)
+    native, info = _neb_path_seed(
+        [image._impl for image in images],
+        config,
+        reference,
+        mode,
+        seed,
+        sign,
+        amplitude,
+        strain,
+        [] if atoms is None else list(atoms),
+        -1 if center is None else center,
+        radius,
+    )
     return [Atoms(_impl=a.copy(), elements=images[0]._elements) for a in native], dict(info)

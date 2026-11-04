@@ -14,7 +14,7 @@ namespace
 {
 class CompactNeighbors : public AnyNeighborhoodsSimple
 {
-public:
+  public:
     explicit CompactNeighbors(const AnyNeighborhoods &source)
     {
         nbhs.resize(source.size());
@@ -48,9 +48,9 @@ TEST_CASE("SRO shell statistics are independent of atom order for all neighbor f
         Neighborhoods full(atoms, 2.1);
         CompactNeighbors compact(full);
         NeighborhoodsClusterSimple half(atoms, 2.1);
-        for (const auto &result : {compute.compute(atoms, full),
-                                   compute.compute(atoms, compact, nullptr, false),
-                                   compute.compute(atoms, half)})
+        for (const auto &result :
+             {compute.compute(atoms, full), compute.compute(atoms, compact, nullptr, false),
+              compute.compute(atoms, half)})
         {
             REQUIRE(result.size() == 6);
             for (int i = 0; i < result.size(); ++i)
@@ -111,9 +111,18 @@ TEST_CASE("SRO assigns overlapping distance windows to disjoint shells", "[sro]"
     ComputeSRO calc(GPSettings{});
     std::map<sro_counter, size_t> counts;
     std::vector<pair_srotype> result;
-    SECTION("full") { result = calc.compute(atoms, full, &counts); }
-    SECTION("compact") { result = calc.compute(atoms, compact, &counts, false); }
-    SECTION("half") { result = calc.compute(atoms, half, &counts); }
+    SECTION("full")
+    {
+        result = calc.compute(atoms, full, &counts);
+    }
+    SECTION("compact")
+    {
+        result = calc.compute(atoms, compact, &counts, false);
+    }
+    SECTION("half")
+    {
+        result = calc.compute(atoms, half, &counts);
+    }
     size_t total = 0;
     for (const auto &[key, count] : counts)
         total += count;

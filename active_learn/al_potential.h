@@ -11,9 +11,14 @@
 #include <vector>
 
 class GPIO;
-namespace Potentials { class ModelBundle; }
 
-namespace AL {
+namespace Potentials
+{
+class ModelBundle;
+}
+
+namespace AL
+{
 
 /// @brief Active learning manager — load state, evaluate prediction reliability,
 /// collect uncertain candidates, sparsify the pool.
@@ -26,10 +31,12 @@ namespace AL {
 ///   if (al) al->finalize();        // sparsify pool + export at the end
 ///
 /// MaxVol scoring uses an ActiveSelector loaded from a .sel state file.
-class ALPotential {
+class ALPotential
+{
     friend struct GPMALAccess;
     friend class Potentials::ModelBundle;
-public:
+
+  public:
     ALPotential() = default;
     ~ALPotential() = default;
     ALPotential(const ALPotential &) = delete;
@@ -58,7 +65,11 @@ public:
     /// True when scorer is loaded and active.
     ActiveSelector *maxvol_selector();
     void save(const std::string &path, Potentials::AnyPotential &model);
-    bool active() const { return embedded_pending_ || static_cast<bool>(scorer_); }
+
+    bool active() const
+    {
+        return embedded_pending_ || static_cast<bool>(scorer_);
+    }
 
     // ── Uncertainty evaluation ───────────────────────────────────────────────
 
@@ -77,12 +88,22 @@ public:
     bool check(Atoms &atom);
 
     /// True after check() returns true (grade exceeded threshold_break).
-    bool should_abort() const { return should_abort_; }
+    bool should_abort() const
+    {
+        return should_abort_;
+    }
 
     // ── Candidate pool ───────────────────────────────────────────────────────
 
-    int pool_size() const { return static_cast<int>(pool_.size()); }
-    const std::vector<Atoms> &pool() const { return pool_; }
+    int pool_size() const
+    {
+        return static_cast<int>(pool_.size());
+    }
+
+    const std::vector<Atoms> &pool() const
+    {
+        return pool_;
+    }
 
     /// Direct insertion (no threshold check).
     void add_to_pool(const Atoms &atom);
@@ -106,12 +127,27 @@ public:
 
     // ── Accessors (for adapters) ─────────────────────────────────────────────
 
-    ALScorer *scorer() { return scorer_.get(); }
-    const ALScorer *scorer() const { return scorer_.get(); }
-    std::string mode_name() const { return mode_name_; }
-    double threshold() const { return threshold_; }
+    ALScorer *scorer()
+    {
+        return scorer_.get();
+    }
 
-private:
+    const ALScorer *scorer() const
+    {
+        return scorer_.get();
+    }
+
+    std::string mode_name() const
+    {
+        return mode_name_;
+    }
+
+    double threshold() const
+    {
+        return threshold_;
+    }
+
+  private:
     std::shared_ptr<Potentials::ModelBundle> bundle_owner_;
     GPSettings embedded_settings_;
     bool embedded_pending_ = false;
@@ -122,8 +158,8 @@ private:
 
     // Configuration
     double threshold_ = 2.01;
-    double threshold_break_ = 100.0;  // grade above this → abort simulation
-    bool   should_abort_ = false;
+    double threshold_break_ = 100.0; // grade above this → abort simulation
+    bool should_abort_ = false;
     std::string export_file_ = "al_candidates.xyz";
     std::string sparsify_method_ = "fps";
     int sparsify_to_ = 1000;
@@ -135,11 +171,11 @@ private:
     std::vector<Atoms> pool_;
 
     // Private factory helpers
-    static std::unique_ptr<ALPotential> load_maxvol(
-        const std::string &state_file, const std::string &index_file,
-        double threshold, double threshold_break, int interval,
-        const std::string &export_file, int sparsify_to,
-        const std::string &sparsify_method);
+    static std::unique_ptr<ALPotential> load_maxvol(const std::string &state_file,
+                                                    const std::string &index_file, double threshold,
+                                                    double threshold_break, int interval,
+                                                    const std::string &export_file, int sparsify_to,
+                                                    const std::string &sparsify_method);
 };
 
 } // namespace AL

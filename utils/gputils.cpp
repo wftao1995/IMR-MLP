@@ -19,28 +19,36 @@ int output_debug_printinfo_level = 1;
 void GPSettings::Load(const std::string &filename)
 {
     auto stream = open_ifile(filename);
-    if (!stream) GPERROR("Cannot open file: " + filename);
+    if (!stream)
+        GPERROR("Cannot open file: " + filename);
     Message("Loading settings from file " + filename);
     std::string line, section_prefix;
     std::size_t line_number = 0;
-    while (std::getline(*stream, line)) {
+    while (std::getline(*stream, line))
+    {
         ++line_number;
         trim_all(line);
         const bool blank = line.empty();
         trim_comment(line, "#!");
         trim_all(line);
-        if (line.empty()) {
-            if (blank) section_prefix.clear();
+        if (line.empty())
+        {
+            if (blank)
+                section_prefix.clear();
             continue;
         }
-        if (line.front() == '[' && line.back() == ']') {
+        if (line.front() == '[' && line.back() == ']')
+        {
             section_prefix = line.substr(1, line.size() - 2);
-            if (!section_prefix.empty()) section_prefix += ':';
+            if (!section_prefix.empty())
+                section_prefix += ':';
             continue;
         }
         const auto first_line = line_number;
-        while (!line.empty() && line.back() == '\\' &&
-               (line.size() == 1 || std::isspace(static_cast<unsigned char>(line[line.size() - 2])))) {
+        while (
+            !line.empty() && line.back() == '\\' &&
+            (line.size() == 1 || std::isspace(static_cast<unsigned char>(line[line.size() - 2]))))
+        {
             line.pop_back();
             std::string continuation;
             if (!std::getline(*stream, continuation))
@@ -53,15 +61,19 @@ void GPSettings::Load(const std::string &filename)
         }
         const auto separator = line.find_first_of(" \t");
         if (separator == std::string::npos)
-            GPERROR(filename + ":" + std::to_string(first_line) + ": missing setting value: " + line);
+            GPERROR(filename + ":" + std::to_string(first_line) +
+                    ": missing setting value: " + line);
         const auto key = section_prefix + line.substr(0, separator);
         auto value = line.substr(separator + 1);
         trim_all(value);
-        if (value.empty()) GPERROR(filename + ":" + std::to_string(first_line) + ": missing value for " + key);
-        if (!settings.count(key)) locations[key] = {filename + ":" + std::to_string(first_line) + " [" + key + "]"};
+        if (value.empty())
+            GPERROR(filename + ":" + std::to_string(first_line) + ": missing value for " + key);
+        if (!settings.count(key))
+            locations[key] = {filename + ":" + std::to_string(first_line) + " [" + key + "]"};
         settings.emplace(key, std::move(value));
     }
-    if (stream->bad()) GPERROR("Failed to read settings file: " + filename);
+    if (stream->bad())
+        GPERROR("Failed to read settings file: " + filename);
 }
 
 void GPSettings::Print()
@@ -75,12 +87,15 @@ GPSettings GPSettings::ExtractSubSettings(std::string key) const
 {
     key += ":";
     GPSettings result;
-    for (const auto &[name, value] : settings) {
-        if (name.starts_with(key)) {
+    for (const auto &[name, value] : settings)
+    {
+        if (name.starts_with(key))
+        {
             const auto local_name = name.substr(key.size());
             result.settings.emplace(local_name, value);
             auto location = locations.find(name);
-            if (location != locations.end()) result.locations.emplace(local_name, location->second);
+            if (location != locations.end())
+                result.locations.emplace(local_name, location->second);
         }
     }
     return result;
@@ -88,13 +103,19 @@ GPSettings GPSettings::ExtractSubSettings(std::string key) const
 
 void ConnectSettings::ApplySettings(const GPSettings &settings, const std::set<std::string> &skip)
 {
-    for (const auto &[name, binding] : parameters) {
+    for (const auto &[name, binding] : parameters)
+    {
         // Existing programmatic callers use an empty setting as "unspecified".
         if (skip.count(name) || !settings.count(name) ||
-            (settings[name].empty() && settings.SourceOf(name) != Parameters::Source::CommandLine)) continue;
-        try {
-            binding->apply_setting(settings[name], settings.Location(name), settings.SourceOf(name));
-        } catch (const Parameters::Error &error) {
+            (settings[name].empty() && settings.SourceOf(name) != Parameters::Source::CommandLine))
+            continue;
+        try
+        {
+            binding->apply_setting(settings[name], settings.Location(name),
+                                   settings.SourceOf(name));
+        }
+        catch (const Parameters::Error &error)
+        {
             GPERROR(error.what());
         }
     }
@@ -102,19 +123,24 @@ void ConnectSettings::ApplySettings(const GPSettings &settings, const std::set<s
 
 void ConnectSettings::PrintSettings()
 {
-    for (const auto &[name, binding] : parameters) {
-        if (binding->level > options_list_global_level) continue;
+    for (const auto &[name, binding] : parameters)
+    {
+        if (binding->level > options_list_global_level)
+            continue;
         const auto value = binding->format();
-        if (!value.empty()) Message('\t' + name + " = " + value);
+        if (!value.empty())
+            Message('\t' + name + " = " + value);
     }
 }
 
 GPSettings ConnectSettings::CurrentSettings() const
 {
     GPSettings settings;
-    for (const auto &[name, binding] : parameters) {
+    for (const auto &[name, binding] : parameters)
+    {
         const auto value = binding->format();
-        if (!value.empty()) settings.Modify(name, value);
+        if (!value.empty())
+            settings.Modify(name, value);
     }
     return settings;
 }
@@ -128,7 +154,8 @@ void ConnectSettings::ListSettings()
 std::vector<ConnectSettings::SettingInfo> ConnectSettings::GetSettings() const
 {
     std::vector<SettingInfo> result;
-    for (const auto &[name, binding] : parameters) {
+    for (const auto &[name, binding] : parameters)
+    {
         if (binding->level <= options_list_global_level)
             result.push_back({name, binding->type, binding->help, binding->nargs, binding->level});
     }
@@ -137,13 +164,17 @@ std::vector<ConnectSettings::SettingInfo> ConnectSettings::GetSettings() const
 
 void ConnectSettings::ListSettings(std::ostream &os, const std::string &ns) const
 {
-    for (const auto &setting : GetSettings()) {
+    for (const auto &setting : GetSettings())
+    {
         const auto key = ns + setting.name;
         os << "    " << key;
-        if (key.size() < 24) os << std::string(24 - key.size(), ' ');
-        else os << "  ";
+        if (key.size() < 24)
+            os << std::string(24 - key.size(), ' ');
+        else
+            os << "  ";
         os << '[' << setting.type << ']';
-        if (!setting.help.empty()) os << "  " << setting.help;
+        if (!setting.help.empty())
+            os << "  " << setting.help;
         os << '\n';
     }
 }
@@ -174,6 +205,7 @@ std::ostream *SetStreamForDebug(std::ostream *_p_os)
  * TODO: improve this
  * ***/
 #define MAX_BUFFER 1000
+
 void mpi_merge_map(std::map<std::string, int> &target)
 {
     char pkey[MAX_BUFFER];
@@ -243,19 +275,23 @@ void mpi_merge_map(std::map<int, int> &target)
 
 thread_local global_rng RNG;
 
-void readMatrixFromFile(const std::string& filename, Eigen::MatrixXd &matrix) {
+void readMatrixFromFile(const std::string &filename, Eigen::MatrixXd &matrix)
+{
     auto file = open_ifile(filename);
-    if (!file) return;
+    if (!file)
+        return;
     std::string line;
 
     std::vector<std::vector<double>> matrixData;
 
-    while (std::getline(*file, line)) {
+    while (std::getline(*file, line))
+    {
         std::vector<double> row;
         std::stringstream ss(line);
         double value;
 
-        while (ss >> value) {
+        while (ss >> value)
+        {
             row.push_back(value);
         }
 
@@ -265,8 +301,10 @@ void readMatrixFromFile(const std::string& filename, Eigen::MatrixXd &matrix) {
     int rows = matrixData.size();
     int cols = matrixData.front().size();
     matrix.resize(rows, cols);
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
+    for (int i = 0; i < rows; ++i)
+    {
+        for (int j = 0; j < cols; ++j)
+        {
             matrix(i, j) = matrixData[i][j];
         }
     }
@@ -281,6 +319,7 @@ bool safe_isclose(double a, double b, double rel_tol, double abs_tol)
     return std::fabs(a - b) <= std::max(rel_tol * std::max(std::fabs(a), std::fabs(b)), abs_tol);
 }
 
-void apply_settings_to_cmdopts(CMDOption::CommandLineOptions &opts, const GPSettings &settings) {
+void apply_settings_to_cmdopts(CMDOption::CommandLineOptions &opts, const GPSettings &settings)
+{
     opts.apply_settings(settings);
 }

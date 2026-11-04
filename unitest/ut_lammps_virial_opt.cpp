@@ -8,8 +8,7 @@
 
 #include <array>
 
-TEST_CASE("LAMMPS optimized per-atom virial splits a directed edge equally",
-          "[lammps][virial]")
+TEST_CASE("LAMMPS optimized per-atom virial splits a directed edge equally", "[lammps][virial]")
 {
     std::array<double, 6> center{};
     std::array<double, 6> neighbor{};
@@ -18,8 +17,7 @@ TEST_CASE("LAMMPS optimized per-atom virial splits a directed edge equally",
     std::array<double, 6> full{};
 
     MLIPOpt::standard_virial(r.data(), derivative.data(), full.data());
-    MLIPOpt::add_per_atom_virial(
-        center.data(), neighbor.data(), full.data());
+    MLIPOpt::add_per_atom_virial(center.data(), neighbor.data(), full.data());
 
     const std::array<double, 6> expected{{
         -r[0] * derivative[0],
@@ -29,17 +27,16 @@ TEST_CASE("LAMMPS optimized per-atom virial splits a directed edge equally",
         -0.5 * (r[0] * derivative[2] + r[2] * derivative[0]),
         -0.5 * (r[1] * derivative[2] + r[2] * derivative[1]),
     }};
-    for (int component = 0; component < 6; ++component) {
+    for (int component = 0; component < 6; ++component)
+    {
         REQUIRE(full[component] == Catch::Approx(expected[component]));
         REQUIRE(center[component] == Catch::Approx(0.5 * full[component]));
         REQUIRE(neighbor[component] == Catch::Approx(center[component]));
-        REQUIRE(center[component] + neighbor[component]
-                == Catch::Approx(full[component]));
+        REQUIRE(center[component] + neighbor[component] == Catch::Approx(full[component]));
     }
 }
 
-TEST_CASE("LAMMPS optimized per-atom virial accumulation is additive",
-          "[lammps][virial]")
+TEST_CASE("LAMMPS optimized per-atom virial accumulation is additive", "[lammps][virial]")
 {
     std::array<double, 6> center{{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}};
     std::array<double, 6> neighbor{{-1.0, -2.0, -3.0, -4.0, -5.0, -6.0}};
@@ -50,11 +47,11 @@ TEST_CASE("LAMMPS optimized per-atom virial accumulation is additive",
     std::array<double, 6> full{};
 
     MLIPOpt::standard_virial(r.data(), derivative.data(), full.data());
-    MLIPOpt::add_per_atom_virial(
-        center.data(), neighbor.data(), full.data());
+    MLIPOpt::add_per_atom_virial(center.data(), neighbor.data(), full.data());
 
-    for (int component = 0; component < 6; ++component) {
-        REQUIRE(center[component] - center_before[component]
-                == Catch::Approx(neighbor[component] - neighbor_before[component]));
+    for (int component = 0; component < 6; ++component)
+    {
+        REQUIRE(center[component] - center_before[component] ==
+                Catch::Approx(neighbor[component] - neighbor_before[component]));
     }
 }

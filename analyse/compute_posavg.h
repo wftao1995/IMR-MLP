@@ -7,9 +7,15 @@
 #include "base/structures.h"
 
 // Input preserves the coordinate representation of the first frame.
-enum class AverageCoordinates { Input, Cartesian, Fractional };
+enum class AverageCoordinates
+{
+    Input,
+    Cartesian,
+    Fractional
+};
 
-struct PositionAverageOptions {
+struct PositionAverageOptions
+{
     AverageCoordinates coordinates = AverageCoordinates::Input;
     bool remove_drift = false; // Requires a fixed cell and per-atom masses.
     bool geometry_only = false;
@@ -20,7 +26,7 @@ struct PositionAverageOptions {
 
 class ComputePosavg : public ConnectSettings
 {
-private:
+  private:
     PositionAverageOptions options_;
     AverageCoordinates coordinates_ = AverageCoordinates::Cartesian;
     Atoms reference_, previous_;
@@ -29,11 +35,12 @@ private:
     std::vector<Eigen::RowVector3d> position_sum_;
     std::vector<double> site_energy_sum_;
 
-public:
+  public:
     int nframes = 0;
     Atoms atomacc;
 
     ComputePosavg() = default;
+
     explicit ComputePosavg(PositionAverageOptions options) : options_(std::move(options)) {}
 
     void init(const Atoms &atom);

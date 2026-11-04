@@ -23,20 +23,19 @@ using Catch::Approx;
 using namespace Potentials;
 
 // Helper: create a simple 1-element, 2-atom test structure
-static Atoms make_test_atom(double a_lat) {
+static Atoms make_test_atom(double a_lat)
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * a_lat;
     // 2 atoms along x-axis
-    atom.pos_ = {
-        {0.0, 0.0, 0.0},
-        {a_lat / 2.0, 0.0, 0.0}
-    };
+    atom.pos_ = {{0.0, 0.0, 0.0}, {a_lat / 2.0, 0.0, 0.0}};
     atom.chemmap_ = {0, 0};
     return atom;
 }
 
 // Helper: build a simple 1-element EAM potential with known params
-static PotentialEAMPoly make_test_pot() {
+static PotentialEAMPoly make_test_pot()
+{
     // npoly_rho=4, npoly_f=3, npoly_pair=4, nelems=1, basis=2
     Eigen::MatrixXd rmax_p = Eigen::MatrixXd::Constant(1, 1, 6.0);
     Eigen::MatrixXd rmax_r = Eigen::MatrixXd::Constant(1, 1, 5.0);
@@ -44,7 +43,8 @@ static PotentialEAMPoly make_test_pot() {
     return pot;
 }
 
-TEST_CASE("PotentialEAMPoly construction", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly construction", "[eam_poly]")
+{
     auto pot = make_test_pot();
 
     // Verify coefficient layout
@@ -63,11 +63,12 @@ TEST_CASE("PotentialEAMPoly construction", "[eam_poly]") {
     REQUIRE(pot.basis_pair[0] != nullptr);
 
     // Verify cutoffs
-    REQUIRE(pot.cutoffs(0, 0) == Approx(6.0));  // max(pair=6, rho=5)
+    REQUIRE(pot.cutoffs(0, 0) == Approx(6.0)); // max(pair=6, rho=5)
     REQUIRE(pot.species_count == 1);
 }
 
-TEST_CASE("PotentialEAMPoly zero coefficients gives zero energy", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly zero coefficients gives zero energy", "[eam_poly]")
+{
     auto pot = make_test_pot();
     auto atom = make_test_atom(4.0);
     Neighborhoods nbhs(atom, 6.0);
@@ -79,10 +80,11 @@ TEST_CASE("PotentialEAMPoly zero coefficients gives zero energy", "[eam_poly]") 
     REQUIRE(atom.energy_ == Approx(0.0).epsilon(1e-12));
 }
 
-TEST_CASE("PotentialEAMPoly species energy", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly species energy", "[eam_poly]")
+{
     auto pot = make_test_pot();
     // Set only the species coefficient (last coeff in layout)
-    pot.regression_coeffs[pot.n_coeffs - 1] = 1.5;  // species_coeffs[0]
+    pot.regression_coeffs[pot.n_coeffs - 1] = 1.5; // species_coeffs[0]
     pot.nl_set_coeffs(pot.regression_coeffs.data());
 
     auto atom = make_test_atom(4.0);
@@ -94,7 +96,8 @@ TEST_CASE("PotentialEAMPoly species energy", "[eam_poly]") {
     REQUIRE(atom.energy_ == Approx(3.0).epsilon(1e-10));
 }
 
-TEST_CASE("PotentialEAMPoly pair function manual", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly pair function manual", "[eam_poly]")
+{
     // 1-element, 4 basis functions for pair
     Eigen::MatrixXd rmax_p = Eigen::MatrixXd::Constant(1, 1, 6.0);
     Eigen::MatrixXd rmax_r = Eigen::MatrixXd::Constant(1, 1, 5.0);
@@ -131,14 +134,16 @@ TEST_CASE("PotentialEAMPoly pair function manual", "[eam_poly]") {
     REQUIRE(atom.energy_ == Approx(expected).epsilon(1e-10));
 }
 
-TEST_CASE("PotentialEAMPoly force finite difference", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly force finite difference", "[eam_poly]")
+{
     // Full nontrivial coefficients
     Eigen::MatrixXd rmax_p = Eigen::MatrixXd::Constant(1, 1, 6.0);
     Eigen::MatrixXd rmax_r = Eigen::MatrixXd::Constant(1, 1, 5.0);
     PotentialEAMPoly pot(4, 3, 4, 1, rmax_p, rmax_r, 2);
 
     // Set all coefficients to nonzero values
-    for (int i = 0; i < pot.n_coeffs; ++i) {
+    for (int i = 0; i < pot.n_coeffs; ++i)
+    {
         pot.regression_coeffs[i] = 0.1 * (i + 1);
     }
     pot.nl_set_coeffs(pot.regression_coeffs.data());
@@ -146,11 +151,7 @@ TEST_CASE("PotentialEAMPoly force finite difference", "[eam_poly]") {
     // 3-atom setup for nontrivial forces
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 12.0;
-    atom.pos_ = {
-        {0.0, 0.0, 0.0},
-        {1.8, 0.0, 0.0},
-        {0.5, 2.0, 0.0}
-    };
+    atom.pos_ = {{0.0, 0.0, 0.0}, {1.8, 0.0, 0.0}, {0.5, 2.0, 0.0}};
     atom.chemmap_ = {0, 0, 0};
     Neighborhoods nbhs(atom, 6.0);
 
@@ -161,8 +162,10 @@ TEST_CASE("PotentialEAMPoly force finite difference", "[eam_poly]") {
 
     // Finite difference
     const double dx = 1e-6;
-    for (int i = 0; i < atom.size(); ++i) {
-        for (int a = 0; a < 3; ++a) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
+        for (int a = 0; a < 3; ++a)
+        {
             // +dx
             atom.pos_[i][a] += dx;
             nbhs.init(atom, 6.0);
@@ -185,9 +188,11 @@ TEST_CASE("PotentialEAMPoly force finite difference", "[eam_poly]") {
     }
 }
 
-TEST_CASE("PotentialEAMPoly save load roundtrip", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly save load roundtrip", "[eam_poly]")
+{
     auto pot = make_test_pot();
-    for (int i = 0; i < pot.n_coeffs; ++i) {
+    for (int i = 0; i < pot.n_coeffs; ++i)
+    {
         pot.regression_coeffs[i] = 0.5 * (i - 3) * (i - 3);
     }
     pot.nl_set_coeffs(pot.regression_coeffs.data());
@@ -196,9 +201,8 @@ TEST_CASE("PotentialEAMPoly save load roundtrip", "[eam_poly]") {
     pot.Save("/tmp/test_eam_poly.pot");
 
     // Load into new potential (provide dummy constructor params — they get overwritten)
-    PotentialEAMPoly pot2(2, 2, 2, 1,
-        Eigen::MatrixXd::Constant(1, 1, 1.0),
-        Eigen::MatrixXd::Constant(1, 1, 1.0), 2);
+    PotentialEAMPoly pot2(2, 2, 2, 1, Eigen::MatrixXd::Constant(1, 1, 1.0),
+                          Eigen::MatrixXd::Constant(1, 1, 1.0), 2);
     pot2.Load("/tmp/test_eam_poly.pot");
 
     // Verify coefficients match
@@ -210,7 +214,8 @@ TEST_CASE("PotentialEAMPoly save load roundtrip", "[eam_poly]") {
     std::vector<double> c1(pot.n_coeffs), c2(pot2.n_coeffs);
     pot.nl_get_coeffs(c1.data());
     pot2.nl_get_coeffs(c2.data());
-    for (int i = 0; i < pot.n_coeffs; ++i) {
+    for (int i = 0; i < pot.n_coeffs; ++i)
+    {
         REQUIRE(c2[i] == Approx(c1[i]).epsilon(1e-12));
     }
 
@@ -229,7 +234,8 @@ TEST_CASE("PotentialEAMPoly save load roundtrip", "[eam_poly]") {
     REQUIRE(e2 == Approx(e1).epsilon(1e-12));
 }
 
-TEST_CASE("PotentialEAMPoly load template without coeffs", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly load template without coeffs", "[eam_poly]")
+{
     // Write a template file without coeffs tag
     {
         std::ofstream ofs("/tmp/test_eam_template.pot");
@@ -245,9 +251,8 @@ TEST_CASE("PotentialEAMPoly load template without coeffs", "[eam_poly]") {
         ofs.close();
     }
 
-    PotentialEAMPoly pot(2, 2, 2, 1,
-        Eigen::MatrixXd::Constant(1, 1, 1.0),
-        Eigen::MatrixXd::Constant(1, 1, 1.0), 2);
+    PotentialEAMPoly pot(2, 2, 2, 1, Eigen::MatrixXd::Constant(1, 1, 1.0),
+                         Eigen::MatrixXd::Constant(1, 1, 1.0), 2);
     pot.Load("/tmp/test_eam_template.pot");
 
     // Verify parameters were loaded
@@ -262,7 +267,8 @@ TEST_CASE("PotentialEAMPoly load template without coeffs", "[eam_poly]") {
     // Coefficients should be zero-initialized (template mode)
     std::vector<double> coeffs(pot.n_coeffs);
     pot.nl_get_coeffs(coeffs.data());
-    for (double c : coeffs) {
+    for (double c : coeffs)
+    {
         REQUIRE(c == Approx(0.0).margin(1e-15));
     }
 
@@ -274,7 +280,8 @@ TEST_CASE("PotentialEAMPoly load template without coeffs", "[eam_poly]") {
     REQUIRE(atom.energy_ == Approx(0.0).margin(1e-15));
 }
 
-TEST_CASE("PotentialEAMPoly AccumulateFPGard gradient", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly AccumulateFPGard gradient", "[eam_poly]")
+{
     // Simple case: npoly_f=1 (linear embedding) for easy manual verification
     // Coeff layout: density[2], embedding[1], pair[2], species[1] = 6 coeffs
     Eigen::MatrixXd rmax_p = Eigen::MatrixXd::Constant(1, 1, 6.0);
@@ -297,13 +304,15 @@ TEST_CASE("PotentialEAMPoly AccumulateFPGard gradient", "[eam_poly]") {
     // Compute analytical gradient (energy-only mode, sum over ALL sites)
     // AccumulateFPGard computes per-site gradients; FD computes total energy gradient.
     std::vector<double> grad(pot.n_coeffs, 0.0);
-    for (int ii = 0; ii < nbhs.size(); ++ii) {
+    for (int ii = 0; ii < nbhs.size(); ++ii)
+    {
         pot.AccumulateFPGard(nbhs[ii], grad.data(), 1.0, nullptr);
     }
 
     // Finite difference verification (total energy)
     const double dc = 1e-6;
-    for (int k = 0; k < pot.n_coeffs; ++k) {
+    for (int k = 0; k < pot.n_coeffs; ++k)
+    {
         std::vector<double> c(pot.n_coeffs);
         pot.nl_get_coeffs(c.data());
 
@@ -328,7 +337,8 @@ TEST_CASE("PotentialEAMPoly AccumulateFPGard gradient", "[eam_poly]") {
     }
 }
 
-TEST_CASE("PotentialEAMPoly OutputLAMMPSset", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly OutputLAMMPSset", "[eam_poly]")
+{
     auto pot = make_test_pot();
     // Set nontrivial coefficients
     pot.regression_coeffs = {0.5, -0.3, 0.1, -0.1, 0.2, 0.2, -0.1, 1.0, -0.5, 0.3, -0.2, 0.1};
@@ -370,13 +380,16 @@ TEST_CASE("PotentialEAMPoly OutputLAMMPSset", "[eam_poly]") {
     // Read all numerical values
     std::vector<double> values;
     double v;
-    while (ifs >> v) values.push_back(v);
+    while (ifs >> v)
+        values.push_back(v);
     REQUIRE(values.size() > 0);
 
     // Check that at least some values are non-zero
     double max_abs = 0;
-    for (double x : values) {
-        if (std::abs(x) > max_abs) max_abs = std::abs(x);
+    for (double x : values)
+    {
+        if (std::abs(x) > max_abs)
+            max_abs = std::abs(x);
     }
     REQUIRE(max_abs > 0.0);
 
@@ -388,17 +401,18 @@ TEST_CASE("PotentialEAMPoly OutputLAMMPSset", "[eam_poly]") {
     REQUIRE(values[0] == Approx(f0).epsilon(1e-10));
 }
 
-TEST_CASE("PotentialEAMPoly construct from GPSettings", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly construct from GPSettings", "[eam_poly]")
+{
     GPSettings settings;
-    settings.Modify("nelems",      "1");
-    settings.Modify("npoly_rho",   "3");
-    settings.Modify("npoly_f",     "2");
-    settings.Modify("npoly_pair",  "3");
-    settings.Modify("basis_poly",  "2");
-    settings.Modify("b",           "-1.3333333");
+    settings.Modify("nelems", "1");
+    settings.Modify("npoly_rho", "3");
+    settings.Modify("npoly_f", "2");
+    settings.Modify("npoly_pair", "3");
+    settings.Modify("basis_poly", "2");
+    settings.Modify("b", "-1.3333333");
     settings.Modify("rmax_pair_0_0", "5.5");
-    settings.Modify("rmax_rho_0_0",  "4.5");
-    settings.Modify("coeffs",      "0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9");
+    settings.Modify("rmax_rho_0_0", "4.5");
+    settings.Modify("coeffs", "0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9");
 
     PotentialEAMPoly pot(settings);
 
@@ -419,7 +433,8 @@ TEST_CASE("PotentialEAMPoly construct from GPSettings", "[eam_poly]") {
     REQUIRE(std::abs(atom.energy_) > 1e-10);
 }
 
-TEST_CASE("PotentialEAMPoly construct from file path", "[eam_poly]") {
+TEST_CASE("PotentialEAMPoly construct from file path", "[eam_poly]")
+{
     // Save a potential first
     auto pot = make_test_pot();
     pot.regression_coeffs = {0.5, -0.3, 0.1, -0.1, 0.2, 0.2, -0.1, 1.0, -0.5, 0.3, -0.2, 0.1};
@@ -434,25 +449,34 @@ TEST_CASE("PotentialEAMPoly construct from file path", "[eam_poly]") {
     std::vector<double> c1(pot.n_coeffs), c2(pot2.n_coeffs);
     pot.nl_get_coeffs(c1.data());
     pot2.nl_get_coeffs(c2.data());
-    for (int i = 0; i < pot.n_coeffs; ++i) {
+    for (int i = 0; i < pot.n_coeffs; ++i)
+    {
         REQUIRE(c2[i] == Approx(c1[i]).epsilon(1e-12));
     }
 }
 
-namespace {
-struct CaptureEAMWarnings {
+namespace
+{
+struct CaptureEAMWarnings
+{
     std::ostringstream output;
     std::streambuf *previous = std::cerr.rdbuf(output.rdbuf());
-    ~CaptureEAMWarnings() { std::cerr.rdbuf(previous); }
+
+    ~CaptureEAMWarnings()
+    {
+        std::cerr.rdbuf(previous);
+    }
 };
 }
 
-TEST_CASE("EAMPoly initializes after reading all tags and default cutoffs", "[eam_poly][io]") {
+TEST_CASE("EAMPoly initializes after reading all tags and default cutoffs", "[eam_poly][io]")
+{
     const bool explicit_cutoffs = GENERATE(false, true);
     {
         std::ofstream out("eam-deferred.pot");
         out << "coeffs 0 0\n# split coefficient list\n0 1 0 0\n";
-        if (explicit_cutoffs) out << "rmax_pair 3\nrmax_rho 2\n";
+        if (explicit_cutoffs)
+            out << "rmax_pair 3\nrmax_rho 2\n";
         out << "nelems 1\nnpoly_rho 2\nnpoly_f 1\nnpoly_pair 2\nbasis_poly 2\n";
     }
     CaptureEAMWarnings warnings;
@@ -469,14 +493,17 @@ TEST_CASE("EAMPoly initializes after reading all tags and default cutoffs", "[ea
     REQUIRE(atom.energy_ == Approx(std::pow(1.0 - 1.0 / rc, 2)));
 }
 
-TEST_CASE("EAMPoly partial coefficients warn and zero missing values on reload", "[eam_poly][io]") {
+TEST_CASE("EAMPoly partial coefficients warn and zero missing values on reload", "[eam_poly][io]")
+{
     const int supplied = GENERATE(-1, 0, 1, 6); // absent, empty, partial, complete
     {
         std::ofstream out("eam-partial.pot");
         out << "nelems 1\nnpoly_rho 2\nnpoly_f 1\nnpoly_pair 2\n";
-        if (supplied >= 0) {
+        if (supplied >= 0)
+        {
             out << "coeffs ";
-            for (int i = 0; i < supplied; ++i) out << i + 1 << " ";
+            for (int i = 0; i < supplied; ++i)
+                out << i + 1 << " ";
             out << "\nrho_max 12\n";
         }
     }
@@ -493,19 +520,25 @@ TEST_CASE("EAMPoly partial coefficients warn and zero missing values on reload",
     REQUIRE(pot.rho_max == Approx(supplied >= 0 ? 12.0 : 0.0));
     for (int i = 0; i < pot.n_coeffs; ++i)
         REQUIRE(pot.regression_coeffs[i] == Approx(i < supplied ? i + 1.0 : 0.0));
-    if (supplied >= 0 && supplied < 6) {
-        REQUIRE(warnings.output.str().find("read " + std::to_string(supplied) + " of 6") != std::string::npos);
+    if (supplied >= 0 && supplied < 6)
+    {
+        REQUIRE(warnings.output.str().find("read " + std::to_string(supplied) + " of 6") !=
+                std::string::npos);
         REQUIRE(warnings.output.str().find("initialized to zero") != std::string::npos);
         REQUIRE(warnings.output.str().find("eam-partial.pot") != std::string::npos);
-    } else REQUIRE(warnings.output.str().empty());
+    }
+    else
+        REQUIRE(warnings.output.str().empty());
 }
 
-TEST_CASE("EAMPoly reload resizes species matrices and accepts saved matrix rows", "[eam_poly][io]") {
+TEST_CASE("EAMPoly reload resizes species matrices and accepts saved matrix rows", "[eam_poly][io]")
+{
     Eigen::MatrixXd pair(2, 2), density(2, 2);
     pair << 3, 4, 4, 5;
     density << 2, 3, 4, 2;
     PotentialEAMPoly original(2, 1, 2, 2, pair, density, 2);
-    for (int i = 0; i < original.n_coeffs; ++i) original.regression_coeffs[i] = 0.02 * (i + 1);
+    for (int i = 0; i < original.n_coeffs; ++i)
+        original.regression_coeffs[i] = 0.02 * (i + 1);
     original.Save("eam-multiple.pot");
     auto restored = make_test_pot();
     restored.Load("eam-multiple.pot");
@@ -533,7 +566,8 @@ TEST_CASE("EAMPoly reload resizes species matrices and accepts saved matrix rows
     REQUIRE((restored.rmax_rho - density).norm() < 1e-12);
 }
 
-TEST_CASE("EAMPoly accepts tags on one line and shrinks matrices on reload", "[eam_poly][io]") {
+TEST_CASE("EAMPoly accepts tags on one line and shrinks matrices on reload", "[eam_poly][io]")
+{
     const auto matrix = Eigen::MatrixXd::Constant(2, 2, 3.0).eval();
     PotentialEAMPoly pot(2, 1, 2, 2, matrix, matrix);
     {
@@ -553,7 +587,9 @@ TEST_CASE("EAMPoly accepts tags on one line and shrinks matrices on reload", "[e
     REQUIRE(atom.energy_ == Approx(2.0));
 }
 
-TEST_CASE("EAMPoly multi-neighbor parameter gradients match energy force and virial", "[eam_poly][gradient]") {
+TEST_CASE("EAMPoly multi-neighbor parameter gradients match energy force and virial",
+          "[eam_poly][gradient]")
+{
     const int target = GENERATE(0, 1, 2, 3);
     const auto matrix = Eigen::MatrixXd::Constant(1, 1, 5).eval();
     PotentialEAMPoly pot(3, 2, 2, 1, matrix, matrix, 2);
@@ -569,19 +605,24 @@ TEST_CASE("EAMPoly multi-neighbor parameter gradients match energy force and vir
     fw << 0.2, 0.3, -0.4, 0.8, -0.1, 0.2, -0.1, 0.7, 0.3;
     Eigen::Matrix3d sw;
     sw << 0.1, 0.2, -0.3, 0.2, 0.5, 0.4, -0.3, 0.4, -0.1;
-    if (target != 1 && target != 3) fw.setZero();
-    if (target != 2 && target != 3) sw.setZero();
+    if (target != 1 && target != 3)
+        fw.setZero();
+    if (target != 2 && target != 3)
+        sw.setZero();
     Eigen::Matrix<double, -1, 3, Eigen::RowMajor> buffer;
     std::vector<double> gradient(coeffs.size(), 0.0);
     pot.AccumulateEFSCombinationGard(atom, nbhs, ew, fw, sw, buffer, gradient.data());
-    auto objective = [&] {
+    auto objective = [&]
+    {
         pot.nl_set_coeffs(coeffs.data());
         pot.getEFS(atom, nbhs);
         double value = ew * atom.energy_ + (sw.array() * atom.stress_.array()).sum();
-        for (int i = 0; i < atom.size(); ++i) value += fw.row(i).dot(atom.forces_[i]);
+        for (int i = 0; i < atom.size(); ++i)
+            value += fw.row(i).dot(atom.forces_[i]);
         return value;
     };
-    for (size_t i = 0; i < coeffs.size(); ++i) {
+    for (size_t i = 0; i < coeffs.size(); ++i)
+    {
         CAPTURE(target, i);
         const double original = coeffs[i], h = 1e-6;
         coeffs[i] = original + h;
@@ -593,13 +634,16 @@ TEST_CASE("EAMPoly multi-neighbor parameter gradients match energy force and vir
     }
 }
 
-TEST_CASE("EAMPoly exported HE tables preserve mixed-species EFS", "[eam_poly][io]") {
+TEST_CASE("EAMPoly exported HE tables preserve mixed-species EFS", "[eam_poly][io]")
+{
     const std::string suffix = GENERATE(std::string(""), std::string(".gz"), std::string(".zst"));
 #ifndef USE_GZIP
-    if (suffix == ".gz") SKIP("gzip support disabled");
+    if (suffix == ".gz")
+        SKIP("gzip support disabled");
 #endif
 #ifndef USE_ZSTD
-    if (suffix == ".zst") SKIP("zstd support disabled");
+    if (suffix == ".zst")
+        SKIP("zstd support disabled");
 #endif
     GPSettings settings;
     settings.Modify("nelems", "2");
@@ -607,17 +651,22 @@ TEST_CASE("EAMPoly exported HE tables preserve mixed-species EFS", "[eam_poly][i
     settings.Modify("npoly_f", "2");
     settings.Modify("npoly_pair", "2");
     settings.Modify("basis_poly", "2");
-    settings.Modify("coeffs", "0.2 0.05 -0.6 0.04 0.9 -0.08 0.3 0.01 0.4 0.2 -0.3 0.1 0.3 0.1 0.7 -0.2 0.4 0.03 1.5 -0.6");
+    settings.Modify(
+        "coeffs",
+        "0.2 0.05 -0.6 0.04 0.9 -0.08 0.3 0.01 0.4 0.2 -0.3 0.1 0.3 0.1 0.7 -0.2 0.4 0.03 1.5 -0.6");
     std::map<std::string, int> map{{"H", 1}, {"He", 0}};
     PotentialEAMPoly original(settings, map);
     const std::string file = "poly-roundtrip.eam" + suffix;
     original.OutputLAMMPSset(file, 601, 1001, -4, 4);
-    if (suffix.empty()) {
+    if (suffix.empty())
+    {
         std::ifstream table(file);
         std::string line;
         int headers = 0;
-        while (std::getline(table, line)) {
-            if (line.find("fcc") == std::string::npos) continue;
+        while (std::getline(table, line))
+        {
+            if (line.find("fcc") == std::string::npos)
+                continue;
             // LAMMPS reads each element's metadata as a separate line.
             std::istringstream metadata(line);
             int atomic_number;
@@ -638,41 +687,53 @@ TEST_CASE("EAMPoly exported HE tables preserve mixed-species EFS", "[eam_poly][i
     atom.chemmap_ = {0, 1, 0};
     Neighborhoods nbhs(atom, original.cutoff);
     original.getEFS(atom, nbhs);
-    for (bool omp : {false, true}) {
+    for (bool omp : {false, true})
+    {
         auto copy = atom;
-        if (omp) restored.getEFSOMP(copy, nbhs);
-        else restored.getEFS(copy, nbhs);
+        if (omp)
+            restored.getEFSOMP(copy, nbhs);
+        else
+            restored.getEFS(copy, nbhs);
         REQUIRE(copy.energy_ == Approx(atom.energy_).margin(2e-6));
         REQUIRE((copy.stress_ - atom.stress_).norm() < 2e-6);
-        for (int i = 0; i < atom.size(); ++i) {
+        for (int i = 0; i < atom.size(); ++i)
+        {
             REQUIRE((copy.forces_[i] - atom.forces_[i]).norm() < 2e-6);
             REQUIRE(copy.site_energies_[i] == Approx(atom.site_energies_[i]).margin(2e-6));
         }
     }
 }
 
-TEST_CASE("EAMPoly export reports invalid grids and output failures", "[eam_poly][io]") {
+TEST_CASE("EAMPoly export reports invalid grids and output failures", "[eam_poly][io]")
+{
     auto pot = make_test_pot();
-    REQUIRE_THROWS_WITH(pot.OutputLAMMPSset("missing-directory/out.eam", 10, 10), Catch::Matchers::ContainsSubstring("out.eam"));
+    REQUIRE_THROWS_WITH(pot.OutputLAMMPSset("missing-directory/out.eam", 10, 10),
+                        Catch::Matchers::ContainsSubstring("out.eam"));
     REQUIRE_THROWS(pot.OutputLAMMPSset("invalid-grid.eam", 1, 10));
     REQUIRE_THROWS(pot.OutputLAMMPSset("invalid-grid.eam", 10, 1));
     REQUIRE_THROWS(pot.OutputLAMMPSset("invalid-grid.eam", 10, 10, 2, 1));
-    if (!std::filesystem::exists("/dev/full")) SKIP("/dev/full unavailable");
-    for (const std::string suffix : {"", ".gz", ".zst"}) {
+    if (!std::filesystem::exists("/dev/full"))
+        SKIP("/dev/full unavailable");
+    for (const std::string suffix : {"", ".gz", ".zst"})
+    {
 #ifndef USE_GZIP
-        if (suffix == ".gz") continue;
+        if (suffix == ".gz")
+            continue;
 #endif
 #ifndef USE_ZSTD
-        if (suffix == ".zst") continue;
+        if (suffix == ".zst")
+            continue;
 #endif
         const std::string file = "full-eam-output" + suffix;
         std::filesystem::create_symlink("/dev/full", file);
-        REQUIRE_THROWS_WITH(pot.OutputLAMMPSset(file, 10, 10), Catch::Matchers::ContainsSubstring(file));
+        REQUIRE_THROWS_WITH(pot.OutputLAMMPSset(file, 10, 10),
+                            Catch::Matchers::ContainsSubstring(file));
         std::filesystem::remove(file);
     }
 }
 
-TEST_CASE("EAMPoly energy-only calculation preserves forces and stress", "[eam_poly]") {
+TEST_CASE("EAMPoly energy-only calculation preserves forces and stress", "[eam_poly]")
+{
     const bool add = GENERATE(false, true);
     auto pot = make_test_pot();
     pot.species_coeffs[0] = 1.5;
@@ -692,15 +753,12 @@ TEST_CASE("EAMPoly energy-only calculation preserves forces and stress", "[eam_p
     REQUIRE_FALSE(atom.have_stress);
 }
 
-
-TEST_CASE("EAMPoly polymorphic streams round-trip model and EFS exactly",
-          "[eam_poly][io][stream]") {
+TEST_CASE("EAMPoly polymorphic streams round-trip model and EFS exactly", "[eam_poly][io][stream]")
+{
     const int basis = GENERATE(1, 2, 3, 4, 5);
     Eigen::MatrixXd pair(2, 2), density(2, 2);
-    pair << 4.123456789012345, 4.876543210987654,
-            4.876543210987654, 5.234567890123456;
-    density << 3.987654321098765, 4.234567890123456,
-               4.543210987654321, 3.876543210987654;
+    pair << 4.123456789012345, 4.876543210987654, 4.876543210987654, 5.234567890123456;
+    density << 3.987654321098765, 4.234567890123456, 4.543210987654321, 3.876543210987654;
     PotentialEAMPoly original(3, 2, 4, 2, pair, density, basis, -1.2345678901234567);
     for (int i = 0; i < original.n_coeffs; ++i)
         original.regression_coeffs[i] = std::sin(i + 0.123456789012345) * 0.03;
@@ -723,7 +781,8 @@ TEST_CASE("EAMPoly polymorphic streams round-trip model and EFS exactly",
 
     auto restored = make_test_pot();
     AnyPotential &target = restored;
-    for (int reload = 0; reload < 2; ++reload) {
+    for (int reload = 0; reload < 2; ++reload)
+    {
         CAPTURE(basis, reload);
         std::istringstream input(saved.str());
         target.Load(input);
@@ -752,8 +811,8 @@ TEST_CASE("EAMPoly polymorphic streams round-trip model and EFS exactly",
     }
 }
 
-TEST_CASE("EAMPoly stream precision covers finite double extremes",
-          "[eam_poly][io][stream]") {
+TEST_CASE("EAMPoly stream precision covers finite double extremes", "[eam_poly][io][stream]")
+{
     auto original = make_test_pot();
     original.regression_coeffs[0] = std::numeric_limits<double>::denorm_min();
     original.regression_coeffs[1] = std::numeric_limits<double>::min();
@@ -772,12 +831,15 @@ TEST_CASE("EAMPoly stream precision covers finite double extremes",
 }
 
 TEST_CASE("EAMPoly stream templates retain partial coefficient compatibility",
-          "[eam_poly][io][stream]") {
+          "[eam_poly][io][stream]")
+{
     const int supplied = GENERATE(-1, 0, 2, 6);
     std::ostringstream data;
-    if (supplied >= 0) {
+    if (supplied >= 0)
+    {
         data << "coeffs ";
-        for (int i = 0; i < supplied; ++i) data << i + 1 << ' ';
+        for (int i = 0; i < supplied; ++i)
+            data << i + 1 << ' ';
     }
     data << "npoly_rho 2 npoly_f 1 npoly_pair 2 nelems 1";
     std::istringstream input(data.str());
@@ -790,29 +852,33 @@ TEST_CASE("EAMPoly stream templates retain partial coefficient compatibility",
     for (int i = 0; i < restored.n_coeffs; ++i)
         REQUIRE(restored.regression_coeffs[i] == (i < supplied ? i + 1.0 : 0.0));
     if (supplied >= 0 && supplied < 6)
-        REQUIRE(warnings.output.str().find("EAMPoly stream: read " + std::to_string(supplied)) != std::string::npos);
-    else REQUIRE(warnings.output.str().empty());
+        REQUIRE(warnings.output.str().find("EAMPoly stream: read " + std::to_string(supplied)) !=
+                std::string::npos);
+    else
+        REQUIRE(warnings.output.str().empty());
 }
 
-TEST_CASE("EAMPoly malformed stream reload preserves the loaded model",
-          "[eam_poly][io][stream]") {
-    const std::string invalid = GENERATE(std::string(""), std::string("nelems 1 npoly_rho"),
-        std::string("nelems 1x npoly_rho 2 npoly_f 1 npoly_pair 2"),
-        std::string("nelems 2147483647 npoly_rho 2 npoly_f 1 npoly_pair 2"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nb"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nb nan"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nrho_max inf"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs 1e"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs nan"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs +inf"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs 1 2 3 4 5 6 7"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nrmax_pair"),
-        std::string("nelems 2 npoly_rho 2 npoly_f 1 npoly_pair 2\nrmax_rho 3 4 5"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nrmax_pair 0"),
-        std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nbasis_poly 6"));
+TEST_CASE("EAMPoly malformed stream reload preserves the loaded model", "[eam_poly][io][stream]")
+{
+    const std::string invalid =
+        GENERATE(std::string(""), std::string("nelems 1 npoly_rho"),
+                 std::string("nelems 1x npoly_rho 2 npoly_f 1 npoly_pair 2"),
+                 std::string("nelems 2147483647 npoly_rho 2 npoly_f 1 npoly_pair 2"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nb"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nb nan"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nrho_max inf"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs 1e"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs nan"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs +inf"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\ncoeffs 1 2 3 4 5 6 7"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nrmax_pair"),
+                 std::string("nelems 2 npoly_rho 2 npoly_f 1 npoly_pair 2\nrmax_rho 3 4 5"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nrmax_pair 0"),
+                 std::string("nelems 1 npoly_rho 2 npoly_f 1 npoly_pair 2\nbasis_poly 6"));
     CAPTURE(invalid);
     auto pot = make_test_pot();
-    for (int i = 0; i < pot.n_coeffs; ++i) pot.regression_coeffs[i] = 0.01 * (i + 1);
+    for (int i = 0; i < pot.n_coeffs; ++i)
+        pot.regression_coeffs[i] = 0.01 * (i + 1);
     AnyPotential &model = pot;
     auto atoms = make_test_atom(20.0);
     atoms.pbc_ = {false, false, false};
@@ -832,27 +898,51 @@ TEST_CASE("EAMPoly malformed stream reload preserves the loaded model",
     REQUIRE((actual.forces_[0].array() == atoms.forces_[0].array()).all());
 }
 
-namespace {
-class FailingEAMInput : public std::stringbuf {
-public:
+namespace
+{
+class FailingEAMInput : public std::stringbuf
+{
+  public:
     explicit FailingEAMInput(const std::string &text) : std::stringbuf(text) {}
-protected:
-    int_type underflow() override { throw std::runtime_error("injected input failure"); }
+
+  protected:
+    int_type underflow() override
+    {
+        throw std::runtime_error("injected input failure");
+    }
 };
-class FailingEAMOutput : public std::streambuf {
-protected:
-    int_type overflow(int_type) override { return traits_type::eof(); }
+
+class FailingEAMOutput : public std::streambuf
+{
+  protected:
+    int_type overflow(int_type) override
+    {
+        return traits_type::eof();
+    }
 };
-class CommaEAMNumbers : public std::numpunct<char> {
-protected:
-    char do_decimal_point() const override { return ','; }
-    char do_thousands_sep() const override { return '_'; }
-    std::string do_grouping() const override { return "\3"; }
+
+class CommaEAMNumbers : public std::numpunct<char>
+{
+  protected:
+    char do_decimal_point() const override
+    {
+        return ',';
+    }
+
+    char do_thousands_sep() const override
+    {
+        return '_';
+    }
+
+    std::string do_grouping() const override
+    {
+        return "\3";
+    }
 };
 }
 
-TEST_CASE("EAMPoly streams report transport failures",
-          "[eam_poly][io][stream]") {
+TEST_CASE("EAMPoly streams report transport failures", "[eam_poly][io][stream]")
+{
     auto pot = make_test_pot();
     AnyPotential &model = pot;
     const auto coefficients = pot.regression_coeffs;
@@ -872,8 +962,8 @@ TEST_CASE("EAMPoly streams report transport failures",
     REQUIRE(output.precision() == 4);
 }
 
-TEST_CASE("EAMPoly file and stream persistence share the format",
-          "[eam_poly][io][stream]") {
+TEST_CASE("EAMPoly file and stream persistence share the format", "[eam_poly][io][stream]")
+{
     std::vector<std::string> extensions = {".pot"};
 #ifdef USE_GZIP
     extensions.push_back(".pot.gz");
@@ -887,7 +977,8 @@ TEST_CASE("EAMPoly file and stream persistence share the format",
     AnyPotential &source = original;
     std::ostringstream text;
     source.Save(text);
-    for (const auto &extension : extensions) {
+    for (const auto &extension : extensions)
+    {
         const std::string filename = "eam-stream-roundtrip" + extension;
         source.Save(filename);
         auto file = open_ifile(filename);
@@ -904,17 +995,19 @@ TEST_CASE("EAMPoly file and stream persistence share the format",
 }
 
 TEST_CASE("EAMPoly stream load distinguishes normal EOF under exception masks",
-          "[eam_poly][io][stream]") {
-    const auto mask = static_cast<std::ios_base::iostate>(GENERATE(
-        int(std::ios_base::failbit | std::ios_base::badbit),
-        int(std::ios_base::eofbit | std::ios_base::failbit | std::ios_base::badbit)));
+          "[eam_poly][io][stream]")
+{
+    const auto mask = static_cast<std::ios_base::iostate>(
+        GENERATE(int(std::ios_base::failbit | std::ios_base::badbit),
+                 int(std::ios_base::eofbit | std::ios_base::failbit | std::ios_base::badbit)));
     const bool trailing_whitespace = GENERATE(false, true);
     auto original = make_test_pot();
     original.regression_coeffs[0] = 0.12345678901234567;
     std::ostringstream saved;
     original.Save(saved);
     std::string text = saved.str();
-    if (!trailing_whitespace) text.erase(text.find_last_not_of(" \t\r\n") + 1);
+    if (!trailing_whitespace)
+        text.erase(text.find_last_not_of(" \t\r\n") + 1);
     std::istringstream input(text);
     input.exceptions(mask);
     auto restored = make_test_pot();
@@ -940,8 +1033,8 @@ TEST_CASE("EAMPoly stream load distinguishes normal EOF under exception masks",
     REQUIRE(restored.regression_coeffs == original.regression_coeffs);
 }
 
-TEST_CASE("EAMPoly stream format is independent of numeric locale",
-          "[eam_poly][io][stream]") {
+TEST_CASE("EAMPoly stream format is independent of numeric locale", "[eam_poly][io][stream]")
+{
     const std::locale localized(std::locale::classic(), new CommaEAMNumbers);
     auto original = make_test_pot();
     original.regression_coeffs[0] = 1234.5678901234567;
@@ -989,403 +1082,605 @@ TEST_CASE("EAMPoly stream format is independent of numeric locale",
     REQUIRE(failing.exceptions() == (std::ios_base::failbit | std::ios_base::badbit));
 }
 
-namespace {
-GPSettings eampoly_hvp_settings(int basis,int radial_count=3) {
+namespace
+{
+GPSettings eampoly_hvp_settings(int basis, int radial_count = 3)
+{
     GPSettings s;
-    s.Modify("nelems","2"); s.Modify("basis_poly",std::to_string(basis));
-    s.Modify("npoly_rho",std::to_string(radial_count));
-    s.Modify("npoly_pair",std::to_string(radial_count)); s.Modify("npoly_f","3");
-    s.Modify("rmax_pair_0_0","5.5"); s.Modify("rmax_pair_0_1","3.0");
-    s.Modify("rmax_pair_1_0","3.0"); s.Modify("rmax_pair_1_1","4.3");
-    s.Modify("rmax_rho_0_0","4.0"); s.Modify("rmax_rho_0_1","5.2");
-    s.Modify("rmax_rho_1_0","2.7"); s.Modify("rmax_rho_1_1","5.5");
+    s.Modify("nelems", "2");
+    s.Modify("basis_poly", std::to_string(basis));
+    s.Modify("npoly_rho", std::to_string(radial_count));
+    s.Modify("npoly_pair", std::to_string(radial_count));
+    s.Modify("npoly_f", "3");
+    s.Modify("rmax_pair_0_0", "5.5");
+    s.Modify("rmax_pair_0_1", "3.0");
+    s.Modify("rmax_pair_1_0", "3.0");
+    s.Modify("rmax_pair_1_1", "4.3");
+    s.Modify("rmax_rho_0_0", "4.0");
+    s.Modify("rmax_rho_0_1", "5.2");
+    s.Modify("rmax_rho_1_0", "2.7");
+    s.Modify("rmax_rho_1_1", "5.5");
     return s;
 }
-void eampoly_hvp_coeffs(PotentialEAMPoly &p) {
-    std::fill(p.regression_coeffs.begin(),p.regression_coeffs.end(),0.);
-    for (int a=0;a<p.nelems;++a) {
-        for (int b=0;b<p.nelems;++b) {
-            double *d=p.density_coeffs+p.get_rhoid(a,b)*p.npoly_rho;
-            d[0]=.2+.03*a-.02*b;
-            if (p.npoly_rho>1) d[1]=.03*(a+1);
-            if (p.npoly_rho>2) d[2]=-.015*(b+1);
+
+void eampoly_hvp_coeffs(PotentialEAMPoly &p)
+{
+    std::fill(p.regression_coeffs.begin(), p.regression_coeffs.end(), 0.);
+    for (int a = 0; a < p.nelems; ++a)
+    {
+        for (int b = 0; b < p.nelems; ++b)
+        {
+            double *d = p.density_coeffs + p.get_rhoid(a, b) * p.npoly_rho;
+            d[0] = .2 + .03 * a - .02 * b;
+            if (p.npoly_rho > 1)
+                d[1] = .03 * (a + 1);
+            if (p.npoly_rho > 2)
+                d[2] = -.015 * (b + 1);
         }
-        p.embedding_coeffs[a*p.npoly_f]=.07*(a+1);
-        p.embedding_coeffs[a*p.npoly_f+1]=.12+.03*a;
-        p.embedding_coeffs[a*p.npoly_f+2]=-.01*(a+1);
-        p.species_coeffs[a]=.1*a;
+        p.embedding_coeffs[a * p.npoly_f] = .07 * (a + 1);
+        p.embedding_coeffs[a * p.npoly_f + 1] = .12 + .03 * a;
+        p.embedding_coeffs[a * p.npoly_f + 2] = -.01 * (a + 1);
+        p.species_coeffs[a] = .1 * a;
     }
-    for (int id=0;id<p.nelems*(p.nelems+1)/2;++id) {
-        double *c=p.pair_coeffs+id*p.npoly_pair;
-        c[0]=.08+.02*id;
-        if (p.npoly_pair>1) c[1]=-.03;
-        if (p.npoly_pair>2) c[2]=.015;
+    for (int id = 0; id < p.nelems * (p.nelems + 1) / 2; ++id)
+    {
+        double *c = p.pair_coeffs + id * p.npoly_pair;
+        c[0] = .08 + .02 * id;
+        if (p.npoly_pair > 1)
+            c[1] = -.03;
+        if (p.npoly_pair > 2)
+            c[2] = .015;
     }
 }
-Atoms eampoly_hvp_cluster() {
-    Atoms a; a.cell_<<9,0,0,.7,9.4,0,-.5,.4,9.8;
-    a.pbc_={false,false,false};
-    a.pos_={{.5,.7,.6},{2.8,.9,.7},{1.2,3.1,.9},{3.,3.4,2.8}};
-    a.chemmap_={0,1,0,1};
+
+Atoms eampoly_hvp_cluster()
+{
+    Atoms a;
+    a.cell_ << 9, 0, 0, .7, 9.4, 0, -.5, .4, 9.8;
+    a.pbc_ = {false, false, false};
+    a.pos_ = {{.5, .7, .6}, {2.8, .9, .7}, {1.2, 3.1, .9}, {3., 3.4, 2.8}};
+    a.chemmap_ = {0, 1, 0, 1};
     return a;
 }
-Eigen::VectorXd eampoly_hvp_direction(int n,double phase=0.) {
-    Eigen::VectorXd v(3*n);
-    for (int k=0;k<v.size();++k) v[k]=.3*std::sin(.7*k+phase)+.2*std::cos(.3*k-phase);
+
+Eigen::VectorXd eampoly_hvp_direction(int n, double phase = 0.)
+{
+    Eigen::VectorXd v(3 * n);
+    for (int k = 0; k < v.size(); ++k)
+        v[k] = .3 * std::sin(.7 * k + phase) + .2 * std::cos(.3 * k - phase);
     return v;
 }
-Eigen::VectorXd eampoly_force_fd(PotentialEAMPoly &p,const Atoms &a,
-    const Eigen::VectorXd &v,double h) {
-    auto plus=a,minus=a;
-    for (int i=0;i<a.size();++i) {
-        plus.pos_[i]+=h*v.segment<3>(3*i).transpose();
-        minus.pos_[i]-=h*v.segment<3>(3*i).transpose();
+
+Eigen::VectorXd eampoly_force_fd(PotentialEAMPoly &p, const Atoms &a, const Eigen::VectorXd &v,
+                                 double h)
+{
+    auto plus = a, minus = a;
+    for (int i = 0; i < a.size(); ++i)
+    {
+        plus.pos_[i] += h * v.segment<3>(3 * i).transpose();
+        minus.pos_[i] -= h * v.segment<3>(3 * i).transpose();
     }
-    Neighborhoods np(plus,p.cutoff),nm(minus,p.cutoff);
-    p.getEFS(plus,np); p.getEFS(minus,nm);
+    Neighborhoods np(plus, p.cutoff), nm(minus, p.cutoff);
+    p.getEFS(plus, np);
+    p.getEFS(minus, nm);
     Eigen::VectorXd out(v.size());
-    for (int i=0;i<a.size();++i) out.segment<3>(3*i)=-(plus.forces_[i]-minus.forces_[i])/(2*h);
+    for (int i = 0; i < a.size(); ++i)
+        out.segment<3>(3 * i) = -(plus.forces_[i] - minus.forces_[i]) / (2 * h);
     return out;
 }
-Eigen::MatrixXd eampoly_dense(const HessianMatrix &hessian) {
-    Eigen::MatrixXd out(3*hessian.size,3*hessian.size);
-    for (int i=0;i<hessian.size;++i)
-        for (int j=0;j<hessian.size;++j) out.block<3,3>(3*i,3*j)=hessian(i,j);
+
+Eigen::MatrixXd eampoly_dense(const HessianMatrix &hessian)
+{
+    Eigen::MatrixXd out(3 * hessian.size, 3 * hessian.size);
+    for (int i = 0; i < hessian.size; ++i)
+        for (int j = 0; j < hessian.size; ++j)
+            out.block<3, 3>(3 * i, 3 * j) = hessian(i, j);
     return out;
 }
-Eigen::MatrixXd eampoly_dense_force_fd(PotentialEAMPoly &p,const Atoms &a,double h) {
-    const int dimension=3*a.size();
-    Eigen::MatrixXd out(dimension,dimension);
-    for (int k=0;k<dimension;++k)
-        out.col(k)=eampoly_force_fd(p,a,Eigen::VectorXd::Unit(dimension,k),h);
+
+Eigen::MatrixXd eampoly_dense_force_fd(PotentialEAMPoly &p, const Atoms &a, double h)
+{
+    const int dimension = 3 * a.size();
+    Eigen::MatrixXd out(dimension, dimension);
+    for (int k = 0; k < dimension; ++k)
+        out.col(k) = eampoly_force_fd(p, a, Eigen::VectorXd::Unit(dimension, k), h);
     return out;
 }
-std::vector<std::vector<double>> eampoly_basis_outputs(const PotentialEAMPoly &p) {
+
+std::vector<std::vector<double>> eampoly_basis_outputs(const PotentialEAMPoly &p)
+{
     std::vector<std::vector<double>> out;
-    for (const auto *basis:p.basis_rho) {
-        out.push_back(basis->vals); out.push_back(basis->ders); out.push_back(basis->derders);
+    for (const auto *basis : p.basis_rho)
+    {
+        out.push_back(basis->vals);
+        out.push_back(basis->ders);
+        out.push_back(basis->derders);
     }
-    for (const auto *basis:p.basis_pair) {
-        out.push_back(basis->vals); out.push_back(basis->ders); out.push_back(basis->derders);
+    for (const auto *basis : p.basis_pair)
+    {
+        out.push_back(basis->vals);
+        out.push_back(basis->ders);
+        out.push_back(basis->derders);
     }
     return out;
 }
 }
 
-TEST_CASE("EAMPoly HVP has the independent polynomial embedding cross term", "[eam_poly][hvp]") {
-    const Eigen::MatrixXd rc=Eigen::MatrixXd::Constant(2,2,5.5);
-    PotentialEAMPoly p(1,3,1,2,rc,rc,2);
-    for (int a=0;a<2;++a) {
-        for (int b=0;b<2;++b) p.density_coeffs[p.get_rhoid(a,b)]=.3+.1*a+.05*b;
-        p.embedding_coeffs[3*a]=.1; p.embedding_coeffs[3*a+1]=.4; p.embedding_coeffs[3*a+2]=.2;
+TEST_CASE("EAMPoly HVP has the independent polynomial embedding cross term", "[eam_poly][hvp]")
+{
+    const Eigen::MatrixXd rc = Eigen::MatrixXd::Constant(2, 2, 5.5);
+    PotentialEAMPoly p(1, 3, 1, 2, rc, rc, 2);
+    for (int a = 0; a < 2; ++a)
+    {
+        for (int b = 0; b < 2; ++b)
+            p.density_coeffs[p.get_rhoid(a, b)] = .3 + .1 * a + .05 * b;
+        p.embedding_coeffs[3 * a] = .1;
+        p.embedding_coeffs[3 * a + 1] = .4;
+        p.embedding_coeffs[3 * a + 2] = .2;
     }
-    Atoms a; a.cell_=20*Eigen::Matrix3d::Identity(); a.pbc_={false,false,false};
-    const double r=3.5,q=r/std::sqrt(3.),cut=5.5,t=1-r/cut;
-    a.pos_={{0,0,0},{q,q,q},{q,-q,-q},{-q,q,-q}}; a.chemmap_={0,1,0,1};
-    Neighborhoods nbhs(a,p.cutoff);
-    REQUIRE(nbhs[0].nbhcount_==3);
-    for (int i=1;i<a.size();++i) REQUIRE(nbhs[i].nbhcount_==1);
+    Atoms a;
+    a.cell_ = 20 * Eigen::Matrix3d::Identity();
+    a.pbc_ = {false, false, false};
+    const double r = 3.5, q = r / std::sqrt(3.), cut = 5.5, t = 1 - r / cut;
+    a.pos_ = {{0, 0, 0}, {q, q, q}, {q, -q, -q}, {-q, q, -q}};
+    a.chemmap_ = {0, 1, 0, 1};
+    Neighborhoods nbhs(a, p.cutoff);
+    REQUIRE(nbhs[0].nbhcount_ == 3);
+    for (int i = 1; i < a.size(); ++i)
+        REQUIRE(nbhs[i].nbhcount_ == 1);
     // For normalized quadratic basis size 1, f_ab=d_ab*(1-r/R)^2.
-    const double rho=(.35+.3+.35)*t*t,second=.8+1.2*rho;
-    const double f1=-2*.35*t/cut,f2=-2*.3*t/cut;
-    Eigen::VectorXd direction=Eigen::VectorXd::Zero(12),product;
-    direction.segment<3>(6)=a.pos_[2].transpose()/r;
-    p.applyHessianVectorProduct(a,nbhs,direction,product);
-    const Eigen::Vector3d expected=second*f1*f2*a.pos_[1].transpose()/r;
-    REQUIRE(expected.norm()>1e-5);
-    REQUIRE((product.segment<3>(3)-expected).norm()<1e-11);
+    const double rho = (.35 + .3 + .35) * t * t, second = .8 + 1.2 * rho;
+    const double f1 = -2 * .35 * t / cut, f2 = -2 * .3 * t / cut;
+    Eigen::VectorXd direction = Eigen::VectorXd::Zero(12), product;
+    direction.segment<3>(6) = a.pos_[2].transpose() / r;
+    p.applyHessianVectorProduct(a, nbhs, direction, product);
+    const Eigen::Vector3d expected = second * f1 * f2 * a.pos_[1].transpose() / r;
+    REQUIRE(expected.norm() > 1e-5);
+    REQUIRE((product.segment<3>(3) - expected).norm() < 1e-11);
 }
 
-TEST_CASE("EAMPoly HVP follows all radial bases and independent local cutoffs", "[eam_poly][hvp]") {
-    const int basis=GENERATE(1,2,3,4,5);
-    PotentialEAMPoly p(eampoly_hvp_settings(basis)); eampoly_hvp_coeffs(p);
-    auto a=eampoly_hvp_cluster(); Neighborhoods nbhs(a,p.cutoff);
-    const double density_only=(a.pos_[3]-a.pos_[0]).norm();
-    REQUIRE(density_only>p.rmax_pair(0,1)); REQUIRE(density_only<p.rmax_rho(0,1));
-    const double pair_only=(a.pos_[2]-a.pos_[1]).norm();
-    REQUIRE(pair_only<p.rmax_pair(1,0)); REQUIRE(pair_only>p.rmax_rho(1,0));
-    const auto u=eampoly_hvp_direction(a.size()),v=eampoly_hvp_direction(a.size(),.9);
-    Eigen::VectorXd hu,hv;
-    p.applyHessianVectorProduct(a,nbhs,u,hu);
-    p.applyHessianVectorProduct(a,v,hv);
-    for (double h:{1e-5,5e-6}) {
-        CAPTURE(basis,h);
-        REQUIRE((hu-eampoly_force_fd(p,a,u,h)).norm()<3e-6);
-        if (basis==2 || basis==3) REQUIRE((hv-eampoly_force_fd(p,a,v,h)).norm()<3e-6);
+TEST_CASE("EAMPoly HVP follows all radial bases and independent local cutoffs", "[eam_poly][hvp]")
+{
+    const int basis = GENERATE(1, 2, 3, 4, 5);
+    PotentialEAMPoly p(eampoly_hvp_settings(basis));
+    eampoly_hvp_coeffs(p);
+    auto a = eampoly_hvp_cluster();
+    Neighborhoods nbhs(a, p.cutoff);
+    const double density_only = (a.pos_[3] - a.pos_[0]).norm();
+    REQUIRE(density_only > p.rmax_pair(0, 1));
+    REQUIRE(density_only < p.rmax_rho(0, 1));
+    const double pair_only = (a.pos_[2] - a.pos_[1]).norm();
+    REQUIRE(pair_only < p.rmax_pair(1, 0));
+    REQUIRE(pair_only > p.rmax_rho(1, 0));
+    const auto u = eampoly_hvp_direction(a.size()), v = eampoly_hvp_direction(a.size(), .9);
+    Eigen::VectorXd hu, hv;
+    p.applyHessianVectorProduct(a, nbhs, u, hu);
+    p.applyHessianVectorProduct(a, v, hv);
+    for (double h : {1e-5, 5e-6})
+    {
+        CAPTURE(basis, h);
+        REQUIRE((hu - eampoly_force_fd(p, a, u, h)).norm() < 3e-6);
+        if (basis == 2 || basis == 3)
+            REQUIRE((hv - eampoly_force_fd(p, a, v, h)).norm() < 3e-6);
     }
-    REQUIRE(u.dot(hv)==Approx(v.dot(hu)).margin(1e-10));
+    REQUIRE(u.dot(hv) == Approx(v.dot(hu)).margin(1e-10));
 }
 
-TEST_CASE("EAMPoly single radial terms and zero or negative density retain valid HVPs", "[eam_poly][hvp]") {
-    SECTION("Legacy single radial term reaches existing EFS and the new HVP") {
-        const int basis=GENERATE(1,4,5);
-        PotentialEAMPoly p(eampoly_hvp_settings(basis,1)); eampoly_hvp_coeffs(p);
-        auto a=eampoly_hvp_cluster(); Neighborhoods nbhs(a,p.cutoff);
-        p.getEFS(a,nbhs);
+TEST_CASE("EAMPoly single radial terms and zero or negative density retain valid HVPs",
+          "[eam_poly][hvp]")
+{
+    SECTION("Legacy single radial term reaches existing EFS and the new HVP")
+    {
+        const int basis = GENERATE(1, 4, 5);
+        PotentialEAMPoly p(eampoly_hvp_settings(basis, 1));
+        eampoly_hvp_coeffs(p);
+        auto a = eampoly_hvp_cluster();
+        Neighborhoods nbhs(a, p.cutoff);
+        p.getEFS(a, nbhs);
         REQUIRE(std::isfinite(a.energy_));
-        for (const auto &f:a.forces_) REQUIRE(f.allFinite());
-        const auto v=eampoly_hvp_direction(a.size(),.4);
-        Eigen::VectorXd product; p.applyHessianVectorProduct(a,nbhs,v,product);
+        for (const auto &f : a.forces_)
+            REQUIRE(f.allFinite());
+        const auto v = eampoly_hvp_direction(a.size(), .4);
+        Eigen::VectorXd product;
+        p.applyHessianVectorProduct(a, nbhs, v, product);
         REQUIRE(product.allFinite());
-        for (double h:{1e-5,5e-6}) REQUIRE((product-eampoly_force_fd(p,a,v,h)).norm()<3e-6);
+        for (double h : {1e-5, 5e-6})
+            REQUIRE((product - eampoly_force_fd(p, a, v, h)).norm() < 3e-6);
     }
-    SECTION("Integer embedding powers at zero and negative raw density") {
-        const bool negative=GENERATE(false,true);
-        const Eigen::MatrixXd rc=Eigen::MatrixXd::Constant(2,2,3.5);
-        PotentialEAMPoly p(1,3,1,2,rc,rc,2); eampoly_hvp_coeffs(p);
-        for (int k=0;k<p.n_density_coeffs;++k) p.density_coeffs[k]=negative ? -.2 : .3;
-        if (!negative) { p.density_coeffs[p.get_rhoid(0,0)]=1.; p.density_coeffs[p.get_rhoid(0,1)]=-1.; }
-        Atoms a; a.cell_=10*Eigen::Matrix3d::Identity(); a.pbc_={false,false,false};
-        a.pos_={{0,0,0},{2,0,0},{-2,0,0}}; a.chemmap_={0,0,1};
-        const double rho=p.eval_density(0,0,2.)+p.eval_density(0,1,2.);
-        if (negative) REQUIRE(rho<0.); else REQUIRE(rho==0.);
-        Neighborhoods nbhs(a,p.cutoff); p.getEFS(a,nbhs);
-        const auto v=eampoly_hvp_direction(a.size());
-        Eigen::VectorXd product; p.applyHessianVectorProduct(a,nbhs,v,product);
-        REQUIRE(product.allFinite()); REQUIRE(product.norm()>1e-5);
-        for (double h:{1e-5,5e-6}) REQUIRE((product-eampoly_force_fd(p,a,v,h)).norm()<3e-6);
+    SECTION("Integer embedding powers at zero and negative raw density")
+    {
+        const bool negative = GENERATE(false, true);
+        const Eigen::MatrixXd rc = Eigen::MatrixXd::Constant(2, 2, 3.5);
+        PotentialEAMPoly p(1, 3, 1, 2, rc, rc, 2);
+        eampoly_hvp_coeffs(p);
+        for (int k = 0; k < p.n_density_coeffs; ++k)
+            p.density_coeffs[k] = negative ? -.2 : .3;
+        if (!negative)
+        {
+            p.density_coeffs[p.get_rhoid(0, 0)] = 1.;
+            p.density_coeffs[p.get_rhoid(0, 1)] = -1.;
+        }
+        Atoms a;
+        a.cell_ = 10 * Eigen::Matrix3d::Identity();
+        a.pbc_ = {false, false, false};
+        a.pos_ = {{0, 0, 0}, {2, 0, 0}, {-2, 0, 0}};
+        a.chemmap_ = {0, 0, 1};
+        const double rho = p.eval_density(0, 0, 2.) + p.eval_density(0, 1, 2.);
+        if (negative)
+            REQUIRE(rho < 0.);
+        else
+            REQUIRE(rho == 0.);
+        Neighborhoods nbhs(a, p.cutoff);
+        p.getEFS(a, nbhs);
+        const auto v = eampoly_hvp_direction(a.size());
+        Eigen::VectorXd product;
+        p.applyHessianVectorProduct(a, nbhs, v, product);
+        REQUIRE(product.allFinite());
+        REQUIRE(product.norm() > 1e-5);
+        for (double h : {1e-5, 5e-6})
+            REQUIRE((product - eampoly_force_fd(p, a, v, h)).norm() < 3e-6);
         HessianMatrix blocks;
-        p.getEFSHessian(a,nbhs,blocks);
-        const auto dense=eampoly_dense(blocks);
+        p.getEFSHessian(a, nbhs, blocks);
+        const auto dense = eampoly_dense(blocks);
         REQUIRE(dense.allFinite());
-        for (double h:{1e-5,5e-6}) REQUIRE((dense-eampoly_dense_force_fd(p,a,h)).norm()<3e-6);
+        for (double h : {1e-5, 5e-6})
+            REQUIRE((dense - eampoly_dense_force_fd(p, a, h)).norm() < 3e-6);
     }
 }
 
-TEST_CASE("EAMPoly HVP is linear and leaves source and evaluation buffers unchanged", "[eam_poly][hvp]") {
-    PotentialEAMPoly p(eampoly_hvp_settings(3)); eampoly_hvp_coeffs(p);
-    auto a=eampoly_hvp_cluster(); Neighborhoods nbhs(a,p.cutoff); p.getEFS(a,nbhs);
-    p.buff_site_energy_ders.setConstant(2,3,12.); p.buff_drhodx.setConstant(3,3,-7.);
-    p.rho_min=-12.; p.rho_max=34.;
-    const auto source=a; const auto coefficients=p.regression_coeffs;
-    const auto basis_outputs=eampoly_basis_outputs(p);
-    const auto u=eampoly_hvp_direction(a.size()),v=eampoly_hvp_direction(a.size(),.9);
-    Eigen::VectorXd hu=Eigen::VectorXd::Constant(1,99.),hv,combined;
+TEST_CASE("EAMPoly HVP is linear and leaves source and evaluation buffers unchanged",
+          "[eam_poly][hvp]")
+{
+    PotentialEAMPoly p(eampoly_hvp_settings(3));
+    eampoly_hvp_coeffs(p);
+    auto a = eampoly_hvp_cluster();
+    Neighborhoods nbhs(a, p.cutoff);
+    p.getEFS(a, nbhs);
+    p.buff_site_energy_ders.setConstant(2, 3, 12.);
+    p.buff_drhodx.setConstant(3, 3, -7.);
+    p.rho_min = -12.;
+    p.rho_max = 34.;
+    const auto source = a;
+    const auto coefficients = p.regression_coeffs;
+    const auto basis_outputs = eampoly_basis_outputs(p);
+    const auto u = eampoly_hvp_direction(a.size()), v = eampoly_hvp_direction(a.size(), .9);
+    Eigen::VectorXd hu = Eigen::VectorXd::Constant(1, 99.), hv, combined;
     REQUIRE(p.supports_analytical_hessian_vector_product());
-    REQUIRE(p.supports_analytical_hessian()); REQUIRE(p.supports_analytical_cell_hessian());
-    p.applyHessianVectorProduct(a,nbhs,u,hu);
-    AnyPotential &base=p; base.applyHessianVectorProduct(a,v,hv);
-    p.applyHessianVectorProduct(a,2*u-.3*v,combined);
-    REQUIRE((combined-(2*hu-.3*hv)).norm()<1e-11);
-    REQUIRE(u.dot(hv)==Approx(v.dot(hu)).margin(1e-11));
-    Eigen::VectorXd translation=Eigen::VectorXd::Zero(3*a.size()),zero;
-    for (int i=0;i<a.size();++i) translation.segment<3>(3*i)<<.7,-.2,.5;
-    p.applyHessianVectorProduct(a,translation,zero); REQUIRE(zero.norm()<1e-12);
-    p.add_efs=true;
-    auto alias=u; p.applyHessianVectorProduct(a,nbhs,alias,alias);
-    REQUIRE((alias-hu).norm()<1e-12);
-    REQUIRE(a.pos_==source.pos_); REQUIRE(a.cell_==source.cell_); REQUIRE(a.cartesian==source.cartesian);
-    REQUIRE(a.pbc_==source.pbc_); REQUIRE(a.chemmap_==source.chemmap_);
-    REQUIRE(a.forces_==source.forces_); REQUIRE(a.stress_==source.stress_); REQUIRE(a.energy_==source.energy_);
-    REQUIRE(a.have_energy==source.have_energy); REQUIRE(a.have_stress==source.have_stress);
-    REQUIRE(a.site_energies_==source.site_energies_); REQUIRE(p.regression_coeffs==coefficients);
-    REQUIRE(p.rho_min==-12.); REQUIRE(p.rho_max==34.);
-    REQUIRE(p.buff_site_energy_ders.isApprox(Eigen::MatrixXd::Constant(2,3,12.)));
-    REQUIRE(p.buff_drhodx.isApprox(Eigen::MatrixXd::Constant(3,3,-7.)));
-    REQUIRE(eampoly_basis_outputs(p)==basis_outputs);
+    REQUIRE(p.supports_analytical_hessian());
+    REQUIRE(p.supports_analytical_cell_hessian());
+    p.applyHessianVectorProduct(a, nbhs, u, hu);
+    AnyPotential &base = p;
+    base.applyHessianVectorProduct(a, v, hv);
+    p.applyHessianVectorProduct(a, 2 * u - .3 * v, combined);
+    REQUIRE((combined - (2 * hu - .3 * hv)).norm() < 1e-11);
+    REQUIRE(u.dot(hv) == Approx(v.dot(hu)).margin(1e-11));
+    Eigen::VectorXd translation = Eigen::VectorXd::Zero(3 * a.size()), zero;
+    for (int i = 0; i < a.size(); ++i)
+        translation.segment<3>(3 * i) << .7, -.2, .5;
+    p.applyHessianVectorProduct(a, translation, zero);
+    REQUIRE(zero.norm() < 1e-12);
+    p.add_efs = true;
+    auto alias = u;
+    p.applyHessianVectorProduct(a, nbhs, alias, alias);
+    REQUIRE((alias - hu).norm() < 1e-12);
+    REQUIRE(a.pos_ == source.pos_);
+    REQUIRE(a.cell_ == source.cell_);
+    REQUIRE(a.cartesian == source.cartesian);
+    REQUIRE(a.pbc_ == source.pbc_);
+    REQUIRE(a.chemmap_ == source.chemmap_);
+    REQUIRE(a.forces_ == source.forces_);
+    REQUIRE(a.stress_ == source.stress_);
+    REQUIRE(a.energy_ == source.energy_);
+    REQUIRE(a.have_energy == source.have_energy);
+    REQUIRE(a.have_stress == source.have_stress);
+    REQUIRE(a.site_energies_ == source.site_energies_);
+    REQUIRE(p.regression_coeffs == coefficients);
+    REQUIRE(p.rho_min == -12.);
+    REQUIRE(p.rho_max == 34.);
+    REQUIRE(p.buff_site_energy_ders.isApprox(Eigen::MatrixXd::Constant(2, 3, 12.)));
+    REQUIRE(p.buff_drhodx.isApprox(Eigen::MatrixXd::Constant(3, 3, -7.)));
+    REQUIRE(eampoly_basis_outputs(p) == basis_outputs);
 }
 
-TEST_CASE("EAMPoly HVP retains periodic self-image density backgrounds", "[eam_poly][hvp]") {
-    PotentialEAMPoly p(eampoly_hvp_settings(2)); eampoly_hvp_coeffs(p);
-    Atoms a; a.cell_=Eigen::Vector3d(3.3,10,10).asDiagonal(); a.pbc_={true,false,false};
-    a.pos_={{.2,.3,.4},{1.3,.9,.8}}; a.chemmap_={0,1}; Neighborhoods nbhs(a,p.cutoff);
-    bool self=false,repeated=false;
-    for (int i=0;i<a.size();++i) {
-        int other=0;
-        for (int j:nbhs[i].indices_) { self|=j==i; if (j!=i) ++other; }
-        repeated|=other>1;
+TEST_CASE("EAMPoly HVP retains periodic self-image density backgrounds", "[eam_poly][hvp]")
+{
+    PotentialEAMPoly p(eampoly_hvp_settings(2));
+    eampoly_hvp_coeffs(p);
+    Atoms a;
+    a.cell_ = Eigen::Vector3d(3.3, 10, 10).asDiagonal();
+    a.pbc_ = {true, false, false};
+    a.pos_ = {{.2, .3, .4}, {1.3, .9, .8}};
+    a.chemmap_ = {0, 1};
+    Neighborhoods nbhs(a, p.cutoff);
+    bool self = false, repeated = false;
+    for (int i = 0; i < a.size(); ++i)
+    {
+        int other = 0;
+        for (int j : nbhs[i].indices_)
+        {
+            self |= j == i;
+            if (j != i)
+                ++other;
+        }
+        repeated |= other > 1;
     }
-    REQUIRE(self); REQUIRE(repeated);
-    const auto v=eampoly_hvp_direction(a.size(),.4);
-    Eigen::VectorXd product; p.applyHessianVectorProduct(a,nbhs,v,product);
-    REQUIRE(product.norm()>1e-5);
-    for (double h:{1e-5,5e-6}) REQUIRE((product-eampoly_force_fd(p,a,v,h)).norm()<3e-6);
+    REQUIRE(self);
+    REQUIRE(repeated);
+    const auto v = eampoly_hvp_direction(a.size(), .4);
+    Eigen::VectorXd product;
+    p.applyHessianVectorProduct(a, nbhs, v, product);
+    REQUIRE(product.norm() > 1e-5);
+    for (double h : {1e-5, 5e-6})
+        REQUIRE((product - eampoly_force_fd(p, a, v, h)).norm() < 3e-6);
 }
 
-TEST_CASE("EAMPoly dense Hessian has the independent polynomial cross-neighbor block", "[eam_poly][hessian]") {
-    const Eigen::MatrixXd rc=Eigen::MatrixXd::Constant(2,2,5.5);
-    PotentialEAMPoly p(1,3,1,2,rc,rc,2);
-    for (int a=0;a<2;++a) {
-        for (int b=0;b<2;++b) p.density_coeffs[p.get_rhoid(a,b)]=.3+.1*a+.05*b;
-        p.embedding_coeffs[3*a]=.1; p.embedding_coeffs[3*a+1]=.4; p.embedding_coeffs[3*a+2]=.2;
+TEST_CASE("EAMPoly dense Hessian has the independent polynomial cross-neighbor block",
+          "[eam_poly][hessian]")
+{
+    const Eigen::MatrixXd rc = Eigen::MatrixXd::Constant(2, 2, 5.5);
+    PotentialEAMPoly p(1, 3, 1, 2, rc, rc, 2);
+    for (int a = 0; a < 2; ++a)
+    {
+        for (int b = 0; b < 2; ++b)
+            p.density_coeffs[p.get_rhoid(a, b)] = .3 + .1 * a + .05 * b;
+        p.embedding_coeffs[3 * a] = .1;
+        p.embedding_coeffs[3 * a + 1] = .4;
+        p.embedding_coeffs[3 * a + 2] = .2;
     }
-    Atoms a; a.cell_=20*Eigen::Matrix3d::Identity(); a.pbc_={false,false,false};
-    const double r=3.5,q=r/std::sqrt(3.),cut=5.5,t=1-r/cut;
-    a.pos_={{0,0,0},{q,q,q},{q,-q,-q},{-q,q,-q}}; a.chemmap_={0,1,0,1};
-    Neighborhoods nbhs(a,p.cutoff);
-    REQUIRE(nbhs[0].nbhcount_==3);
-    for (int i=1;i<a.size();++i) REQUIRE(nbhs[i].nbhcount_==1);
+    Atoms a;
+    a.cell_ = 20 * Eigen::Matrix3d::Identity();
+    a.pbc_ = {false, false, false};
+    const double r = 3.5, q = r / std::sqrt(3.), cut = 5.5, t = 1 - r / cut;
+    a.pos_ = {{0, 0, 0}, {q, q, q}, {q, -q, -q}, {-q, q, -q}};
+    a.chemmap_ = {0, 1, 0, 1};
+    Neighborhoods nbhs(a, p.cutoff);
+    REQUIRE(nbhs[0].nbhcount_ == 3);
+    for (int i = 1; i < a.size(); ++i)
+        REQUIRE(nbhs[i].nbhcount_ == 1);
     // With size-one quadratic bases, f_ab=d_ab*(1-r/R)^2.
     // Only the center site couples these two leaves: no pair or other site does.
-    const double rho=(.35+.3+.35)*t*t,second=.8+1.2*rho;
-    const double f1=-2*.35*t/cut,f2=-2*.3*t/cut;
-    const Eigen::Vector3d u1=a.pos_[1].transpose()/r,u2=a.pos_[2].transpose()/r;
-    const Eigen::Matrix3d expected=second*f1*f2*u1*u2.transpose();
-    REQUIRE(expected.norm()>1e-5);
-    REQUIRE((expected-expected.transpose()).norm()>1e-5);
+    const double rho = (.35 + .3 + .35) * t * t, second = .8 + 1.2 * rho;
+    const double f1 = -2 * .35 * t / cut, f2 = -2 * .3 * t / cut;
+    const Eigen::Vector3d u1 = a.pos_[1].transpose() / r, u2 = a.pos_[2].transpose() / r;
+    const Eigen::Matrix3d expected = second * f1 * f2 * u1 * u2.transpose();
+    REQUIRE(expected.norm() > 1e-5);
+    REQUIRE((expected - expected.transpose()).norm() > 1e-5);
     HessianMatrix hessian;
-    AnyPotential &base=p;
-    base.getEFSHessian(a,nbhs,hessian);
-    REQUIRE((hessian(1,2)-expected).norm()<1e-11);
-    REQUIRE((hessian(2,1)-expected.transpose()).norm()<1e-11);
+    AnyPotential &base = p;
+    base.getEFSHessian(a, nbhs, hessian);
+    REQUIRE((hessian(1, 2) - expected).norm() < 1e-11);
+    REQUIRE((hessian(2, 1) - expected.transpose()).norm() < 1e-11);
 }
 
-TEST_CASE("EAMPoly direct dense Hessian follows force differences and EFS accumulation", "[eam_poly][hessian]") {
-    PotentialEAMPoly p(eampoly_hvp_settings(3)); eampoly_hvp_coeffs(p);
-    auto a=eampoly_hvp_cluster(); const auto geometry=a;
-    const auto coefficients=p.regression_coeffs;
-    Neighborhoods nbhs(a,p.cutoff);
-    const double density_only=(a.pos_[3]-a.pos_[0]).norm();
-    REQUIRE(density_only>p.rmax_pair(0,1)); REQUIRE(density_only<p.rmax_rho(0,1));
-    const double pair_only=(a.pos_[2]-a.pos_[1]).norm();
-    REQUIRE(pair_only<p.rmax_pair(1,0)); REQUIRE(pair_only>p.rmax_rho(1,0));
-    auto fresh=a; p.getEFS(fresh,nbhs);
-    HessianMatrix blocks; blocks.resize(a.size());
-    for (auto &block:blocks.hessian) block.setConstant(99.);
-    AnyPotential &base=p;
-    base.getEFSHessian(a,nbhs,blocks);
-    const Eigen::MatrixXd dense=eampoly_dense(blocks);
-    REQUIRE((dense-dense.transpose()).norm()<1e-11);
-    for (double h:{1e-5,5e-6}) {
+TEST_CASE("EAMPoly direct dense Hessian follows force differences and EFS accumulation",
+          "[eam_poly][hessian]")
+{
+    PotentialEAMPoly p(eampoly_hvp_settings(3));
+    eampoly_hvp_coeffs(p);
+    auto a = eampoly_hvp_cluster();
+    const auto geometry = a;
+    const auto coefficients = p.regression_coeffs;
+    Neighborhoods nbhs(a, p.cutoff);
+    const double density_only = (a.pos_[3] - a.pos_[0]).norm();
+    REQUIRE(density_only > p.rmax_pair(0, 1));
+    REQUIRE(density_only < p.rmax_rho(0, 1));
+    const double pair_only = (a.pos_[2] - a.pos_[1]).norm();
+    REQUIRE(pair_only < p.rmax_pair(1, 0));
+    REQUIRE(pair_only > p.rmax_rho(1, 0));
+    auto fresh = a;
+    p.getEFS(fresh, nbhs);
+    HessianMatrix blocks;
+    blocks.resize(a.size());
+    for (auto &block : blocks.hessian)
+        block.setConstant(99.);
+    AnyPotential &base = p;
+    base.getEFSHessian(a, nbhs, blocks);
+    const Eigen::MatrixXd dense = eampoly_dense(blocks);
+    REQUIRE((dense - dense.transpose()).norm() < 1e-11);
+    for (double h : {1e-5, 5e-6})
+    {
         CAPTURE(h);
-        REQUIRE((dense-eampoly_dense_force_fd(p,geometry,h)).norm()<3e-6);
+        REQUIRE((dense - eampoly_dense_force_fd(p, geometry, h)).norm() < 3e-6);
     }
-    for (int axis=0;axis<3;++axis) {
-        Eigen::VectorXd translation=Eigen::VectorXd::Zero(3*a.size());
-        for (int i=0;i<a.size();++i) translation[3*i+axis]=1.;
-        REQUIRE((dense*translation).norm()<1e-11);
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        Eigen::VectorXd translation = Eigen::VectorXd::Zero(3 * a.size());
+        for (int i = 0; i < a.size(); ++i)
+            translation[3 * i + axis] = 1.;
+        REQUIRE((dense * translation).norm() < 1e-11);
     }
-    for (double phase:{0.,.9}) {
-        const auto v=eampoly_hvp_direction(a.size(),phase);
-        Eigen::VectorXd product; base.applyHessianVectorProduct(a,nbhs,v,product);
-        REQUIRE((dense*v-product).norm()<1e-11);
+    for (double phase : {0., .9})
+    {
+        const auto v = eampoly_hvp_direction(a.size(), phase);
+        Eigen::VectorXd product;
+        base.applyHessianVectorProduct(a, nbhs, v, product);
+        REQUIRE((dense * v - product).norm() < 1e-11);
     }
-    REQUIRE(a.energy_==Approx(fresh.energy_).margin(1e-12));
-    REQUIRE((a.stress_-fresh.stress_).norm()<1e-12);
-    for (int i=0;i<a.size();++i) {
-        REQUIRE((a.forces_[i]-fresh.forces_[i]).norm()<1e-12);
-        REQUIRE(a.site_energies_[i]==Approx(fresh.site_energies_[i]).margin(1e-12));
+    REQUIRE(a.energy_ == Approx(fresh.energy_).margin(1e-12));
+    REQUIRE((a.stress_ - fresh.stress_).norm() < 1e-12);
+    for (int i = 0; i < a.size(); ++i)
+    {
+        REQUIRE((a.forces_[i] - fresh.forces_[i]).norm() < 1e-12);
+        REQUIRE(a.site_energies_[i] == Approx(fresh.site_energies_[i]).margin(1e-12));
     }
     // The no-neighborhood overload must overwrite H even with existing EFS.
-    base.getEFSHessian(a,blocks);
-    REQUIRE((eampoly_dense(blocks)-dense).norm()<1e-12);
-    auto accumulated=fresh;
-    p.add_efs=true;
-    for (auto &block:blocks.hessian) block.setConstant(-17.);
-    base.getEFSHessian(accumulated,nbhs,blocks);
-    p.add_efs=false;
-    REQUIRE((eampoly_dense(blocks)-dense).norm()<1e-12);
-    REQUIRE(accumulated.energy_==Approx(2*fresh.energy_).margin(1e-12));
-    REQUIRE((accumulated.stress_-2*fresh.stress_).norm()<1e-12);
-    for (int i=0;i<a.size();++i) {
-        REQUIRE((accumulated.forces_[i]-2*fresh.forces_[i]).norm()<1e-12);
-        REQUIRE(accumulated.site_energies_[i]==Approx(2*fresh.site_energies_[i]).margin(1e-12));
+    base.getEFSHessian(a, blocks);
+    REQUIRE((eampoly_dense(blocks) - dense).norm() < 1e-12);
+    auto accumulated = fresh;
+    p.add_efs = true;
+    for (auto &block : blocks.hessian)
+        block.setConstant(-17.);
+    base.getEFSHessian(accumulated, nbhs, blocks);
+    p.add_efs = false;
+    REQUIRE((eampoly_dense(blocks) - dense).norm() < 1e-12);
+    REQUIRE(accumulated.energy_ == Approx(2 * fresh.energy_).margin(1e-12));
+    REQUIRE((accumulated.stress_ - 2 * fresh.stress_).norm() < 1e-12);
+    for (int i = 0; i < a.size(); ++i)
+    {
+        REQUIRE((accumulated.forces_[i] - 2 * fresh.forces_[i]).norm() < 1e-12);
+        REQUIRE(accumulated.site_energies_[i] == Approx(2 * fresh.site_energies_[i]).margin(1e-12));
     }
-    REQUIRE(a.pos_==geometry.pos_); REQUIRE(a.cell_==geometry.cell_);
-    REQUIRE(a.pbc_==geometry.pbc_); REQUIRE(a.cartesian==geometry.cartesian);
-    REQUIRE(a.chemmap_==geometry.chemmap_); REQUIRE(p.regression_coeffs==coefficients);
+    REQUIRE(a.pos_ == geometry.pos_);
+    REQUIRE(a.cell_ == geometry.cell_);
+    REQUIRE(a.pbc_ == geometry.pbc_);
+    REQUIRE(a.cartesian == geometry.cartesian);
+    REQUIRE(a.chemmap_ == geometry.chemmap_);
+    REQUIRE(p.regression_coeffs == coefficients);
 }
 
-TEST_CASE("EAMPoly dense Hessian retains periodic backgrounds and drives ComputeHessian", "[eam_poly][hessian]") {
-    PotentialEAMPoly p(eampoly_hvp_settings(2)); eampoly_hvp_coeffs(p);
-    Atoms a; a.cell_=Eigen::Vector3d(3.3,10,10).asDiagonal(); a.pbc_={true,false,false};
-    a.pos_={{.2,.3,.4},{1.3,.9,.8}}; a.chemmap_={0,1};
-    Neighborhoods nbhs(a,p.cutoff);
-    bool self=false,repeated=false;
-    for (int i=0;i<a.size();++i) {
-        int other=0;
-        for (int j:nbhs[i].indices_) { self|=j==i; if (j!=i) ++other; }
-        repeated|=other>1;
+TEST_CASE("EAMPoly dense Hessian retains periodic backgrounds and drives ComputeHessian",
+          "[eam_poly][hessian]")
+{
+    PotentialEAMPoly p(eampoly_hvp_settings(2));
+    eampoly_hvp_coeffs(p);
+    Atoms a;
+    a.cell_ = Eigen::Vector3d(3.3, 10, 10).asDiagonal();
+    a.pbc_ = {true, false, false};
+    a.pos_ = {{.2, .3, .4}, {1.3, .9, .8}};
+    a.chemmap_ = {0, 1};
+    Neighborhoods nbhs(a, p.cutoff);
+    bool self = false, repeated = false;
+    for (int i = 0; i < a.size(); ++i)
+    {
+        int other = 0;
+        for (int j : nbhs[i].indices_)
+        {
+            self |= j == i;
+            if (j != i)
+                ++other;
+        }
+        repeated |= other > 1;
     }
-    REQUIRE(self); REQUIRE(repeated);
+    REQUIRE(self);
+    REQUIRE(repeated);
     HessianMatrix blocks;
-    AnyPotential &base=p;
-    base.getEFSHessian(a,nbhs,blocks);
-    const Eigen::MatrixXd dense=eampoly_dense(blocks);
-    REQUIRE((dense-dense.transpose()).norm()<1e-11);
+    AnyPotential &base = p;
+    base.getEFSHessian(a, nbhs, blocks);
+    const Eigen::MatrixXd dense = eampoly_dense(blocks);
+    REQUIRE((dense - dense.transpose()).norm() < 1e-11);
     Eigen::MatrixXd fd;
-    for (double h:{1e-5,5e-6}) {
-        fd=eampoly_dense_force_fd(p,a,h);
-        REQUIRE((dense-fd).norm()<3e-6);
+    for (double h : {1e-5, 5e-6})
+    {
+        fd = eampoly_dense_force_fd(p, a, h);
+        REQUIRE((dense - fd).norm() < 3e-6);
     }
-    const auto source=a;
-    for (const std::string method:{"auto","analytic"}) {
+    const auto source = a;
+    for (const std::string method : {"auto", "analytic"})
+    {
         ComputeHessian compute;
         compute.set_method(method);
         Eigen::MatrixXd result;
-        compute.compute_fc(a,result,&base);
-        REQUIRE((result-fd).norm()<3e-6);
-        compute.compute_fc_blocks(a,blocks,&base);
-        REQUIRE((eampoly_dense(blocks)-fd).norm()<3e-6);
+        compute.compute_fc(a, result, &base);
+        REQUIRE((result - fd).norm() < 3e-6);
+        compute.compute_fc_blocks(a, blocks, &base);
+        REQUIRE((eampoly_dense(blocks) - fd).norm() < 3e-6);
     }
-    REQUIRE(a.pos_==source.pos_); REQUIRE(a.cell_==source.cell_);
-    REQUIRE(a.pbc_==source.pbc_); REQUIRE(a.cartesian==source.cartesian);
-    REQUIRE(a.chemmap_==source.chemmap_); REQUIRE(a.energy_==source.energy_);
-    REQUIRE(a.forces_==source.forces_); REQUIRE(a.stress_==source.stress_);
-    REQUIRE(a.site_energies_==source.site_energies_);
+    REQUIRE(a.pos_ == source.pos_);
+    REQUIRE(a.cell_ == source.cell_);
+    REQUIRE(a.pbc_ == source.pbc_);
+    REQUIRE(a.cartesian == source.cartesian);
+    REQUIRE(a.chemmap_ == source.chemmap_);
+    REQUIRE(a.energy_ == source.energy_);
+    REQUIRE(a.forces_ == source.forces_);
+    REQUIRE(a.stress_ == source.stress_);
+    REQUIRE(a.site_energies_ == source.site_energies_);
 
-    Atoms single; single.cell_=a.cell_; single.pbc_=a.pbc_;
-    single.pos_={a.pos_[0]}; single.chemmap_={0};
-    REQUIRE(p.eval_density(0,0,3.3)>0.);
-    base.getEFSHessian(single,blocks);
+    Atoms single;
+    single.cell_ = a.cell_;
+    single.pbc_ = a.pbc_;
+    single.pos_ = {a.pos_[0]};
+    single.chemmap_ = {0};
+    REQUIRE(p.eval_density(0, 0, 3.3) > 0.);
+    base.getEFSHessian(single, blocks);
     REQUIRE(eampoly_dense(blocks).isZero(1e-12));
 }
 
-TEST_CASE("EAMPoly analytic HVP drives matrix-free calc_fc lowest modes", "[eam_poly][hvp][cli]") {
-    struct Workspace {
-        CMDOption::CommandLineOptions saved=CMDOption::global_cmdopts;
-        std::filesystem::path original=std::filesystem::current_path(),path;
-        int threads=omp_num_threads;
-        Workspace() {
-            char name[]="/tmp/imrmlp_eampoly_hvp_XXXXXX";
-            const char *directory=mkdtemp(name);
-            if (!directory) throw std::runtime_error("Cannot create EAMPoly HVP workspace");
-            path=directory; std::filesystem::current_path(path);
-            omp_num_threads=1; global_omp_init();
+TEST_CASE("EAMPoly analytic HVP drives matrix-free calc_fc lowest modes", "[eam_poly][hvp][cli]")
+{
+    struct Workspace
+    {
+        CMDOption::CommandLineOptions saved = CMDOption::global_cmdopts;
+        std::filesystem::path original = std::filesystem::current_path(), path;
+        int threads = omp_num_threads;
+
+        Workspace()
+        {
+            char name[] = "/tmp/imrmlp_eampoly_hvp_XXXXXX";
+            const char *directory = mkdtemp(name);
+            if (!directory)
+                throw std::runtime_error("Cannot create EAMPoly HVP workspace");
+            path = directory;
+            std::filesystem::current_path(path);
+            omp_num_threads = 1;
+            global_omp_init();
         }
-        ~Workspace() {
-            CMDOption::global_cmdopts=saved;
-            omp_num_threads=threads; global_omp_init();
-            std::filesystem::current_path(original); std::filesystem::remove_all(path);
+
+        ~Workspace()
+        {
+            CMDOption::global_cmdopts = saved;
+            omp_num_threads = threads;
+            global_omp_init();
+            std::filesystem::current_path(original);
+            std::filesystem::remove_all(path);
         }
     } work;
-    PotentialEAMPoly p(eampoly_hvp_settings(2)); eampoly_hvp_coeffs(p);
-    auto a=eampoly_hvp_cluster(); p.Save("model.pot");
-    std::ofstream("index.map")<<"Al 1.0 2\nNi 1.0 5\n";
-    GPIO io; REQUIRE(io.readmap("index.map")); REQUIRE(io.write_one(a,"input.xyz","extxyz"));
-    const int dimension=3*a.size();
-    Eigen::MatrixXd fd(dimension,dimension);
-    for (int k=0;k<dimension;++k) {
-        const Eigen::VectorXd direction=Eigen::VectorXd::Unit(dimension,k);
-        fd.col(k)=eampoly_force_fd(p,a,direction,5e-6);
+
+    PotentialEAMPoly p(eampoly_hvp_settings(2));
+    eampoly_hvp_coeffs(p);
+    auto a = eampoly_hvp_cluster();
+    p.Save("model.pot");
+    std::ofstream("index.map") << "Al 1.0 2\nNi 1.0 5\n";
+    GPIO io;
+    REQUIRE(io.readmap("index.map"));
+    REQUIRE(io.write_one(a, "input.xyz", "extxyz"));
+    const int dimension = 3 * a.size();
+    Eigen::MatrixXd fd(dimension, dimension);
+    for (int k = 0; k < dimension; ++k)
+    {
+        const Eigen::VectorXd direction = Eigen::VectorXd::Unit(dimension, k);
+        fd.col(k) = eampoly_force_fd(p, a, direction, 5e-6);
     }
-    REQUIRE((fd-fd.transpose()).norm()<1e-6);
-    fd=(.5*(fd+fd.transpose())).eval();
+    REQUIRE((fd - fd.transpose()).norm() < 1e-6);
+    fd = (.5 * (fd + fd.transpose())).eval();
     Eigen::VectorXd sqrt_mass(dimension);
-    Eigen::MatrixXd translations=Eigen::MatrixXd::Zero(dimension,3);
-    for (int i=0;i<a.size();++i) {
-        const double root=std::sqrt(a.chemmap_[i]==0 ? 2. : 5.);
-        sqrt_mass.segment<3>(3*i).setConstant(root);
-        for (int axis=0;axis<3;++axis) translations(3*i+axis,axis)=root;
+    Eigen::MatrixXd translations = Eigen::MatrixXd::Zero(dimension, 3);
+    for (int i = 0; i < a.size(); ++i)
+    {
+        const double root = std::sqrt(a.chemmap_[i] == 0 ? 2. : 5.);
+        sqrt_mass.segment<3>(3 * i).setConstant(root);
+        for (int axis = 0; axis < 3; ++axis)
+            translations(3 * i + axis, axis) = root;
     }
     Eigen::HouseholderQR<Eigen::MatrixXd> qr(translations);
-    const Eigen::MatrixXd q=qr.householderQ()*Eigen::MatrixXd::Identity(dimension,dimension);
-    const Eigen::MatrixXd internal=q.rightCols(dimension-3);
-    const Eigen::MatrixXd dynamical=sqrt_mass.cwiseInverse().asDiagonal()*fd*sqrt_mass.cwiseInverse().asDiagonal();
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(internal.transpose()*dynamical*internal);
-    REQUIRE(solver.info()==Eigen::Success);
-    CMDOption::global_cmdopts=CMDOption::CommandLineOptions{};
-    std::vector<std::string> arguments{"calc_fc","--potfile=model.pot","--potential-type=eampoly",
-        "--input=input.xyz","--input-format=extxyz","--index=index.map",
-        "--hessian-method=analytic","--lowest-modes=2","--lowest-mode-tol=1e-9"};
+    const Eigen::MatrixXd q = qr.householderQ() * Eigen::MatrixXd::Identity(dimension, dimension);
+    const Eigen::MatrixXd internal = q.rightCols(dimension - 3);
+    const Eigen::MatrixXd dynamical =
+        sqrt_mass.cwiseInverse().asDiagonal() * fd * sqrt_mass.cwiseInverse().asDiagonal();
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(internal.transpose() * dynamical *
+                                                          internal);
+    REQUIRE(solver.info() == Eigen::Success);
+    CMDOption::global_cmdopts = CMDOption::CommandLineOptions{};
+    std::vector<std::string> arguments{"calc_fc",
+                                       "--potfile=model.pot",
+                                       "--potential-type=eampoly",
+                                       "--input=input.xyz",
+                                       "--input-format=extxyz",
+                                       "--index=index.map",
+                                       "--hessian-method=analytic",
+                                       "--lowest-modes=2",
+                                       "--lowest-mode-tol=1e-9"};
     std::vector<char *> argv;
-    for (auto &argument:arguments) argv.push_back(argument.data());
-    REQUIRE(calc_fc(argv.size(),argv.data())==0);
+    for (auto &argument : arguments)
+        argv.push_back(argument.data());
+    REQUIRE(calc_fc(argv.size(), argv.data()) == 0);
     REQUIRE_FALSE(std::filesystem::exists("FORCE_CONSTANTS"));
-    std::ifstream output("EIGENVALS"); std::string header; REQUIRE(std::getline(output,header));
-    for (int mode=0;mode<2;++mode) {
-        double eigenvalue,frequency,energy,wavenumber;
-        REQUIRE(output>>eigenvalue>>frequency>>energy>>wavenumber);
-        REQUIRE(eigenvalue==Approx(solver.eigenvalues()[mode]).margin(2e-6));
+    std::ifstream output("EIGENVALS");
+    std::string header;
+    REQUIRE(std::getline(output, header));
+    for (int mode = 0; mode < 2; ++mode)
+    {
+        double eigenvalue, frequency, energy, wavenumber;
+        REQUIRE(output >> eigenvalue >> frequency >> energy >> wavenumber);
+        REQUIRE(eigenvalue == Approx(solver.eigenvalues()[mode]).margin(2e-6));
     }
 }

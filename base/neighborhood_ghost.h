@@ -9,7 +9,7 @@
 // with ghost atoms
 class NeighborhoodsGhost : public NeighborhoodsBase<NeighborhoodsGhost, AnyNeighborhoods>
 {
-public:
+  public:
     void construct(Atoms &atom, const double cutoff);
 
     NeighborhoodsGhost() = default;

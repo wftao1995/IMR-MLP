@@ -10,7 +10,8 @@
 #include <string>
 
 // Execution options do not change the selected curvature method.
-struct HessianExecutionSettings {
+struct HessianExecutionSettings
+{
     std::string device = "cpu";
     int gpu_id = -1;
     int gpu_batch_atoms = 4096;
@@ -24,7 +25,8 @@ struct HessianExecutionSettings {
     int host_memory_mib = 1024;
 };
 
-struct HessianExecutionReport {
+struct HessianExecutionReport
+{
     std::string backend = "cpu", method;
     bool complete = false;
     std::size_t evaluated_structures = 0, batches = 0;
@@ -42,26 +44,25 @@ struct HessianExecutionReport {
     double evaluation_seconds = 0.0, reduction_seconds = 0.0, symmetry_seconds = 0.0;
 };
 
-namespace HessianGpu {
+namespace HessianGpu
+{
 
 // Reset the report and validate execution settings, including CPU-only builds.
 bool begin(const HessianExecutionSettings &, HessianExecutionReport &);
-void validate(const Atoms &, const Potentials::AnyPotential &,
-              double cutoff, const HessianExecutionSettings &);
+void validate(const Atoms &, const Potentials::AnyPotential &, double cutoff,
+              const HessianExecutionSettings &);
 // Copies only geometry required by ordinary MTP, never EFS/curvature labels.
 Atoms geometry_copy(const Atoms &);
-std::size_t check_hessian_storage(std::size_t atoms, bool blocks,
-                                 bool projection, const HessianExecutionSettings &,
-                                 HessianExecutionReport &);
+std::size_t check_hessian_storage(std::size_t atoms, bool blocks, bool projection,
+                                  const HessianExecutionSettings &, HessianExecutionReport &);
 std::size_t check_vector_storage(std::size_t atoms, const HessianExecutionSettings &,
-                                HessianExecutionReport &);
+                                 HessianExecutionReport &);
 void symmetrize(Eigen::MatrixXd &);
-Eigen::MatrixXd dense(const Atoms &, const Potentials::AnyPotential &,
-                      double step, double cutoff, bool projection,
-                      const HessianExecutionSettings &, HessianExecutionReport &);
-Potentials::HessianMatrix blocks(const Atoms &, const Potentials::AnyPotential &,
-                                double step, double cutoff,
-                                const HessianExecutionSettings &, HessianExecutionReport &);
+Eigen::MatrixXd dense(const Atoms &, const Potentials::AnyPotential &, double step, double cutoff,
+                      bool projection, const HessianExecutionSettings &, HessianExecutionReport &);
+Potentials::HessianMatrix blocks(const Atoms &, const Potentials::AnyPotential &, double step,
+                                 double cutoff, const HessianExecutionSettings &,
+                                 HessianExecutionReport &);
 Eigen::VectorXd hvp(const Atoms &, const Eigen::VectorXd &direction,
                     const Potentials::AnyPotential &, double delta, double cutoff,
                     const HessianExecutionSettings &, HessianExecutionReport &);

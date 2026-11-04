@@ -6,7 +6,8 @@
 
 #include "../Decorrelator.h"
 
-namespace BasisAnalysis {
+namespace BasisAnalysis
+{
 
 /// Cluster features by correlation distance (1 - |pearson|), then pick one
 /// representative per cluster.
@@ -15,30 +16,28 @@ namespace BasisAnalysis {
 /// where edges exist when |pearson| > threshold. For each cluster, pick the
 /// feature with the lowest mean absolute correlation to other cluster members
 /// (i.e., the most "central" feature).
-class ClusterRepresentative : public Decorrelator {
-public:
+class ClusterRepresentative : public Decorrelator
+{
+  public:
     /// @param correlation_threshold  Edge threshold for clustering (default 0.80)
     /// @param min_cluster_size        Clusters smaller than this are kept intact
-    ClusterRepresentative(double correlation_threshold = 0.80,
-                          int min_cluster_size = 2);
+    ClusterRepresentative(double correlation_threshold = 0.80, int min_cluster_size = 2);
 
     std::string name() const override;
-    std::pair<std::set<int>, std::set<int>>
-    select(const CorrelationResult &corr,
-           int nscalar) override;
+    std::pair<std::set<int>, std::set<int>> select(const CorrelationResult &corr,
+                                                   int nscalar) override;
 
-private:
+  private:
     double correlation_threshold_;
     int min_cluster_size_;
 
     /// Build connected components from the correlation graph.
-    static std::vector<std::vector<int>>
-    find_clusters(const Eigen::MatrixXd &pearson, double threshold, int n);
+    static std::vector<std::vector<int>> find_clusters(const Eigen::MatrixXd &pearson,
+                                                       double threshold, int n);
 
     /// Select the most representative feature in a cluster.
     /// Representative = lowest mean |correlation| to other members.
-    static int pick_representative(const std::vector<int> &cluster,
-                                   const Eigen::MatrixXd &pearson);
+    static int pick_representative(const std::vector<int> &cluster, const Eigen::MatrixXd &pearson);
 };
 
 } // namespace BasisAnalysis

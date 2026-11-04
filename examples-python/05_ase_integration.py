@@ -7,6 +7,7 @@
 IMRMLPCalculator 把 imrmlp 势函数包装成 ASE Calculator，
 可以直接用 ASE 的优化器、MD、NEB、振动分析等全套生态。
 """
+
 import numpy as np
 from ase.build import bulk
 from ase.optimize import BFGS

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Neural MTP binary loading through the public potential factory."""
+
 from pathlib import Path
 import shutil
 import struct
@@ -21,16 +22,18 @@ def write_model(tmp_path, layers, inputs=None):
     if inputs is None:
         _, inputs = struct.unpack_from('=ii', Path(str(FIXTURE) + '.nn').read_bytes())
     hidden1, hidden2 = 2, 3
-    header = struct.pack('=4i', -0x4e4e, 1, layers, 2)  # version 1, sigmoid
+    header = struct.pack('=4i', -0x4E4E, 1, layers, 2)  # version 1, sigmoid
     if layers == 1:
         dimensions = struct.pack('=2i', hidden1, inputs)
-        values = [0.] * (inputs * hidden1) + [1.] * hidden1 + [0.] * hidden1
+        values = [0.0] * (inputs * hidden1) + [1.0] * hidden1 + [0.0] * hidden1
     else:
         dimensions = struct.pack('=3i', hidden1, hidden2, inputs)
-        values = [0.] * (inputs * hidden1 + hidden1 + hidden1 * hidden2 + hidden2)
-        values += [1.] * hidden2
-    values += [0.] * inputs + [1.] * inputs
-    (tmp_path / 'model.nn').write_bytes(header + dimensions + struct.pack(f'={len(values)}d', *values))
+        values = [0.0] * (inputs * hidden1 + hidden1 + hidden1 * hidden2 + hidden2)
+        values += [1.0] * hidden2
+    values += [0.0] * inputs + [1.0] * inputs
+    (tmp_path / 'model.nn').write_bytes(
+        header + dimensions + struct.pack(f'={len(values)}d', *values)
+    )
 
 
 @pytest.mark.parametrize('layers', [1, 2])
@@ -39,8 +42,13 @@ def test_factory_reads_network_architecture_and_activation(tmp_path, monkeypatch
     monkeypatch.chdir(tmp_path)
     write_model(tmp_path, layers)
     pot = Potential('model', pottype='mtpnn1')
-    atom = Atoms(numbers=[1, 2], elements=['H', 'He'], positions=[[0, 0, 0], [2, 0, 0]],
-                 cell=np.eye(3)*20, pbc=False)
+    atom = Atoms(
+        numbers=[1, 2],
+        elements=['H', 'He'],
+        positions=[[0, 0, 0], [2, 0, 0]],
+        cell=np.eye(3) * 20,
+        pbc=False,
+    )
     pot.calculate(atom, use_omp=omp)
     assert atom.energy == pytest.approx(1.75 if layers == 1 else 2.75)
     np.testing.assert_allclose(atom.forces, 0, atol=1e-12)
@@ -53,7 +61,9 @@ def test_factory_reads_network_architecture_and_activation(tmp_path, monkeypatch
 
 @pytest.mark.parametrize('layers', [1, 2])
 @pytest.mark.parametrize('problem', ['truncated', 'mismatch'])
-def test_factory_rejects_incomplete_or_incompatible_networks(tmp_path, monkeypatch, layers, problem):
+def test_factory_rejects_incomplete_or_incompatible_networks(
+    tmp_path, monkeypatch, layers, problem
+):
     monkeypatch.chdir(tmp_path)
     write_model(tmp_path, layers, inputs=1 if problem == 'mismatch' else None)
     if problem == 'truncated':

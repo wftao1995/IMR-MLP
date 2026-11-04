@@ -22,7 +22,8 @@
 
 using namespace LAMMPS_NS;
 
-PairMLIPSpline::PairMLIPSpline(class LAMMPS * lmpr) : PairMLIPOPT(lmpr) {
+PairMLIPSpline::PairMLIPSpline(class LAMMPS *lmpr) : PairMLIPOPT(lmpr)
+{
     ;
 };
 
@@ -135,32 +136,38 @@ void PairMLIPSpline::LoadPot(void)
         // double discard;
         // for (int t = 0; t < Nr; ++t) ifs >> discard;
         memory->create(rvals, Nr, "pair:rvals");
-        for (int t = 0; t < Nr; ++t) {
+        for (int t = 0; t < Nr; ++t)
+        {
             ifs >> rvals[t];
-
         }
         memory->create(spdata, species_count, species_count, radial_func_count, Nr, "pair:spdata");
         // typei typej mu Nr a b c d 2c 3d
-        memory->create(spcoeffs,
-                       species_count * species_count * radial_func_count * Nr * 6,
+        memory->create(spcoeffs, species_count * species_count * radial_func_count * Nr * 6,
                        "pair:spcoeffs");
-        for (int mu = 0; mu < radial_func_count; ++mu) {
-            for (int s1 = 0; s1 < species_count; ++s1) {
-                for (int s2 = 0; s2 < species_count; ++s2) {
+        for (int mu = 0; mu < radial_func_count; ++mu)
+        {
+            for (int s1 = 0; s1 < species_count; ++s1)
+            {
+                for (int s2 = 0; s2 < species_count; ++s2)
+                {
                     int itp, jtp, muc;
                     ifs >> muc >> itp >> jtp;
-                    for (int i = 0; i < Nr; ++i) {
+                    for (int i = 0; i < Nr; ++i)
+                    {
                         ifs >> spdata[itp][jtp][muc][i];
-
                     }
                 }
             }
         }
         // build splines
-        for (int mu = 0; mu < radial_func_count; ++mu) {
-            for (int s1 = 0; s1 < species_count; ++s1) {
-                for (int s2 = 0; s2 < species_count; ++s2) {
-                    const int offset = ((s1 * species_count + s2) * radial_func_count + mu) * Nr * 6;
+        for (int mu = 0; mu < radial_func_count; ++mu)
+        {
+            for (int s1 = 0; s1 < species_count; ++s1)
+            {
+                for (int s2 = 0; s2 < species_count; ++s2)
+                {
+                    const int offset =
+                        ((s1 * species_count + s2) * radial_func_count + mu) * Nr * 6;
                     interpolate(Nr, deltar, spdata[s1][s2][mu], spcoeffs + offset);
                 }
             }
@@ -175,7 +182,8 @@ void PairMLIPSpline::LoadPot(void)
         error->all(FLERR, "error reading mtp file, splines not found");
     }
 
-    if (tmpstr != "alpha_moments_count") {
+    if (tmpstr != "alpha_moments_count")
+    {
         printf("%s\n", tmpstr.c_str());
         error->all(FLERR, "Error reading .mtp file");
     }
@@ -207,15 +215,16 @@ void PairMLIPSpline::LoadPot(void)
     {
         char tmpch;
         ifs.ignore(1000, '{');
-        ifs >> alpha_index_basic[i].mu >> tmpch >> alpha_index_basic[i].b1 >> tmpch >> alpha_index_basic[i].b2 >> tmpch >> alpha_index_basic[i].b3;
-        nu_arr_list[i] = alpha_index_basic[i].b1 + alpha_index_basic[i].b2 + alpha_index_basic[i].b3;
+        ifs >> alpha_index_basic[i].mu >> tmpch >> alpha_index_basic[i].b1 >> tmpch >>
+            alpha_index_basic[i].b2 >> tmpch >> alpha_index_basic[i].b3;
+        nu_arr_list[i] =
+            alpha_index_basic[i].b1 + alpha_index_basic[i].b2 + alpha_index_basic[i].b3;
         if (ifs.fail())
             error->all(FLERR, "Error reading .mtp file");
 
         if (alpha_index_basic[i].mu > radial_func_max)
             radial_func_max = alpha_index_basic[i].mu;
     }
-
 
     if (radial_func_max != radial_func_count - 1)
         error->all(FLERR, "Wrong number of radial functions specified");
@@ -243,7 +252,8 @@ void PairMLIPSpline::LoadPot(void)
     {
         char tmpch;
         ifs.ignore(1000, '{');
-        ifs >> alpha_index_times[i].l1 >> tmpch >> alpha_index_times[i].l2 >> tmpch >> alpha_index_times[i].c >> tmpch >> alpha_index_times[i].id;
+        ifs >> alpha_index_times[i].l1 >> tmpch >> alpha_index_times[i].l2 >> tmpch >>
+            alpha_index_times[i].c >> tmpch >> alpha_index_times[i].id;
         if (ifs.fail())
             error->all(FLERR, "Error reading .mtp file");
     }
@@ -276,27 +286,32 @@ void PairMLIPSpline::LoadPot(void)
 
     std::vector<char> moment_initialized(alpha_moments_count, 0);
     std::vector<char> moment_needs_zero(alpha_moments_count, 0);
-    for (int i = 0; i < alpha_index_basic_count; ++i) {
+    for (int i = 0; i < alpha_index_basic_count; ++i)
+    {
         moment_initialized[i] = 1;
         moment_needs_zero[i] = 1;
     }
     std::vector<alpha_times_group_t> times_groups;
-    for (int begin = 0; begin < alpha_index_times_count; ) {
+    for (int begin = 0; begin < alpha_index_times_count;)
+    {
         const int id = alpha_index_times[begin].id;
         int end = begin + 1;
         while (end < alpha_index_times_count && alpha_index_times[end].id == id)
             ++end;
 
         bool reads_output = false;
-        for (int i = begin; i < end; ++i) {
+        for (int i = begin; i < end; ++i)
+        {
             const int l1 = alpha_index_times[i].l1;
             const int l2 = alpha_index_times[i].l2;
             reads_output = reads_output || l1 == id || l2 == id;
-            if (!moment_initialized[l1]) {
+            if (!moment_initialized[l1])
+            {
                 moment_initialized[l1] = 1;
                 moment_needs_zero[l1] = 1;
             }
-            if (!moment_initialized[l2]) {
+            if (!moment_initialized[l2])
+            {
                 moment_initialized[l2] = 1;
                 moment_needs_zero[l2] = 1;
             }
@@ -309,9 +324,11 @@ void PairMLIPSpline::LoadPot(void)
         times_groups.push_back({begin, end, id, assign});
         begin = end;
     }
-    for (int i = 0; i < alpha_scalar_moments; ++i) {
+    for (int i = 0; i < alpha_scalar_moments; ++i)
+    {
         const int id = alpha_moment_mapping[i];
-        if (!moment_initialized[id]) {
+        if (!moment_initialized[id])
+        {
             moment_initialized[id] = 1;
             moment_needs_zero[id] = 1;
         }
@@ -326,7 +343,8 @@ void PairMLIPSpline::LoadPot(void)
         moment_zero_count += moment_needs_zero[i] != 0;
     memory->create(moment_zero_ids, moment_zero_count, "pair::moment_zero_ids");
     for (int i = 0, j = 0; i < alpha_moments_count; ++i)
-        if (moment_needs_zero[i]) moment_zero_ids[j++] = i;
+        if (moment_needs_zero[i])
+            moment_zero_ids[j++] = i;
 
     ifs.ignore(1000, '\n');
     // Reading linear coeffs
@@ -373,7 +391,8 @@ void PairMLIPSpline::LoadPot(void)
     memory->create(val_mu, max_mu, "pair::val_mu");
     memory->create(der_mu, max_mu, "pair::der_mu");
     memory->create(moment_vals, alpha_moments_count, "pair::moment_vals");
-    memory->create(site_energy_ders_wrt_moments_, alpha_moments_count, "pair::site_energy_ders_wrt_moments_");
+    memory->create(site_energy_ders_wrt_moments_, alpha_moments_count,
+                   "pair::site_energy_ders_wrt_moments_");
     memory->create(rb_vals, rb_size, "pair::rb_vals");
     memory->create(rb_ders, rb_size, "pair::rb_ders");
     memory->create(dist_powers, max_alpha_index_basic, "pair::dist_powers");
@@ -387,17 +406,18 @@ void PairMLIPSpline::LoadPot(void)
     coords_powers[1].y = 1;
     coords_powers[1].z = 1;
     memory->create(jlist_true, jnum_capacity, "pair::jlist_true");
-    memory->create(moment_jacobian,
-                   alpha_index_basic_count * jnum_capacity * 3,
+    memory->create(moment_jacobian, alpha_index_basic_count * jnum_capacity * 3,
                    "pair::moment_jacobian");
 }
 
-PairMLIPSpline::~PairMLIPSpline() {
+PairMLIPSpline::~PairMLIPSpline()
+{
     if (spcoeffs)
         memory->destroy(spcoeffs);
     if (rvals)
         memory->destroy(rvals);
 }
+
 // a + b x + c x^2 + d x^3
 // b + 2c x + 3d x^2
 // in order {a,b,c,d}
@@ -409,53 +429,60 @@ PairMLIPSpline::~PairMLIPSpline() {
 // 2h c0 + h c1 = 3(y1-y0)/h
 // 2h cn - h cn-1 = 3(yn - yn-1) / h
 // TODO: cubic hermite spline, so that force is accurate
-void PairMLIPSpline::interpolate(int n, double delta, double *f, double *spc) {
+void PairMLIPSpline::interpolate(int n, double delta, double *f, double *spc)
+{
     // a = yi
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
+    {
         spc[i * 6 + 0] = f[i];
     }
     // clamed BC, f' = 0
     // b0 = 0 , bn-1 = 0
     // int fn = n-1;
     spc[0 * 6 + 1] = 0;
-    spc[(n-1) * 6 + 1] = 0; // non-exist actually, will not be used
+    spc[(n - 1) * 6 + 1] = 0; // non-exist actually, will not be used
     std::vector<double> yarr(n), m1(n), m2(n), m3(n);
-    yarr[0] = 3*(f[1] - f[0])/delta/delta;
-    for (int i = 1; i < n-1; ++i) {
-        yarr[i] = 3*(f[i-1]+f[i+1]-2*f[i])/delta/delta;
+    yarr[0] = 3 * (f[1] - f[0]) / delta / delta;
+    for (int i = 1; i < n - 1; ++i)
+    {
+        yarr[i] = 3 * (f[i - 1] + f[i + 1] - 2 * f[i]) / delta / delta;
     }
-    yarr[n-1] = -3*(f[n-1]-f[n-2])/delta/delta;
+    yarr[n - 1] = -3 * (f[n - 1] - f[n - 2]) / delta / delta;
     // matrix
-    for (int i = 1; i < n-1; ++i) {
+    for (int i = 1; i < n - 1; ++i)
+    {
         m1[i] = 1;
         m2[i] = 4;
         m3[i] = 1;
     }
     m2[0] = 2;
     m3[0] = 1;
-    m1[n-1] = 1;
-    m2[n-1] = 2;
-    m1[0] = 0; // non-exist
-    m3[n-1] = 0; // non-exist
+    m1[n - 1] = 1;
+    m2[n - 1] = 2;
+    m1[0] = 0;     // non-exist
+    m3[n - 1] = 0; // non-exist
     // Eliminate both the lower diagonal and right-hand side.
-    for (int i = 1; i < n; ++i) {
-        const double factor = m1[i] / m2[i-1];
-        m2[i] -= factor * m3[i-1];
-        yarr[i] -= factor * yarr[i-1];
+    for (int i = 1; i < n; ++i)
+    {
+        const double factor = m1[i] / m2[i - 1];
+        m2[i] -= factor * m3[i - 1];
+        yarr[i] -= factor * yarr[i - 1];
     }
     // back to forth
-    spc[(n-1) * 6 + 2] = yarr[n-1] / m2[n-1];
-    for (int i = n-2; i >= 0; --i) {
-        spc[i * 6 + 2] = (yarr[i] - m3[i] * spc[(i+1) * 6 + 2]) / m2[i];
+    spc[(n - 1) * 6 + 2] = yarr[n - 1] / m2[n - 1];
+    for (int i = n - 2; i >= 0; --i)
+    {
+        spc[i * 6 + 2] = (yarr[i] - m3[i] * spc[(i + 1) * 6 + 2]) / m2[i];
     }
     // fill others (b->1, d->3, 2c->4, 3d->5)
-    for (int i = 0; i < n-1; ++i) {
+    for (int i = 0; i < n - 1; ++i)
+    {
         const double ci = spc[i * 6 + 2];
-        const double ci1 = spc[(i+1) * 6 + 2];
-        spc[i * 6 + 1] = (f[i+1]-f[i])/delta - ci*delta - (ci1-ci)*delta/3;
-        spc[i * 6 + 3] = (ci1-ci)/3.0/delta;
-        spc[i * 6 + 4] = 2*ci;
-        spc[i * 6 + 5] = 3*spc[i * 6 + 3];
+        const double ci1 = spc[(i + 1) * 6 + 2];
+        spc[i * 6 + 1] = (f[i + 1] - f[i]) / delta - ci * delta - (ci1 - ci) * delta / 3;
+        spc[i * 6 + 3] = (ci1 - ci) / 3.0 / delta;
+        spc[i * 6 + 4] = 2 * ci;
+        spc[i * 6 + 5] = 3 * spc[i * 6 + 3];
     }
 }
 
@@ -485,9 +512,11 @@ void PairMLIPSpline::compute(int eflag, int vflag)
         const int jnum = list->numneigh[ati];
         const int type_central = spmap[type[ati]];
         double *ivec = x[ati];
-        if (jnum_capacity < jnum) {
+        if (jnum_capacity < jnum)
+        {
             int capacity = jnum_capacity ? jnum_capacity + jnum_capacity / 2 : 64;
-            if (capacity < jnum) capacity = jnum;
+            if (capacity < jnum)
+                capacity = jnum;
             memory->grow(moment_jacobian, basic_count * capacity * 3, "pair::moment_jacobian");
             memory->grow(jlist_true, capacity, "pair::jlist_true");
             jnum_capacity = capacity;
@@ -513,18 +542,19 @@ void PairMLIPSpline::compute(int eflag, int vflag)
                 for (int k = 1; k < max_alpha_index_basic; k++)
                 {
                     dist_powers[k] = dist_powers[k - 1] * rijinv;
-                    coords_powers[k+1] = {
-                        coords_powers[k].x * rvec[0],
-                        coords_powers[k].y * rvec[1],
-                        coords_powers[k].z * rvec[2]
-                    };
+                    coords_powers[k + 1] = {coords_powers[k].x * rvec[0],
+                                            coords_powers[k].y * rvec[1],
+                                            coords_powers[k].z * rvec[2]};
                 }
 
                 int interval = static_cast<int>(floor((rij - min_dist) / deltar));
-                if (interval < 0) interval = 0;
-                else if (interval > Nr - 2) interval = Nr - 2;
+                if (interval < 0)
+                    interval = 0;
+                else if (interval > Nr - 2)
+                    interval = Nr - 2;
                 double xx = rij - rvals[interval];
-                if (xx < 0.0) xx = 0.0;
+                if (xx < 0.0)
+                    xx = 0.0;
                 const int pair_offset =
                     (type_central * species_count + jtype) * radial_func_count * Nr * 6;
                 for (int mu = 0; mu < max_mu; ++mu)
@@ -549,18 +579,18 @@ void PairMLIPSpline::compute(int eflag, int vflag)
                     double mult0 = pow0 * pow1 * pow2;
                     moment_vals[i] += val * mult0;
                     mult0 *= der * rijinv;
-                    moment_jacobian[(jnum_true * 3 + 0) * basic_count + i] = mult0 * rvec[0] +
-                        alpha_index_basic[i].b1 * val *
-                        coords_powers[alpha_index_basic[i].b1].x *
-                        pow1 * pow2;
-                    moment_jacobian[(jnum_true * 3 + 1) * basic_count + i] = mult0 * rvec[1] +
-                        alpha_index_basic[i].b2 * val *
-                        coords_powers[alpha_index_basic[i].b2].y *
-                        pow0 * pow2;
-                    moment_jacobian[(jnum_true * 3 + 2) * basic_count + i] = mult0 * rvec[2] +
-                        alpha_index_basic[i].b3 * val *
-                        coords_powers[alpha_index_basic[i].b3].z *
-                        pow0 * pow1;
+                    moment_jacobian[(jnum_true * 3 + 0) * basic_count + i] =
+                        mult0 * rvec[0] + alpha_index_basic[i].b1 * val *
+                                              coords_powers[alpha_index_basic[i].b1].x * pow1 *
+                                              pow2;
+                    moment_jacobian[(jnum_true * 3 + 1) * basic_count + i] =
+                        mult0 * rvec[1] + alpha_index_basic[i].b2 * val *
+                                              coords_powers[alpha_index_basic[i].b2].y * pow0 *
+                                              pow2;
+                    moment_jacobian[(jnum_true * 3 + 2) * basic_count + i] =
+                        mult0 * rvec[2] + alpha_index_basic[i].b3 * val *
+                                              coords_powers[alpha_index_basic[i].b3].z * pow0 *
+                                              pow1;
                 }
 
                 jnum_true++;
@@ -570,32 +600,40 @@ void PairMLIPSpline::compute(int eflag, int vflag)
         for (int g = 0; g < alpha_times_group_count; ++g)
         {
             const alpha_times_group_t &group = alpha_times_groups[g];
-            if (group.assign) {
+            if (group.assign)
+            {
                 const alpha_times_t &first = alpha_index_times[group.begin];
                 double value = first.c * moment_vals[first.l1] * moment_vals[first.l2];
-                for (int i = group.begin + 1; i < group.end; ++i) {
+                for (int i = group.begin + 1; i < group.end; ++i)
+                {
                     const alpha_times_t &term = alpha_index_times[i];
                     value += term.c * moment_vals[term.l1] * moment_vals[term.l2];
                 }
                 moment_vals[group.id] = value;
-            } else {
-                for (int i = group.begin; i < group.end; ++i) {
+            }
+            else
+            {
+                for (int i = group.begin; i < group.end; ++i)
+                {
                     const alpha_times_t &term = alpha_index_times[i];
                     moment_vals[group.id] += term.c * moment_vals[term.l1] * moment_vals[term.l2];
                 }
             }
         }
 
-        memset(&site_energy_ders_wrt_moments_[0], 0, alpha_moments_count * sizeof(site_energy_ders_wrt_moments_[0]));
+        memset(&site_energy_ders_wrt_moments_[0], 0,
+               alpha_moments_count * sizeof(site_energy_ders_wrt_moments_[0]));
         double buff_site_energy = 0.0;
-        if (need_energy) {
+        if (need_energy)
+        {
             buff_site_energy = specie_coeffs[type_central];
-            #pragma ivdep
+#pragma ivdep
             for (int i = 0; i < alpha_scalar_moments; i++)
                 buff_site_energy += moment_coeffs[i] * moment_vals[alpha_moment_mapping[i]];
         }
-        #pragma ivdep
-        for (int i = 0; i < alpha_scalar_moments; ++i) {
+#pragma ivdep
+        for (int i = 0; i < alpha_scalar_moments; ++i)
+        {
             site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] = moment_coeffs[i];
         }
 
@@ -611,7 +649,8 @@ void PairMLIPSpline::compute(int eflag, int vflag)
                 site_energy_ders_wrt_moments_[alpha_index_times[i].id] * mulc * val1;
         }
 
-        if (need_energy) en += buff_site_energy;
+        if (need_energy)
+            en += buff_site_energy;
         if (p_site_en != NULL)
             p_site_en[ati] = buff_site_energy;
 
@@ -623,8 +662,9 @@ void PairMLIPSpline::compute(int eflag, int vflag)
             double der0 = 0.0;
             double der1 = 0.0;
             double der2 = 0.0;
-            #pragma omp simd reduction(+:der0,der1,der2)
-            for (int i = 0; i < basic_count; ++i) {
+#pragma omp simd reduction(+ : der0, der1, der2)
+            for (int i = 0; i < basic_count; ++i)
+            {
                 const double coeff = site_energy_ders_wrt_moments_[i];
                 der0 += coeff * jac0[i];
                 der1 += coeff * jac1[i];
@@ -638,12 +678,10 @@ void PairMLIPSpline::compute(int eflag, int vflag)
             f[atj][1] -= der1;
             f[atj][2] -= der2;
 
-            if (vflag_global || p_site_virial != NULL) {
-                const double rvec[3] = {
-                    x[atj][0] - ivec[0],
-                    x[atj][1] - ivec[1],
-                    x[atj][2] - ivec[2]
-                };
+            if (vflag_global || p_site_virial != NULL)
+            {
+                const double rvec[3] = {x[atj][0] - ivec[0], x[atj][1] - ivec[1],
+                                        x[atj][2] - ivec[2]};
                 const double derivative[3] = {der0, der1, der2};
                 double edge_virial[6];
                 MLIPOpt::standard_virial(rvec, derivative, edge_virial);
@@ -651,8 +689,8 @@ void PairMLIPSpline::compute(int eflag, int vflag)
                     for (int component = 0; component < 6; ++component)
                         virial[component] += edge_virial[component];
                 if (p_site_virial != NULL)
-                    MLIPOpt::add_per_atom_virial(
-                        p_site_virial[ati], p_site_virial[atj], edge_virial);
+                    MLIPOpt::add_per_atom_virial(p_site_virial[ati], p_site_virial[atj],
+                                                 edge_virial);
             }
         }
     }
@@ -665,5 +703,5 @@ void PairMLIPSpline::compute(int eflag, int vflag)
 
 void PairMLIPSpline::settings(int narg, char **arg)
 {
-    PairMLIPOPT::settings(narg,arg);
+    PairMLIPOPT::settings(narg, arg);
 }

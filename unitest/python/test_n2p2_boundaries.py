@@ -1,4 +1,5 @@
 """N2P2 complete-frame, unit, range and CLI failure contracts."""
+
 import gzip
 
 import numpy as np
@@ -15,7 +16,7 @@ LATTICE = 'lattice 6 0 0\nlattice .2 7 0\nlattice .1 .3 8\n'
 ROWS = 'atom 1 2 3 H .25 -.5 .1 -.2 .3\natom 2 3 4 O 0 0 -.4 .5 -.6\n'
 FRAME = 'begin\ncomment fixture\n' + LATTICE + ROWS + 'energy -.25\ncharge 0\nend\n'
 EMPTY = 'begin\n' + LATTICE + 'end\n'
-BOHR, HARTREE = .529177210903, 27.211396641308
+BOHR, HARTREE = 0.529177210903, 27.211396641308
 SUFFIXES = ['', '.gz']
 ENTRY_POINTS = ['convstr', 'imrmlp']
 
@@ -35,9 +36,19 @@ def convert(tmp_path, entry, inputs, *, sequential_output=False, fmt='n2p2', opt
     args = ['convstr'] if entry == 'imrmlp' else []
     if fmt is not None:
         args += ['--input-format', fmt]
-    args += ['--output-format', 'mlpcfg', '--loadrate', '0',
-             '--outrate', '1' if sequential_output else '0', *options,
-             '--inputfiles', *inputs, '--outputfile', 'out.cfg']
+    args += [
+        '--output-format',
+        'mlpcfg',
+        '--loadrate',
+        '0',
+        '--outrate',
+        '1' if sequential_output else '0',
+        *options,
+        '--inputfiles',
+        *inputs,
+        '--outputfile',
+        'out.cfg',
+    ]
     result = run_command(entry, args, tmp_path)
     if 'support not enabled' in result.stderr:
         pytest.skip(result.stderr)
@@ -47,13 +58,22 @@ def convert(tmp_path, entry, inputs, *, sequential_output=False, fmt='n2p2', opt
 def check_atoms(atom, numbers=(1, 8), tolerance=1e-9):
     assert atom.natoms == 2
     np.testing.assert_array_equal(atom.numbers, numbers)
-    np.testing.assert_allclose(atom.cell, np.array([[6., 0., 0.], [.2, 7., 0.], [.1, .3, 8.]]) * BOHR,
-                               atol=tolerance, rtol=0)
-    np.testing.assert_allclose(atom.positions, np.array([[1., 2., 3.], [2., 3., 4.]]) * BOHR,
-                               atol=tolerance, rtol=0)
-    np.testing.assert_allclose(atom.forces, np.array([[.1, -.2, .3], [-.4, .5, -.6]]) * HARTREE / BOHR,
-                               atol=tolerance, rtol=0)
-    assert atom.energy == pytest.approx(-.25 * HARTREE, abs=tolerance)
+    np.testing.assert_allclose(
+        atom.cell,
+        np.array([[6.0, 0.0, 0.0], [0.2, 7.0, 0.0], [0.1, 0.3, 8.0]]) * BOHR,
+        atol=tolerance,
+        rtol=0,
+    )
+    np.testing.assert_allclose(
+        atom.positions, np.array([[1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]) * BOHR, atol=tolerance, rtol=0
+    )
+    np.testing.assert_allclose(
+        atom.forces,
+        np.array([[0.1, -0.2, 0.3], [-0.4, 0.5, -0.6]]) * HARTREE / BOHR,
+        atol=tolerance,
+        rtol=0,
+    )
+    assert atom.energy == pytest.approx(-0.25 * HARTREE, abs=tolerance)
     assert atom.stress is None
 
 
@@ -61,13 +81,13 @@ def test_n2p2_charge_and_site_energy_labels_survive_extxyz(tmp_path):
     source = tmp_path / 'labels.n2p2'
     source.write_text(FRAME.replace('charge 0\n', 'charge .8\n'))
     atoms = imrmlp.read_one(source, format='n2p2')
-    np.testing.assert_allclose(atoms._impl.charges, [.25, 0], atol=1e-12)
-    np.testing.assert_allclose(atoms.site_energies, [-.5 * HARTREE, 0], atol=1e-12)
+    np.testing.assert_allclose(atoms._impl.charges, [0.25, 0], atol=1e-12)
+    np.testing.assert_allclose(atoms.site_energies, [-0.5 * HARTREE, 0], atol=1e-12)
     output = tmp_path / 'labels.xyz'
     imrmlp.write_one(output, atoms, format='extxyz')
     assert 'total_charge=0.8' in output.read_text().splitlines()[1]
     back = imrmlp.read_one(output, format='extxyz')
-    np.testing.assert_allclose(back._impl.charges, [.25, 0], atol=1e-12)
+    np.testing.assert_allclose(back._impl.charges, [0.25, 0], atol=1e-12)
     np.testing.assert_allclose(back.site_energies, atoms.site_energies, atol=1e-12)
 
 
@@ -180,8 +200,13 @@ def test_comments_long_lines_mapping_and_recovery(tmp_path):
 @pytest.mark.parametrize('sequential_output', [False, True])
 @pytest.mark.parametrize('suffix', SUFFIXES)
 @pytest.mark.parametrize('fmt', ['n2p2', None])
-def test_cli_valid_multiple_files_keep_units_and_mapping(tmp_path, entry, sequential_output, suffix, fmt):
-    names = [write_input(tmp_path / f'{name}.n2p2{suffix}', FRAME, suffix) for name in ['first', 'second']]
+def test_cli_valid_multiple_files_keep_units_and_mapping(
+    tmp_path, entry, sequential_output, suffix, fmt
+):
+    names = [
+        write_input(tmp_path / f'{name}.n2p2{suffix}', FRAME, suffix)
+        for name in ['first', 'second']
+    ]
     result = convert(tmp_path, entry, names, sequential_output=sequential_output, fmt=fmt)
     assert result.returncode == 0, result.stdout + result.stderr
     frames = imrmlp.read(tmp_path / 'out.cfg', format='mlpcfg')
@@ -194,11 +219,15 @@ def test_cli_valid_multiple_files_keep_units_and_mapping(tmp_path, entry, sequen
 @pytest.mark.parametrize('sequential_output', [False, True])
 @pytest.mark.parametrize('suffix', SUFFIXES)
 @pytest.mark.parametrize('prefix', ['', FRAME])
-def test_cli_bad_frames_never_replace_an_existing_output(tmp_path, entry, sequential_output, suffix, prefix):
+def test_cli_bad_frames_never_replace_an_existing_output(
+    tmp_path, entry, sequential_output, suffix, prefix
+):
     name = write_input(tmp_path / f'bad.n2p2{suffix}', prefix + FRAME.removesuffix('end\n'), suffix)
     sentinel = b'preserve output on input failure\n'
     (tmp_path / 'out.cfg').write_bytes(sentinel)
-    result = convert(tmp_path, entry, [name], sequential_output=sequential_output, options=['--overwrite'])
+    result = convert(
+        tmp_path, entry, [name], sequential_output=sequential_output, options=['--overwrite']
+    )
     assert result.returncode == 1, result.stdout + result.stderr
     assert (tmp_path / 'out.cfg').read_bytes() == sentinel
 
@@ -207,14 +236,18 @@ def test_cli_bad_frames_never_replace_an_existing_output(tmp_path, entry, sequen
 @pytest.mark.parametrize('sequential_output', [False, True])
 @pytest.mark.parametrize('failure', ['missing', 'directory', 'bad'])
 @pytest.mark.parametrize('fmt', ['n2p2', None])
-def test_cli_does_not_publish_good_prefix_after_failed_input(tmp_path, entry, sequential_output, failure, fmt):
+def test_cli_does_not_publish_good_prefix_after_failed_input(
+    tmp_path, entry, sequential_output, failure, fmt
+):
     first = write_input(tmp_path / 'first.n2p2', FRAME)
     broken = tmp_path / 'broken.n2p2'
     if failure == 'bad':
         broken.write_text('begin\n')
     elif failure == 'directory':
         broken.mkdir()
-    result = convert(tmp_path, entry, [first, broken.name], sequential_output=sequential_output, fmt=fmt)
+    result = convert(
+        tmp_path, entry, [first, broken.name], sequential_output=sequential_output, fmt=fmt
+    )
     assert result.returncode == 1, result.stdout + result.stderr
     assert not (tmp_path / 'out.cfg').exists()
 
@@ -224,25 +257,38 @@ def test_cli_does_not_publish_good_prefix_after_failed_input(tmp_path, entry, se
 @pytest.mark.parametrize('fmt', ['n2p2', None])
 def test_cli_sequential_input_retains_frames_and_labels(tmp_path, entry, sequential_output, fmt):
     name = write_input(tmp_path / 'input.n2p2', FRAME + EMPTY + FRAME)
-    result = convert(tmp_path, entry, [name], sequential_output=sequential_output, fmt=fmt,
-                     options=['--loadrate', '1', '--output-format', 'extxyz'])
+    result = convert(
+        tmp_path,
+        entry,
+        [name],
+        sequential_output=sequential_output,
+        fmt=fmt,
+        options=['--loadrate', '1', '--output-format', 'extxyz'],
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     frames = imrmlp.read(tmp_path / 'out.cfg', format='extxyz')
     assert [atom.natoms for atom in frames] == [2, 0, 2]
     for atom in (frames[0], frames[2]):
         check_atoms(atom, tolerance=1e-7)
-        np.testing.assert_allclose(atom._impl.charges, [.25, 0], atol=1e-12)
-        np.testing.assert_allclose(atom.site_energies, [-.5 * HARTREE, 0], atol=1e-7)
+        np.testing.assert_allclose(atom._impl.charges, [0.25, 0], atol=1e-12)
+        np.testing.assert_allclose(atom.site_energies, [-0.5 * HARTREE, 0], atol=1e-7)
     assert (tmp_path / 'out.cfg').read_text().count('total_charge=0') == 2
 
 
 @pytest.mark.parametrize('entry', ENTRY_POINTS)
 @pytest.mark.parametrize('sequential_output', [False, True])
-def test_cli_ranges_do_not_parse_bad_tail_beyond_a_skipped_end_frame(tmp_path, entry, sequential_output):
+def test_cli_ranges_do_not_parse_bad_tail_beyond_a_skipped_end_frame(
+    tmp_path, entry, sequential_output
+):
     first = write_input(tmp_path / 'first.n2p2', FRAME)
     second = write_input(tmp_path / 'second.n2p2', FRAME + 'BAD TAIL\n')
-    result = convert(tmp_path, entry, [first, second], sequential_output=sequential_output,
-                     options=['--loadrate', '2', '--end', '1'])
+    result = convert(
+        tmp_path,
+        entry,
+        [first, second],
+        sequential_output=sequential_output,
+        options=['--loadrate', '2', '--end', '1'],
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     frames = imrmlp.read(tmp_path / 'out.cfg', format='mlpcfg')
     assert len(frames) == 1
@@ -252,8 +298,9 @@ def test_cli_ranges_do_not_parse_bad_tail_beyond_a_skipped_end_frame(tmp_path, e
 @pytest.mark.parametrize('suffix', ['.gz'])
 def test_cli_sequential_input_decompresses_on_demand(tmp_path, suffix):
     name = write_input(tmp_path / ('input.n2p2' + suffix), FRAME * 2, suffix)
-    result = convert(tmp_path, 'convstr', [name], sequential_output=True, fmt=None,
-                     options=['--loadrate', '1'])
+    result = convert(
+        tmp_path, 'convstr', [name], sequential_output=True, fmt=None, options=['--loadrate', '1']
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     frames = imrmlp.read(tmp_path / 'out.cfg', format='mlpcfg')
     assert len(frames) == 2
@@ -263,12 +310,19 @@ def test_cli_sequential_input_decompresses_on_demand(tmp_path, suffix):
 
 @pytest.mark.parametrize('sequential_output', [False, True])
 @pytest.mark.parametrize('limit', ['--end', '--select'])
-def test_cli_sequential_range_stops_before_bad_tail_and_next_file(tmp_path, sequential_output, limit):
+def test_cli_sequential_range_stops_before_bad_tail_and_next_file(
+    tmp_path, sequential_output, limit
+):
     first = write_input(tmp_path / 'first.n2p2', FRAME)
     second = write_input(tmp_path / 'second.n2p2', FRAME + 'BAD TAIL\n')
     outside = write_input(tmp_path / 'outside.n2p2', 'NOT A FRAME\n')
-    result = convert(tmp_path, 'convstr', [first, second, outside], sequential_output=sequential_output,
-                     options=['--loadrate', '1', limit, '1'])
+    result = convert(
+        tmp_path,
+        'convstr',
+        [first, second, outside],
+        sequential_output=sequential_output,
+        options=['--loadrate', '1', limit, '1'],
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     frames = imrmlp.read(tmp_path / 'out.cfg', format='mlpcfg')
     assert len(frames) == (2 if limit == '--end' else 1)
@@ -279,7 +333,12 @@ def test_cli_sequential_range_stops_before_bad_tail_and_next_file(tmp_path, sequ
 @pytest.mark.parametrize('sequential_output', [False, True])
 def test_cli_sequential_input_reports_broken_tail(tmp_path, sequential_output):
     name = write_input(tmp_path / 'input.n2p2', FRAME + 'begin\n' + LATTICE + ROWS)
-    result = convert(tmp_path, 'convstr', [name], sequential_output=sequential_output,
-                     options=['--loadrate', '1'])
+    result = convert(
+        tmp_path,
+        'convstr',
+        [name],
+        sequential_output=sequential_output,
+        options=['--loadrate', '1'],
+    )
     assert result.returncode == 1, result.stdout + result.stderr
     assert 'invalid or truncated frame 1' in result.stderr

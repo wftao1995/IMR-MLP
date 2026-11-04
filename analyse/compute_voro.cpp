@@ -28,7 +28,8 @@ VoroInfo ComputeVoro::compute(Atoms &str)
     result.total_count = str.size();
     if (mode == RAD)
     {
-        NeighborhoodsVoroRad nbhs(str, atomradii, num_edges, strip_surf_tol, strip_edge_tol, min_neighbor);
+        NeighborhoodsVoroRad nbhs(str, atomradii, num_edges, strip_surf_tol, strip_edge_tol,
+                                  min_neighbor);
         result.tessencount_all = nbhs.tessencount_;
         result.tessencount_partial = nbhs.tessencount_type_;
 #ifndef NO_SAMPLE_STR
@@ -62,18 +63,21 @@ VoroInfo ComputeVoro::compute(const NeighborhoodsVoro &nbhs)
     result.meanvol = nbhs.vorovol_;
     return result;
 }
+
 // Be sure to delete !!!
 VoroInfo ComputeVoro::compute(Atoms &str, NeighborhoodsVoro **pnbhs)
 {
     VoroInfo result;
     if (mode == RAD)
     {
-        *pnbhs = new NeighborhoodsVoroRad(str, atomradii, num_edges, strip_surf_tol, strip_edge_tol, min_neighbor);
+        *pnbhs = new NeighborhoodsVoroRad(str, atomradii, num_edges, strip_surf_tol, strip_edge_tol,
+                                          min_neighbor);
     }
     else
     {
         /*REMEBER TO DELETE THIS POINTER!*/
-        *pnbhs = new NeighborhoodsVoroDir(str, num_edges, strip_surf_tol, strip_edge_tol, min_neighbor);
+        *pnbhs =
+            new NeighborhoodsVoroDir(str, num_edges, strip_surf_tol, strip_edge_tol, min_neighbor);
     }
     result.total_count = (*pnbhs)->size();
     result.tessencount_all = (*pnbhs)->tessencount_;

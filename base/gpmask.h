@@ -5,17 +5,21 @@
 #define _IMRMLP_GPMASK_H
 #include <vector>
 #include <algorithm>
+
 // 0 or 1, 0 is unmasked, 1 is masked
 class GPMask
 {
-protected:
+  protected:
     std::vector<int> mask;
     int masksize;
 
-public:
+  public:
     GPMask(int nsize) : mask(nsize, 0), masksize(nsize) {}
+
     GPMask() : mask(10, 0), masksize(10) {}
+
     GPMask(const GPMask &opt) : mask(opt.mask), masksize(opt.masksize) {}
+
     GPMask(GPMask &&opt) noexcept : mask(std::move(opt.mask)), masksize(opt.masksize)
     {
         opt.masksize = 0;

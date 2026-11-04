@@ -10,20 +10,27 @@
 #include <sstream>
 #include <string_view>
 
-namespace HVPIO {
-inline bool is_key(std::string_view key) {
+namespace HVPIO
+{
+inline bool is_key(std::string_view key)
+{
     return key == "hvp_directions" || key == "hvp_targets";
 }
 
 // Text layout is probe-major, then atom-major xyz, independent of Eigen storage.
-inline void read(Atoms &atom, std::string_view key, std::string_view text) {
+inline void read(Atoms &atom, std::string_view key, std::string_view text)
+{
     auto &matrix = key == "hvp_directions" ? atom.hvp_directions_ : atom.hvp_targets_;
-    if (matrix.cols() != 0) throw std::invalid_argument("Duplicate HVP tag");
+    if (matrix.cols() != 0)
+        throw std::invalid_argument("Duplicate HVP tag");
     std::vector<double> values;
     const char *p = text.data(), *end = p + text.size();
-    while (p < end) {
-        while (p < end && std::isspace(static_cast<unsigned char>(*p))) ++p;
-        if (p == end) break;
+    while (p < end)
+    {
+        while (p < end && std::isspace(static_cast<unsigned char>(*p)))
+            ++p;
+        if (p == end)
+            break;
         double value;
         auto result = fast_float::from_chars(p, end, value);
         if (result.ec != std::errc() || !std::isfinite(value) ||
@@ -41,12 +48,15 @@ inline void read(Atoms &atom, std::string_view key, std::string_view text) {
             matrix(i, k) = values[k * ndof + i];
 }
 
-inline std::string write(const Eigen::MatrixXd &matrix) {
+inline std::string write(const Eigen::MatrixXd &matrix)
+{
     std::ostringstream out;
     out << std::setprecision(17);
     for (int k = 0; k < matrix.cols(); ++k)
-        for (int i = 0; i < matrix.rows(); ++i) {
-            if (k || i) out << ' ';
+        for (int i = 0; i < matrix.rows(); ++i)
+        {
+            if (k || i)
+                out << ' ';
             out << matrix(i, k);
         }
     return out.str();

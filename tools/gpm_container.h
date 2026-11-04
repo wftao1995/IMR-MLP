@@ -27,379 +27,853 @@
 #include <zstd.h>
 #endif
 
-namespace GPM {
+namespace GPM
+{
 using Value = picojson::value;
 using Object = picojson::object;
 using Array = picojson::array;
 using Bytes = std::vector<unsigned char>;
-inline void require(bool ok, const std::string &why) {
-    if (!ok) throw std::runtime_error("GPM: " + why);
+
+inline void require(bool ok, const std::string &why)
+{
+    if (!ok)
+        throw std::runtime_error("GPM: " + why);
 }
-inline const Object &object(const Value &v) {
-    require(v.is<Object>(), "expected JSON object"); return v.get<Object>();
+
+inline const Object &object(const Value &v)
+{
+    require(v.is<Object>(), "expected JSON object");
+    return v.get<Object>();
 }
-inline const Array &array(const Value &v) {
-    require(v.is<Array>(), "expected JSON array"); return v.get<Array>();
+
+inline const Array &array(const Value &v)
+{
+    require(v.is<Array>(), "expected JSON array");
+    return v.get<Array>();
 }
-inline const Value &at(const Object &v, const std::string &key) {
-    auto i = v.find(key); require(i != v.end(), "missing field " + key); return i->second;
+
+inline const Value &at(const Object &v, const std::string &key)
+{
+    auto i = v.find(key);
+    require(i != v.end(), "missing field " + key);
+    return i->second;
 }
-inline std::string string(const Value &v) {
-    require(v.is<std::string>(), "expected string"); return v.get<std::string>();
+
+inline std::string string(const Value &v)
+{
+    require(v.is<std::string>(), "expected string");
+    return v.get<std::string>();
 }
-inline int integer(const Value &v) {
-    require(v.is<double>(), "expected integer"); double x = v.get<double>();
+
+inline int integer(const Value &v)
+{
+    require(v.is<double>(), "expected integer");
+    double x = v.get<double>();
     require(std::isfinite(x) && x >= 0 && x <= INT32_MAX && std::floor(x) == x, "invalid integer");
     return static_cast<int>(x);
 }
-inline uint64_t decimal(const Value &v) {
-    auto s = string(v); require(!s.empty() && (s.size() == 1 || s[0] != '0'), "invalid uint64");
+
+inline uint64_t decimal(const Value &v)
+{
+    auto s = string(v);
+    require(!s.empty() && (s.size() == 1 || s[0] != '0'), "invalid uint64");
     uint64_t n = 0;
-    for (char c : s) {
-        require(c >= '0' && c <= '9' && n <= (UINT64_MAX - (c-'0'))/10, "invalid uint64");
-        n = n * 10 + (c-'0');
+    for (char c : s)
+    {
+        require(c >= '0' && c <= '9' && n <= (UINT64_MAX - (c - '0')) / 10, "invalid uint64");
+        n = n * 10 + (c - '0');
     }
     return n;
 }
-inline Value count(uint64_t n) { return Value(std::to_string(n)); }
-inline uint64_t checked_add(uint64_t a, uint64_t b) {
-    require(b <= UINT64_MAX-a, "size overflow"); return a+b;
+
+inline Value count(uint64_t n)
+{
+    return Value(std::to_string(n));
 }
-inline uint64_t checked_mul(uint64_t a, uint64_t b) {
-    require(!a || b <= UINT64_MAX/a, "size overflow"); return a*b;
+
+inline uint64_t checked_add(uint64_t a, uint64_t b)
+{
+    require(b <= UINT64_MAX - a, "size overflow");
+    return a + b;
 }
-inline uint64_t align64(uint64_t x) { return checked_add(x,63) & ~uint64_t(63); }
-inline void put_le(unsigned char *p, uint64_t n, unsigned bytes) {
-    for (unsigned i=0;i<bytes;++i) { p[i]=static_cast<unsigned char>(n); n >>= 8; }
+
+inline uint64_t checked_mul(uint64_t a, uint64_t b)
+{
+    require(!a || b <= UINT64_MAX / a, "size overflow");
+    return a * b;
 }
-inline uint64_t get_le(const unsigned char *p, unsigned bytes) {
-    uint64_t n=0; for (unsigned i=0;i<bytes;++i) n |= uint64_t(p[i]) << (8*i); return n;
+
+inline uint64_t align64(uint64_t x)
+{
+    return checked_add(x, 63) & ~uint64_t(63);
+}
+
+inline void put_le(unsigned char *p, uint64_t n, unsigned bytes)
+{
+    for (unsigned i = 0; i < bytes; ++i)
+    {
+        p[i] = static_cast<unsigned char>(n);
+        n >>= 8;
+    }
+}
+
+inline uint64_t get_le(const unsigned char *p, unsigned bytes)
+{
+    uint64_t n = 0;
+    for (unsigned i = 0; i < bytes; ++i)
+        n |= uint64_t(p[i]) << (8 * i);
+    return n;
 }
 
 // Incremental SHA-256, including long inputs; no crypto-library runtime required.
-class SHA256 {
-    std::array<uint32_t,8> h_{{0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,
-                              0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19}};
-    std::array<unsigned char,64> buffer_{};
-    uint64_t size_=0; size_t used_=0;
-    static uint32_t r(uint32_t x,unsigned n) { return (x>>n)|(x<<(32-n)); }
-    void transform(const unsigned char *p) {
-        static constexpr uint32_t k[64]={
-          0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
-          0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
-          0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
-          0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
-          0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
-          0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
-          0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
-          0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2};
+class SHA256
+{
+    std::array<uint32_t, 8> h_{{0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f,
+                                0x9b05688c, 0x1f83d9ab, 0x5be0cd19}};
+    std::array<unsigned char, 64> buffer_{};
+    uint64_t size_ = 0;
+    size_t used_ = 0;
+
+    static uint32_t r(uint32_t x, unsigned n)
+    {
+        return (x >> n) | (x << (32 - n));
+    }
+
+    void transform(const unsigned char *p)
+    {
+        static constexpr uint32_t k[64] = {
+            0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+            0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+            0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+            0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+            0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+            0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+            0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+            0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+            0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+            0xc67178f2};
         uint32_t w[64];
-        for(int i=0;i<16;++i) w[i]=(uint32_t(p[4*i])<<24)|(uint32_t(p[4*i+1])<<16)|(uint32_t(p[4*i+2])<<8)|p[4*i+3];
-        for(int i=16;i<64;++i) w[i]=w[i-16]+(r(w[i-15],7)^r(w[i-15],18)^(w[i-15]>>3))+w[i-7]+(r(w[i-2],17)^r(w[i-2],19)^(w[i-2]>>10));
-        auto a=h_[0],b=h_[1],c=h_[2],d=h_[3],e=h_[4],f=h_[5],g=h_[6],h=h_[7];
-        for(int i=0;i<64;++i) {
-            uint32_t t1=h+(r(e,6)^r(e,11)^r(e,25))+((e&f)^(~e&g))+k[i]+w[i];
-            uint32_t t2=(r(a,2)^r(a,13)^r(a,22))+((a&b)^(a&c)^(b&c));
-            h=g;g=f;f=e;e=d+t1;d=c;c=b;b=a;a=t1+t2;
+        for (int i = 0; i < 16; ++i)
+            w[i] = (uint32_t(p[4 * i]) << 24) | (uint32_t(p[4 * i + 1]) << 16) |
+                   (uint32_t(p[4 * i + 2]) << 8) | p[4 * i + 3];
+        for (int i = 16; i < 64; ++i)
+            w[i] = w[i - 16] + (r(w[i - 15], 7) ^ r(w[i - 15], 18) ^ (w[i - 15] >> 3)) + w[i - 7] +
+                   (r(w[i - 2], 17) ^ r(w[i - 2], 19) ^ (w[i - 2] >> 10));
+        auto a = h_[0], b = h_[1], c = h_[2], d = h_[3], e = h_[4], f = h_[5], g = h_[6], h = h_[7];
+        for (int i = 0; i < 64; ++i)
+        {
+            uint32_t t1 = h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + k[i] + w[i];
+            uint32_t t2 = (r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
+            h = g;
+            g = f;
+            f = e;
+            e = d + t1;
+            d = c;
+            c = b;
+            b = a;
+            a = t1 + t2;
         }
-        h_[0]+=a;h_[1]+=b;h_[2]+=c;h_[3]+=d;h_[4]+=e;h_[5]+=f;h_[6]+=g;h_[7]+=h;
+        h_[0] += a;
+        h_[1] += b;
+        h_[2] += c;
+        h_[3] += d;
+        h_[4] += e;
+        h_[5] += f;
+        h_[6] += g;
+        h_[7] += h;
     }
-public:
-    void update(const void *data,size_t n) {
-        auto p=static_cast<const unsigned char*>(data); size_+=n;
-        while(n) { size_t take=std::min(n,64-used_); std::memcpy(buffer_.data()+used_,p,take);
-            used_+=take;p+=take;n-=take;if(used_==64){transform(buffer_.data());used_=0;} }
+
+  public:
+    void update(const void *data, size_t n)
+    {
+        auto p = static_cast<const unsigned char *>(data);
+        size_ += n;
+        while (n)
+        {
+            size_t take = std::min(n, 64 - used_);
+            std::memcpy(buffer_.data() + used_, p, take);
+            used_ += take;
+            p += take;
+            n -= take;
+            if (used_ == 64)
+            {
+                transform(buffer_.data());
+                used_ = 0;
+            }
+        }
     }
-    std::array<unsigned char,32> finish() {
-        uint64_t bits=size_*8; unsigned char pad=0x80;update(&pad,1);pad=0;
-        while(used_!=56) update(&pad,1);
-        unsigned char length[8];for(int i=0;i<8;++i) length[7-i]=static_cast<unsigned char>(bits>>(8*i));
-        update(length,8);std::array<unsigned char,32> out{};
-        for(int i=0;i<8;++i)for(int j=0;j<4;++j)out[i*4+j]=static_cast<unsigned char>(h_[i]>>(24-8*j));
+
+    std::array<unsigned char, 32> finish()
+    {
+        uint64_t bits = size_ * 8;
+        unsigned char pad = 0x80;
+        update(&pad, 1);
+        pad = 0;
+        while (used_ != 56)
+            update(&pad, 1);
+        unsigned char length[8];
+        for (int i = 0; i < 8; ++i)
+            length[7 - i] = static_cast<unsigned char>(bits >> (8 * i));
+        update(length, 8);
+        std::array<unsigned char, 32> out{};
+        for (int i = 0; i < 8; ++i)
+            for (int j = 0; j < 4; ++j)
+                out[i * 4 + j] = static_cast<unsigned char>(h_[i] >> (24 - 8 * j));
         return out;
     }
 };
-inline std::array<unsigned char,32> digest(const void *p,size_t n) { SHA256 h;h.update(p,n);return h.finish(); }
-inline std::string hex(const std::array<unsigned char,32> &d) {
-    static const char digits[]="0123456789abcdef";std::string s;
-    for(auto c:d){s+=digits[c>>4];s+=digits[c&15];}return s;
+
+inline std::array<unsigned char, 32> digest(const void *p, size_t n)
+{
+    SHA256 h;
+    h.update(p, n);
+    return h.finish();
 }
-inline std::string hash(const Bytes &b) { return hex(digest(b.data(),b.size())); }
-inline std::string hash(const std::string &s) { return hex(digest(s.data(),s.size())); }
+
+inline std::string hex(const std::array<unsigned char, 32> &d)
+{
+    static const char digits[] = "0123456789abcdef";
+    std::string s;
+    for (auto c : d)
+    {
+        s += digits[c >> 4];
+        s += digits[c & 15];
+    }
+    return s;
+}
+
+inline std::string hash(const Bytes &b)
+{
+    return hex(digest(b.data(), b.size()));
+}
+
+inline std::string hash(const std::string &s)
+{
+    return hex(digest(s.data(), s.size()));
+}
 
 // Reject duplicate keys even in unknown extension objects.
-class ParseContext : public picojson::default_parse_context {
-    Value *out_; unsigned depth_;
-public:
-    ParseContext(Value *v,unsigned depth=0):picojson::default_parse_context(v),out_(v),depth_(depth){}
-    template<class I> bool parse_object_item(picojson::input<I> &in,const std::string &key) {
-        auto &o=out_->get<Object>();if(depth_>=64 || o.count(key))return false;
-        ParseContext c(&o[key],depth_+1);return picojson::_parse(c,in);
+class ParseContext : public picojson::default_parse_context
+{
+    Value *out_;
+    unsigned depth_;
+
+  public:
+    ParseContext(Value *v, unsigned depth = 0)
+        : picojson::default_parse_context(v), out_(v), depth_(depth)
+    {
     }
-    template<class I> bool parse_array_item(picojson::input<I> &in,size_t) {
-        if(depth_>=64)return false;auto &a=out_->get<Array>();a.emplace_back();
-        ParseContext c(&a.back(),depth_+1);return picojson::_parse(c,in);
+
+    template <class I> bool parse_object_item(picojson::input<I> &in, const std::string &key)
+    {
+        auto &o = out_->get<Object>();
+        if (depth_ >= 64 || o.count(key))
+            return false;
+        ParseContext c(&o[key], depth_ + 1);
+        return picojson::_parse(c, in);
     }
-};
-inline Value parse(const std::string &s) {
-    for(size_t i=0;i<s.size();) {
-        unsigned char lead=s[i++];if(lead<0x80)continue;
-        unsigned tails;uint32_t code;
-        if(lead>=0xc2&&lead<=0xdf){tails=1;code=lead&31;}
-        else if(lead>=0xe0&&lead<=0xef){tails=2;code=lead&15;}
-        else if(lead>=0xf0&&lead<=0xf4){tails=3;code=lead&7;}
-        else {require(false,"invalid UTF-8");return {};}
-        require(tails<=s.size()-i,"truncated UTF-8");
-        for(unsigned k=0;k<tails;++k){unsigned char next=s[i++];require((next&0xc0)==0x80,"invalid UTF-8 continuation");code=(code<<6)|(next&63);}
-        require(code>=(tails==1?0x80u:tails==2?0x800u:0x10000u)&&code<=0x10ffffu&&!(code>=0xd800u&&code<=0xdfffu),"invalid UTF-8 code point");
+
+    template <class I> bool parse_array_item(picojson::input<I> &in, size_t)
+    {
+        if (depth_ >= 64)
+            return false;
+        auto &a = out_->get<Array>();
+        a.emplace_back();
+        ParseContext c(&a.back(), depth_ + 1);
+        return picojson::_parse(c, in);
     }
-    Value v;ParseContext c(&v);std::string error;
-    auto end=picojson::_parse(c,s.begin(),s.end(),&error);
-    require(error.empty() && std::all_of(end,s.end(),[](char x){return x==' '||x=='\n'||x=='\r'||x=='\t';}),"invalid JSON: "+error);
-    return v;
-}
-inline unsigned width(const std::string &dtype) {
-    if(dtype=="f64"||dtype=="i64"||dtype=="u64")return 8;
-    if(dtype=="i32"||dtype=="u32")return 4;
-    if(dtype=="u8")return 1;
-    throw std::runtime_error("GPM: unsupported dtype "+dtype);
-}
-struct Block {
-    std::string id,dtype,codec;
-    std::vector<uint64_t> shape;
-    uint64_t offset=0,stored_size=0,raw_size=0;
-    Object json() const {
-        Array dims;for(auto n:shape)dims.emplace_back(count(n));
-        return {{"id",Value(id)},{"dtype",Value(dtype)},{"shape",Value(dims)},
-          {"codec",Value(codec)},{"offset",count(offset)},
-          {"stored_size",count(stored_size)},{"raw_size",count(raw_size)}};
-    }
-};
-inline bool is_file(const std::string &path) {
-    std::ifstream in(path,std::ios::binary);char h[8]{};in.read(h,8);
-    return in.gcount()==8 && std::memcmp(h,"GPMLMODL",8)==0;
-}
-inline bool extension(const std::string &path) { return std::filesystem::path(path).extension()==".gpm"; }
-class Reader {
-    struct Source {
-        std::unique_ptr<std::istream> stream;
-        std::mutex mutex;
-        explicit Source(const std::string &path)
-            : stream(new std::ifstream(path,std::ios::binary)) {}
-        explicit Source(std::string bytes, bool)
-            : stream(new std::istringstream(std::move(bytes),std::ios::in|std::ios::binary)) {}
-    };
-    std::shared_ptr<Source> source_;
-    uint64_t data_offset_=0;
-public:
-    Object manifest;
-    std::map<std::string,Block> blocks;
-    explicit Reader(const std::string &path):source_(std::make_shared<Source>(path)) {
-        require(bool(*source_->stream),"cannot open "+path);
-        initialize();
-    }
-    // Own the bytes broadcast by a deployment adapter. No temporary files or
-    // rank-local filesystem access are required; all usual checks still apply.
-    static Reader from_bytes(std::string bytes) {
-        return Reader(std::make_shared<Source>(std::move(bytes),true));
-    }
-private:
-    explicit Reader(std::shared_ptr<Source> source):source_(std::move(source)) { initialize(); }
-    void initialize() {
-        auto &in=*source_->stream;
-        in.seekg(0,std::ios::end);auto end=in.tellg();require(end>=64,"truncated preamble");
-        uint64_t size=static_cast<uint64_t>(end);in.seekg(0);
-        std::array<unsigned char,64> h{};in.read(reinterpret_cast<char*>(h.data()),64);
-        require(std::memcmp(h.data(),"GPMLMODL",8)==0,"invalid magic");
-        require(get_le(h.data()+8,2)==2,"unsupported major version");
-        require(get_le(h.data()+12,4)==0,"unsupported required flags");
-        uint64_t length=get_le(h.data()+16,8);data_offset_=get_le(h.data()+24,8);
-        require(length<=64*1024*1024 && data_offset_==align64(checked_add(64,length)) && data_offset_<=size,"invalid header size");
-        std::string json(static_cast<size_t>(length),'\0');in.read(json.data(),json.size());
-        require(bool(in),"truncated JSON header");
-        manifest=object(parse(json));require(string(at(manifest,"schema"))=="gpml.model","unknown schema");
-        if(manifest.count("required_features"))require(array(manifest.at("required_features")).empty(),"unsupported required features");
-        std::vector<std::pair<uint64_t,uint64_t>> intervals;
-        for(const auto &entry:array(at(manifest,"blocks"))) {
-            const auto &o=object(entry);Block b;
-            b.id=string(at(o,"id"));b.dtype=string(at(o,"dtype"));b.codec=string(at(o,"codec"));
-            b.offset=decimal(at(o,"offset"));b.stored_size=decimal(at(o,"stored_size"));b.raw_size=decimal(at(o,"raw_size"));
-            uint64_t elements=1;for(const auto &x:array(at(o,"shape"))){auto n=decimal(x);elements=checked_mul(elements,n);b.shape.push_back(n);}
-            require(checked_mul(elements,width(b.dtype))==b.raw_size,"block shape/size mismatch: "+b.id);
-            require(!b.id.empty() && b.offset%64==0 && b.offset<=size-data_offset_ && b.stored_size<=size-data_offset_-b.offset,"invalid block bounds: "+b.id);
-            require(b.codec!="none" || b.stored_size==b.raw_size,"invalid uncompressed block size");
-            require(blocks.emplace(b.id,b).second,"duplicate block id");
-            if(b.stored_size)intervals.emplace_back(b.offset,checked_add(b.offset,b.stored_size));
-        }
-        std::sort(intervals.begin(),intervals.end());
-        for(size_t i=1;i<intervals.size();++i)require(intervals[i-1].second<=intervals[i].first,"overlapping blocks");
-    }
-public:
-    const Block &info(const std::string &id) const {
-        auto i=blocks.find(id);require(i!=blocks.end(),"missing block "+id);return i->second;
-    }
-    Bytes stored(const std::string &id) const {
-        const auto &b=info(id);require(b.stored_size<=std::numeric_limits<size_t>::max(),"stored block too large");Bytes bytes(static_cast<size_t>(b.stored_size));
-        std::lock_guard<std::mutex> lock(source_->mutex);auto &in=*source_->stream;in.clear();in.seekg(data_offset_+b.offset);in.read(reinterpret_cast<char*>(bytes.data()),bytes.size());require(bool(in),"truncated block "+id);return bytes;
-    }
-    Bytes read(const std::string &id,uint64_t limit=uint64_t(8)<<30) const {
-        const auto &b=info(id);require(b.raw_size<=limit && b.stored_size<=limit,"block exceeds read limit: "+id);
-        require(b.codec=="none" || b.codec=="zstd","unsupported codec "+b.codec);
-#ifndef USE_ZSTD
-        require(b.codec!="zstd","zstd support is not enabled");
-#endif
-        Bytes stored(static_cast<size_t>(b.stored_size));
-        { std::lock_guard<std::mutex> lock(source_->mutex);auto &in=*source_->stream;in.clear();
-          in.seekg(data_offset_+b.offset);in.read(reinterpret_cast<char*>(stored.data()),stored.size());require(bool(in),"truncated block "+id); }
-        Bytes raw;
-        if(b.codec=="none")raw=std::move(stored);
-#ifdef USE_ZSTD
-        else {raw.resize(static_cast<size_t>(b.raw_size));auto n=ZSTD_decompress(raw.data(),raw.size(),stored.data(),stored.size());
-          require(!ZSTD_isError(n)&&n==raw.size(),"invalid zstd block "+id);}
-#endif
-        require(raw.size()==b.raw_size,"decoded block size mismatch: "+id);return raw;
-    }
-    void validate() const { for(const auto &b:blocks)read(b.first); }
 };
 
-class Writer {
-    struct Data {Block block;std::function<Bytes()> read;bool encoded=false;};
-    std::map<std::string,Data> data_;
-public:
-    Object manifest{{"schema",Value("gpml.model")},{"units",Value(Object{{"length",Value("angstrom")},{"energy",Value("eV")},{"charge",Value("e")},{"stress",Value("virial_eV")}})},
-        {"species",Value(Array{})},{"root_model",Value("root")},{"models",Value(Object{})}};
-    void add(std::string id,std::string dtype,std::vector<uint64_t> shape,Bytes bytes,std::string codec="none") {
-        uint64_t n=1;for(auto x:shape)n=checked_mul(n,x);require(checked_mul(n,width(dtype))==bytes.size(),"incorrect block shape");
-        require(!id.empty()&&!data_.count(id),"duplicate block "+id);
-        auto p=std::make_shared<Bytes>(std::move(bytes));Block b;
-        b.id=id;b.dtype=std::move(dtype);b.shape=std::move(shape);b.codec=std::move(codec);b.raw_size=p->size();
-        data_.emplace(std::move(id),Data{std::move(b),[p]{return *p;}});
+inline Value parse(const std::string &s)
+{
+    for (size_t i = 0; i < s.size();)
+    {
+        unsigned char lead = s[i++];
+        if (lead < 0x80)
+            continue;
+        unsigned tails;
+        uint32_t code;
+        if (lead >= 0xc2 && lead <= 0xdf)
+        {
+            tails = 1;
+            code = lead & 31;
+        }
+        else if (lead >= 0xe0 && lead <= 0xef)
+        {
+            tails = 2;
+            code = lead & 15;
+        }
+        else if (lead >= 0xf0 && lead <= 0xf4)
+        {
+            tails = 3;
+            code = lead & 7;
+        }
+        else
+        {
+            require(false, "invalid UTF-8");
+            return {};
+        }
+        require(tails <= s.size() - i, "truncated UTF-8");
+        for (unsigned k = 0; k < tails; ++k)
+        {
+            unsigned char next = s[i++];
+            require((next & 0xc0) == 0x80, "invalid UTF-8 continuation");
+            code = (code << 6) | (next & 63);
+        }
+        require(code >= (tails == 1   ? 0x80u
+                         : tails == 2 ? 0x800u
+                                      : 0x10000u) &&
+                    code <= 0x10ffffu && !(code >= 0xd800u && code <= 0xdfffu),
+                "invalid UTF-8 code point");
     }
-    void preserve(std::shared_ptr<Reader> source) {
-        manifest=source->manifest;
+    Value v;
+    ParseContext c(&v);
+    std::string error;
+    auto end = picojson::_parse(c, s.begin(), s.end(), &error);
+    require(error.empty() && std::all_of(end, s.end(),
+                                         [](char x)
+                                         {
+                                             return x == ' ' || x == '\n' || x == '\r' || x == '\t';
+                                         }),
+            "invalid JSON: " + error);
+    return v;
+}
+
+inline unsigned width(const std::string &dtype)
+{
+    if (dtype == "f64" || dtype == "i64" || dtype == "u64")
+        return 8;
+    if (dtype == "i32" || dtype == "u32")
+        return 4;
+    if (dtype == "u8")
+        return 1;
+    throw std::runtime_error("GPM: unsupported dtype " + dtype);
+}
+
+struct Block
+{
+    std::string id, dtype, codec;
+    std::vector<uint64_t> shape;
+    uint64_t offset = 0, stored_size = 0, raw_size = 0;
+
+    Object json() const
+    {
+        Array dims;
+        for (auto n : shape)
+            dims.emplace_back(count(n));
+        return {{"id", Value(id)},
+                {"dtype", Value(dtype)},
+                {"shape", Value(dims)},
+                {"codec", Value(codec)},
+                {"offset", count(offset)},
+                {"stored_size", count(stored_size)},
+                {"raw_size", count(raw_size)}};
+    }
+};
+
+inline bool is_file(const std::string &path)
+{
+    std::ifstream in(path, std::ios::binary);
+    char h[8]{};
+    in.read(h, 8);
+    return in.gcount() == 8 && std::memcmp(h, "GPMLMODL", 8) == 0;
+}
+
+inline bool extension(const std::string &path)
+{
+    return std::filesystem::path(path).extension() == ".gpm";
+}
+
+class Reader
+{
+    struct Source
+    {
+        std::unique_ptr<std::istream> stream;
+        std::mutex mutex;
+
+        explicit Source(const std::string &path) : stream(new std::ifstream(path, std::ios::binary))
+        {
+        }
+
+        explicit Source(std::string bytes, bool)
+            : stream(new std::istringstream(std::move(bytes), std::ios::in | std::ios::binary))
+        {
+        }
+    };
+
+    std::shared_ptr<Source> source_;
+    uint64_t data_offset_ = 0;
+
+  public:
+    Object manifest;
+    std::map<std::string, Block> blocks;
+
+    explicit Reader(const std::string &path) : source_(std::make_shared<Source>(path))
+    {
+        require(bool(*source_->stream), "cannot open " + path);
+        initialize();
+    }
+
+    // Own the bytes broadcast by a deployment adapter. No temporary files or
+    // rank-local filesystem access are required; all usual checks still apply.
+    static Reader from_bytes(std::string bytes)
+    {
+        return Reader(std::make_shared<Source>(std::move(bytes), true));
+    }
+
+  private:
+    explicit Reader(std::shared_ptr<Source> source) : source_(std::move(source))
+    {
+        initialize();
+    }
+
+    void initialize()
+    {
+        auto &in = *source_->stream;
+        in.seekg(0, std::ios::end);
+        auto end = in.tellg();
+        require(end >= 64, "truncated preamble");
+        uint64_t size = static_cast<uint64_t>(end);
+        in.seekg(0);
+        std::array<unsigned char, 64> h{};
+        in.read(reinterpret_cast<char *>(h.data()), 64);
+        require(std::memcmp(h.data(), "GPMLMODL", 8) == 0, "invalid magic");
+        require(get_le(h.data() + 8, 2) == 2, "unsupported major version");
+        require(get_le(h.data() + 12, 4) == 0, "unsupported required flags");
+        uint64_t length = get_le(h.data() + 16, 8);
+        data_offset_ = get_le(h.data() + 24, 8);
+        require(length <= 64 * 1024 * 1024 && data_offset_ == align64(checked_add(64, length)) &&
+                    data_offset_ <= size,
+                "invalid header size");
+        std::string json(static_cast<size_t>(length), '\0');
+        in.read(json.data(), json.size());
+        require(bool(in), "truncated JSON header");
+        manifest = object(parse(json));
+        require(string(at(manifest, "schema")) == "gpml.model", "unknown schema");
+        if (manifest.count("required_features"))
+            require(array(manifest.at("required_features")).empty(),
+                    "unsupported required features");
+        std::vector<std::pair<uint64_t, uint64_t>> intervals;
+        for (const auto &entry : array(at(manifest, "blocks")))
+        {
+            const auto &o = object(entry);
+            Block b;
+            b.id = string(at(o, "id"));
+            b.dtype = string(at(o, "dtype"));
+            b.codec = string(at(o, "codec"));
+            b.offset = decimal(at(o, "offset"));
+            b.stored_size = decimal(at(o, "stored_size"));
+            b.raw_size = decimal(at(o, "raw_size"));
+            uint64_t elements = 1;
+            for (const auto &x : array(at(o, "shape")))
+            {
+                auto n = decimal(x);
+                elements = checked_mul(elements, n);
+                b.shape.push_back(n);
+            }
+            require(checked_mul(elements, width(b.dtype)) == b.raw_size,
+                    "block shape/size mismatch: " + b.id);
+            require(!b.id.empty() && b.offset % 64 == 0 && b.offset <= size - data_offset_ &&
+                        b.stored_size <= size - data_offset_ - b.offset,
+                    "invalid block bounds: " + b.id);
+            require(b.codec != "none" || b.stored_size == b.raw_size,
+                    "invalid uncompressed block size");
+            require(blocks.emplace(b.id, b).second, "duplicate block id");
+            if (b.stored_size)
+                intervals.emplace_back(b.offset, checked_add(b.offset, b.stored_size));
+        }
+        std::sort(intervals.begin(), intervals.end());
+        for (size_t i = 1; i < intervals.size(); ++i)
+            require(intervals[i - 1].second <= intervals[i].first, "overlapping blocks");
+    }
+
+  public:
+    const Block &info(const std::string &id) const
+    {
+        auto i = blocks.find(id);
+        require(i != blocks.end(), "missing block " + id);
+        return i->second;
+    }
+
+    Bytes stored(const std::string &id) const
+    {
+        const auto &b = info(id);
+        require(b.stored_size <= std::numeric_limits<size_t>::max(), "stored block too large");
+        Bytes bytes(static_cast<size_t>(b.stored_size));
+        std::lock_guard<std::mutex> lock(source_->mutex);
+        auto &in = *source_->stream;
+        in.clear();
+        in.seekg(data_offset_ + b.offset);
+        in.read(reinterpret_cast<char *>(bytes.data()), bytes.size());
+        require(bool(in), "truncated block " + id);
+        return bytes;
+    }
+
+    Bytes read(const std::string &id, uint64_t limit = uint64_t(8) << 30) const
+    {
+        const auto &b = info(id);
+        require(b.raw_size <= limit && b.stored_size <= limit, "block exceeds read limit: " + id);
+        require(b.codec == "none" || b.codec == "zstd", "unsupported codec " + b.codec);
+#ifndef USE_ZSTD
+        require(b.codec != "zstd", "zstd support is not enabled");
+#endif
+        Bytes stored(static_cast<size_t>(b.stored_size));
+        {
+            std::lock_guard<std::mutex> lock(source_->mutex);
+            auto &in = *source_->stream;
+            in.clear();
+            in.seekg(data_offset_ + b.offset);
+            in.read(reinterpret_cast<char *>(stored.data()), stored.size());
+            require(bool(in), "truncated block " + id);
+        }
+        Bytes raw;
+        if (b.codec == "none")
+            raw = std::move(stored);
+#ifdef USE_ZSTD
+        else
+        {
+            raw.resize(static_cast<size_t>(b.raw_size));
+            auto n = ZSTD_decompress(raw.data(), raw.size(), stored.data(), stored.size());
+            require(!ZSTD_isError(n) && n == raw.size(), "invalid zstd block " + id);
+        }
+#endif
+        require(raw.size() == b.raw_size, "decoded block size mismatch: " + id);
+        return raw;
+    }
+
+    void validate() const
+    {
+        for (const auto &b : blocks)
+            read(b.first);
+    }
+};
+
+class Writer
+{
+    struct Data
+    {
+        Block block;
+        std::function<Bytes()> read;
+        bool encoded = false;
+    };
+
+    std::map<std::string, Data> data_;
+
+  public:
+    Object manifest{{"schema", Value("gpml.model")},
+                    {"units", Value(Object{{"length", Value("angstrom")},
+                                           {"energy", Value("eV")},
+                                           {"charge", Value("e")},
+                                           {"stress", Value("virial_eV")}})},
+                    {"species", Value(Array{})},
+                    {"root_model", Value("root")},
+                    {"models", Value(Object{})}};
+
+    void add(std::string id, std::string dtype, std::vector<uint64_t> shape, Bytes bytes,
+             std::string codec = "none")
+    {
+        uint64_t n = 1;
+        for (auto x : shape)
+            n = checked_mul(n, x);
+        require(checked_mul(n, width(dtype)) == bytes.size(), "incorrect block shape");
+        require(!id.empty() && !data_.count(id), "duplicate block " + id);
+        auto p = std::make_shared<Bytes>(std::move(bytes));
+        Block b;
+        b.id = id;
+        b.dtype = std::move(dtype);
+        b.shape = std::move(shape);
+        b.codec = std::move(codec);
+        b.raw_size = p->size();
+        data_.emplace(std::move(id), Data{std::move(b), [p]
+                                          {
+                                              return *p;
+                                          }});
+    }
+
+    void preserve(std::shared_ptr<Reader> source)
+    {
+        manifest = source->manifest;
         retain_blocks(std::move(source));
     }
+
     // Retain optional payloads while replacing known model/selector blocks.
-    void retain_blocks(std::shared_ptr<Reader> source) {
-        for(const auto &item:source->blocks){auto id=item.first;if(data_.count(id))continue;data_[id]={item.second,[source,id]{
-            return source->stored(id);},true};}
+    void retain_blocks(std::shared_ptr<Reader> source)
+    {
+        for (const auto &item : source->blocks)
+        {
+            auto id = item.first;
+            if (data_.count(id))
+                continue;
+            data_[id] = {item.second,
+                         [source, id]
+                         {
+                             return source->stored(id);
+                         },
+                         true};
+        }
     }
-    const Block &info(const std::string &id) const {return data_.at(id).block;}
-    Bytes read(const std::string &id) const {
-        const auto &entry=data_.at(id);auto bytes=entry.read();
-        if(!entry.encoded || entry.block.codec=="none")return bytes;
+
+    const Block &info(const std::string &id) const
+    {
+        return data_.at(id).block;
+    }
+
+    Bytes read(const std::string &id) const
+    {
+        const auto &entry = data_.at(id);
+        auto bytes = entry.read();
+        if (!entry.encoded || entry.block.codec == "none")
+            return bytes;
 #ifdef USE_ZSTD
-        if(entry.block.codec=="zstd") {
+        if (entry.block.codec == "zstd")
+        {
             Bytes raw(static_cast<size_t>(entry.block.raw_size));
-            auto n=ZSTD_decompress(raw.data(),raw.size(),bytes.data(),bytes.size());
-            require(!ZSTD_isError(n)&&n==raw.size(),"invalid zstd block "+id);return raw;
+            auto n = ZSTD_decompress(raw.data(), raw.size(), bytes.data(), bytes.size());
+            require(!ZSTD_isError(n) && n == raw.size(), "invalid zstd block " + id);
+            return raw;
         }
 #endif
         throw std::runtime_error("GPM: unsupported model block codec");
     }
-    void save(const std::string &path) const {
-        auto parent=std::filesystem::path(path).parent_path();if(parent.empty())parent=".";
-        std::string temp=(parent/("."+std::filesystem::path(path).filename().string()+".XXXXXX")).string();
-        int fd=::mkstemp(temp.data());require(fd>=0,"cannot create temporary output for "+path);::close(fd);
+
+    void save(const std::string &path) const
+    {
+        auto parent = std::filesystem::path(path).parent_path();
+        if (parent.empty())
+            parent = ".";
+        std::string temp =
+            (parent / ("." + std::filesystem::path(path).filename().string() + ".XXXXXX")).string();
+        int fd = ::mkstemp(temp.data());
+        require(fd >= 0, "cannot create temporary output for " + path);
+        ::close(fd);
         // Stage data first. JSON length and offsets can then be determined without
         // holding compressed copies of every block at once.
-        std::string payload=temp+".data";
-        try {
-            std::ofstream out(payload,std::ios::binary|std::ios::trunc);require(bool(out),"cannot stage payload");
-            Array directory;uint64_t cursor=0;
+        std::string payload = temp + ".data";
+        try
+        {
+            std::ofstream out(payload, std::ios::binary | std::ios::trunc);
+            require(bool(out), "cannot stage payload");
+            Array directory;
+            uint64_t cursor = 0;
             const char zeros[64]{};
-            for(const auto &entry:data_) {
-                Block b=entry.second.block;Bytes raw=entry.second.read();if(!entry.second.encoded)require(raw.size()==b.raw_size,"source block changed");
+            for (const auto &entry : data_)
+            {
+                Block b = entry.second.block;
+                Bytes raw = entry.second.read();
+                if (!entry.second.encoded)
+                    require(raw.size() == b.raw_size, "source block changed");
                 Bytes stored;
-                if(entry.second.encoded||b.codec=="none")stored=std::move(raw);
-                else if(b.codec=="zstd") {
+                if (entry.second.encoded || b.codec == "none")
+                    stored = std::move(raw);
+                else if (b.codec == "zstd")
+                {
 #ifdef USE_ZSTD
-                    stored.resize(ZSTD_compressBound(raw.size()));auto n=ZSTD_compress(stored.data(),stored.size(),raw.data(),raw.size(),3);
-                    require(!ZSTD_isError(n),"compression failed");stored.resize(n);
+                    stored.resize(ZSTD_compressBound(raw.size()));
+                    auto n = ZSTD_compress(stored.data(), stored.size(), raw.data(), raw.size(), 3);
+                    require(!ZSTD_isError(n), "compression failed");
+                    stored.resize(n);
 #else
                     throw std::runtime_error("GPM: zstd support is not enabled");
 #endif
-                } else throw std::runtime_error("GPM: unsupported codec "+b.codec);
-                b.offset=align64(cursor);out.write(zeros,b.offset-cursor);b.stored_size=stored.size();
-                out.write(reinterpret_cast<const char*>(stored.data()),stored.size());cursor=checked_add(b.offset,b.stored_size);
+                }
+                else
+                    throw std::runtime_error("GPM: unsupported codec " + b.codec);
+                b.offset = align64(cursor);
+                out.write(zeros, b.offset - cursor);
+                b.stored_size = stored.size();
+                out.write(reinterpret_cast<const char *>(stored.data()), stored.size());
+                cursor = checked_add(b.offset, b.stored_size);
                 directory.emplace_back(b.json());
             }
-            out.close();require(bool(out),"payload write failed");
-            Object header=manifest;header["blocks"]=Value(directory);std::string json=Value(header).serialize(true);
-            require(json.size()<=64*1024*1024,"header exceeds limit");
-            std::array<unsigned char,64> pre{};std::memcpy(pre.data(),"GPMLMODL",8);put_le(pre.data()+8,2,2);
-            put_le(pre.data()+16,json.size(),8);uint64_t start=align64(64+json.size());put_le(pre.data()+24,start,8);
-            std::ofstream file(temp,std::ios::binary|std::ios::trunc);file.write(reinterpret_cast<char*>(pre.data()),64);file.write(json.data(),json.size());file.write(zeros,start-64-json.size());
-            std::ifstream input(payload,std::ios::binary);std::array<char,65536> chunk{};
-            while(input){input.read(chunk.data(),chunk.size());file.write(chunk.data(),input.gcount());}
-            require(input.eof()&&!input.bad(),"payload read failed");file.close();require(bool(file),"output write failed");
-            fd=::open(temp.c_str(),O_RDONLY);require(fd>=0,"cannot synchronize output");
-            int synced=::fsync(fd);::close(fd);require(synced==0,"output synchronization failed");
-            std::filesystem::rename(temp,path);
-            fd=::open(parent.c_str(),O_RDONLY|O_DIRECTORY);if(fd>=0){::fsync(fd);::close(fd);}
-            std::error_code cleanup_error;std::filesystem::remove(payload,cleanup_error);
-        } catch(...) {std::error_code ec;std::filesystem::remove(temp,ec);std::filesystem::remove(payload,ec);throw;}
+            out.close();
+            require(bool(out), "payload write failed");
+            Object header = manifest;
+            header["blocks"] = Value(directory);
+            std::string json = Value(header).serialize(true);
+            require(json.size() <= 64 * 1024 * 1024, "header exceeds limit");
+            std::array<unsigned char, 64> pre{};
+            std::memcpy(pre.data(), "GPMLMODL", 8);
+            put_le(pre.data() + 8, 2, 2);
+            put_le(pre.data() + 16, json.size(), 8);
+            uint64_t start = align64(64 + json.size());
+            put_le(pre.data() + 24, start, 8);
+            std::ofstream file(temp, std::ios::binary | std::ios::trunc);
+            file.write(reinterpret_cast<char *>(pre.data()), 64);
+            file.write(json.data(), json.size());
+            file.write(zeros, start - 64 - json.size());
+            std::ifstream input(payload, std::ios::binary);
+            std::array<char, 65536> chunk{};
+            while (input)
+            {
+                input.read(chunk.data(), chunk.size());
+                file.write(chunk.data(), input.gcount());
+            }
+            require(input.eof() && !input.bad(), "payload read failed");
+            file.close();
+            require(bool(file), "output write failed");
+            fd = ::open(temp.c_str(), O_RDONLY);
+            require(fd >= 0, "cannot synchronize output");
+            int synced = ::fsync(fd);
+            ::close(fd);
+            require(synced == 0, "output synchronization failed");
+            std::filesystem::rename(temp, path);
+            fd = ::open(parent.c_str(), O_RDONLY | O_DIRECTORY);
+            if (fd >= 0)
+            {
+                ::fsync(fd);
+                ::close(fd);
+            }
+            std::error_code cleanup_error;
+            std::filesystem::remove(payload, cleanup_error);
+        }
+        catch (...)
+        {
+            std::error_code ec;
+            std::filesystem::remove(temp, ec);
+            std::filesystem::remove(payload, ec);
+            throw;
+        }
     }
 };
+
 // Canonical semantic signature; block placement, compression and IDs are excluded.
 // This is used only for model identity and the single AL binding signature.
-inline void signature_part(SHA256 &hash,const void *data,size_t size) {
-    unsigned char length[8];put_le(length,size,8);hash.update(length,8);hash.update(data,size);
+inline void signature_part(SHA256 &hash, const void *data, size_t size)
+{
+    unsigned char length[8];
+    put_le(length, size, 8);
+    hash.update(length, 8);
+    hash.update(data, size);
 }
-template<class Source> void signature_fields(SHA256 &hash,const Value &value,const Source &source) {
-    if(value.is<Object>()) {
-        const auto &o=value.get<Object>();signature_part(hash,"object",6);
-        auto block=o.find("block");
-        if(block!=o.end()) {
-            const auto id=string(block->second);const auto &info=source.info(id);
-            signature_part(hash,info.dtype.data(),info.dtype.size());
-            for(auto dimension:info.shape){unsigned char bytes[8];put_le(bytes,dimension,8);signature_part(hash,bytes,8);}
-            const auto bytes=source.read(id);signature_part(hash,bytes.data(),bytes.size());
+
+template <class Source>
+void signature_fields(SHA256 &hash, const Value &value, const Source &source)
+{
+    if (value.is<Object>())
+    {
+        const auto &o = value.get<Object>();
+        signature_part(hash, "object", 6);
+        auto block = o.find("block");
+        if (block != o.end())
+        {
+            const auto id = string(block->second);
+            const auto &info = source.info(id);
+            signature_part(hash, info.dtype.data(), info.dtype.size());
+            for (auto dimension : info.shape)
+            {
+                unsigned char bytes[8];
+                put_le(bytes, dimension, 8);
+                signature_part(hash, bytes, 8);
+            }
+            const auto bytes = source.read(id);
+            signature_part(hash, bytes.data(), bytes.size());
         }
-        for(const auto &entry:o)if(entry.first!="block") {
-            signature_part(hash,entry.first.data(),entry.first.size());signature_fields(hash,entry.second,source);
-        }
-        signature_part(hash,"end",3);
-    } else if(value.is<Array>()) {
-        signature_part(hash,"array",5);for(const auto &item:value.get<Array>())signature_fields(hash,item,source);signature_part(hash,"end",3);
-    } else {const auto text=value.serialize();signature_part(hash,text.data(),text.size());}
+        for (const auto &entry : o)
+            if (entry.first != "block")
+            {
+                signature_part(hash, entry.first.data(), entry.first.size());
+                signature_fields(hash, entry.second, source);
+            }
+        signature_part(hash, "end", 3);
+    }
+    else if (value.is<Array>())
+    {
+        signature_part(hash, "array", 5);
+        for (const auto &item : value.get<Array>())
+            signature_fields(hash, item, source);
+        signature_part(hash, "end", 3);
+    }
+    else
+    {
+        const auto text = value.serialize();
+        signature_part(hash, text.data(), text.size());
+    }
 }
-template<class Source> Value model_graph(const Source &source,const std::string &root) {
-    Object graph;const auto &models=object(at(source.manifest,"models"));
-    std::function<void(const std::string&)> visit=[&](const std::string &id) {
-        if(graph.count(id))return;
-        const auto &node=at(models,id);graph[id]=node;
-        for(const auto &child:object(at(object(node),"children")))visit(string(child.second));
+
+template <class Source> Value model_graph(const Source &source, const std::string &root)
+{
+    Object graph;
+    const auto &models = object(at(source.manifest, "models"));
+    std::function<void(const std::string &)> visit = [&](const std::string &id)
+    {
+        if (graph.count(id))
+            return;
+        const auto &node = at(models, id);
+        graph[id] = node;
+        for (const auto &child : object(at(object(node), "children")))
+            visit(string(child.second));
     };
-    visit(root);return Value(graph);
+    visit(root);
+    return Value(graph);
 }
-template<class Source> std::string model_signature(const Source &source) {
-    SHA256 hash;signature_fields(hash,model_graph(source,string(at(source.manifest,"root_model"))),source);return hex(hash.finish());
-}
-inline Value maxvol_binding_configuration(const Object &maxvol) {
-    Object config{{"builder",at(maxvol,"builder")}};const auto &state=object(at(maxvol,"state"));
-    for(const char *key:{"weight","pow_scale","init_mode","init_value"})config[key]=at(state,key);
-    return Value(config);
-}
-inline Value binding_configuration(const Object &manifest) {
-    const auto &al=object(at(manifest,"active_learning"));
-    if(string(at(al,"method"))=="maxvol")return maxvol_binding_configuration(object(at(al,"maxvol")));
-    return at(al,"committee");
-}
-template<class ModelSource,class ConfigSource> std::string binding_signature(const ModelSource &model,const ConfigSource &source,const Value &builder) {
-    SHA256 hash;signature_fields(hash,model_graph(model,string(at(model.manifest,"root_model"))),model);signature_fields(hash,builder,source);
-    // Committee member graphs may be auxiliary nodes outside the inference root.
-    if(builder.is<Object>()&&object(builder).count("members"))
-        for(const auto &member:array(at(object(builder),"members")))signature_fields(hash,model_graph(source,string(member)),source);
+
+template <class Source> std::string model_signature(const Source &source)
+{
+    SHA256 hash;
+    signature_fields(hash, model_graph(source, string(at(source.manifest, "root_model"))), source);
     return hex(hash.finish());
 }
-template<class Source> std::string binding_signature(const Source &source,const Value &builder) {return binding_signature(source,source,builder);}
-inline Bytes encode_f64(const double *p,size_t n) {
-    static_assert(sizeof(double)==8&&std::numeric_limits<double>::is_iec559,"GPM requires IEEE FP64");
-    Bytes out(checked_mul(n,8));for(size_t i=0;i<n;++i){uint64_t x;std::memcpy(&x,p+i,8);put_le(out.data()+8*i,x,8);}return out;
+
+inline Value maxvol_binding_configuration(const Object &maxvol)
+{
+    Object config{{"builder", at(maxvol, "builder")}};
+    const auto &state = object(at(maxvol, "state"));
+    for (const char *key : {"weight", "pow_scale", "init_mode", "init_value"})
+        config[key] = at(state, key);
+    return Value(config);
 }
-inline std::vector<double> decode_f64(const Reader&r,const std::string&id) {
-    require(r.info(id).dtype=="f64","expected FP64 block");auto b=r.read(id);std::vector<double> out(b.size()/8);
-    for(size_t i=0;i<out.size();++i){uint64_t x=get_le(b.data()+8*i,8);std::memcpy(&out[i],&x,8);}return out;
+
+inline Value binding_configuration(const Object &manifest)
+{
+    const auto &al = object(at(manifest, "active_learning"));
+    if (string(at(al, "method")) == "maxvol")
+        return maxvol_binding_configuration(object(at(al, "maxvol")));
+    return at(al, "committee");
+}
+
+template <class ModelSource, class ConfigSource>
+std::string binding_signature(const ModelSource &model, const ConfigSource &source,
+                              const Value &builder)
+{
+    SHA256 hash;
+    signature_fields(hash, model_graph(model, string(at(model.manifest, "root_model"))), model);
+    signature_fields(hash, builder, source);
+    // Committee member graphs may be auxiliary nodes outside the inference root.
+    if (builder.is<Object>() && object(builder).count("members"))
+        for (const auto &member : array(at(object(builder), "members")))
+            signature_fields(hash, model_graph(source, string(member)), source);
+    return hex(hash.finish());
+}
+
+template <class Source> std::string binding_signature(const Source &source, const Value &builder)
+{
+    return binding_signature(source, source, builder);
+}
+
+inline Bytes encode_f64(const double *p, size_t n)
+{
+    static_assert(sizeof(double) == 8 && std::numeric_limits<double>::is_iec559,
+                  "GPM requires IEEE FP64");
+    Bytes out(checked_mul(n, 8));
+    for (size_t i = 0; i < n; ++i)
+    {
+        uint64_t x;
+        std::memcpy(&x, p + i, 8);
+        put_le(out.data() + 8 * i, x, 8);
+    }
+    return out;
+}
+
+inline std::vector<double> decode_f64(const Reader &r, const std::string &id)
+{
+    require(r.info(id).dtype == "f64", "expected FP64 block");
+    auto b = r.read(id);
+    std::vector<double> out(b.size() / 8);
+    for (size_t i = 0; i < out.size(); ++i)
+    {
+        uint64_t x = get_le(b.data() + 8 * i, 8);
+        std::memcpy(&out[i], &x, 8);
+    }
+    return out;
 }
 } // namespace GPM

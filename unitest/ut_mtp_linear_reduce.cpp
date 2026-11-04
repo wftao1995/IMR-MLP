@@ -4,52 +4,63 @@
 
 #include <limits>
 
-namespace {
-template<class Matrix, class Vector>
-void packed_reduction_contract(bool upper, bool root) {
+namespace
+{
+template <class Matrix, class Vector> void packed_reduction_contract(bool upper, bool root)
+{
     Matrix local, result;
     Vector rhs, reduced_rhs;
-    if constexpr (std::is_same_v<Matrix, alglib::real_2d_array>) {
+    if constexpr (std::is_same_v<Matrix, alglib::real_2d_array>)
+    {
         local.setlength(3, 3);
         result.setlength(root ? 3 : 1, root ? 3 : 1);
         rhs.setlength(3);
         reduced_rhs.setlength(root ? 3 : 1);
-    } else {
+    }
+    else
+    {
         local.resize(3, 3);
         result.resize(root ? 3 : 1, root ? 3 : 1);
         rhs.resize(3);
         reduced_rhs.resize(root ? 3 : 1);
     }
     const Eigen::Matrix3d h = (Eigen::Matrix3d() << 4., 1., 2., 1., 6., 3., 2., 3., 10.).finished();
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i)
+    {
         rhs[i] = i + 1.;
         for (int j = 0; j < 3; ++j)
-            local(i, j) = (upper ? j >= i : j <= i) ? h(i, j)
-                              : std::numeric_limits<double>::quiet_NaN();
+            local(i, j) =
+                (upper ? j >= i : j <= i) ? h(i, j) : std::numeric_limits<double>::quiet_NaN();
     }
     result(0, 0) = -19.;
     reduced_rhs[0] = -23.;
     std::vector<double> send, receive;
-    const std::vector<double> expected = upper
-        ? std::vector<double>{1., 2., 3., 4., 1., 2., 6., 3., 10.}
-        : std::vector<double>{1., 2., 3., 4., 1., 6., 2., 3., 10.};
+    const std::vector<double> expected =
+        upper ? std::vector<double>{1., 2., 3., 4., 1., 2., 6., 3., 10.}
+              : std::vector<double>{1., 2., 3., 4., 1., 6., 2., 3., 10.};
     int calls = 0;
     double *storage = nullptr;
-    for (int repeat = 0; repeat < 2; ++repeat) {
-        Training::reduce_mtp_linear_system(local, rhs, result, reduced_rhs, 3,
-            upper, root, send, receive, [&](double *input, double *output, int count) {
+    for (int repeat = 0; repeat < 2; ++repeat)
+    {
+        Training::reduce_mtp_linear_system(
+            local, rhs, result, reduced_rhs, 3, upper, root, send, receive,
+            [&](double *input, double *output, int count)
+            {
                 ++calls;
                 REQUIRE(count == 3 + 3 * 4 / 2);
                 REQUIRE(count < 3 + 3 * 3); // Full Gram reduction sent 12 doubles.
                 REQUIRE(std::vector<double>(input, input + count) == expected);
                 if (root)
-                    for (int i = 0; i < count; ++i) output[i] = 2. * input[i];
+                    for (int i = 0; i < count; ++i)
+                        output[i] = 2. * input[i];
             });
         REQUIRE(calls == repeat + 1); // One collective per fit, including the RHS.
-        if (repeat == 0) storage = send.data();
+        if (repeat == 0)
+            storage = send.data();
         REQUIRE(send.data() == storage);
     }
-    if (!root) {
+    if (!root)
+    {
         REQUIRE(result(0, 0) == -19.);
         REQUIRE(reduced_rhs[0] == -23.);
         REQUIRE(receive.empty());
@@ -57,7 +68,8 @@ void packed_reduction_contract(bool upper, bool root) {
     }
     Eigen::Matrix3d sum;
     Eigen::Vector3d sum_rhs;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i)
+    {
         sum_rhs[i] = reduced_rhs[i];
         for (int j = 0; j < 3; ++j)
             sum(i, j) = (upper ? j >= i : j <= i) ? result(i, j) : result(j, i);
@@ -70,18 +82,22 @@ void packed_reduction_contract(bool upper, bool root) {
 }
 
 TEST_CASE("Legacy MTP normal reductions send one triangle and reuse buffers",
-          "[training][mtp][mpi-volume]") {
+          "[training][mtp][mpi-volume]")
+{
     const bool root = GENERATE(false, true);
-    SECTION("ALGLIB upper triangle") {
+    SECTION("ALGLIB upper triangle")
+    {
         packed_reduction_contract<alglib::real_2d_array, alglib::real_1d_array>(true, root);
     }
-    SECTION("Eigen LDLT lower triangle") {
+    SECTION("Eigen LDLT lower triangle")
+    {
         packed_reduction_contract<Eigen::MatrixXd, Eigen::VectorXd>(false, root);
     }
 }
 
 TEST_CASE("Legacy MTP normal solvers preserve fitted predictions across assembly paths",
-          "[training][mtp][linear-equivalence]") {
+          "[training][mtp][linear-equivalence]")
+{
     const bool energy_only = GENERATE(false, true);
     const bool fixed_species = GENERATE(false, true);
     const bool precondition = GENERATE(false, true);
@@ -89,11 +105,11 @@ TEST_CASE("Legacy MTP normal solvers preserve fitted predictions across assembly
     Potentials::PotMTP slow("unitest/test-data/portable-mtp/les.mtp");
     std::vector<Atoms> atoms;
     std::vector<Neighborhoods> neighborhoods;
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         Atoms atom;
         atom.cell_ = 20. * Eigen::Matrix3d::Identity();
-        atom.pos_ = {{2., 2., 2.}, {4.1 + .15 * i, 2.3, 2.1},
-                     {3.3, 4.4 - .1 * i, 3.1}};
+        atom.pos_ = {{2., 2., 2.}, {4.1 + .15 * i, 2.3, 2.1}, {3.3, 4.4 - .1 * i, 3.1}};
         atom.chemmap_ = {0, 1, i % 2};
         fast.getEFS(atom);
         atoms.push_back(atom);
@@ -117,7 +133,8 @@ TEST_CASE("Legacy MTP normal solvers preserve fitted predictions across assembly
     slow_trainer.TrainLinear();
     for (int i = 0; i < fast.lin_coeff_size; ++i)
         REQUIRE(fast.linear_coeffs[i] == Catch::Approx(slow.linear_coeffs[i]).margin(1e-9));
-    for (auto atom : atoms) {
+    for (auto atom : atoms)
+    {
         Atoms other = atom;
         fast.getEFS(atom);
         slow.getEFS(other);

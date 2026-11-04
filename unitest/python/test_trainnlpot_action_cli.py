@@ -1,4 +1,5 @@
 """Generic nonlinear action selection and gradient-output failures via real CLIs."""
+
 import json
 import os
 from pathlib import Path
@@ -14,8 +15,16 @@ from training_cli_fixture import prepare_fixture, radial_coefficients
 from test_nonlinear_contract_cli import run, write_settings
 
 
-ACTIONS = ['do-sgd', 'do-lbfgs', 'do-cg', 'do-varpro',
-           'calc-grad', 'check-grad', 'check-grad-all', 'test-curv']
+ACTIONS = [
+    'do-sgd',
+    'do-lbfgs',
+    'do-cg',
+    'do-varpro',
+    'calc-grad',
+    'check-grad',
+    'check-grad-all',
+    'test-curv',
+]
 INVALID_ACTIONS = [
     ({}, [], 'select a training or diagnostic action'),
     ({'fit:linear_refit': 'off'}, [], 'select a training or diagnostic action'),
@@ -25,10 +34,15 @@ INVALID_ACTIONS = [
     ({'fit:training_schedule': 'staged'}, [], 'select a training or diagnostic action'),
     ({}, ['--balance-atomic-fitness'], 'select a training or diagnostic action'),
     ({}, ['--linear-refit-only'], '--linear-refit-only requires fit:linear_refit'),
-    *[({name: 'true'}, [f'--{name}=false'], 'select a training or diagnostic action')
-      for name in ACTIONS],
-    ({'linear-refit-only': 'true'}, ['--linear-refit-only=false'],
-     'select a training or diagnostic action'),
+    *[
+        ({name: 'true'}, [f'--{name}=false'], 'select a training or diagnostic action')
+        for name in ACTIONS
+    ],
+    (
+        {'linear-refit-only': 'true'},
+        ['--linear-refit-only=false'],
+        'select a training or diagnostic action',
+    ),
 ]
 
 
@@ -38,18 +52,29 @@ def snapshot(path):
 
 @pytest.mark.parametrize('extra,flags,message', INVALID_ACTIONS)
 @pytest.mark.parametrize('existing_outputs', [False, True])
-def test_empty_actions_precede_inputs_and_preserve_every_output(tmp_path, extra, flags,
-                                                              message, existing_outputs):
+def test_empty_actions_precede_inputs_and_preserve_every_output(
+    tmp_path, extra, flags, message, existing_outputs
+):
     # Invalid data/model text makes the ordering of the action guard observable.
     for name in ('base.mtp', 'train.cfg', 'index.map'):
         (tmp_path / name).write_text(f'invalid input sentinel {name}\n')
     if existing_outputs:
-        for name in ('final.mtp', 'fitted.mtp', 'fitted.mtp.pre-refit',
-                     'DEBUG', 'DEBUG_0', 'objective.json', 'linear-refit.json',
-                     'output_loss_info', 'output_grad_info'):
+        for name in (
+            'final.mtp',
+            'fitted.mtp',
+            'fitted.mtp.pre-refit',
+            'DEBUG',
+            'DEBUG_0',
+            'objective.json',
+            'linear-refit.json',
+            'output_loss_info',
+            'output_grad_info',
+        ):
             (tmp_path / name).write_text(f'previous output {name}\n')
-    write_settings(tmp_path, {'debug': 'true', 'fit:debug': 'true',
-                             'fit:objective-report': 'objective.json', **extra})
+    write_settings(
+        tmp_path,
+        {'debug': 'true', 'fit:debug': 'true', 'fit:objective-report': 'objective.json', **extra},
+    )
     before = snapshot(tmp_path)
     result = run(tmp_path, *flags)
     assert result.returncode == 1, result.stdout + result.stderr
@@ -70,14 +95,16 @@ def test_help_needs_neither_settings_nor_action(tmp_path):
 @pytest.mark.parametrize('explicit', [False, True])
 def test_valid_linear_refit_without_optimizer_keeps_radial_parameters(tmp_path, explicit):
     prepare_fixture(tmp_path)
-    write_settings(tmp_path, {'fit:linear_refit': 'sr',
-                             'fit:penalty_weight': '0', 'fit:weight_L2': '0'})
+    write_settings(
+        tmp_path, {'fit:linear_refit': 'sr', 'fit:penalty_weight': '0', 'fit:weight_L2': '0'}
+    )
     before = snapshot(tmp_path)
     flags = ['--linear-refit-only'] if explicit else []
     result = run(tmp_path, *flags)
     assert result.returncode == 0, result.stdout + result.stderr
-    np.testing.assert_array_equal(radial_coefficients(tmp_path / 'final.mtp'),
-                                  radial_coefficients(tmp_path / 'base.mtp'))
+    np.testing.assert_array_equal(
+        radial_coefficients(tmp_path / 'final.mtp'), radial_coefficients(tmp_path / 'base.mtp')
+    )
     assert (tmp_path / 'final.mtp').read_bytes() == (tmp_path / 'fitted.mtp').read_bytes()
     assert (tmp_path / 'fitted.mtp.pre-refit').is_file()
     report = json.loads((tmp_path / 'linear-refit.json').read_text())
@@ -100,7 +127,9 @@ def test_unknown_linear_refit_block_is_rejected_before_save(tmp_path, mode):
 
 @pytest.mark.parametrize('action', ['calc-grad', 'check-grad', 'check-grad-all', 'test-curv'])
 @pytest.mark.parametrize('settings_action', [False, True])
-def test_diagnostics_are_effective_actions_and_do_not_publish_models(tmp_path, action, settings_action):
+def test_diagnostics_are_effective_actions_and_do_not_publish_models(
+    tmp_path, action, settings_action
+):
     prepare_fixture(tmp_path)
     write_settings(tmp_path, {action: 'true' if settings_action else 'false'})
     for name in ('final.mtp', 'fitted.mtp', 'fitted.mtp.pre-refit'):
@@ -111,11 +140,20 @@ def test_diagnostics_are_effective_actions_and_do_not_publish_models(tmp_path, a
     for name, data in before.items():
         assert (tmp_path / name).read_bytes() == data
     if action == 'calc-grad':
-        assert float((tmp_path / 'output_loss_info').read_text()) == pytest.approx(0.011305826700427296, rel=1e-12)
-        np.testing.assert_allclose(np.loadtxt(tmp_path / 'output_grad_info'),
-                                  [-0.035075060859336246, 0.0019493211813363066,
-                                   -0.36467772266323634, -0.011366415824972696],
-                                  rtol=1e-12, atol=1e-14)
+        assert float((tmp_path / 'output_loss_info').read_text()) == pytest.approx(
+            0.011305826700427296, rel=1e-12
+        )
+        np.testing.assert_allclose(
+            np.loadtxt(tmp_path / 'output_grad_info'),
+            [
+                -0.035075060859336246,
+                0.0019493211813363066,
+                -0.36467772266323634,
+                -0.011366415824972696,
+            ],
+            rtol=1e-12,
+            atol=1e-14,
+        )
     assert 'Finished' in result.stdout
 
 
@@ -150,18 +188,45 @@ def mpi_run(path, ranks, *flags):
     if not launcher or not executable.is_file():
         pytest.skip('Build MPI imrmlp and provide mpirun for collective CLI tests')
     env = os.environ.copy()
-    env.update({'OMPI_ALLOW_RUN_AS_ROOT': '1', 'OMPI_ALLOW_RUN_AS_ROOT_CONFIRM': '1',
-                'OMPI_MCA_rmaps_base_oversubscribe': '1', 'OMP_NUM_THREADS': '1'})
+    env.update(
+        {
+            'OMPI_ALLOW_RUN_AS_ROOT': '1',
+            'OMPI_ALLOW_RUN_AS_ROOT_CONFIRM': '1',
+            'OMPI_MCA_rmaps_base_oversubscribe': '1',
+            'OMP_NUM_THREADS': '1',
+        }
+    )
     env['LD_LIBRARY_PATH'] = str(executable.parent) + ':' + env.get('LD_LIBRARY_PATH', '')
-    return subprocess.run([launcher, '-n', str(ranks), str(executable), 'trainnlpot',
-                           'settings.ini', '--num_threads', '1', *flags], cwd=path,
-                          env=env, capture_output=True, text=True, timeout=30)
+    return subprocess.run(
+        [
+            launcher,
+            '-n',
+            str(ranks),
+            str(executable),
+            'trainnlpot',
+            'settings.ini',
+            '--num_threads',
+            '1',
+            *flags,
+        ],
+        cwd=path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
 
 
 @pytest.mark.parametrize('ranks', [1, 2])
-@pytest.mark.parametrize('flags,success', [(['--help'], True), ([], False),
-                                         (['--linear-refit-only'], False),
-                                         (['--calc-grad=false'], False)])
+@pytest.mark.parametrize(
+    'flags,success',
+    [
+        (['--help'], True),
+        ([], False),
+        (['--linear-refit-only'], False),
+        (['--calc-grad=false'], False),
+    ],
+)
 @pytest.mark.extended
 def test_mpi_early_exit_preserves_outputs_on_all_ranks(tmp_path, ranks, flags, success):
     write_settings(tmp_path, {'debug': 'true', 'calc-grad': 'false'})
@@ -170,8 +235,10 @@ def test_mpi_early_exit_preserves_outputs_on_all_ranks(tmp_path, ranks, flags, s
     result = mpi_run(tmp_path, ranks, *flags)
     assert (result.returncode == 0) == success, result.stdout + result.stderr
     if not success:
-        assert ('select a training or diagnostic action' in result.stderr
-                or '--linear-refit-only requires fit:linear_refit' in result.stderr)
+        assert (
+            'select a training or diagnostic action' in result.stderr
+            or '--linear-refit-only requires fit:linear_refit' in result.stderr
+        )
         assert 'Loading training set' not in result.stdout
         assert 'Finished' not in result.stdout
     assert snapshot(tmp_path) == before
@@ -182,10 +249,19 @@ def test_mpi_early_exit_preserves_outputs_on_all_ranks(tmp_path, ranks, flags, s
 @pytest.mark.extended
 def test_mpi_valid_refit_and_diagnostic_return_on_all_ranks(tmp_path, ranks, action):
     prepare_fixture(tmp_path)
-    write_settings(tmp_path, {'fit:linear_refit': 'off' if action == 'calc-grad' else 'sr',
-                             'fit:penalty_weight': '0', 'fit:weight_L2': '0'})
-    flags = [] if action == 'implicit_refit' else [
-        '--linear-refit-only' if action == 'explicit_refit' else '--calc-grad']
+    write_settings(
+        tmp_path,
+        {
+            'fit:linear_refit': 'off' if action == 'calc-grad' else 'sr',
+            'fit:penalty_weight': '0',
+            'fit:weight_L2': '0',
+        },
+    )
+    flags = (
+        []
+        if action == 'implicit_refit'
+        else ['--linear-refit-only' if action == 'explicit_refit' else '--calc-grad']
+    )
     result = mpi_run(tmp_path, ranks, *flags)
     assert result.returncode == 0, result.stdout + result.stderr
     if action == 'calc-grad':
@@ -193,8 +269,9 @@ def test_mpi_valid_refit_and_diagnostic_return_on_all_ranks(tmp_path, ranks, act
         assert np.isfinite(np.loadtxt(tmp_path / 'output_grad_info')).all()
         assert not (tmp_path / 'final.mtp').exists()
     else:
-        np.testing.assert_array_equal(radial_coefficients(tmp_path / 'final.mtp'),
-                                      radial_coefficients(tmp_path / 'base.mtp'))
+        np.testing.assert_array_equal(
+            radial_coefficients(tmp_path / 'final.mtp'), radial_coefficients(tmp_path / 'base.mtp')
+        )
         report = json.loads((tmp_path / 'linear-refit.json').read_text())
         assert report['after'] < report['before']
 

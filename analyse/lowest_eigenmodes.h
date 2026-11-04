@@ -7,9 +7,11 @@
 
 #include <functional>
 
-namespace MatrixFree {
+namespace MatrixFree
+{
 
-struct LowestEigenmodesSettings {
+struct LowestEigenmodesSettings
+{
     int count = 1;
     double tolerance = 1.0e-8;
     int max_matvecs = 400;
@@ -17,7 +19,8 @@ struct LowestEigenmodesSettings {
     unsigned int seed = 5489;
 };
 
-struct LowestEigenmodesResult {
+struct LowestEigenmodesResult
+{
     Eigen::VectorXd eigenvalues;
     Eigen::MatrixXd eigenvectors;
     Eigen::VectorXd residual_norms;
@@ -26,13 +29,11 @@ struct LowestEigenmodesResult {
     bool converged = false;
 };
 
-using SymmetricOperator =
-    std::function<void(const Eigen::VectorXd &, Eigen::VectorXd &)>;
+using SymmetricOperator = std::function<void(const Eigen::VectorXd &, Eigen::VectorXd &)>;
 using VectorProjector = std::function<void(Eigen::VectorXd &)>;
 
-LowestEigenmodesResult solve_lowest_symmetric(
-    int dimension, const SymmetricOperator &apply,
-    const LowestEigenmodesSettings &settings,
-    const VectorProjector &project = {});
+LowestEigenmodesResult solve_lowest_symmetric(int dimension, const SymmetricOperator &apply,
+                                              const LowestEigenmodesSettings &settings,
+                                              const VectorProjector &project = {});
 
 } // namespace MatrixFree

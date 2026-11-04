@@ -1,4 +1,5 @@
 """Explicit Shell jobs retain their inputs and outlive their calculator."""
+
 import gc
 from pathlib import Path
 
@@ -12,12 +13,17 @@ from imrmlp import Atoms, Potential
 def calculator(path, script):
     (path / 'index.map').write_text('H\n')
     (path / 'run.sh').write_text(script)
-    return Potential.from_settings({
-        'pottype': 'shellfile', 'shellfile:index': 'index.map',
-        'shellfile:runscript': 'run.sh', 'shellfile:write_posfile': 'input.xyz',
-        'shellfile:write_posformat': 'extxyz', 'shellfile:read_outfile': 'output.xyz',
-        'shellfile:read_outformat': 'extxyz',
-    })
+    return Potential.from_settings(
+        {
+            'pottype': 'shellfile',
+            'shellfile:index': 'index.map',
+            'shellfile:runscript': 'run.sh',
+            'shellfile:write_posfile': 'input.xyz',
+            'shellfile:write_posformat': 'extxyz',
+            'shellfile:read_outfile': 'output.xyz',
+            'shellfile:read_outformat': 'extxyz',
+        }
+    )
 
 
 def test_jobs_return_owned_results_after_parent_release(tmp_path, monkeypatch):

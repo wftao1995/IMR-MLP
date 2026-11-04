@@ -19,16 +19,13 @@ ROOT = Path(__file__).resolve().parents[2]
 APPS = ROOT / "apps"
 MASKS = ("//", "/*")
 
-REG_COMMAND_RE = re.compile(
-    r"^\s*REG_COMMAND\s*\(\s*([A-Za-z_]\w*)\s*,", re.MULTILINE)
+REG_COMMAND_RE = re.compile(r"^\s*REG_COMMAND\s*\(\s*([A-Za-z_]\w*)\s*,", re.MULTILINE)
 REG_NICK_RE = re.compile(
-    r'REG_NICK(?:NAME|CMD)\s*\(\s*"([^"]+)"\s*,\s*([A-Za-z_]\w*)', re.MULTILINE)
-ADDOP_RE = re.compile(
-    r'\baddop\s*\(\s*[^,]+,\s*"([A-Za-z0-9_:.\-]+)"')
-CONSOLE_RE = re.compile(
-    r'\bConnectWithConsole\s*\(\s*[^,]+,\s*[^,]+,\s*"([A-Za-z0-9_:.\-]+)"')
-FUNCTION_RE = re.compile(
-    r"^(?:static\s+)?int\s+([A-Za-z_]\w*)\s*\(\s*int\s+argc\b", re.MULTILINE)
+    r'REG_NICK(?:NAME|CMD)\s*\(\s*"([^"]+)"\s*,\s*([A-Za-z_]\w*)', re.MULTILINE
+)
+ADDOP_RE = re.compile(r'\baddop\s*\(\s*[^,]+,\s*"([A-Za-z0-9_:.\-]+)"')
+CONSOLE_RE = re.compile(r'\bConnectWithConsole\s*\(\s*[^,]+,\s*[^,]+,\s*"([A-Za-z0-9_:.\-]+)"')
+FUNCTION_RE = re.compile(r"^(?:static\s+)?int\s+([A-Za-z_]\w*)\s*\(\s*int\s+argc\b", re.MULTILINE)
 
 
 def _files():
@@ -70,13 +67,13 @@ def function_body(path: Path, function: str) -> str:
     """Return the source text of ``int function(int argc, ...)``."""
     text = path.read_text(encoding="utf-8", errors="ignore")
     match = re.search(
-        r"^(?:static\s+)?int\s+" + re.escape(function) +
-        r"\s*\(\s*int\s+argc\b", text, re.MULTILINE)
+        r"^(?:static\s+)?int\s+" + re.escape(function) + r"\s*\(\s*int\s+argc\b", text, re.MULTILINE
+    )
     if not match:
         return ""
     start = match.start()
     following = FUNCTION_RE.search(text, match.end())
-    return text[start:following.start() if following else len(text)]
+    return text[start : following.start() if following else len(text)]
 
 
 def console_option_groups():
@@ -85,8 +82,7 @@ def console_option_groups():
     builder = APPS.parent / "maxvol" / "b_matrix_builder.cpp"
     if builder.is_file():
         text = builder.read_text(encoding="utf-8", errors="ignore")
-        match = re.search(
-            r"RegisterConsole.*?for\s*\([^)]*?\{([^}]*)\}\s*\)", text, re.DOTALL)
+        match = re.search(r"RegisterConsole.*?for\s*\([^)]*?\{([^}]*)\}\s*\)", text, re.DOTALL)
         if match:
             builder_options.update(re.findall(r'"([^"]+)"', match.group(1)))
     selector_options = set()
@@ -95,7 +91,9 @@ def console_option_groups():
         text = selector.read_text(encoding="utf-8", errors="ignore")
         match = re.search(
             r"void\s+ActiveSelector::RegisterConsole.*?(?=\n\}|^[A-Za-z].*::)",
-            text, re.DOTALL | re.MULTILINE)
+            text,
+            re.DOTALL | re.MULTILINE,
+        )
         if match:
             selector_options.update(ADDOP_RE.findall(match.group(0)))
     return builder_options, selector_options
@@ -137,8 +135,7 @@ def command_options():
             scope = text
         else:
             scope = strip_comments(function_body(path, reverse[name]))
-        options = (set(ADDOP_RE.findall(scope)) |
-                   set(CONSOLE_RE.findall(scope)))
+        options = set(ADDOP_RE.findall(scope)) | set(CONSOLE_RE.findall(scope))
         if "builder_settings.RegisterConsole" in scope:
             options |= builder_options
         if "selector_settings.RegisterConsole" in scope:
@@ -164,9 +161,7 @@ def documented_commands(path: Path):
         options = set()
         for cell in re.findall(r"^\|([^|\n]*)\|", section, re.MULTILINE):
             options.update(re.findall(r"`--([A-Za-z0-9_:.\-]+)`", cell))
-        aliases = set(re.findall(
-            r"(?:alias(?:es)?|别名)\s*[:：]\s*([^\n]*)", heading))
+        aliases = set(re.findall(r"(?:alias(?:es)?|别名)\s*[:：]\s*([^\n]*)", heading))
         alias_names = set(re.findall(r"`([^`]+)`", " ".join(aliases)))
-        result[name] = {"options": options, "heading": heading,
-                        "aliases": alias_names}
+        result[name] = {"options": options, "heading": heading, "aliases": alias_names}
     return result

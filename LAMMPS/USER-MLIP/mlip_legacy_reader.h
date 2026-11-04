@@ -7,25 +7,30 @@
 #include <stdexcept>
 #include <string>
 
-namespace MLIPLegacyReader {
+namespace MLIPLegacyReader
+{
 
 // Read the header segment immediately after species_count. The two legacy
 // LAMMPS adapters translate these exceptions through Error::all. Keep this
 // parser independent of LAMMPS so the format contract is directly testable.
-inline std::string read_radial_basis_type(std::istream &input) {
-    auto next = [&]() {
+inline std::string read_radial_basis_type(std::istream &input)
+{
+    auto next = [&]()
+    {
         std::string token;
         if (!(input >> token))
             throw std::runtime_error("Unexpected end of MTP header before radial_basis_type");
         if (token == "yuk_coeffs" || token == "yuk3_coeffs")
-            throw std::runtime_error("Yukawa coefficient sections (yuk_coeffs/yuk3_coeffs) are unsupported");
+            throw std::runtime_error(
+                "Yukawa coefficient sections (yuk_coeffs/yuk3_coeffs) are unsupported");
         return token;
     };
 
     std::string token = next();
     if (token == "residual_cosplus")
         throw std::runtime_error("Error: this version of interface does not support residuals");
-    if (token == "potential_tag") {
+    if (token == "potential_tag")
+    {
         std::string metadata;
         std::getline(input, metadata);
         token = next();

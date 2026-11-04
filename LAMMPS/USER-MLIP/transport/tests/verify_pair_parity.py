@@ -28,14 +28,16 @@ def main() -> None:
         raise AssertionError("atom IDs differ")
 
     for field in ("PotEng", "Press", "Pxx", "Pyy", "Pzz", "Pxy", "Pxz", "Pyz"):
-        if not close(baseline_thermo[field], transport_thermo[field],
-                     rtol=2.0e-11, atol=2.0e-9):
+        if not close(baseline_thermo[field], transport_thermo[field], rtol=2.0e-11, atol=2.0e-9):
             raise AssertionError(f"thermo {field} differs")
     for atom_id in baseline_atoms:
         for field in ("fx", "fy", "fz", "c_eatom"):
-            if not close(baseline_atoms[atom_id][field],
-                         transport_atoms[atom_id][field],
-                         rtol=2.0e-11, atol=2.0e-9):
+            if not close(
+                baseline_atoms[atom_id][field],
+                transport_atoms[atom_id][field],
+                rtol=2.0e-11,
+                atol=2.0e-9,
+            ):
                 raise AssertionError(f"atom {atom_id} field {field} differs")
     print("mlip/transport matches baseline energy, forces, and global virial")
 

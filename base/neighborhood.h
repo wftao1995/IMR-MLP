@@ -26,7 +26,7 @@
  */
 class Neighborhoods : public NeighborhoodsBase<Neighborhoods, AnyNeighborhoods>
 {
-public:
+  public:
     /// @brief Build neighbor lists for given structure and cutoff radius
     void construct(const Atoms &atom, const double cutoff);
 

@@ -12,8 +12,7 @@ import math
 from pathlib import Path
 
 
-def close(lhs: float, rhs: float, *, rtol: float = 2.0e-10,
-          atol: float = 2.0e-10) -> bool:
+def close(lhs: float, rhs: float, *, rtol: float = 2.0e-10, atol: float = 2.0e-10) -> bool:
     return abs(lhs - rhs) <= atol + rtol * max(abs(lhs), abs(rhs))
 
 
@@ -38,11 +37,10 @@ def read_thermo(path: Path) -> dict[str, float]:
 
 def read_dump(path: Path) -> dict[int, dict[str, float]]:
     lines = path.read_text().splitlines()
-    header = max(i for i, line in enumerate(lines)
-                 if line.startswith("ITEM: ATOMS "))
+    header = max(i for i, line in enumerate(lines) if line.startswith("ITEM: ATOMS "))
     columns = lines[header].split()[2:]
     atoms = {}
-    for line in lines[header + 1:]:
+    for line in lines[header + 1 :]:
         if line.startswith("ITEM:"):
             break
         fields = line.split()
@@ -70,7 +68,8 @@ def validate(log: Path, dump: Path) -> tuple[dict[str, float], dict[int, dict[st
         if not close(stress_sum, pressure_volume, rtol=3.0e-10, atol=2.0e-7):
             raise AssertionError(
                 f"per-atom virial mismatch in component {component}: "
-                f"{stress_sum} vs {pressure_volume}")
+                f"{stress_sum} vs {pressure_volume}"
+            )
 
     if not close(thermo["c_qlr"], -thermo["c_qrl"], atol=2.0e-9):
         raise AssertionError("interface current is not antisymmetric")
@@ -78,18 +77,19 @@ def validate(log: Path, dump: Path) -> tuple[dict[str, float], dict[int, dict[st
     q_from_dump = 0.0
     for atom in atoms.values():
         for component in range(1, 4):
-            if not close(atom[f"c_qlr[{component}]"],
-                         -atom[f"c_qrl[{component}]"], atol=2.0e-9):
+            if not close(atom[f"c_qlr[{component}]"], -atom[f"c_qrl[{component}]"], atol=2.0e-9):
                 raise AssertionError("per-atom interface force is not antisymmetric")
-        q_from_dump += sum(atom[f"c_qlr[{component}]"] * atom[velocity]
-                           for component, velocity in enumerate(("vx", "vy", "vz"), 1))
+        q_from_dump += sum(
+            atom[f"c_qlr[{component}]"] * atom[velocity]
+            for component, velocity in enumerate(("vx", "vy", "vz"), 1)
+        )
     if not close(q_from_dump, thermo["c_qlr"], atol=2.0e-9):
         raise AssertionError(
-            "scalar/per-atom interface current mismatch (reverse communication may have repeated)")
+            "scalar/per-atom interface current mismatch (reverse communication may have repeated)"
+        )
 
     for component in ("fx", "fy", "fz"):
-        if not close(sum(atom[component] for atom in atoms.values()), 0.0,
-                     atol=2.0e-9):
+        if not close(sum(atom[component] for atom in atoms.values()), 0.0, atol=2.0e-9):
             raise AssertionError(f"net {component} is nonzero")
     return thermo, atoms
 
@@ -101,30 +101,32 @@ def compare(reference, candidate, name: str) -> None:
         raise AssertionError(f"{name}: atom IDs differ")
     fields = [field for field in ref_thermo if field not in {"Step"}]
     for field in fields:
-        if not close(ref_thermo[field], test_thermo[field], rtol=3.0e-9,
-                     atol=3.0e-8):
+        if not close(ref_thermo[field], test_thermo[field], rtol=3.0e-9, atol=3.0e-8):
             raise AssertionError(
-                f"{name}: thermo {field} differs: {ref_thermo[field]} vs {test_thermo[field]}")
-    atom_fields = [field for field in next(iter(ref_atoms.values()))
-                   if field not in {"id"}]
+                f"{name}: thermo {field} differs: {ref_thermo[field]} vs {test_thermo[field]}"
+            )
+    atom_fields = [field for field in next(iter(ref_atoms.values())) if field not in {"id"}]
     for atom_id in ref_atoms:
         for field in atom_fields:
-            if not close(ref_atoms[atom_id][field], test_atoms[atom_id][field],
-                         rtol=3.0e-9, atol=3.0e-8):
+            if not close(
+                ref_atoms[atom_id][field], test_atoms[atom_id][field], rtol=3.0e-9, atol=3.0e-8
+            ):
                 raise AssertionError(f"{name}: atom {atom_id} field {field} differs")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("runs", nargs="+", type=Path,
-                        help="run prefixes, each with .log and .dump")
+    parser.add_argument("runs", nargs="+", type=Path, help="run prefixes, each with .log and .dump")
     args = parser.parse_args()
-    results = [validate(prefix.with_suffix(".log"), prefix.with_suffix(".dump"))
-               for prefix in args.runs]
+    results = [
+        validate(prefix.with_suffix(".log"), prefix.with_suffix(".dump")) for prefix in args.runs
+    ]
     for prefix, result in zip(args.runs[1:], results[1:]):
         compare(results[0], result, prefix.name)
-    print(f"validated {len(results)} transport run(s): " +
-          ", ".join(prefix.name for prefix in args.runs))
+    print(
+        f"validated {len(results)} transport run(s): "
+        + ", ".join(prefix.name for prefix in args.runs)
+    )
 
 
 if __name__ == "__main__":

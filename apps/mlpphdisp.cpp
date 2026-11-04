@@ -11,48 +11,45 @@
 using namespace std;
 using namespace Eigen;
 
-namespace phonopyfc_detail {
+namespace phonopyfc_detail
+{
 
-void read_required_yaml_line(std::istream &input,
-                             std::string &line,
-                             std::string_view expected,
+void read_required_yaml_line(std::istream &input, std::string &line, std::string_view expected,
                              std::string_view filename)
 {
-    if (!std::getline(input, line)) {
+    if (!std::getline(input, line))
+    {
         throw std::runtime_error(fmt::format(
-            "phonopyfc: expected '{}' before end of YAML file '{}'",
-            expected, filename));
+            "phonopyfc: expected '{}' before end of YAML file '{}'", expected, filename));
     }
 }
 
-void find_required_yaml_field(std::istream &input,
-                              std::string &line,
-                              std::string_view field,
+void find_required_yaml_field(std::istream &input, std::string &line, std::string_view field,
                               std::string_view filename)
 {
-    while (std::getline(input, line)) {
+    while (std::getline(input, line))
+    {
         if (line.starts_with(field))
             return;
     }
-    throw std::runtime_error(fmt::format(
-        "phonopyfc: required field '{}' not found in YAML file '{}'",
-        field, filename));
+    throw std::runtime_error(
+        fmt::format("phonopyfc: required field '{}' not found in YAML file '{}'", field, filename));
 }
 
 } // namespace phonopyfc_detail
 
-namespace {
+namespace
+{
 
 void ensure_yaml_open(const std::ifstream &input, const std::string &filename)
 {
-    if (!input.is_open()) {
-        throw std::runtime_error(
-            fmt::format("phonopyfc: cannot open YAML file '{}'", filename));
+    if (!input.is_open())
+    {
+        throw std::runtime_error(fmt::format("phonopyfc: cannot open YAML file '{}'", filename));
     }
 }
 
-map<string, int> read_species_map(const string &filename,
-                                  const vector<string> &model_elements,
+map<string, int> read_species_map(const string &filename, const vector<string> &model_elements,
                                   bool index_explicit)
 {
     GPIO io;
@@ -78,9 +75,9 @@ int species_index(const map<string, int> &index, const string &symbol,
 RowVector3d &displaced_position(Atoms &atom, int index, const string &filename)
 {
     if (index < 1 || index > atom.size())
-        throw std::runtime_error(fmt::format(
-            "phonopyfc: displacement atom {} is outside 1..{} in '{}'",
-            index, atom.size(), filename));
+        throw std::runtime_error(
+            fmt::format("phonopyfc: displacement atom {} is outside 1..{} in '{}'", index,
+                        atom.size(), filename));
     return atom.pos_[index - 1];
 }
 
@@ -114,8 +111,7 @@ void ReadPhonoYaml(vector<Atoms> &cfgs, vector<int> &dispid, vector<RowVector3d>
     //read supercell
     ifstream ifs(yamlname);
     ensure_yaml_open(ifs, yamlname);
-    phonopyfc_detail::find_required_yaml_field(
-        ifs, line, "supercell:", yamlname);
+    phonopyfc_detail::find_required_yaml_field(ifs, line, "supercell:", yamlname);
     getline(ifs, line); //lattice
     Matrix3d cell;
     vector<RowVector3d> pos;
@@ -132,7 +128,7 @@ void ReadPhonoYaml(vector<Atoms> &cfgs, vector<int> &dispid, vector<RowVector3d>
     getline(ifs, line); //points:
     do
     {
-        getline(ifs, line);      // symbol
+        getline(ifs, line);                // symbol
         mlpphdisp_splitstr(line, vecstr0); // in 2
         if (vecstr0.size() == 0)
             break;
@@ -148,14 +144,14 @@ void ReadPhonoYaml(vector<Atoms> &cfgs, vector<int> &dispid, vector<RowVector3d>
         pos.push_back(tmppos);
         getline(ifs, line); //mass
         getline(ifs, line); //reduced_to
-    }while(line.substr(0,14) != "displacements:");
+    } while (line.substr(0, 14) != "displacements:");
     getline(ifs, line); // displacements
     int wdisp;
     while (!ifs.eof())
     {
-        getline(ifs, line);      // atom
+        getline(ifs, line);                // atom
         mlpphdisp_splitstr(line, vecstr0); // 2
-        if(vecstr0.size() <2)
+        if (vecstr0.size() < 2)
             break;
         wdisp = stoi(vecstr0.at(2));
         dispid.push_back(wdisp);
@@ -188,7 +184,8 @@ void SaveForcesSet(vector<Atoms> &cfgs, vector<int> &dispid, vector<RowVector3d>
         throw std::runtime_error("phonopyfc: no displacement configurations");
     string output = "FORCE_SETS";
     ofstream ofs(output);
-    if (!ofs) throw std::runtime_error("phonopyfc: cannot open " + output);
+    if (!ofs)
+        throw std::runtime_error("phonopyfc: cannot open " + output);
     fmt::print(ofs, "{}\n{}\n\n", cfgs[0].size(), dispid.size());
     for (int i = 0; i < dispid.size(); i++)
     {
@@ -212,11 +209,12 @@ int phonopyfc(int argc, char *argv[])
     vector<RowVector3d> dispvec;
     string potfn = "potential.mtp";
     cmdopts.addop(indexfilename, "index-file", "id", "index file")
-           .addop(settingfile, "settings-file", "i", "settings file")
-           .addop(potfn, "potfile", "pot", "Potential file", true)
-           .addop(yamlname, "disp", "d", "displament yaml file generated by phonopy", true);
-    cmdopts.phrase_options(argc, argv);           
-    if (GPIO::file_exist(settingfile)) {
+        .addop(settingfile, "settings-file", "i", "settings file")
+        .addop(potfn, "potfile", "pot", "Potential file", true)
+        .addop(yamlname, "disp", "d", "displament yaml file generated by phonopy", true);
+    cmdopts.phrase_options(argc, argv);
+    if (GPIO::file_exist(settingfile))
+    {
         settings.Load(settingfile);
         fmt::print("Settings loaded from file: {}\n", settingfile);
     }
@@ -225,14 +223,13 @@ int phonopyfc(int argc, char *argv[])
     Potentials::AnyPotential *pot;
     Potentials::potential_wrapper wrapper(potfn, "mtp", settings.ExtractSubSettings("pot"));
     pot = wrapper.pot;
-    const bool index_explicit = cmdopts.was_provided("index-file") ||
-                                settings.count("index") ||
+    const bool index_explicit = cmdopts.was_provided("index-file") || settings.count("index") ||
                                 settings.count("index-file");
-    const auto model_elements = Potentials::probe_model_elements(
-        make_potential_settings(settings, potfn, "mtp"));
-    ReadPhonoYaml(cfgs, dispid, dispvec, pot, indexfilename, yamlname,
-                  model_elements, index_explicit);
+    const auto model_elements =
+        Potentials::probe_model_elements(make_potential_settings(settings, potfn, "mtp"));
+    ReadPhonoYaml(cfgs, dispid, dispvec, pot, indexfilename, yamlname, model_elements,
+                  index_explicit);
     SaveForcesSet(cfgs, dispid, dispvec);
-    
+
     return 0;
 }

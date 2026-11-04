@@ -1,4 +1,5 @@
 """Explicit model element orders must not relabel missing atomic numbers."""
+
 import numpy as np
 import pytest
 
@@ -10,12 +11,13 @@ from imrmlp.utils import chemmap_from_numbers
 def test_explicit_elements_constructor_rejects_atomic_number_species_index_collision():
     # H has Z=1, which is also a valid species index for Ni in this order.
     with pytest.raises(ValueError, match='Atomic number 1 is not present in elements'):
-        Atoms(numbers=[1], elements=['Al', 'Ni'], positions=[[0., 0., 0.]])
+        Atoms(numbers=[1], elements=['Al', 'Ni'], positions=[[0.0, 0.0, 0.0]])
 
 
 def test_explicit_elements_numbers_assignment_keeps_prior_state_on_missing_element():
-    atoms = Atoms(numbers=[13, 28], elements=['Ni', 'Al'],
-                  positions=[[0., 0., 0.], [1., 0., 0.]])
+    atoms = Atoms(
+        numbers=[13, 28], elements=['Ni', 'Al'], positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
+    )
     positions = atoms.positions.copy()
     with pytest.raises(ValueError, match='Atomic number 1 is not present in elements'):
         atoms.numbers = [13, 1]
@@ -28,8 +30,7 @@ def test_explicit_elements_numbers_assignment_keeps_prior_state_on_missing_eleme
 def test_explicit_elements_keep_nonidentity_order_and_subset_indices(elements):
     original_elements = list(elements)
     for numbers, expected in [([13, 28, 13], [1, 0, 1]), ([13, 13], [1, 1])]:
-        atoms = Atoms(numbers=numbers, elements=elements,
-                      positions=np.zeros((len(numbers), 3)))
+        atoms = Atoms(numbers=numbers, elements=elements, positions=np.zeros((len(numbers), 3)))
         assert atoms.chemmap == expected
         np.testing.assert_array_equal(atoms.numbers, numbers)
     assert elements == original_elements
@@ -54,7 +55,7 @@ def test_ase_calculator_rejects_missing_element_before_potential_evaluation():
             calls.append(True)
             raise AssertionError('A missing element must not reach potential evaluation')
 
-    source = ase.Atoms('H', positions=[[1., 2., 3.]], cell=np.eye(3) * 12, pbc=False)
+    source = ase.Atoms('H', positions=[[1.0, 2.0, 3.0]], cell=np.eye(3) * 12, pbc=False)
     positions = source.positions.copy()
     source.calc = IMRMLPCalculator(potential=CalculationSpy(), elements=['Al', 'Ni'])
     with pytest.raises(ValueError, match='Atomic number 1 is not present in elements'):
@@ -70,20 +71,26 @@ def test_ase_calculator_uses_fixed_model_order_for_real_multispecies_evaluation(
     ase = pytest.importorskip('ase')
     from imrmlp.calculator import IMRMLPCalculator
 
-    params = {'behler:dispcount': '2', 'behler:dispselect': '1 2',
-              'behler:cutoff': '4', 'behler:eta': '.3',
-              'behler:weighted': 'true', 'behler:weights': '1 2'}
-    settings = {'pottype': 'descriptor_linear', 'descriptor_linear:species_count': '2',
-                'descriptor_linear:descriptor:dtype': 'behler'}
-    settings.update({'descriptor_linear:descriptor:' + key: value
-                     for key, value in params.items()})
+    params = {
+        'behler:dispcount': '2',
+        'behler:dispselect': '1 2',
+        'behler:cutoff': '4',
+        'behler:eta': '.3',
+        'behler:weighted': 'true',
+        'behler:weights': '1 2',
+    }
+    settings = {
+        'pottype': 'descriptor_linear',
+        'descriptor_linear:species_count': '2',
+        'descriptor_linear:descriptor:dtype': 'behler',
+    }
+    settings.update({'descriptor_linear:descriptor:' + key: value for key, value in params.items()})
     potential = Potential.from_settings(settings)
-    potential.coefficients = np.linspace(-.17, .31, Descriptor('behler', params).feature_size)
-    positions = np.array([[1., 1., 1.], [2.5, 1.2, 1.1], [1.2, 3.1, 1.4]])[:len(numbers)]
+    potential.coefficients = np.linspace(-0.17, 0.31, Descriptor('behler', params).feature_size)
+    positions = np.array([[1.0, 1.0, 1.0], [2.5, 1.2, 1.1], [1.2, 3.1, 1.4]])[: len(numbers)]
     cell = np.eye(3) * 12
     elements = ['Ni', 'Al']
-    reference = Atoms(numbers=numbers, elements=elements, positions=positions,
-                      cell=cell, pbc=False)
+    reference = Atoms(numbers=numbers, elements=elements, positions=positions, cell=cell, pbc=False)
     potential.calculate(reference)
     source = ase.Atoms(numbers=numbers, positions=positions, cell=cell, pbc=False)
     calculator = IMRMLPCalculator(potential=potential, elements=elements)

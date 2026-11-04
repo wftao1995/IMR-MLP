@@ -7,8 +7,9 @@ from imrmlp.io import read, write
 
 @pytest.mark.parametrize("format", ["extxyz", "cfg", "bin"])
 def test_hvp_roundtrip(tmp_path, format):
-    atoms = Atoms(numbers=[1, 1], positions=[[0, 0, 0], [1.2, 0, 0]],
-                  cell=np.eye(3) * 8, elements=["H"])
+    atoms = Atoms(
+        numbers=[1, 1], positions=[[0, 0, 0], [1.2, 0, 0]], cell=np.eye(3) * 8, elements=["H"]
+    )
     directions = np.arange(12, dtype=float).reshape(6, 2) / 7
     targets = 1.3 * directions
     atoms.set_hvp(directions, targets)

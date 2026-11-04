@@ -13,30 +13,32 @@
 using Catch::Approx;
 using namespace Potentials;
 
-static void add_setting(GPSettings &settings, const std::string &key, const std::string &value) {
+static void add_setting(GPSettings &settings, const std::string &key, const std::string &value)
+{
     settings.settings.emplace(key, value);
 }
 
-static Atoms make_two_atom_structure(double distance) {
+static Atoms make_two_atom_structure(double distance)
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 20.0;
-    atom.pos_ = {
-        {0.0, 0.0, 0.0},
-        {distance, 0.0, 0.0}
-    };
+    atom.pos_ = {{0.0, 0.0, 0.0}, {distance, 0.0, 0.0}};
     atom.chemmap_ = {0, 0};
     return atom;
 }
 
-static double quintic_smoothstep(double x0, double x1, double x) {
-    if (x <= x0) return 0.0;
-    if (x >= x1) return 1.0;
+static double quintic_smoothstep(double x0, double x1, double x)
+{
+    if (x <= x0)
+        return 0.0;
+    if (x >= x1)
+        return 1.0;
     const double t = (x - x0) / (x1 - x0);
     return t * t * t * (10.0 + t * (-15.0 + 6.0 * t));
 }
 
-static void add_constant_eam(GPSettings &settings, const std::string &prefix,
-                             double site_energy) {
+static void add_constant_eam(GPSettings &settings, const std::string &prefix, double site_energy)
+{
     add_setting(settings, prefix + ":pottype", "eampoly");
     add_setting(settings, prefix + ":nelems", "1");
     add_setting(settings, prefix + ":npoly_rho", "2");
@@ -44,11 +46,11 @@ static void add_constant_eam(GPSettings &settings, const std::string &prefix,
     add_setting(settings, prefix + ":npoly_pair", "2");
     add_setting(settings, prefix + ":rmax_pair_0_0", "6.0");
     add_setting(settings, prefix + ":rmax_rho_0_0", "6.0");
-    add_setting(settings, prefix + ":coeffs",
-                "0 0 0 0 0 " + std::to_string(site_energy));
+    add_setting(settings, prefix + ":coeffs", "0 0 0 0 0 " + std::to_string(site_energy));
 }
 
-static GPSettings make_constant_hybrid_settings(const std::string &feature) {
+static GPSettings make_constant_hybrid_settings(const std::string &feature)
+{
     GPSettings settings;
     add_setting(settings, "pottype", "hybrid_scale");
     add_setting(settings, "npot", "2");
@@ -64,21 +66,23 @@ static GPSettings make_constant_hybrid_settings(const std::string &feature) {
     return settings;
 }
 
-static double efs_objective(PotentialHybridScale &pot, Atoms &atom,
-                            Neighborhoods &nbhs, double dLdE,
-                            const Eigen::Matrix<double, -1, 3> &dLdF,
-                            const Eigen::Matrix3d &dLdS) {
+static double efs_objective(PotentialHybridScale &pot, Atoms &atom, Neighborhoods &nbhs,
+                            double dLdE, const Eigen::Matrix<double, -1, 3> &dLdF,
+                            const Eigen::Matrix3d &dLdS)
+{
     atom.resetEFS();
     pot.getEFS(atom, nbhs);
     double value = dLdE * atom.energy_;
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         value += dLdF.row(i).dot(atom.forces_[i]);
     }
     value += (dLdS.array() * atom.stress_.array()).sum();
     return value;
 }
 
-TEST_CASE("PotentialHybridScale min_distance selects endpoint potentials", "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale min_distance selects endpoint potentials", "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("min_distance"));
 
     auto near_atom = make_two_atom_structure(1.0);
@@ -94,7 +98,9 @@ TEST_CASE("PotentialHybridScale min_distance selects endpoint potentials", "[hyb
     REQUIRE(far_atom.energy_ == Approx(6.0).epsilon(1e-12));
 }
 
-TEST_CASE("PotentialHybridScale smooth_coordination gives expected weighted energy", "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale smooth_coordination gives expected weighted energy",
+          "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("smooth_coordination"));
     auto atom = make_two_atom_structure(2.0);
     Neighborhoods nbhs(atom, pot.cutoff);
@@ -108,7 +114,9 @@ TEST_CASE("PotentialHybridScale smooth_coordination gives expected weighted ener
     REQUIRE(atom.energy_ == Approx(2.0 * expected_site).epsilon(1e-12));
 }
 
-TEST_CASE("PotentialHybridScale force matches finite difference for feature derivative", "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale force matches finite difference for feature derivative",
+          "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("smooth_coordination"));
     auto atom = make_two_atom_structure(2.0);
     Neighborhoods nbhs(atom, pot.cutoff);
@@ -118,8 +126,10 @@ TEST_CASE("PotentialHybridScale force matches finite difference for feature deri
     const auto analytical_forces = atom.forces_;
 
     const double dx = 1e-6;
-    for (int i = 0; i < atom.size(); ++i) {
-        for (int a = 0; a < 3; ++a) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
+        for (int a = 0; a < 3; ++a)
+        {
             atom.pos_[i][a] += dx;
             nbhs.init(atom, pot.cutoff);
             atom.resetEFS();
@@ -141,7 +151,8 @@ TEST_CASE("PotentialHybridScale force matches finite difference for feature deri
 }
 
 TEST_CASE("PotentialHybridScale stick-breaking weights normalize with overlapping boundaries",
-          "[hybrid_scale]") {
+          "[hybrid_scale]")
+{
     GPSettings settings = make_constant_hybrid_settings("smooth_coordination");
     settings.Modify("npot", "3");
     settings.Modify("boundary1", "0.2 1.0");
@@ -156,13 +167,12 @@ TEST_CASE("PotentialHybridScale stick-breaking weights normalize with overlappin
     const double q = 1.0 - quintic_smoothstep(0.0, 5.0, 2.0);
     const double s0 = quintic_smoothstep(0.2, 1.0, q);
     const double s1 = quintic_smoothstep(0.4, 1.2, q);
-    const double expected_site = (1.0 - s0) + s0 * (1.0 - s1) * 3.0
-                               + s0 * s1 * 5.0;
+    const double expected_site = (1.0 - s0) + s0 * (1.0 - s1) * 3.0 + s0 * s1 * 5.0;
     REQUIRE(atom.energy_ == Approx(2.0 * expected_site).epsilon(1e-12));
 }
 
-TEST_CASE("PotentialHybridScale energy-only path preserves forces and stress",
-          "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale energy-only path preserves forces and stress", "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("smooth_coordination"));
     auto atom = make_two_atom_structure(2.0);
     atom.forces_.assign(atom.size(), Eigen::RowVector3d(1.0, 2.0, 3.0));
@@ -179,8 +189,8 @@ TEST_CASE("PotentialHybridScale energy-only path preserves forces and stress",
     REQUIRE_FALSE(atom.have_stress);
 }
 
-TEST_CASE("PotentialHybridScale exposes concatenated parameter groups",
-          "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale exposes concatenated parameter groups", "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("smooth_coordination"));
     REQUIRE(pot.get_NL_coeffs_count() == 12);
     const auto groups = pot.nl_parameter_groups();
@@ -202,29 +212,27 @@ TEST_CASE("PotentialHybridScale exposes concatenated parameter groups",
 }
 
 TEST_CASE("PotentialHybridScale analytical EFS parameter gradient matches finite difference",
-          "[hybrid_scale]") {
+          "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("smooth_coordination"));
     auto atom = make_two_atom_structure(2.0);
     Neighborhoods nbhs(atom, pot.cutoff);
     const int ncoeff = pot.get_NL_coeffs_count();
 
     Eigen::Matrix<double, -1, 3> dLdF(atom.size(), 3);
-    dLdF << 0.3, -0.2, 0.1,
-           -0.4, 0.5, -0.6;
+    dLdF << 0.3, -0.2, 0.1, -0.4, 0.5, -0.6;
     Eigen::Matrix3d dLdS;
-    dLdS << 0.2, -0.1, 0.05,
-            0.03, 0.1, -0.04,
-            -0.02, 0.06, -0.08;
+    dLdS << 0.2, -0.1, 0.05, 0.03, 0.1, -0.04, -0.02, 0.06, -0.08;
     const double dLdE = 0.7;
     std::vector<double> analytical(ncoeff, 0.0);
     Eigen::Matrix<double, -1, 3, Eigen::RowMajor> buffer;
-    pot.AccumulateEFSCombinationGard(atom, nbhs, dLdE, dLdF, dLdS,
-                                     buffer, analytical.data());
+    pot.AccumulateEFSCombinationGard(atom, nbhs, dLdE, dLdF, dLdS, buffer, analytical.data());
 
     std::vector<double> coeffs(ncoeff);
     pot.nl_get_coeffs(coeffs.data());
     const double h = 1e-6;
-    for (int i = 0; i < ncoeff; ++i) {
+    for (int i = 0; i < ncoeff; ++i)
+    {
         auto trial = coeffs;
         trial[i] += h;
         pot.nl_set_coeffs(trial.data());
@@ -239,7 +247,8 @@ TEST_CASE("PotentialHybridScale analytical EFS parameter gradient matches finite
 }
 
 TEST_CASE("PotentialHybridScale energy-only parameter gradient matches finite difference",
-          "[hybrid_scale]") {
+          "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("min_distance"));
     auto atom = make_two_atom_structure(2.0);
     Neighborhoods nbhs(atom, pot.cutoff);
@@ -251,7 +260,8 @@ TEST_CASE("PotentialHybridScale energy-only parameter gradient matches finite di
     std::vector<double> coeffs(ncoeff);
     pot.nl_get_coeffs(coeffs.data());
     const double h = 1e-6;
-    for (int i = 0; i < ncoeff; ++i) {
+    for (int i = 0; i < ncoeff; ++i)
+    {
         auto trial = coeffs;
         trial[i] += h;
         pot.nl_set_coeffs(trial.data());
@@ -267,7 +277,8 @@ TEST_CASE("PotentialHybridScale energy-only parameter gradient matches finite di
     pot.nl_set_coeffs(coeffs.data());
 }
 
-TEST_CASE("PotentialHybridScale honors additive EFS mode", "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale honors additive EFS mode", "[hybrid_scale]")
+{
     PotentialHybridScale pot(make_constant_hybrid_settings("smooth_coordination"));
     auto atom = make_two_atom_structure(2.0);
     Neighborhoods nbhs(atom, pot.cutoff);
@@ -279,13 +290,14 @@ TEST_CASE("PotentialHybridScale honors additive EFS mode", "[hybrid_scale]") {
     pot.getEFS(atom, nbhs);
 
     REQUIRE(atom.energy_ == Approx(2.0 * energy_once).epsilon(1e-12));
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         REQUIRE(atom.forces_[i].isApprox(2.0 * forces_once[i], 1e-12));
     }
 }
 
-TEST_CASE("PotentialHybridScale manifest roundtrip preserves predictions",
-          "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale manifest roundtrip preserves predictions", "[hybrid_scale]")
+{
     PotentialHybridScale original(make_constant_hybrid_settings("smooth_coordination"));
     auto atom = make_two_atom_structure(2.0);
     Neighborhoods nbhs(atom, original.cutoff);
@@ -293,8 +305,9 @@ TEST_CASE("PotentialHybridScale manifest roundtrip preserves predictions",
     const double expected_energy = atom.energy_;
     const auto expected_forces = atom.forces_;
 
-    const std::filesystem::path manifest = std::filesystem::path("/tmp")
-        / ("imrmlp_hybrid_scale_" + std::to_string(getpid()) + ".settings");
+    const std::filesystem::path manifest =
+        std::filesystem::path("/tmp") /
+        ("imrmlp_hybrid_scale_" + std::to_string(getpid()) + ".settings");
     original.Save(manifest.string());
     GPSettings reload_settings;
     add_setting(reload_settings, "potfile", manifest.string());
@@ -304,7 +317,8 @@ TEST_CASE("PotentialHybridScale manifest roundtrip preserves predictions",
     reloaded.getEFS(reloaded_atom, reloaded_nbhs);
 
     REQUIRE(reloaded_atom.energy_ == Approx(expected_energy).epsilon(1e-7));
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         REQUIRE(reloaded_atom.forces_[i].isApprox(expected_forces[i], 1e-7));
     }
     std::filesystem::remove(manifest);
@@ -312,8 +326,8 @@ TEST_CASE("PotentialHybridScale manifest roundtrip preserves predictions",
     std::filesystem::remove(manifest.string() + ".pot2");
 }
 
-TEST_CASE("PotentialHybridScale rejects malformed and unordered boundaries",
-          "[hybrid_scale]") {
+TEST_CASE("PotentialHybridScale rejects malformed and unordered boundaries", "[hybrid_scale]")
+{
     auto malformed = make_constant_hybrid_settings("smooth_coordination");
     malformed.Modify("boundary1", "0.2 1.2 trailing");
     REQUIRE_THROWS_AS(PotentialHybridScale(malformed), GPException);
@@ -334,8 +348,10 @@ TEST_CASE("PotentialHybridScale rejects malformed and unordered boundaries",
     REQUIRE_THROWS_AS(PotentialHybridScale(mismatched_species), GPException);
 }
 
-TEST_CASE("Hybrid scale neighborhoods include the feature range", "[hybrid_scale]") {
-    const std::string feature = GENERATE(std::string("smooth_coordination"), std::string("min_distance"));
+TEST_CASE("Hybrid scale neighborhoods include the feature range", "[hybrid_scale]")
+{
+    const std::string feature =
+        GENERATE(std::string("smooth_coordination"), std::string("min_distance"));
     auto settings = make_constant_hybrid_settings(feature);
     settings.Modify("feature_r1", "12");
     settings.Modify("boundary1", feature == "min_distance" ? "4 10" : "0 1");
@@ -348,8 +364,8 @@ TEST_CASE("Hybrid scale neighborhoods include the feature range", "[hybrid_scale
     atom.pbc_ = {false, false, false};
     pot.getEFS(atom);
     const double q = feature == "min_distance" ? 7 : 1 - quintic_smoothstep(0, 12, 7);
-    const double w = feature == "min_distance" ? quintic_smoothstep(4, 10, q)
-                                               : quintic_smoothstep(0, 1, q);
+    const double w =
+        feature == "min_distance" ? quintic_smoothstep(4, 10, q) : quintic_smoothstep(0, 1, q);
     REQUIRE(atom.energy_ == Approx(2 + 4 * w));
     const double force = atom.forces_[1][0];
     const double h = 1e-6;

@@ -14,7 +14,7 @@
 struct NeighborhoodSub
 {
     int nbhcount_ = 0;                    // number of neighborhoods
-    std::vector<int> indices_;           // indices of each atom
+    std::vector<int> indices_;            // indices of each atom
     std::vector<Eigen::RowVector3d> pos_; //relative positons of each atom about center atom
     std::vector<double> distances_;       //relative distance about center atom
     int centertype;                       // type of center atom
@@ -26,7 +26,7 @@ struct NeighborhoodSub
 struct Neighborhood
 {
     int nbhcount_ = 0;                    // number of neighborhoods
-    std::vector<int> indices_;           // indices of each atom
+    std::vector<int> indices_;            // indices of each atom
     std::vector<int> chemmap_;            // atomic numbers of each atom
     std::vector<Eigen::RowVector3d> pos_; //relative positons of each atom about center atom
     std::vector<double> distances_;       //relative distance about center atom
@@ -69,10 +69,10 @@ struct Neighborhood
 
 class AnyNeighborhoods
 {
-protected:
+  protected:
     std::vector<Neighborhood> nbhs;
 
-public:
+  public:
     inline int size() const
     {
         return nbhs.size();
@@ -92,14 +92,15 @@ public:
     {
         return nbhs[index];
     }
+
     //friend ostream &operator<<(ostream &os, const Neighborhoods &desp);
     friend std::ostream &operator<<(std::ostream &os, const AnyNeighborhoods &nhb);
-    AnyNeighborhoods(){};
-    virtual ~AnyNeighborhoods(){};
-    AnyNeighborhoods(const AnyNeighborhoods&) = default;
-    AnyNeighborhoods& operator=(const AnyNeighborhoods&) = default;
-    AnyNeighborhoods(AnyNeighborhoods&&) = default;
-    AnyNeighborhoods& operator=(AnyNeighborhoods&&) = default;
+    AnyNeighborhoods() {};
+    virtual ~AnyNeighborhoods() {};
+    AnyNeighborhoods(const AnyNeighborhoods &) = default;
+    AnyNeighborhoods &operator=(const AnyNeighborhoods &) = default;
+    AnyNeighborhoods(AnyNeighborhoods &&) = default;
+    AnyNeighborhoods &operator=(AnyNeighborhoods &&) = default;
 
     AnyNeighborhoods get_neighbor_shell(double rshell, double width = 0.05) const;
     AnyNeighborhoods sub_neighborhoods(const double rcut) const;

@@ -22,8 +22,8 @@ def main() -> None:
         transport = thermo[f"c_transport[{component}]"]
         if not close(conventional, transport, rtol=3.0e-10, atol=2.0e-9):
             raise AssertionError(
-                f"heat-current component {component} differs: "
-                f"{conventional} vs {transport}")
+                f"heat-current component {component} differs: {conventional} vs {transport}"
+            )
     print("MTP heat current matches LAMMPS compute heat/flux in the pairwise limit")
 
 

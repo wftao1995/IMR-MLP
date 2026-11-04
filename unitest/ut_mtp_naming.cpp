@@ -13,7 +13,8 @@
 static_assert(std::is_same_v<Potentials::PotMTP, Potentials::PotMTP>);
 static_assert(std::is_same_v<Trainer_MTP, Trainer_MTP>);
 
-TEST_CASE("MTP level metadata errors are catchable", "[mtp][errors]") {
+TEST_CASE("MTP level metadata errors are catchable", "[mtp][errors]")
+{
     std::ifstream input("unitest/test-data/potential.mtp");
     REQUIRE(input.good());
     std::string text{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
@@ -22,8 +23,12 @@ TEST_CASE("MTP level metadata errors are catchable", "[mtp][errors]") {
     text.resize(text.find('\n', coefficients) + 1);
     text += "max_level = 0\n";
     std::string missing;
-    SECTION("missing node counts") { missing = "lev_scalar_nodes"; }
-    SECTION("missing scalar counts") {
+    SECTION("missing node counts")
+    {
+        missing = "lev_scalar_nodes";
+    }
+    SECTION("missing scalar counts")
+    {
         text += "lev_scalar_nodes = {0}\n";
         missing = "lev_scalar_count";
     }
@@ -33,7 +38,8 @@ TEST_CASE("MTP level metadata errors are catchable", "[mtp][errors]") {
     REQUIRE_THROWS_WITH(potential.Load(malformed), Catch::Matchers::ContainsSubstring(missing));
 }
 
-TEST_CASE("Default and explicit MTP types evaluate identical EFS", "[mtp]") {
+TEST_CASE("Default and explicit MTP types evaluate identical EFS", "[mtp]")
+{
     using namespace Potentials;
     const std::string path = "unitest/test-data/potential.mtp";
     potential_wrapper reference_pot(path, "mtp");
@@ -62,13 +68,15 @@ TEST_CASE("Default and explicit MTP types evaluate identical EFS", "[mtp]") {
     REQUIRE(actual.stress_.isApprox(reference.stress_));
 }
 
-TEST_CASE("Unknown potential type is rejected", "[mtp][errors]") {
+TEST_CASE("Unknown potential type is rejected", "[mtp][errors]")
+{
     const std::string type = "unknown_potential";
     REQUIRE_THROWS_WITH(Potentials::potential_wrapper("unitest/test-data/potential.mtp", type),
                         Catch::Matchers::ContainsSubstring("Unknown format"));
 }
 
-TEST_CASE("Ordinary MTP exposes physical parameter groups", "[mtp][training]") {
+TEST_CASE("Ordinary MTP exposes physical parameter groups", "[mtp][training]")
+{
     Potentials::PotMTP model("unitest/test-data/potential.mtp");
     const auto groups = model.nl_parameter_groups();
     REQUIRE(groups.size() == 4);

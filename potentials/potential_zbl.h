@@ -5,10 +5,12 @@
 
 #include "potential.h"
 
-namespace Potentials {
+namespace Potentials
+{
 
-class PotentialZBL : public AnyPotential {
-public:
+class PotentialZBL : public AnyPotential
+{
+  public:
     double r0 = 1.0, r1 = 2.0;
     std::vector<double> z;
     // ZBL universal screening constants
@@ -24,35 +26,54 @@ public:
     PotentialZBL(GPSettings settings);
     ~PotentialZBL() = default;
 
-    bool supports_site_efs() const override { return !z.empty(); }
+    bool supports_site_efs() const override
+    {
+        return !z.empty();
+    }
+
     void CalcSiteEFS(Neighborhood &, double &, SiteCoordinateMatrix &) override;
     void getEFS(Atoms &atom, AnyNeighborhoods &nbhs) override;
     void getE(Atoms &atom, AnyNeighborhoods &nbhs) override;
-    bool supports_analytical_hessian() const override { return true; }
+
+    bool supports_analytical_hessian() const override
+    {
+        return true;
+    }
+
     void getEFSHessian(Atoms &atom, AnyNeighborhoods &nbhs, HessianMatrix &hessian) override;
     void getEFSHessian(Atoms &atom, HessianMatrix &hessian) override;
     void getEFSHessianSymm(Atoms &atom, HessianMatrix &hessian, double symprec = 1e-4) override;
-    bool supports_analytical_cell_hessian() const override { return true; }
-    void getEFSHessianCell(Atoms &atom, AnyNeighborhoods &nbhs,
-        HessianMatrix &hessian, Eigen::MatrixXd &cellhess, Eigen::MatrixXd &lrhess) override;
-    void getEFSHessianCell(Atoms &atom, HessianMatrix &hessian,
-        Eigen::MatrixXd &cellhess, Eigen::MatrixXd &lrhess) override;
-    void getEFSHessianOMP(Atoms &atom, AnyNeighborhoods &nbhs,
-        HessianMatrix &hessian) override;
-    void getEFSHessianCellOMP(Atoms &atom, AnyNeighborhoods &nbhs,
-        HessianMatrix &hessian, Eigen::MatrixXd &cellhess, Eigen::MatrixXd &lrhess) override;
-    void getEFSHessianCellSymmOMP(Atoms &atom, HessianMatrix &hessian,
-        Eigen::MatrixXd &cellhess, Eigen::MatrixXd &lrhess, double symprec = 1e-4) override;
-    void getEFSHessianCellSymm(Atoms &atom, HessianMatrix &hessian,
-        Eigen::MatrixXd &cellhess, Eigen::MatrixXd &lrhess, double symprec = 1e-4) override;
+
+    bool supports_analytical_cell_hessian() const override
+    {
+        return true;
+    }
+
+    void getEFSHessianCell(Atoms &atom, AnyNeighborhoods &nbhs, HessianMatrix &hessian,
+                           Eigen::MatrixXd &cellhess, Eigen::MatrixXd &lrhess) override;
+    void getEFSHessianCell(Atoms &atom, HessianMatrix &hessian, Eigen::MatrixXd &cellhess,
+                           Eigen::MatrixXd &lrhess) override;
+    void getEFSHessianOMP(Atoms &atom, AnyNeighborhoods &nbhs, HessianMatrix &hessian) override;
+    void getEFSHessianCellOMP(Atoms &atom, AnyNeighborhoods &nbhs, HessianMatrix &hessian,
+                              Eigen::MatrixXd &cellhess, Eigen::MatrixXd &lrhess) override;
+    void getEFSHessianCellSymmOMP(Atoms &atom, HessianMatrix &hessian, Eigen::MatrixXd &cellhess,
+                                  Eigen::MatrixXd &lrhess, double symprec = 1e-4) override;
+    void getEFSHessianCellSymm(Atoms &atom, HessianMatrix &hessian, Eigen::MatrixXd &cellhess,
+                               Eigen::MatrixXd &lrhess, double symprec = 1e-4) override;
     using AnyPotential::applyHessianVectorProduct;
-    bool supports_analytical_hessian_vector_product() const override { return true; }
+
+    bool supports_analytical_hessian_vector_product() const override
+    {
+        return true;
+    }
+
     void applyHessianVectorProduct(Atoms &atom, AnyNeighborhoods &nbhs,
-        const Eigen::VectorXd &direction, Eigen::VectorXd &product) override;
+                                   const Eigen::VectorXd &direction,
+                                   Eigen::VectorXd &product) override;
     void Load(std::istream &is) override;
     void Save(std::ostream &os) override;
 
-private:
+  private:
     void initialize(GPSettings settings);
     double zbl_energy(double r, int zi, int zj) const;
     double zbl_energy_deriv(double r, int zi, int zj) const;

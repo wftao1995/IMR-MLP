@@ -31,6 +31,7 @@ class DimerResult:
     saddle_atoms : Atoms
         Structure at the saddle point.
     """
+
     converged: bool
     n_iter: int
     energy: float
@@ -94,28 +95,29 @@ class Dimer:
     >>> print(result.converged, result.energy, result.curvature)
     """
 
-    def __init__(self,
-                 potential,
-                 ddr: float = 5e-3,
-                 max_iter: int = 1000,
-                 dimer_gtol: float = 1e-2,
-                 rot_driver: str = "fire",
-                 trn_driver: str = "fire",
-                 rot_max_iter: int = 50,
-                 trn_max_iter: int = 200,
-                 vc_flag: bool = False,
-                 pressure: float = 0.0,
-                 write_traj: bool = False,
-                 *,
-                 modecar: str = "",
-                 random_seed: int = 0,
-                 rot_gtol: float = 1e-3,
-                 trn_gtol: float = 1e-2,
-                 symm_strain: bool = True,
-                 restore_F_cholesky: bool = True,
-                 recast_atomic_force: bool = True,
-                 periodic_subspace: bool = False,
-                 ):
+    def __init__(
+        self,
+        potential,
+        ddr: float = 5e-3,
+        max_iter: int = 1000,
+        dimer_gtol: float = 1e-2,
+        rot_driver: str = "fire",
+        trn_driver: str = "fire",
+        rot_max_iter: int = 50,
+        trn_max_iter: int = 200,
+        vc_flag: bool = False,
+        pressure: float = 0.0,
+        write_traj: bool = False,
+        *,
+        modecar: str = "",
+        random_seed: int = 0,
+        rot_gtol: float = 1e-3,
+        trn_gtol: float = 1e-2,
+        symm_strain: bool = True,
+        restore_F_cholesky: bool = True,
+        recast_atomic_force: bool = True,
+        periodic_subspace: bool = False,
+    ):
         self._impl = _Dimer()
         self._impl.modecarf = str(modecar)
         self._impl.random_seed = random_seed
@@ -137,13 +139,14 @@ class Dimer:
         self._impl.write_traj = write_traj
         if write_traj:
             from ._imrmlp import _GPIO
+
             self._io = _GPIO()
             self._impl.iobj = self._io
 
         self._potential = potential
         self._pot_inner: _AnyPotential = (
-            potential.inner if hasattr(potential, 'inner')
-            else potential._impl.inner)
+            potential.inner if hasattr(potential, 'inner') else potential._impl.inner
+        )
 
     def run(self, atoms: Atoms) -> DimerResult:
         """Run dimer search from the given structure.
@@ -175,6 +178,8 @@ class Dimer:
         )
 
     def __repr__(self) -> str:
-        return (f"Dimer(ddr={self._impl.ddr}, "
-                f"max_iter={self._impl.max_iter}, "
-                f"dimer_gtol={self._impl.dimer_gtol})")
+        return (
+            f"Dimer(ddr={self._impl.ddr}, "
+            f"max_iter={self._impl.max_iter}, "
+            f"dimer_gtol={self._impl.dimer_gtol})"
+        )

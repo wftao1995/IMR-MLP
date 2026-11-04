@@ -35,9 +35,7 @@ static std::string raw_file_content(const std::string &path)
 static Atoms make_compressed_io_atom()
 {
     Atoms atom;
-    atom.cell_ << 4.0, 0.0, 0.0,
-                  0.0, 5.0, 0.0,
-                  0.0, 0.0, 6.0;
+    atom.cell_ << 4.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 6.0;
     atom.pos_ = {{0.1, 0.2, 0.3}, {1.1, 1.2, 1.3}, {2.1, 2.2, 2.3}};
     atom.chemmap_ = {0, 1, 0};
     atom.pbc_ = {{true, true, true}};
@@ -68,8 +66,10 @@ static const char *compiled_codecs[] = {
 
 TEST_CASE("open_ofile/open_ifile codec roundtrip", "[compressed]")
 {
-    for (const char *ext : compiled_codecs) {
-        if (ext == nullptr) break;
+    for (const char *ext : compiled_codecs)
+    {
+        if (ext == nullptr)
+            break;
         std::string path = std::string("cs_stream_t") + ext;
         {
             auto os = open_ofile(path);
@@ -85,7 +85,7 @@ TEST_CASE("open_ofile/open_ifile codec roundtrip", "[compressed]")
 #ifdef USE_GZIP
 TEST_CASE("open_ifile detects compression by magic bytes without extension", "[compressed]")
 {
-    const std::string path = "cs_magic.dat";  // no .gz extension
+    const std::string path = "cs_magic.dat"; // no .gz extension
     {
         auto os = open_ofile("cs_magic_src.gz");
         *os << "magic detection content\n";
@@ -102,7 +102,7 @@ TEST_CASE("open_ifile detects compression by magic bytes without extension", "[c
     std::remove(path.c_str());
     std::remove("cs_magic_src.gz");
 }
-#endif  // USE_GZIP
+#endif // USE_GZIP
 
 TEST_CASE("plain files still read through open_ifile", "[compressed]")
 {
@@ -120,8 +120,10 @@ TEST_CASE("plain files still read through open_ifile", "[compressed]")
 TEST_CASE("GPIO extxyz write/read roundtrip through compiled-in codecs", "[compressed][gpio]")
 {
     Atoms input = make_compressed_io_atom();
-    for (const char *ext : compiled_codecs) {
-        if (ext == nullptr) break;
+    for (const char *ext : compiled_codecs)
+    {
+        if (ext == nullptr)
+            break;
         std::string path = std::string("cs_xyz_t") + ext;
         GPIO writer;
         REQUIRE(writer.write_one(input, path, "extxyz"));
@@ -131,7 +133,7 @@ TEST_CASE("GPIO extxyz write/read roundtrip through compiled-in codecs", "[compr
 
         std::vector<Atoms> atoms;
         GPIO reader;
-        REQUIRE(reader.read(atoms, path, ""));  // auto-detect from magic/extension
+        REQUIRE(reader.read(atoms, path, "")); // auto-detect from magic/extension
         REQUIRE(atoms.size() == 1);
         REQUIRE(atoms[0].chemmap_ == input.chemmap_);
         REQUIRE(atoms[0].pos_[0].isApprox(input.pos_[0]));
@@ -162,15 +164,17 @@ TEST_CASE("GPIO read auto-detects compressed POSCAR.gz", "[compressed][gpio]")
         REQUIRE(output.pos_[i].isApprox(input.pos_[i]));
     std::remove(path.c_str());
 }
-#endif  // USE_GZIP
+#endif // USE_GZIP
 
 TEST_CASE("GPIO binary MLIPBIN roundtrip through compiled-in codecs", "[compressed][gpio][binary]")
 {
     Atoms input = make_compressed_io_atom();
     input.forces_ = {{0.01, 0.02, 0.03}, {0.11, 0.12, 0.13}, {0.21, 0.22, 0.23}};
     input.have_stress = false;
-    for (const char *ext : compiled_codecs) {
-        if (ext == nullptr) break;
+    for (const char *ext : compiled_codecs)
+    {
+        if (ext == nullptr)
+            break;
         std::string path = std::string("cs_bin_t") + ext;
         GPIO writer;
         REQUIRE(writer.write_one(input, path, "bin"));
@@ -180,7 +184,8 @@ TEST_CASE("GPIO binary MLIPBIN roundtrip through compiled-in codecs", "[compress
         REQUIRE(reader.read_one(output, path, "bin"));
         REQUIRE(output.size() == input.size());
         REQUIRE(output.cell_.isApprox(input.cell_));
-        for (int i = 0; i < input.size(); ++i) {
+        for (int i = 0; i < input.size(); ++i)
+        {
             REQUIRE(output.pos_[i].isApprox(input.pos_[i]));
             REQUIRE(output.forces_[i].isApprox(input.forces_[i]));
         }
@@ -193,7 +198,8 @@ TEST_CASE("GPIO multi-frame compressed trajectory", "[compressed][gpio]")
 {
     std::string path = "cs_multi.xyz.gz";
     std::vector<Atoms> input;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i)
+    {
         Atoms atom = make_compressed_io_atom();
         atom.pos_[0][0] += 0.1 * i;
         atom.energy_ += 0.5 * i;
@@ -205,13 +211,14 @@ TEST_CASE("GPIO multi-frame compressed trajectory", "[compressed][gpio]")
     GPIO reader;
     REQUIRE(reader.read(atoms, path, ""));
     REQUIRE(atoms.size() == 3);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i)
+    {
         REQUIRE(atoms[i].energy_ == Approx(-12.5 + 0.5 * i));
         REQUIRE(atoms[i].pos_[0][0] == Approx(0.1 + 0.1 * i));
     }
     std::remove(path.c_str());
 }
-#endif  // USE_GZIP
+#endif // USE_GZIP
 
 #ifdef USE_GZIP
 TEST_CASE("compressed multi-member append is readable", "[compressed][gpio]")
@@ -240,7 +247,7 @@ TEST_CASE("compressed multi-member append is readable", "[compressed][gpio]")
     REQUIRE(atoms[1].energy_ == Approx(2.0));
     std::remove(path.c_str());
 }
-#endif  // USE_GZIP
+#endif // USE_GZIP
 
 TEST_CASE("guess_format strips compression extensions", "[compressed][gpio]")
 {
@@ -279,7 +286,7 @@ TEST_CASE("GPSettings loads from compressed .ini.gz", "[compressed][settings]")
     REQUIRE(settings["lbfgspp:maxiter"] == "100");
     std::remove(path.c_str());
 }
-#endif  // USE_GZIP
+#endif // USE_GZIP
 
 #ifdef USE_GZIP
 TEST_CASE("GPIO readmap works from compressed index.map.gz", "[compressed][gpio]")
@@ -300,7 +307,7 @@ TEST_CASE("GPIO readmap works from compressed index.map.gz", "[compressed][gpio]
     REQUIRE(iobj.getmap()[0] == "Si");
     std::remove(path.c_str());
 }
-#endif  // USE_GZIP
+#endif // USE_GZIP
 
 // ── error handling ──────────────────────────────────────────────────────────
 
@@ -321,8 +328,7 @@ TEST_CASE("corrupt gzip data fails gracefully", "[compressed][gpio]")
     REQUIRE_FALSE(reader.read(atoms, path, ""));
     std::remove(path.c_str());
 }
-#endif  // USE_GZIP
-
+#endif // USE_GZIP
 
 // ── disabled-codec diagnostics (only when the codec is NOT compiled in) ─────
 
@@ -335,12 +341,12 @@ TEST_CASE("disabled gzip reports a clear error", "[compressed]")
         std::ofstream ofs(path, std::ios::binary);
         ofs.write(gzip_magic, sizeof(gzip_magic) - 1);
     }
-    REQUIRE(probe_compression(path) == CompressionKind::Gzip);  // recognition stays on
-    REQUIRE(open_ifile(path) == nullptr);                       // decoding rejected
-    REQUIRE(open_ofile(path) == nullptr);                       // never plain-write .gz
+    REQUIRE(probe_compression(path) == CompressionKind::Gzip); // recognition stays on
+    REQUIRE(open_ifile(path) == nullptr);                      // decoding rejected
+    REQUIRE(open_ofile(path) == nullptr);                      // never plain-write .gz
     std::remove(path.c_str());
 }
-#endif  // !USE_GZIP
+#endif // !USE_GZIP
 
 TEST_CASE("unsupported compression is rejected without touching output", "[compressed][gpio]")
 {
@@ -422,8 +428,14 @@ TEST_CASE("Gzip members crossing input buffer boundaries are read completely", "
     }
     REQUIRE(read_all(path) == "first member\nsecond member\n");
     auto complete = raw_file_content(path);
-    SECTION("truncated second member") { complete.resize(complete.size() - 4); }
-    SECTION("corrupt second member") { complete[boundary] = 'x'; }
+    SECTION("truncated second member")
+    {
+        complete.resize(complete.size() - 4);
+    }
+    SECTION("corrupt second member")
+    {
+        complete[boundary] = 'x';
+    }
     {
         std::ofstream os(path, std::ios::binary);
         os.write(complete.data(), complete.size());

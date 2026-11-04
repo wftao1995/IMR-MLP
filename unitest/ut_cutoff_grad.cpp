@@ -9,21 +9,22 @@ using Catch::Approx;
 
 // ── Numerical differentiation helpers ────────────────────────────────────
 
-static double num_der(const std::function<double(double)> &f,
-                      double x, double h = 1e-6)
+static double num_der(const std::function<double(double)> &f, double x, double h = 1e-6)
 {
     return (f(x + h) - f(x - h)) / (2.0 * h);
 }
 
 /// Validate fcut and dfcut for a CutoffFunctions instance
-static void validate_cutoff(CutoffFunctions &cf, double r,
-                            double tol_der = 1e-6)
+static void validate_cutoff(CutoffFunctions &cf, double r, double tol_der = 1e-6)
 {
     double fc_ana = cf.fcut(r);
     double dfc_ana = cf.dfcut(r);
 
     // Numerical first derivative from fcut
-    auto f_fc = [&](double x) { return cf.fcut(x); };
+    auto f_fc = [&](double x)
+    {
+        return cf.fcut(x);
+    };
     double dfc_num = num_der(f_fc, r);
 
     INFO("r=" << r << " analytical=" << dfc_ana << " numerical=" << dfc_num);
@@ -36,11 +37,11 @@ static void validate_cutoff(CutoffFunctions &cf, double r,
     REQUIRE(dfc_fdf == Approx(dfc_ana).margin(tol_der));
 }
 
-static void validate_cutoff_multi(CutoffFunctions &cf,
-                                  const std::vector<double> &test_points,
+static void validate_cutoff_multi(CutoffFunctions &cf, const std::vector<double> &test_points,
                                   double tol_der = 1e-6)
 {
-    for (double r : test_points) {
+    for (double r : test_points)
+    {
         INFO("test_point=" << r);
         validate_cutoff(cf, r, tol_der);
     }
@@ -57,7 +58,8 @@ TEST_CASE("CutoffFunctions CT_HARD val/der", "[cutoff][grad][hard]")
     cf.setCutoffRadius(5.0);
 
     // Always 1, derivative always 0
-    for (double r : {0.0, 1.0, 2.5, 4.9}) {
+    for (double r : {0.0, 1.0, 2.5, 4.9})
+    {
         REQUIRE(cf.fcut(r) == Approx(1.0).margin(1e-15));
         REQUIRE(cf.dfcut(r) == Approx(0.0).margin(1e-15));
     }
@@ -241,7 +243,8 @@ TEST_CASE("CutoffFunctions CT_POLY4 val/der", "[cutoff][grad][poly4]")
 
 TEST_CASE("CutoffFunctions fdfcut matches separate fcut+dfcut", "[cutoff][consistency]")
 {
-    auto check = [](CutoffFunctions &cf, double r) {
+    auto check = [](CutoffFunctions &cf, double r)
+    {
         double fc1 = cf.fcut(r);
         double dfc1 = cf.dfcut(r);
         double fc2, dfc2;
@@ -254,16 +257,20 @@ TEST_CASE("CutoffFunctions fdfcut matches separate fcut+dfcut", "[cutoff][consis
 
     cf.setCutoffType(CutoffFunctions::CT_COS_BASIC);
     cf.setCutoffRadius(5.0);
-    for (double r : {0.5, 1.5, 3.0, 4.5}) check(cf, r);
+    for (double r : {0.5, 1.5, 3.0, 4.5})
+        check(cf, r);
 
     cf.setCutoffType(CutoffFunctions::CT_COS);
     cf.setCutoffParameter(0.3);
-    for (double r : {0.5, 1.5, 3.0, 4.5}) check(cf, r);
+    for (double r : {0.5, 1.5, 3.0, 4.5})
+        check(cf, r);
 
     cf.setCutoffType(CutoffFunctions::CT_TANH);
-    for (double r : {0.5, 1.5, 3.0, 4.5}) check(cf, r);
+    for (double r : {0.5, 1.5, 3.0, 4.5})
+        check(cf, r);
 
     cf.setCutoffType(CutoffFunctions::CT_EXP);
     cf.setCutoffParameter(0.1);
-    for (double r : {0.5, 1.5, 3.0, 4.5}) check(cf, r);
+    for (double r : {0.5, 1.5, 3.0, 4.5})
+        check(cf, r);
 }

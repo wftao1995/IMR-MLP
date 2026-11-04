@@ -12,10 +12,12 @@
 
 namespace fs = std::filesystem;
 
-namespace {
+namespace
+{
 
-class ShellTestDirectory {
-public:
+class ShellTestDirectory
+{
+  public:
     explicit ShellTestDirectory(const std::string &name)
         : original_(fs::current_path()), path_(original_ / ("pot-shell-" + name))
     {
@@ -39,7 +41,7 @@ public:
         REQUIRE(ofs.good());
     }
 
-private:
+  private:
     fs::path original_;
     fs::path path_;
 };
@@ -99,7 +101,8 @@ TEST_CASE("PotShellCalc preserves complete script and job paths", "[potential][s
     ShellTestDirectory directory("path space's");
     fs::create_directory("scripts space's");
     auto settings = shell_settings();
-    for (const auto &name : {"pre", "run", "post"}) {
+    for (const auto &name : {"pre", "run", "post"})
+    {
         const auto script = fs::path("scripts space's") / (std::string(name) + ".sh");
         std::string contents = "[ \"$#\" -eq 1 ] || exit 31\n"
                                "[ -d \"$1\" ] || exit 32\n";
@@ -107,8 +110,10 @@ TEST_CASE("PotShellCalc preserves complete script and job paths", "[potential][s
         if (std::string(name) == "run")
             contents += "cp reference.cfg \"$1/output.cfg\"\n";
         ShellTestDirectory::write_file(script, contents);
-        settings.Modify(std::string(name) == "run" ? "runscript" :
-                        std::string(name) == "pre" ? "prescript" : "postscript", script.string());
+        settings.Modify(std::string(name) == "run"   ? "runscript"
+                        : std::string(name) == "pre" ? "prescript"
+                                                     : "postscript",
+                        script.string());
     }
     auto expected = make_atom(-3.5);
     expected.forces_ = {{.4, -.7, 1.2}};
@@ -124,7 +129,8 @@ TEST_CASE("PotShellCalc preserves complete script and job paths", "[potential][s
     REQUIRE(actual.has_forces());
     REQUIRE(actual.forces_[0].isApprox(Eigen::Vector3d(.4, -.7, 1.2), 1e-12));
     REQUIRE(fs::exists(jobdir / "input.cfg"));
-    for (const auto &name : {"pre", "run", "post"}) {
+    for (const auto &name : {"pre", "run", "post"})
+    {
         std::ifstream input(jobdir / (std::string(name) + "-arg.txt"));
         std::string argument;
         REQUIRE(static_cast<bool>(std::getline(input, argument)));
@@ -135,15 +141,19 @@ TEST_CASE("PotShellCalc preserves complete script and job paths", "[potential][s
 TEST_CASE("PotShellCalc stops after a pre- or run-script failure", "[potential][shell]")
 {
     bool fail_pre = false;
-    SECTION("pre-script failure") { fail_pre = true; }
-    SECTION("run-script failure") { fail_pre = false; }
+    SECTION("pre-script failure")
+    {
+        fail_pre = true;
+    }
+    SECTION("run-script failure")
+    {
+        fail_pre = false;
+    }
 
     ShellTestDirectory directory(fail_pre ? "pre-failure" : "run-failure");
-    ShellTestDirectory::write_file(
-        "pre.sh", fail_pre ? "exit 7\n" : "touch \"$1/pre-ran\"\n");
-    ShellTestDirectory::write_file(
-        "run.sh", fail_pre ? "touch \"$1/run-ran\"\n"
-                           : "touch \"$1/run-ran\"\nexit 9\n");
+    ShellTestDirectory::write_file("pre.sh", fail_pre ? "exit 7\n" : "touch \"$1/pre-ran\"\n");
+    ShellTestDirectory::write_file("run.sh", fail_pre ? "touch \"$1/run-ran\"\n"
+                                                      : "touch \"$1/run-ran\"\nexit 9\n");
     ShellTestDirectory::write_file("post.sh", "touch \"$1/post-ran\"\n");
 
     fs::create_directory("run-job-omp-thread-0");
@@ -156,9 +166,12 @@ TEST_CASE("PotShellCalc stops after a pre- or run-script failure", "[potential][
 
     REQUIRE(actual.energy_ == Catch::Approx(12.0));
     REQUIRE_FALSE(fs::exists("run-job-omp-thread-0/post-ran"));
-    if (fail_pre) {
+    if (fail_pre)
+    {
         REQUIRE_FALSE(fs::exists("run-job-omp-thread-0/run-ran"));
-    } else {
+    }
+    else
+    {
         REQUIRE(fs::exists("run-job-omp-thread-0/pre-ran"));
         REQUIRE(fs::exists("run-job-omp-thread-0/run-ran"));
     }
@@ -180,14 +193,17 @@ TEST_CASE("PotShellCalc rejects missing or unreadable output", "[potential][shel
     Potentials::PotShellCalc calculator(settings);
     Atoms atom = make_atom(12.0);
 
-    SECTION("missing output") {
+    SECTION("missing output")
+    {
         REQUIRE(calculator.read_output(atom, ".") != 0);
     }
-    SECTION("empty output") {
+    SECTION("empty output")
+    {
         ShellTestDirectory::write_file("output.cfg", "");
         REQUIRE(calculator.read_output(atom, ".") != 0);
     }
-    SECTION("malformed output") {
+    SECTION("malformed output")
+    {
         ShellTestDirectory::write_file("output.cfg", "not a configuration\n");
         REQUIRE(calculator.read_output(atom, ".") != 0);
     }
@@ -240,11 +256,16 @@ TEST_CASE("PotShellCalc propagates input output and post-script errors", "[poten
     ShellTestDirectory::write_file("run.sh", "cp reference.cfg \"$1/output.cfg\"\n");
     ShellTestDirectory::write_file("post.sh", "exit 0\n");
     write_cfg("reference.cfg", make_atom(-3.5));
-    SECTION("input cannot be written") { settings.Modify("write_posfile", "missing/input.cfg"); }
-    SECTION("output missing despite successful script") {
+    SECTION("input cannot be written")
+    {
+        settings.Modify("write_posfile", "missing/input.cfg");
+    }
+    SECTION("output missing despite successful script")
+    {
         ShellTestDirectory::write_file("run.sh", "exit 0\n");
     }
-    SECTION("post-script fails") {
+    SECTION("post-script fails")
+    {
         ShellTestDirectory::write_file("post.sh", "exit 11\n");
     }
     Potentials::PotShellCalc calculator(settings);

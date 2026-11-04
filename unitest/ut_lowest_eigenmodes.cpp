@@ -9,19 +9,16 @@
 
 using Catch::Approx;
 
-TEST_CASE("Matrix-free lowest modes match dense eigenvalues with a projector",
-          "[hvp][eigenmodes]")
+TEST_CASE("Matrix-free lowest modes match dense eigenvalues with a projector", "[hvp][eigenmodes]")
 {
     constexpr int dimension = 12;
     Eigen::MatrixXd random = Eigen::MatrixXd::Random(dimension, dimension);
     Eigen::HouseholderQR<Eigen::MatrixXd> qr(random);
-    const Eigen::MatrixXd rotation = qr.householderQ() *
-        Eigen::MatrixXd::Identity(dimension, dimension);
+    const Eigen::MatrixXd rotation =
+        qr.householderQ() * Eigen::MatrixXd::Identity(dimension, dimension);
     Eigen::VectorXd spectrum(dimension);
-    spectrum << -8.0, -3.0, -1.0, 0.25, 0.5, 1.0,
-                2.0, 3.0, 5.0, 8.0, 13.0, 21.0;
-    const Eigen::MatrixXd matrix =
-        rotation * spectrum.asDiagonal() * rotation.transpose();
+    spectrum << -8.0, -3.0, -1.0, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0;
+    const Eigen::MatrixXd matrix = rotation * spectrum.asDiagonal() * rotation.transpose();
     const Eigen::VectorXd excluded = rotation.col(0);
 
     MatrixFree::LowestEigenmodesSettings settings;
@@ -30,12 +27,14 @@ TEST_CASE("Matrix-free lowest modes match dense eigenvalues with a projector",
     settings.max_matvecs = 200;
     auto result = MatrixFree::solve_lowest_symmetric(
         dimension,
-        [&](const Eigen::VectorXd &input, Eigen::VectorXd &output) {
+        [&](const Eigen::VectorXd &input, Eigen::VectorXd &output)
+        {
             output = matrix * input;
             output.noalias() -= excluded * excluded.dot(output);
         },
         settings,
-        [&](Eigen::VectorXd &value) {
+        [&](Eigen::VectorXd &value)
+        {
             value.noalias() -= excluded * excluded.dot(value);
         });
 
@@ -48,8 +47,7 @@ TEST_CASE("Matrix-free lowest modes match dense eigenvalues with a projector",
         REQUIRE(std::abs(excluded.dot(result.eigenvectors.col(mode))) < 1e-10);
 }
 
-TEST_CASE("Matrix-free lowest modes report a matvec-limit failure",
-          "[hvp][eigenmodes]")
+TEST_CASE("Matrix-free lowest modes report a matvec-limit failure", "[hvp][eigenmodes]")
 {
     constexpr int dimension = 40;
     Eigen::MatrixXd matrix = Eigen::MatrixXd::Random(dimension, dimension);
@@ -60,7 +58,8 @@ TEST_CASE("Matrix-free lowest modes report a matvec-limit failure",
     settings.max_matvecs = 8;
     const auto result = MatrixFree::solve_lowest_symmetric(
         dimension,
-        [&](const Eigen::VectorXd &input, Eigen::VectorXd &output) {
+        [&](const Eigen::VectorXd &input, Eigen::VectorXd &output)
+        {
             output = matrix * input;
         },
         settings);

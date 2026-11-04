@@ -2,6 +2,7 @@
 # Copyright (c) 2026 IMR-MLP contributors
 # SPDX-License-Identifier: MIT
 """Adapt repository Markdown math, page links and attachments for Doxygen."""
+
 from functools import lru_cache
 from hashlib import sha1
 from html import escape, unescape
@@ -27,9 +28,14 @@ def local_target(source, target):
     path = Path(unquote(parsed.path))
     destination = (source.parent / path).resolve() if parsed.path else source.resolve()
     # Workstation artifacts are evidence paths, not published documentation.
-    if path.is_absolute() or not destination.is_relative_to(ROOT) or any(
+    if (
+        path.is_absolute()
+        or not destination.is_relative_to(ROOT)
+        or any(
             destination.is_relative_to(ROOT / directory)
-            for directory in ('build', 'docs/build', 'docs/build_zh')):
+            for directory in ('build', 'docs/build', 'docs/build_zh')
+        )
+    ):
         return None
     return destination
 
@@ -47,8 +53,16 @@ def preferred_page(path, language):
 
 @lru_cache(maxsize=None)
 def page_id(path):
-    heading = next((m for i, part in enumerate(prose_parts(path.read_text())) if not i % 2
-                    for m in HEADING.finditer(part) if m[1] == '#'), None)
+    heading = next(
+        (
+            m
+            for i, part in enumerate(prose_parts(path.read_text()))
+            if not i % 2
+            for m in HEADING.finditer(part)
+            if m[1] == '#'
+        ),
+        None,
+    )
     if not heading:
         return None
     explicit = re.search(r'\{#([^}]+)\}', heading[2])
@@ -83,8 +97,11 @@ def sections(path):
             counts[slug] = count + 1
             slug += f'-{count}' if count else ''
             explicit = re.search(r'\{#([^}]+)\}', heading[2])
-            anchor = explicit[1] if explicit else (
-                identifier if heading[1] == '#' else section_id(identifier, slug))
+            anchor = (
+                explicit[1]
+                if explicit
+                else (identifier if heading[1] == '#' else section_id(identifier, slug))
+            )
             result[slug] = anchor
             if explicit:
                 result[anchor] = anchor
@@ -114,8 +131,11 @@ def render(source, language, pages=None, assets=None):
             manual_page = (source.parent / unquote(parsed.path)).resolve()
             manual_root = ROOT / 'docs/manual-html'
             if manual_page.is_relative_to(manual_root):
-                return '../../manual-html/' + manual_page.relative_to(manual_root).as_posix() + (
-                    '#' + parsed.fragment if parsed.fragment else '')
+                return (
+                    '../../manual-html/'
+                    + manual_page.relative_to(manual_root).as_posix()
+                    + ('#' + parsed.fragment if parsed.fragment else '')
+                )
         destination = local_target(source, target)
         if destination is None:
             return None
@@ -134,7 +154,11 @@ def render(source, language, pages=None, assets=None):
                 if not anchor:
                     raise ValueError(f'{source.relative_to(ROOT)}: unknown section in {target}')
             if translation:
-                filename = 'index' if page_id(destination) in ('mainpage', 'index') else page_id(destination)
+                filename = (
+                    'index'
+                    if page_id(destination) in ('mainpage', 'index')
+                    else page_id(destination)
+                )
                 directory = 'build_zh' if translation == 'zh' else 'build'
                 fragment = '#' + anchor if parsed.fragment else ''
                 return f'../../{directory}/html/{filename}.html{fragment}'
@@ -153,6 +177,7 @@ def render(source, language, pages=None, assets=None):
         # stay references. This keeps all published pages in six ordered trees.
         if (ROOT / 'docs/catalog.json').is_file():
             from doc_catalog import children
+
             destination = local_target(source, match[2])
             label = match[1].removeprefix('[').removesuffix('](')
             if destination and label not in ('English', '中文', '简体中文'):
@@ -179,11 +204,18 @@ def render(source, language, pages=None, assets=None):
         # Doxygen's emphasis parser does not consistently recognize Chinese
         # punctuation around **...**. Leave inline code and formulas verbatim.
         protected = []
+
         def protect(match):
             protected.append(match[0])
             return f'\x02INLINE{len(protected) - 1}\x03'
-        text = re.sub(r'`+[^`\n]*`+|(?:@|\\)f\$.*?(?:@|\\)f\$|(?:@|\\)f\[.*?(?:@|\\)f\]'
-                      r'|\$\$.*?\$\$|\\\(.*?\\\)|\\\[.*?\\\]', protect, text, flags=re.S)
+
+        text = re.sub(
+            r'`+[^`\n]*`+|(?:@|\\)f\$.*?(?:@|\\)f\$|(?:@|\\)f\[.*?(?:@|\\)f\]'
+            r'|\$\$.*?\$\$|\\\(.*?\\\)|\\\[.*?\\\]',
+            protect,
+            text,
+            flags=re.S,
+        )
         text = re.sub(r'(?<![\\*])\*\*([^*\n]+)\*\*(?!\*)', r'<strong>\1</strong>', text)
         text = re.sub(r'\x02INLINE(\d+)\x03', lambda m: protected[int(m[1])], text)
         text = text.replace(r'\[', r'\f[').replace(r'\]', r'\f]')
@@ -191,8 +223,9 @@ def render(source, language, pages=None, assets=None):
         return re.sub(r'\$\$(.*?)\$\$', lambda m: r'\f[' + m[1] + r'\f]', text, flags=re.S)
 
     # Keep shell/Python/model-file examples verbatim.
-    return ''.join(part if i % 2 else convert(part)
-                   for i, part in enumerate(prose_parts(source.read_text())))
+    return ''.join(
+        part if i % 2 else convert(part) for i, part in enumerate(prose_parts(source.read_text()))
+    )
 
 
 if __name__ == '__main__':

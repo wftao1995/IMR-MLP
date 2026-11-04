@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Model-declared element order replaces index.map for structure reading."""
+
 import re
 
 import pytest
@@ -30,9 +31,18 @@ Direct
 def tagged_model(directory):
     result = run_command(
         'imrmlp',
-        ['adjustmtp', '--input', str(ROOT / 'unitest/test-data/potential.mtp'),
-         '--output', 'tagged.mtp', '--elements', 'Al', 'Ni'],
-        directory)
+        [
+            'adjustmtp',
+            '--input',
+            str(ROOT / 'unitest/test-data/potential.mtp'),
+            '--output',
+            'tagged.mtp',
+            '--elements',
+            'Al',
+            'Ni',
+        ],
+        directory,
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     return 'tagged.mtp'
 
@@ -47,9 +57,20 @@ def legacy_model(directory, tagged):
 def calc_efs(directory, model, input_name, output_name, extra=()):
     return run_command(
         'imrmlp',
-        ['calc_efs', '--input', input_name, '--output', output_name,
-         '--potfile', model, '--pottype', 'mtp', *extra],
-        directory)
+        [
+            'calc_efs',
+            '--input',
+            input_name,
+            '--output',
+            output_name,
+            '--potfile',
+            model,
+            '--pottype',
+            'mtp',
+            *extra,
+        ],
+        directory,
+    )
 
 
 def read_result(path):
@@ -103,9 +124,8 @@ def test_gpm_model_without_index_map(workdir):
     assert calc_efs(workdir, model, 'input.xyz', 'reference.xyz').returncode == 0
     reference = read_result(workdir / 'reference.xyz')
     convert = run_command(
-        'imrmlp',
-        ['model_convert', '--input', model, '--output', 'model.gpm'],
-        workdir)
+        'imrmlp', ['model_convert', '--input', model, '--output', 'model.gpm'], workdir
+    )
     assert convert.returncode == 0, convert.stdout + convert.stderr
     (workdir / 'index.map').unlink()
     result = calc_efs(workdir, 'model.gpm', 'input.xyz', 'out.xyz')
@@ -120,9 +140,8 @@ def test_gpm_model_without_index_map(workdir):
 def test_numeric_cfg_without_index_map_keeps_element_names(workdir):
     model = tagged_model(workdir)
     convert = run_command(
-        'imrmlp',
-        ['convstr', 'input.xyz', 'input.cfg', '--index', 'index.map'],
-        workdir)
+        'imrmlp', ['convstr', 'input.xyz', 'input.cfg', '--index', 'index.map'], workdir
+    )
     assert convert.returncode == 0, convert.stdout + convert.stderr
     (workdir / 'index.map').unlink()
     result = calc_efs(workdir, model, 'input.cfg', 'out.xyz')
@@ -134,14 +153,12 @@ def test_numeric_cfg_without_index_map_keeps_element_names(workdir):
 def test_explicit_missing_map_uses_model_or_fails_without_metadata(workdir):
     model = tagged_model(workdir)
     (workdir / 'index.map').unlink()
-    result = calc_efs(workdir, model, 'input.xyz', 'out.xyz',
-                      ['--index', 'missing.map'])
+    result = calc_efs(workdir, model, 'input.xyz', 'out.xyz', ['--index', 'missing.map'])
     assert result.returncode == 0, result.stdout + result.stderr
     assert 'declared by the model' in result.stderr
 
     legacy = legacy_model(workdir, model)
-    result = calc_efs(workdir, legacy, 'input.xyz', 'legacy.xyz',
-                      ['--index', 'missing.map'])
+    result = calc_efs(workdir, legacy, 'input.xyz', 'legacy.xyz', ['--index', 'missing.map'])
     assert result.returncode != 0
     assert 'does not declare an element order' in result.stderr
 
@@ -160,7 +177,8 @@ def test_relax_trajectory_without_index_map(workdir):
     (workdir / 'relax.ini').write_text(
         f'input input.xyz\noutput relaxed.xyz\n'
         f'pot:potfile {model}\npot:pottype mtp\n'
-        'relax:gtol 1e20\nrelax:maxiteration 1\nrelax:write_traj true\n')
+        'relax:gtol 1e20\nrelax:maxiteration 1\nrelax:write_traj true\n'
+    )
     (workdir / 'index.map').unlink()
     result = run_command('imrmlp', ['relax', 'relax.ini'], workdir)
     assert result.returncode == 0, result.stdout + result.stderr

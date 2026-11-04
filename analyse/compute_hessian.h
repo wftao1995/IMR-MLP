@@ -8,9 +8,11 @@
 #include "potentials/potential.h"
 #include <string>
 
-class ComputeHessian : public ConnectSettings {
-public:
-    enum class HessianMethod {
+class ComputeHessian : public ConnectSettings
+{
+  public:
+    enum class HessianMethod
+    {
         Auto,
         Analytic,
         ForceFD,
@@ -18,13 +20,14 @@ public:
         Hybrid
     };
 
-    enum class HessianObjective {
+    enum class HessianObjective
+    {
         Energy,
         Enthalpy
     };
 
-private:
-    double nudgepos  = 0.001;
+  private:
+    double nudgepos = 0.001;
     double nudgecell = 0.001;
     double nudgefrac = 0.001;
     double cutoff = 0.0;
@@ -33,19 +36,20 @@ private:
 
     HessianMethod parse_method() const;
     HessianObjective parse_objective() const;
-    HessianMethod resolve_atomic_method(const Potentials::AnyPotential *pot, const Atoms &atom) const;
+    HessianMethod resolve_atomic_method(const Potentials::AnyPotential *pot,
+                                        const Atoms &atom) const;
 
-public:
+  public:
     bool request_fc = true;
     bool request_cell = false;
-    bool cell_strain = false;       // 9 raw cell DOFs or 6 Voigt strain DOFs
-    bool symm_strain = false;       // project the strain block using point symmetry
-    bool fractional_pos = false;    // use fractional atomic coordinates as DOFs
+    bool cell_strain = false;    // 9 raw cell DOFs or 6 Voigt strain DOFs
+    bool symm_strain = false;    // project the strain block using point symmetry
+    bool fractional_pos = false; // use fractional atomic coordinates as DOFs
     bool request_response_pos_cell = true;
     bool use_symmetry = true;       // apply symmetry projection where available
     bool engineering_shear = false; // use gamma_ij = 2 epsilon_ij
     double symprec = 1e-4;
-    double pressure = 0.0;          // eV/A^3, used for the enthalpy objective
+    double pressure = 0.0; // eV/A^3, used for the enthalpy objective
     HessianMethod method = HessianMethod::Auto;
     HessianObjective objective = HessianObjective::Energy;
 
@@ -55,8 +59,8 @@ public:
     void compute_fc(Atoms &atom, Eigen::MatrixXd &hessian, Potentials::AnyPotential *pot);
     // Cartesian atom-major H*v. Auto uses analytical HVP when available,
     // otherwise two force evaluations with maximum per-atom motion nudge_pos.
-    void compute_hvp(const Atoms &atom, const Eigen::VectorXd &direction,
-                     Eigen::VectorXd &product, Potentials::AnyPotential *pot);
+    void compute_hvp(const Atoms &atom, const Eigen::VectorXd &direction, Eigen::VectorXd &product,
+                     Potentials::AnyPotential *pot);
 
     // Block-storage counterpart used by force-constant applications. Analytic
     // backends fill blocks directly; numerical backends reuse the dense path.
@@ -66,30 +70,38 @@ public:
     ComputeHessian() = default;
     ~ComputeHessian() = default;
 
-    explicit ComputeHessian(GPSettings settings) {
+    explicit ComputeHessian(GPSettings settings)
+    {
         InitSettings();
         ApplySettings(settings);
         method = parse_method();
         objective = parse_objective();
     }
 
-    void set_cutoff(double r) {
+    void set_cutoff(double r)
+    {
         cutoff = r;
     }
 
-    double get_cutoff() const { return cutoff; }
+    double get_cutoff() const
+    {
+        return cutoff;
+    }
 
-    void set_method(const std::string &name) {
+    void set_method(const std::string &name)
+    {
         method_name = name;
         method = parse_method();
     }
 
-    void set_objective(const std::string &name) {
+    void set_objective(const std::string &name)
+    {
         objective_name = name;
         objective = parse_objective();
     }
 
-    void InitSettings() {
+    void InitSettings()
+    {
         Connect(nudgepos, "nudge_pos");
         Connect(nudgecell, "nudge_cell");
         Connect(nudgefrac, "nudge_frac");

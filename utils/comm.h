@@ -12,11 +12,11 @@ struct MPI_data
     int rank = 0; // Number of this processor in the mpi grop
     int size = 1; //  Number of ranks in MPI gruop
     std::string fnm_ending = "";
-    MPI_Comm comm; // mpi communication group
-    void InitComm(MPI_Comm _comm);  // Initialization, updating the object
+    MPI_Comm comm;                 // mpi communication group
+    void InitComm(MPI_Comm _comm); // Initialization, updating the object
 };
 
 // Common communicator
-extern MPI_data mpi; 
+extern MPI_data mpi;
 
 #endif

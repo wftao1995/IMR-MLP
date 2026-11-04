@@ -6,6 +6,7 @@
 每行代表一个候选结构，每列代表一个特征；此处使用合成矩阵演示接口。
 结构级 MaxVol 及 FPS 的配置见 docs/reference/python_zh.md。
 """
+
 import numpy as np
 from imrmlp import MaxVol, cur_select
 

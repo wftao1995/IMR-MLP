@@ -28,7 +28,7 @@
 
 class ChargeErrorMonitor
 {
-public:
+  public:
     double sq_error = 0.0;
     double loss_q = 0.0;
     double q_min = std::numeric_limits<double>::infinity();
@@ -50,7 +50,7 @@ public:
 
 class TrainNonlinear : public ConnectSettings
 {
-private:
+  private:
     LinearRefitSettings linear_refit_settings;
     std::string varpro_report = "varpro.jsonl";
     std::string varpro_radial_scale_file;
@@ -58,16 +58,22 @@ private:
     double varpro_linear_gradient_tolerance = 1e-7;
     int varpro_linear_refinement_steps = 2;
     double validation_max_energy = -1., validation_max_force = -1., validation_max_stress = -1.;
-    EFSFitWeights efs_weights() const {
-        return {weight_eng,weight_force,weight_stress,
-                weight_eng_power,weight_force_power,weight_stress_power,
-                weight_force_norm_d,weight_force_norm_f,weight_force_norm_p};
+
+    EFSFitWeights efs_weights() const
+    {
+        return {weight_eng,          weight_force,        weight_stress,
+                weight_eng_power,    weight_force_power,  weight_stress_power,
+                weight_force_norm_d, weight_force_norm_f, weight_force_norm_p};
     }
+
     // internal variables
     int n_relax_coeffs = 0;
-    void RequireCurrentParameterLayout() const {
-        if (!p_pot || p_pot->get_NL_coeffs_count()!=n_relax_coeffs)
-            GPERROR("Potential parameter layout changed; reinitialize the trainer after appending species");
+
+    void RequireCurrentParameterLayout() const
+    {
+        if (!p_pot || p_pot->get_NL_coeffs_count() != n_relax_coeffs)
+            GPERROR(
+                "Potential parameter layout changed; reinitialize the trainer after appending species");
     }
 
     Eigen::VectorXd loss_gard; // local one
@@ -75,8 +81,9 @@ private:
     Eigen::VectorXd update_vector_last;
     alglib::real_1d_array scale;
     Eigen::VectorXd x; //, g use Eigen::Map to threat this as vector
-    Eigen::VectorXd x_in, g_in;    
-    Eigen::VectorXd scaling_coeffs; // scaling of problem, scale each parameter to about magnitute of 1.0
+    Eigen::VectorXd x_in, g_in;
+    Eigen::VectorXd
+        scaling_coeffs; // scaling of problem, scale each parameter to about magnitute of 1.0
 
     double loss;
     double loss_mpi;
@@ -87,9 +94,8 @@ private:
     double stress_weight(const Atoms &atom) const;
     double charge_weight(const Atoms &atom) const;
     double total_charge_target(const Atoms &atom) const;
-    void AddChargeLoss(Atoms &prediction, const Atoms &reference,
-                       AnyNeighborhoods &nbhs, double &loss,
-                       double *gradient, ChargeErrorMonitor &monitor);
+    void AddChargeLoss(Atoms &prediction, const Atoms &reference, AnyNeighborhoods &nbhs,
+                       double &loss, double *gradient, ChargeErrorMonitor &monitor);
 
     // Control flags
     int maxiter = 1000;
@@ -125,9 +131,9 @@ private:
     void DisplayValidation() const;
 
     // Common variables
-    size_t train_set_size;     // on current node
-    size_t train_set_size_aligned;   // upper bound
-    size_t train_set_size_all; // all nodes
+    size_t train_set_size;         // on current node
+    size_t train_set_size_aligned; // upper bound
+    size_t train_set_size_all;     // all nodes
 
     size_t valid_set_size = 0;
     size_t valid_set_size_all = 0;
@@ -138,7 +144,8 @@ private:
     std::string objective_convention = "legacy", l2_reference = "native", objective_report;
     Training::EFSObjective objective_contract_;
     double reg_L1 = 0; // L1
-    Training::HVPFitSettings hessian_fit; // Full Frobenius matrix loss through force finite differences.
+    Training::HVPFitSettings
+        hessian_fit; // Full Frobenius matrix loss through force finite differences.
     void AddHessianLoss(const Atoms &, double, double &, bool, ErrorMonitor &);
     Training::HVPFitSettings hvp_fit;
     void AddHVPLoss(const Atoms &, double, double &, bool, ErrorMonitor &);
@@ -157,8 +164,9 @@ private:
     double weight_charge_power = 1.0;
     std::string charge_target_attrib = "total_charge";
     double charge_default_target = 0.0;
-    double weight_penatly = 1.0e-6;   // make basis orthogonal
-    double weight_force_norm_d = 0.1; // to target, wgt *= weight_force_norm_d / (weight_force_norm_d + weight_force_norm_f^weight_force_norm_p)
+    double weight_penatly = 1.0e-6; // make basis orthogonal
+    double weight_force_norm_d =
+        0.1; // to target, wgt *= weight_force_norm_d / (weight_force_norm_d + weight_force_norm_f^weight_force_norm_p)
     double weight_force_norm_f = 0;
     double weight_force_norm_p = 1.0;
 
@@ -174,9 +182,9 @@ private:
     double sgd_decay_rate = 0.95;
     int sgd_decay_steps = 10;
     double sgd_final_lr = 0.0;
-    double clip_gradient = 0.0;       // 0 = no clipping
-    int sgd_warmup_steps = 0;         // 0 = no warmup
-    double sgd_warmup_lr = 0.0;       // starting LR for warmup
+    double clip_gradient = 0.0; // 0 = no clipping
+    int sgd_warmup_steps = 0;   // 0 = no warmup
+    double sgd_warmup_lr = 0.0; // starting LR for warmup
 
     // BFGS|CG related
     double bfgs_conv_tol = 1e-3;
@@ -222,7 +230,9 @@ private:
 #ifdef IMRMLP_GPU
     std::unique_ptr<Potentials::MTPGpuEvaluator> gpu_evaluator_;
     std::unique_ptr<Potentials::MTPGpuBatch> gpu_batch_;
-    struct GpuCachedBatch {
+
+    struct GpuCachedBatch
+    {
         std::vector<int> indices;
         std::unique_ptr<Potentials::MTPGpuBatch> batch;
         std::vector<double> target_energy;
@@ -235,6 +245,7 @@ private:
         int force_count = 0;
         int stress_count = 0;
     };
+
     std::vector<GpuCachedBatch> gpu_cached_batches_;
     std::vector<GpuCachedBatch> gpu_validation_batches_;
     std::vector<double> gpu_dloss_denergy_;
@@ -249,30 +260,25 @@ private:
     size_t gpu_free_memory_bytes_ = 0;
     std::vector<size_t> gpu_reciprocal_bytes_;
     size_t gpu_memory_budget_bytes_ = 0;
-    size_t EstimateGpuBytes(size_t atoms, size_t neighbors,
-                             size_t structures, size_t reciprocal_bytes = 0) const;
+    size_t EstimateGpuBytes(size_t atoms, size_t neighbors, size_t structures,
+                            size_t reciprocal_bytes = 0) const;
     size_t EstimateGpuChunkBytes(const std::vector<int> &indices) const;
     std::vector<std::vector<int>> MakeGpuChunks(const std::vector<int> &indices) const;
-    std::vector<std::vector<int>> MakeGpuChunks(
-        const std::vector<int> &indices, const std::vector<Atoms> &atoms,
-        const std::vector<Neighborhoods> &neighbors,
-        const std::vector<size_t> &reciprocal_bytes) const;
+    std::vector<std::vector<int>> MakeGpuChunks(const std::vector<int> &indices,
+                                                const std::vector<Atoms> &atoms,
+                                                const std::vector<Neighborhoods> &neighbors,
+                                                const std::vector<size_t> &reciprocal_bytes) const;
     void EvaluateGpuValidation();
-    void PrepareGpuDeviceLabels(
-        const std::vector<int> &indices,
-        std::vector<double> &target_energy,
-        std::vector<double> &energy_weights,
-        std::vector<double> &target_force,
-        std::vector<double> &force_weights,
-        std::vector<double> &target_stress,
-        std::vector<double> &stress_weights,
-        int &energy_count, int &force_count, int &stress_count) const;
-    void AccumulateGpuDeviceChunk(Potentials::MTPGpuBatch &batch,
-                                   const std::vector<int> &indices,
-                                   const GpuCachedBatch *cached,
-                                   bool reset_gradient,
-                                   bool finalize_gradient,
-                                   double &batch_loss);
+    void PrepareGpuDeviceLabels(const std::vector<int> &indices, std::vector<double> &target_energy,
+                                std::vector<double> &energy_weights,
+                                std::vector<double> &target_force,
+                                std::vector<double> &force_weights,
+                                std::vector<double> &target_stress,
+                                std::vector<double> &stress_weights, int &energy_count,
+                                int &force_count, int &stress_count) const;
+    void AccumulateGpuDeviceChunk(Potentials::MTPGpuBatch &batch, const std::vector<int> &indices,
+                                  const GpuCachedBatch *cached, bool reset_gradient,
+                                  bool finalize_gradient, double &batch_loss);
     void AccumulateGpuBatch(const std::vector<int> &indices, double &batch_loss);
 #endif
 
@@ -281,12 +287,21 @@ private:
     double linstop = 1e-8;
     bool do_orthgonalization = true;
 
-public:
+  public:
     ErrorMonitor emonitor, emonitor_valid;
-    double hvp_fd_step() const { return hvp_fit.step; }
-    double hessian_fd_step() const { return hessian_fit.step; }
+
+    double hvp_fd_step() const
+    {
+        return hvp_fit.step;
+    }
+
+    double hessian_fd_step() const
+    {
+        return hessian_fit.step;
+    }
+
     Training::WorkflowOptions workflow_options;
-    void ValidateLinearRefitOnly(const Potentials::AnyPotential& potential) const;
+    void ValidateLinearRefitOnly(const Potentials::AnyPotential &potential) const;
     void TrainLinearRefit();
     // Collective native publication, including verified multi-file models.
     void SaveConditionalResult(const std::string &path);
@@ -299,7 +314,10 @@ public:
     std::vector<int> train_set_inds_aligned;
     double loss_f_prev = std::numeric_limits<double>::infinity();
 
-    inline double get_ploss() {return ploss ;};
+    inline double get_ploss()
+    {
+        return ploss;
+    };
 
     bool apply_disp = false;
     double disp_sigma = 1e-6;
@@ -309,10 +327,13 @@ public:
     // ALGLIB completion code; 0 means no completed run. Budget/stagnation
     // stops preserve a finite accepted point but do not imply convergence.
     int bfgs_termination_type = 0;
-    bool bfgs_converged() const {
-        return bfgs_termination_type == 1 || bfgs_termination_type == 2
-            || bfgs_termination_type == 4;
+
+    bool bfgs_converged() const
+    {
+        return bfgs_termination_type == 1 || bfgs_termination_type == 2 ||
+               bfgs_termination_type == 4;
     }
+
     int bfgs_iter = 0;
     int bfgs_accepted_iter = 0;
     bool bfgs_initial_reported = false;
@@ -341,11 +362,13 @@ public:
     std::unique_ptr<Training::SGDScheduler> sgd_scheduler;
 
     TrainNonlinear();
+
     TrainNonlinear(const GPSettings &_settings)
     {
         InitSettings();
         ApplySettings(_settings);
     }
+
     ~TrainNonlinear();
 
     void ReBalance();
@@ -356,7 +379,8 @@ public:
     void InitSettings();
     void ApplySettings(const GPSettings &settings, const std::set<std::string> &skip = {});
     // accept all, distributed to mpi cores
-    void init(std::vector<Atoms> &atoms, std::vector<Neighborhoods> &nbhs, Potentials::AnyPotential *pot);
+    void init(std::vector<Atoms> &atoms, std::vector<Neighborhoods> &nbhs,
+              Potentials::AnyPotential *pot);
     void init_valid(std::vector<Atoms> &atoms, std::vector<Neighborhoods> &nbhs);
 
     // SGD Trainer
@@ -384,7 +408,6 @@ public:
     void AccumulateLoss(double &f);
     void AccumulateTestErr(double &f);
 
-
     // for external optimizer
     double operator()(const Eigen::VectorXd &x_in, Eigen::VectorXd &g_in);
 
@@ -395,7 +418,9 @@ public:
     // Collective single-file publication of a completed CG result.
     void SaveCGResult(const std::string &path);
     int cg_termination_type = 0;
-    bool cg_converged() const {
+
+    bool cg_converged() const
+    {
         return cg_termination_type == 1 || cg_termination_type == 2 || cg_termination_type == 4;
     }
 
@@ -407,11 +432,15 @@ public:
     // check symoblic results and numerically results
     void check_grad(int ind, double nudge);
 
-    int get_relaxed_coeffs_count(void) const {
+    int get_relaxed_coeffs_count(void) const
+    {
         return n_relax_coeffs;
     }
 
     void display_iteration_log(double &f);
 
-    inline int nconf() const { return training_set_.size(); };
+    inline int nconf() const
+    {
+        return training_set_.size();
+    };
 };

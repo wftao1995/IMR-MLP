@@ -1,4 +1,5 @@
 """Content detection is bounded, explicit and independent of file extensions."""
+
 import gzip
 import pytest
 import imrmlp
@@ -65,9 +66,11 @@ def test_prefix_limit_and_unsupported_signatures(tmp_path):
     for invalid in [0, 65537]:
         with pytest.raises(ValueError, match="limit"):
             imrmlp.detect_format(source, limit=invalid)
-    for text in ['BEGIN_BLOCK_BANDGRID_3D\n',
-                 'BEGIN_BLOCK_DATAGRID_3D\n',
-                 'title\n1.0\n1 0 0\n0 1 0\n0 0 1\nH\n1\nDirect\n0 0 0\n']:
+    for text in [
+        'BEGIN_BLOCK_BANDGRID_3D\n',
+        'BEGIN_BLOCK_DATAGRID_3D\n',
+        'title\n1.0\n1 0 0\n0 1 0\n0 0 1\nH\n1\nDirect\n0 0 0\n',
+    ]:
         source.write_text(text)
         assert imrmlp.detect_format(source)["format"] == ""
 

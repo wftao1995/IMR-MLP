@@ -11,7 +11,7 @@
 
 class TrainerLinearPotential : public ConnectSettings
 {
-private:
+  private:
     Potentials::AnyPotential *p_pot = nullptr;
     int n_features_ = 0;
     bool initialized_ = false;
@@ -52,15 +52,18 @@ private:
     double energy_weight(const Atoms &atom) const;
     double force_weight(const Atoms &atom) const;
     double stress_weight(const Atoms &atom) const;
-    void evaluate_errors(const std::vector<Atoms> &references,
-                         std::vector<Atoms> &predictions,
+    void evaluate_errors(const std::vector<Atoms> &references, std::vector<Atoms> &predictions,
                          std::vector<Neighborhoods> &nbhs, ErrorMonitor &monitor);
 
-public:
+  public:
     ErrorMonitor emonitor, emonitor_valid;
     bool monit_valid_err = false;
 
-    TrainerLinearPotential() { InitSettings(); }
+    TrainerLinearPotential()
+    {
+        InitSettings();
+    }
+
     TrainerLinearPotential(const GPSettings &_settings)
     {
         InitSettings();
@@ -78,7 +81,8 @@ public:
         Connect(weight_stress_power, "stress_pow");
         Connect(hvp_fit.weight, "hvp_weight", "Weight of fixed-cell Hessian-vector observations");
         Connect(hvp_fit.power, "hvp_pow", "Atom-count power for HVP loss normalization");
-        Connect(hvp_fit.step, "hvp_fd_step", "Maximum per-atom displacement for HVP force differences (Angstrom)");
+        Connect(hvp_fit.step, "hvp_fd_step",
+                "Maximum per-atom displacement for HVP force differences (Angstrom)");
         Connect(reg_L2, "weight_L2");
         Connect(potfilesave, "save_to");
     }
@@ -99,5 +103,8 @@ public:
 
     void save_current(const std::string &fnm);
 
-    int get_feature_count() const { return n_features_; }
+    int get_feature_count() const
+    {
+        return n_features_;
+    }
 };

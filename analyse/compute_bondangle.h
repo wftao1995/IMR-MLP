@@ -115,7 +115,7 @@ void add2t1(dihedral_count &a, dihedral_count &b);
 
 class ComputeAngles : public ConnectSettings
 {
-private:
+  private:
     double sep = M_PI / 180; // in rad
     double low = 0.0;
     double high = M_PI;
@@ -128,12 +128,17 @@ private:
     bondangle_type compute_selected(const AnyNeighborhoods &, bondangle_count &, double **) const;
     dihedral_type compute_selected(const AnyNeighborhoods &, dihedral_count &, double **) const;
 
-public:
+  public:
     std::vector<double> angles;
     int ntypes = 3;
-    ComputeAngles(/* args */) { init(); };
+
+    ComputeAngles(/* args */)
+    {
+        init();
+    };
+
     ComputeAngles(double sep, double low, double high, int ntypes);
-    ~ComputeAngles(){};
+    ~ComputeAngles() {};
     void init();
 
     void InitSettings()
@@ -144,17 +149,27 @@ public:
         Connect(ntypes, "ntypes");
         Connect(prec, "prec");
     }
+
     ComputeAngles(const GPSettings &_settings);
 
     // Empty selections retain all combinations. Existing keys canonicalize
     // bond endpoints and reversal of a complete dihedral chain.
-    void set_bondangle_types(const std::set<bondangle_type_index> &types) { bond_types_ = types; }
-    void set_dihedral_types(const std::set<dihedral_type_index> &types) { dihedral_types_ = types; }
+    void set_bondangle_types(const std::set<bondangle_type_index> &types)
+    {
+        bond_types_ = types;
+    }
+
+    void set_dihedral_types(const std::set<dihedral_type_index> &types)
+    {
+        dihedral_types_ = types;
+    }
 
     bondangle_type compute(const AnyNeighborhoods &nhbs, bondangle_count &count) const;
-    bondangle_type compute(const AnyNeighborhoods &nhbs, bondangle_count &count, double **rcutij) const;
+    bondangle_type compute(const AnyNeighborhoods &nhbs, bondangle_count &count,
+                           double **rcutij) const;
     dihedral_type compute(const AnyNeighborhoods &nbhs, dihedral_count &count) const;
-    dihedral_type compute(const AnyNeighborhoods &nbhs, dihedral_count &count, double **rcutij) const;
+    dihedral_type compute(const AnyNeighborhoods &nbhs, dihedral_count &count,
+                          double **rcutij) const;
     void initbret(bondangle_type &bret) const;
     void initdret(dihedral_type &dret) const;
 };

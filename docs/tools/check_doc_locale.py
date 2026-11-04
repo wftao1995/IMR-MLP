@@ -25,11 +25,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import doc_catalog  # noqa: E402
 
 ROOT = doc_catalog.ROOT
-SOURCE_DIRECTORIES = ('docs', 'examples', 'example-inputs', 'examples-python',
-                      'LAMMPS', 'runtime/mtp', 'mtp_kim', 'scripts/benchmark')
+SOURCE_DIRECTORIES = (
+    'docs',
+    'examples',
+    'example-inputs',
+    'examples-python',
+    'LAMMPS',
+    'runtime/mtp',
+    'mtp_kim',
+    'scripts/benchmark',
+)
 EXCLUDED_PARTS = {'build', 'build_zh', 'manual-html', '__pycache__'}
-LINK_RE = re.compile(
-    r"!?\[([^\]]*)\]\(<?([^\s)>]+)>?(?:\s+\"[^\"]*\")?\)")
+LINK_RE = re.compile(r"!?\[([^\]]*)\]\(<?([^\s)>]+)>?(?:\s+\"[^\"]*\")?\)")
 HEADING_RE = re.compile(r"^## ", re.MULTILINE)
 SWITCH_ZH_RE = re.compile(r"\[中文\]\([^)]*_zh\.md\)")
 SWITCH_EN_RE = re.compile(r"\[English\]\((?![^)]*_zh\.md)[^)]*\.md\)")
@@ -42,8 +49,12 @@ def pair(source: str):
 
 
 def relative_links(path: Path):
-    text = re.sub(r"^(```|~~~).*?^\1[^\n]*$", "", path.read_text(encoding="utf-8", errors="ignore"),
-                  flags=re.M | re.S)
+    text = re.sub(
+        r"^(```|~~~).*?^\1[^\n]*$",
+        "",
+        path.read_text(encoding="utf-8", errors="ignore"),
+        flags=re.M | re.S,
+    )
     # Language switch links are intentional and never count as misplaced links.
     text = re.sub(r"\[(?:English|中文)\]\([^)]*\)", "", text)
     for label, target in LINK_RE.findall(text):
@@ -62,14 +73,16 @@ def markdown_sources():
     paths = set(ROOT.glob('README*.md'))
     for directory in SOURCE_DIRECTORIES:
         paths.update((ROOT / directory).rglob('*.md'))
-    return sorted(path for path in paths
-                  if not EXCLUDED_PARTS.intersection(path.relative_to(ROOT).parts))
+    return sorted(
+        path for path in paths if not EXCLUDED_PARTS.intersection(path.relative_to(ROOT).parts)
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--strict", action="store_true",
-                        default=os.environ.get("DOC_CHECK_STRICT") == "1")
+    parser.add_argument(
+        "--strict", action="store_true", default=os.environ.get("DOC_CHECK_STRICT") == "1"
+    )
     args = parser.parse_args()
 
     pages = []
@@ -114,7 +127,8 @@ def main() -> int:
         zh_headings = len(HEADING_RE.findall(zh_text))
         if en_headings != zh_headings:
             heading_drift.append(
-                f"{en.relative_to(ROOT)} ({en_headings}) vs {zh.relative_to(ROOT)} ({zh_headings})")
+                f"{en.relative_to(ROOT)} ({en_headings}) vs {zh.relative_to(ROOT)} ({zh_headings})"
+            )
 
     for path in sources:
         if path.relative_to(ROOT).as_posix() in doc_catalog.BILINGUAL_PAGES:
@@ -126,22 +140,28 @@ def main() -> int:
                 sibling = dest.with_name(dest.stem + "_zh.md")
                 if sibling.is_file():
                     cross_language.append(
-                        f"{path.relative_to(ROOT)} -> {target} (use {sibling.name})")
+                        f"{path.relative_to(ROOT)} -> {target} (use {sibling.name})"
+                    )
             else:
                 if not target.endswith("_zh.md") or not dest.exists():
                     continue
                 english = dest.with_name(dest.stem.removesuffix("_zh") + ".md")
                 if english.is_file():
                     cross_language.append(
-                        f"{path.relative_to(ROOT)} -> {target} (use {english.name})")
+                        f"{path.relative_to(ROOT)} -> {target} (use {english.name})"
+                    )
 
     print(f"Bilingual pages: {len(seen)} pairs inspected")
     if missing_zh:
-        print(f"\nEnglish-only pages, Chinese readers see the English original ({len(missing_zh)}):")
+        print(
+            f"\nEnglish-only pages, Chinese readers see the English original ({len(missing_zh)}):"
+        )
         for item in missing_zh:
             print(f"  - {item}")
     if missing_en:
-        print(f"\nChinese-only pages, English readers see the Chinese original ({len(missing_en)}):")
+        print(
+            f"\nChinese-only pages, English readers see the Chinese original ({len(missing_en)}):"
+        )
         for item in missing_en:
             print(f"  - {item}")
     if switch_problems:
@@ -153,7 +173,9 @@ def main() -> int:
         for item in heading_drift:
             print(f"  - {item}")
     if cross_language:
-        print(f"\nCross-language links that bypass an existing translation ({len(cross_language)}):")
+        print(
+            f"\nCross-language links that bypass an existing translation ({len(cross_language)}):"
+        )
         for item in cross_language:
             print(f"  - {item}")
 

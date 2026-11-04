@@ -48,8 +48,7 @@ void ComputeRDF::initret(rdf_pcount_type &val)
 
 void ComputeRDF::init()
 {
-    if (!std::isfinite(delta_r) || delta_r <= 0.0 ||
-        !std::isfinite(r_limit) || r_limit <= 0.0)
+    if (!std::isfinite(delta_r) || delta_r <= 0.0 || !std::isfinite(r_limit) || r_limit <= 0.0)
         throw std::invalid_argument("RDF bin width and cutoff must be finite and positive");
     const double bins = std::ceil(r_limit / delta_r) + 1.0;
     if (!std::isfinite(bins) || bins > std::numeric_limits<int>::max())
@@ -67,13 +66,15 @@ void ComputeRDF::init()
         // radial support. ceil+1 may retain a final bin with no volume.
         const double lower = std::max(0.0, (i - 0.5) * delta_r);
         const double upper = std::min(r_limit, (i + 0.5) * delta_r);
-        shell_vol[i] = upper > lower
-            ? pref * (upper - lower) * (upper * upper + upper * lower + lower * lower)
-            : 0.0;
+        shell_vol[i] =
+            upper > lower ? pref * (upper - lower) * (upper * upper + upper * lower + lower * lower)
+                          : 0.0;
     }
 }
+
 // make sure that nbhs is constructed with cutoff of r_limit or greater
-void ComputeRDF::count_pcf(AnyNeighborhoods &nbhs, rdf_count_type &total, rdf_pcount_type &partial, unsigned long &total_num, std::vector<unsigned long> &partial_num) const
+void ComputeRDF::count_pcf(AnyNeighborhoods &nbhs, rdf_count_type &total, rdf_pcount_type &partial,
+                           unsigned long &total_num, std::vector<unsigned long> &partial_num) const
 {
     total_num += nbhs.size();
     for (int i = 0; i < nbhs.size(); ++i)
@@ -82,7 +83,8 @@ void ComputeRDF::count_pcf(AnyNeighborhoods &nbhs, rdf_count_type &total, rdf_pc
         partial_num[nbh.centertype]++;
         for (int j = 0; j < nbh.nbhcount_; ++j)
         {
-            if (nbh.distances_[j] > r_limit) continue;
+            if (nbh.distances_[j] > r_limit)
+                continue;
             int id = getid(nbh.distances_[j]);
             rdf_partial_type ind(nbh.centertype, nbh.chemmap_[j]);
             partial[ind][id]++;
@@ -91,7 +93,8 @@ void ComputeRDF::count_pcf(AnyNeighborhoods &nbhs, rdf_count_type &total, rdf_pc
     }
 }
 
-void ComputeRDF::count_pcf(NeighborhoodKD &nbhs, rdf_count_type &total, rdf_pcount_type &partial, unsigned long &total_num, std::vector<unsigned long> &partial_num) const
+void ComputeRDF::count_pcf(NeighborhoodKD &nbhs, rdf_count_type &total, rdf_pcount_type &partial,
+                           unsigned long &total_num, std::vector<unsigned long> &partial_num) const
 {
     total_num += nbhs.size();
     for (int i = 0; i < nbhs.size(); ++i)
@@ -100,7 +103,8 @@ void ComputeRDF::count_pcf(NeighborhoodKD &nbhs, rdf_count_type &total, rdf_pcou
         partial_num[nbh.centertype]++;
         for (int j = 0; j < nbh.nbhcount_; ++j)
         {
-            if (nbh.distances_[j] > r_limit) continue;
+            if (nbh.distances_[j] > r_limit)
+                continue;
             int id = getid(nbh.distances_[j]);
             rdf_partial_type ind(nbh.centertype, nbh.chemmap_[j]);
             partial[ind][id]++;
@@ -109,11 +113,13 @@ void ComputeRDF::count_pcf(NeighborhoodKD &nbhs, rdf_count_type &total, rdf_pcou
     }
 }
 
-void ComputeRDF::compute_pcf(rdf_count_type &total, unsigned long &total_num, double &rho, rdf_result_type &res_total) const
+void ComputeRDF::compute_pcf(rdf_count_type &total, unsigned long &total_num, double &rho,
+                             rdf_result_type &res_total) const
 {
     res_total.assign(nsize, 0.0);
     // Zero is the finite placeholder for an empty statistical denominator.
-    if (total_num == 0 || rho == 0.0) return;
+    if (total_num == 0 || rho == 0.0)
+        return;
     if (!std::isfinite(rho) || rho < 0.0)
         throw std::invalid_argument("RDF normalization requires a finite positive density");
     for (int i = 0; i < nsize; ++i)
@@ -123,18 +129,22 @@ void ComputeRDF::compute_pcf(rdf_count_type &total, unsigned long &total_num, do
     }
 }
 
-void ComputeRDF::compute_pcf(const int type1, const int type2, const unsigned long num_type1, const double rho_type2, rdf_pcount_type &partial, rdf_result_type &result) const
+void ComputeRDF::compute_pcf(const int type1, const int type2, const unsigned long num_type1,
+                             const double rho_type2, rdf_pcount_type &partial,
+                             rdf_result_type &result) const
 {
     rdf_partial_type rind(type1, type2);
     result.assign(nsize, 0.0);
-    if (num_type1 == 0 || rho_type2 == 0.0) return;
+    if (num_type1 == 0 || rho_type2 == 0.0)
+        return;
     if (!std::isfinite(rho_type2) || rho_type2 < 0.0)
         throw std::invalid_argument("RDF normalization requires a finite positive density");
     const double pair_weight = type1 == type2 ? 1.0 : 0.5;
     for (int i = 0; i < nsize; ++i)
     {
         if (shell_vol[i] > 0.0)
-            result[i] = partial[rind][i] / (rho_type2 * shell_vol[i] * (double)num_type1) * pair_weight;
+            result[i] =
+                partial[rind][i] / (rho_type2 * shell_vol[i] * (double)num_type1) * pair_weight;
     }
 }
 
@@ -159,7 +169,8 @@ double ComputeRDF::get_rdfcut(rdf_result_type &res)
         }
     }
     first_top = r_dists[i];
-    if (i + 1 < nsize) ++i;
+    if (i + 1 < nsize)
+        ++i;
     for (; i < nsize * 0.6 && i + step_scan < nsize; i += step_scan)
     {
         if (res[step_scan + i] - res[i] < 0 && (!clip))
@@ -183,6 +194,7 @@ void add2t1(rdf_count_type &p1, rdf_count_type &p2)
         p1[i] += p2[i];
     }
 }
+
 void add2t1(rdf_pcount_type &p1, rdf_pcount_type &p2)
 {
     for (auto &it : p2)

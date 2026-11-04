@@ -103,11 +103,11 @@ class Potential:
         """Save an appendable MTP, or descriptor_linear model."""
         if str(filename).endswith(".gpm"):
             from ._imrmlp import _save_gpm
+
             return _save_gpm(self._inner, str(filename), profile)
         if profile != "preserve":
             raise ValueError("Save profiles require GPM output")
-        if (self.pottype not in ("descriptor_linear")
-                and not self.supports_species_append()):
+        if self.pottype not in ("descriptor_linear") and not self.supports_species_append():
             raise ValueError("Native save requires an appendable MTP or descriptor_linear")
         self._inner.save(str(filename))
 
@@ -115,16 +115,18 @@ class Potential:
         """Whether the loaded model supports explicit species cloning."""
         return self._inner.supports_species_append()
 
-    def append_species(self, clone_sources: Sequence[int],
-                       new_elements: Sequence[str] | None = None) -> List[int]:
+    def append_species(
+        self, clone_sources: Sequence[int], new_elements: Sequence[str] | None = None
+    ) -> List[int]:
         """Append species cloned from existing internal species IDs.
 
         Existing IDs and predictions stay unchanged. Tagged models require new
         element symbols in append order. Returns the new index for each old
         parameter; cached coefficient arrays and trainers must be reinitialized.
         """
-        return self._inner.append_species(list(clone_sources),
-                                          [] if new_elements is None else list(new_elements))
+        return self._inner.append_species(
+            list(clone_sources), [] if new_elements is None else list(new_elements)
+        )
 
     @property
     def coefficients(self):
@@ -139,9 +141,6 @@ class Potential:
     def parameter_groups(self):
         """Named half-open ranges of optimizer coordinates."""
         return self._inner.parameter_groups
-
-
-
 
     @property
     def cutoff(self) -> float:
@@ -167,10 +166,12 @@ class Potential:
         """Potential file path."""
         return self._wrapper.potfile
 
-    def calculate(self,
-                  atoms: Atoms,
-                  properties: Sequence[str] = ("energy", "forces", "stress"),
-                  use_omp: bool = False):
+    def calculate(
+        self,
+        atoms: Atoms,
+        properties: Sequence[str] = ("energy", "forces", "stress"),
+        use_omp: bool = False,
+    ):
         """Compute energy, forces, and stress in-place.
 
         Modifies the Atoms object: sets energy, forces, stress, and
@@ -224,8 +225,9 @@ class Potential:
             owned.to_cartesian()
         return ShellJob(self._inner.submit(owned._impl))
 
-    def hessian_vector_product(self, atoms: Atoms, direction, *,
-                               method: str = "auto", step: float = 1e-4):
+    def hessian_vector_product(
+        self, atoms: Atoms, direction, *, method: str = "auto", step: float = 1e-4
+    ):
         """Return independent Cartesian H*v, shape (3*N,), preserving atoms.
 
         ``direction`` is a finite one-dimensional atom-major xyz probe. No mass
@@ -258,12 +260,14 @@ class Potential:
         self.calculate(atoms, properties=("energy",))
         return atoms.energy
 
-    def calculate_many(self,
-                       structures: Iterable[object],
-                       properties: Sequence[str] = ("energy", "forces", "stress"),
-                       use_omp: bool = False,
-                       *,
-                       elements: Sequence[str] | None = None) -> List[Atoms]:
+    def calculate_many(
+        self,
+        structures: Iterable[object],
+        properties: Sequence[str] = ("energy", "forces", "stress"),
+        use_omp: bool = False,
+        *,
+        elements: Sequence[str] | None = None,
+    ) -> List[Atoms]:
         """Evaluate a batch of structures and return imrmlp Atoms copies.
 
         Inputs may be imrmlp.Atoms, ASE Atoms, or pymatgen Structure/Molecule.
@@ -290,7 +294,9 @@ class Potential:
                 try:
                     chemmap = [type_map[int(z)] for z in numbers]
                 except KeyError as exc:
-                    raise ValueError(f"Atomic number {exc.args[0]} is not present in elements") from None
+                    raise ValueError(
+                        f"Atomic number {exc.args[0]} is not present in elements"
+                    ) from None
                 # Keep the converted/copied native state, including velocities,
                 # charges and HVP labels, while replacing its species mapping.
                 atoms = Atoms(_impl=atoms._impl, elements=model_elements)
@@ -304,6 +310,4 @@ class Potential:
         return self._inner.supports_linear_fit()
 
     def __repr__(self) -> str:
-        return (f"Potential(type='{self.pottype}', "
-                f"file='{self.potfile}', "
-                f"cutoff={self.cutoff:.2f})")
+        return f"Potential(type='{self.pottype}', file='{self.potfile}', cutoff={self.cutoff:.2f})"

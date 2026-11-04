@@ -8,11 +8,13 @@
 #include <vector>
 #include "base/structures.h"
 
-namespace Potentials {
+namespace Potentials
+{
 class PotMTP;
 }
 
-namespace BasisAnalysis {
+namespace BasisAnalysis
+{
 
 /// Collects raw scalar-moment descriptor vectors from training structures
 /// into a (nfeatures x nsamples) matrix. Each column is one atom's
@@ -20,8 +22,9 @@ namespace BasisAnalysis {
 ///
 /// Supports random subsampling when total atoms exceed max_samples,
 /// to keep the correlation analysis tractable.
-class DescriptorCollector {
-public:
+class DescriptorCollector
+{
+  public:
     /// @param pot      Reference to a loaded PotMTP potential (used for
     ///                  descriptor computation via compute_descriptors).
     /// @param max_samples  Maximum number of atom sites to sample.
@@ -33,10 +36,17 @@ public:
     /// The matrix is stored column-major: each column = one atom.
     Eigen::MatrixXd collect(const std::vector<Atoms> &atoms);
 
-    size_t max_samples() const { return max_samples_; }
-    size_t nsites_collected() const { return nsites_; }
+    size_t max_samples() const
+    {
+        return max_samples_;
+    }
 
-private:
+    size_t nsites_collected() const
+    {
+        return nsites_;
+    }
+
+  private:
     Potentials::PotMTP &pot_;
     size_t max_samples_;
     unsigned seed_;

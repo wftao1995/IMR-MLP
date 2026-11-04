@@ -51,10 +51,15 @@ class RelaxationDrvV2;
 // Modifier classes (outside RelaxationDrvV2 for decoupling)
 // ═══════════════════════════════════════════════════════════════════════
 
-enum modifier_type { FILTER, BAIS };
+enum modifier_type
+{
+    FILTER,
+    BAIS
+};
 
-class AnyModifier {
-public:
+class AnyModifier
+{
+  public:
     std::string name = "AnyModifier";
     modifier_type type = FILTER;
     virtual ~AnyModifier() = default;
@@ -64,21 +69,32 @@ public:
     virtual void init(RelaxationDrvV2 *, void * = nullptr) {};
 };
 
-class FilterFixCM : public AnyModifier {
-public:
+class FilterFixCM : public AnyModifier
+{
+  public:
     Eigen::RowVector3d center;
     void forward(RelaxationDrvV2 *);
-    FilterFixCM() { name = "FixCM"; }
+
+    FilterFixCM()
+    {
+        name = "FixCM";
+    }
 };
 
-class FilterFixSmallGD : public AnyModifier {
-public:
+class FilterFixSmallGD : public AnyModifier
+{
+  public:
     void forward(RelaxationDrvV2 *);
-    FilterFixSmallGD() { name = "FixSmallGD"; }
+
+    FilterFixSmallGD()
+    {
+        name = "FixSmallGD";
+    }
 };
 
-class FilterLF : public AnyModifier {
-public:
+class FilterLF : public AnyModifier
+{
+  public:
     Eigen::MatrixXd matrixA, invmatrixA;
     Eigen::VectorXd vectorb;
     Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr, inv_qr;
@@ -87,11 +103,16 @@ public:
     void solve();
     void init(RelaxationDrvV2 *, void * = nullptr);
     void forward_scaling(RelaxationDrvV2 *);
-    FilterLF() { name = "LinearTransform"; }
+
+    FilterLF()
+    {
+        name = "LinearTransform";
+    }
 };
 
-class FilterLC : public AnyModifier {
-public:
+class FilterLC : public AnyModifier
+{
+  public:
     int n = 0, k = 0, algo = 0;
     Eigen::MatrixXd matrixA;
     Eigen::VectorXd vectorb, b0;
@@ -102,11 +123,16 @@ public:
     void init(RelaxationDrvV2 *, void * = nullptr);
     void forward_scaling(RelaxationDrvV2 *);
     void solve();
-    FilterLC() { name = "LinearConstraint"; }
+
+    FilterLC()
+    {
+        name = "LinearConstraint";
+    }
 };
 
-class FilterSelDyn : public AnyModifier {
-public:
+class FilterSelDyn : public AnyModifier
+{
+  public:
     // Read n followed by exactly n binary flags in the full optimizer space.
     // Return a new selection only after the entire stream has been validated.
     static std::vector<int> read_mask(std::istream &, Eigen::Index full_size);
@@ -116,32 +142,47 @@ public:
     void reverse(RelaxationDrvV2 *);
     void forward_scaling(RelaxationDrvV2 *);
     void init(RelaxationDrvV2 *, void * = nullptr);
-    FilterSelDyn() { name = "SelectiveDynamics"; }
+
+    FilterSelDyn()
+    {
+        name = "SelectiveDynamics";
+    }
 };
 
 /// Input file: natoms, mask[-1,0,1], eigenvalues, init_disp, projection matrix
-class FilterVIB : public AnyModifier {
-public:
+class FilterVIB : public AnyModifier
+{
+  public:
     Eigen::MatrixXd projection_matrix;
     Eigen::VectorXd mode_factor;
     void forward(RelaxationDrvV2 *);
     void init(RelaxationDrvV2 *, void * = nullptr);
-    FilterVIB() { name = "VibrationKeepX"; }
+
+    FilterVIB()
+    {
+        name = "VibrationKeepX";
+    }
 };
 
-class FilterVIB2 : public AnyModifier {
-public:
+class FilterVIB2 : public AnyModifier
+{
+  public:
     Eigen::MatrixXd projection_matrix;
     Eigen::VectorXd mode_factor, eigenvalues, x0;
     void forward(RelaxationDrvV2 *);
     void reverse(RelaxationDrvV2 *);
     void init(RelaxationDrvV2 *, void * = nullptr);
     void forward_scaling(RelaxationDrvV2 *);
-    FilterVIB2() { name = "Vibration"; }
+
+    FilterVIB2()
+    {
+        name = "Vibration";
+    }
 };
 
-class FilterSymmForceStress : public AnyModifier {
-public:
+class FilterSymmForceStress : public AnyModifier
+{
+  public:
     std::vector<Eigen::Matrix3d> rots;
     Eigen::MatrixXi mapping;
     void forward(RelaxationDrvV2 *);
@@ -155,19 +196,22 @@ public:
 /// Cell DOFs are reduced according to the Bravais lattice type.
 /// Must be the only coordinate-transform modifier in modifiers_list
 /// (mutually exclusive with selective_dynamics, constraint_vib_modes, etc.).
-class FilterSymmCoord : public AnyModifier {
-public:
+class FilterSymmCoord : public AnyModifier
+{
+  public:
     // ── Orbital data (one orbit per set of symmetry-equivalent atoms) ──
-    struct Orbit {
-        int iat_rep;                                  // representative atom index
-        std::vector<int> iat_orbit;                   // all atom indices in this orbit
-        std::vector<Eigen::Matrix3d> W_frac;          // rotation matrices (fractional coords)
-        std::vector<Eigen::RowVector3d> t_frac;       // translation vectors (fractional coords)
-        Eigen::MatrixXd basis;                        // representative x displacement (3 x k)
-        std::vector<Eigen::MatrixXd> maps;             // representative q -> atom x (3 x k)
-        std::vector<Eigen::Vector3d> origins;          // fixed, exactly symmetric x reference
+    struct Orbit
+    {
+        int iat_rep;                            // representative atom index
+        std::vector<int> iat_orbit;             // all atom indices in this orbit
+        std::vector<Eigen::Matrix3d> W_frac;    // rotation matrices (fractional coords)
+        std::vector<Eigen::RowVector3d> t_frac; // translation vectors (fractional coords)
+        Eigen::MatrixXd basis;                  // representative x displacement (3 x k)
+        std::vector<Eigen::MatrixXd> maps;      // representative q -> atom x (3 x k)
+        std::vector<Eigen::Vector3d> origins;   // fixed, exactly symmetric x reference
         int n_free = 3;
     };
+
     std::vector<Orbit> orbits;
 
     // ── Cell constraint groups ──
@@ -176,26 +220,29 @@ public:
     Eigen::MatrixXd cell_basis; // reduced modes -> full symmetric strain
 
     // ── Dimensionality ──
-    int n_full_cell = 0;       // xposoffset (6 for symm_strain)
-    int n_full_pos = 0;        // 3 * n_atoms
-    int n_red_cell = 0;        // number of independent cell DOFs
-    int n_red_pos = 0;         // 3 * n_orbits
+    int n_full_cell = 0; // xposoffset (6 for symm_strain)
+    int n_full_pos = 0;  // 3 * n_atoms
+    int n_red_cell = 0;  // number of independent cell DOFs
+    int n_red_pos = 0;   // 3 * n_orbits
 
     // ── Saved state ──
-    Eigen::VectorXd x_save;    // saved full x for forward() re-extraction
-    int xposoffset_full = 0;   // saved xposoffset
+    Eigen::VectorXd x_save;  // saved full x for forward() re-extraction
+    int xposoffset_full = 0; // saved xposoffset
 
     // ── Methods ──
-    FilterSymmCoord() { name = "SymmCoord"; }
+    FilterSymmCoord()
+    {
+        name = "SymmCoord";
+    }
+
     void init(RelaxationDrvV2 *, void * = nullptr) override;
     void forward(RelaxationDrvV2 *) override;
     void reverse(RelaxationDrvV2 *) override;
     void forward_scaling(RelaxationDrvV2 *) override;
 
-private:
+  private:
     void setup_cell_constraints(const Symmetry3D::symdataset &, const Eigen::Matrix3d &);
-    void setup_position_orbits(RelaxationDrvV2 *,
-                               const Symmetry3D::symdataset &dataset);
+    void setup_position_orbits(RelaxationDrvV2 *, const Symmetry3D::symdataset &dataset);
     // Bound to the first init; run() may rebuild coordinates but never detects
     // a new group or reinterprets operation ids/mappings/images on a restart.
     bool selection_bound_ = false, site_only_ = false, bound_recast_ = false;
@@ -207,40 +254,53 @@ private:
     Eigen::Matrix3d coordinate_reference_cell_ = Eigen::Matrix3d::Identity();
 };
 
-class FilterNF : public AnyModifier {
-public:
+class FilterNF : public AnyModifier
+{
+  public:
     std::shared_ptr<NonlinearCoordinates> map;
     Eigen::VectorXd point, full_gradient;
     void init(RelaxationDrvV2 *, void * = nullptr) override;
     void forward(RelaxationDrvV2 *) override;
     void reverse(RelaxationDrvV2 *) override;
     void forward_scaling(RelaxationDrvV2 *) override;
-    FilterNF() { name = "NonlinearCoordinates"; }
+
+    FilterNF()
+    {
+        name = "NonlinearCoordinates";
+    }
 };
+
 using FilterRigidBody = FilterNF;
 
-class FilterWhitening : public AnyModifier {
-public:
+class FilterWhitening : public AnyModifier
+{
+  public:
     RelaxPreconditioning::WhiteningTransform transform;
     Eigen::VectorXd point;
     void forward(RelaxationDrvV2 *) override;
     void reverse(RelaxationDrvV2 *) override;
     void forward_scaling(RelaxationDrvV2 *) override;
-    FilterWhitening() { name="HessianWhitening"; }
+
+    FilterWhitening()
+    {
+        name = "HessianWhitening";
+    }
 };
 
 // ═══════════════════════════════════════════════════════════════════════"
 // RelaxationDrvV2
 // ═══════════════════════════════════════════════════════════════════════
 
-class RelaxationDrvV2 : public ConnectSettings {
-public:
+class RelaxationDrvV2 : public ConnectSettings
+{
+  public:
     Potentials::AnyPotential *pot = nullptr;
     bool initialized = false;
     Atoms atom;
 
     /* PARAMETERS */
-    struct type_tol {
+    struct type_tol
+    {
         double xtol = 0;
         double gtol0 = 1e-1;
         double gtol = 1e-3;
@@ -250,18 +310,19 @@ public:
         double symprec = 1e-4;
     } tol;
 
-    struct {
+    struct
+    {
         std::string driver = "lbfgs";
         double max_iter = 1000;
         int constraint_iter_limit = 5;
         double max_move = 0.1;
         double min_move = 1e-6;
         double cell_factor = 1;
-        int couple_flag = 0;    // 0=none 1=ab 2=bc 3=ca 4=abc
-        double pressure = 0;    // external pressure (GPa)
+        int couple_flag = 0; // 0=none 1=ab 2=bc 3=ca 4=abc
+        double pressure = 0; // external pressure (GPa)
         std::string external_stress_str;
         std::string stiffness_str;
-        std::string lattice_mask_str;    // 6 or 9 components
+        std::string lattice_mask_str; // 6 or 9 components
         double disp = 0.01;
         std::string trajfile = "relax-trajectory.xyz";
         std::string indexfile = "index.map";
@@ -270,17 +331,21 @@ public:
         std::string lf_file = "LINEAR_TRANSFORM";
         std::string vib_file = "VIB_CONSTRAINT";
         std::string seldyn_file = "SELECTIVE_DYNAMICS";
-        std::string rigid_groups; // Semicolon-separated groups of comma-separated zero-based atom indices.
-        std::string symmetry_operations, symmetry_sites; // Initial dataset operation / atom indices.
+        std::string
+            rigid_groups; // Semicolon-separated groups of comma-separated zero-based atom indices.
+        std::string symmetry_operations,
+            symmetry_sites; // Initial dataset operation / atom indices.
         std::string hessian_precond_file;
         bool sparse_precond = false, aul_auto = false, thin_cell_scaling = false;
         double sparse_shift = 1e-3, precond_floor = 1e-8;
         int fc_update_interval = 0;
-        std::string precond_file; // Full-coordinate diagonal scaling, before masks/LF/LC; empty uses defaults.
+        std::string
+            precond_file; // Full-coordinate diagonal scaling, before masks/LF/LC; empty uses defaults.
         int nblock = 10;
     } control;
 
-    struct {
+    struct
+    {
         bool periodic_subspace = false; // Explicit mixed periodic/open coordinates.
         bool cartesian = false;
         bool relax_cell = false;
@@ -312,7 +377,8 @@ public:
     } flags;
 
     /* OPTIMIZER PARAMETERS */
-    struct gd_buffer {
+    struct gd_buffer
+    {
         double alpha = 1.0;
         double max_move_init = 0.1;
         double step_upscale = 1.2;
@@ -324,7 +390,8 @@ public:
 
     LBFGSpp::LBFGSParam<double> lbfgspp_param;
 
-    struct fire_buffer {
+    struct fire_buffer
+    {
         double T, cmax, pmax, ts, alpha;
         double ts_max = 10.0, ts_min = 0.001, ts_init = 2;
         int mdint = 0;
@@ -338,14 +405,19 @@ public:
         double num_it_ppostive = 0, num_it_pnegative = 0;
     } buffer_fire;
 
-    struct newton_buffer { int bfgs_m = 15; } buffer_newton;
+    struct newton_buffer
+    {
+        int bfgs_m = 15;
+    } buffer_newton;
 
     /* INTERNAL STATE */
-    struct {
+    struct
+    {
         bool request_alg_restart = false;
     } state_flags;
 
-    struct {
+    struct
+    {
         int curr_iter = 0, curr_constraint_iter = 0;
         bool converged = false;
         int reach_gtol = 0, reach_ftol = 0, reach_xtol = 0;
@@ -353,7 +425,8 @@ public:
         double max_move = 0;
     } state_vars;
 
-    Eigen::MatrixXd full_hessian, reduced_hessian; // True supplied/native curvature; metric is separate.
+    Eigen::MatrixXd full_hessian,
+        reduced_hessian; // True supplied/native curvature; metric is separate.
     std::unique_ptr<RelaxPreconditioning::SparseMetric> sparse_metric;
     RelaxPreconditioning::AcceptedFCUpdate fc_update;
     std::size_t accepted_steps = 0, fc_refresh_count = 0;
@@ -361,7 +434,12 @@ public:
     void initialize_metrics();
     void refresh_fc_metric();
     Eigen::VectorXd unwhiten_gradient(const Eigen::VectorXd &) const;
-    Eigen::VectorXd convergence_gradient() const { return unwhiten_gradient(g); }
+
+    Eigen::VectorXd convergence_gradient() const
+    {
+        return unwhiten_gradient(g);
+    }
+
     double optimizer_gtol() const;
     Eigen::VectorXd preconditioned_gradient(const Eigen::VectorXd &) const;
     double metric_inner(const Eigen::VectorXd &, const Eigen::VectorXd &) const;
@@ -372,7 +450,12 @@ public:
     std::vector<Eigen::RowVector3d> subspace_fixed_positions;
     int coordinate_offset(const Atoms &) const;
     std::shared_ptr<NonlinearCoordinates> coordinate_map;
-    bool nonlinear_coordinates_active() const { return bool(coordinate_map) || !control.rigid_groups.empty(); }
+
+    bool nonlinear_coordinates_active() const
+    {
+        return bool(coordinate_map) || !control.rigid_groups.empty();
+    }
+
     Eigen::MatrixXd coordinate_jacobian();
     Eigen::VectorXd x, g;
     Eigen::VectorXd x_prev, g_prev;
@@ -400,11 +483,11 @@ public:
     int first_step_delay = 1;
 
     /* MODIFIER LISTS */
-    class ALModifier *al_modifier_ = nullptr;  // external AL bridge; NOT in modifiers_list
-    std::vector<AnyModifier*> modifiers_list_carg;
-    std::vector<AnyModifier*> modifiers_list;
-    void apply_modifiers(std::vector<AnyModifier*> &);
-    void reverse_modifiers(std::vector<AnyModifier*> &);
+    class ALModifier *al_modifier_ = nullptr; // external AL bridge; NOT in modifiers_list
+    std::vector<AnyModifier *> modifiers_list_carg;
+    std::vector<AnyModifier *> modifiers_list;
+    void apply_modifiers(std::vector<AnyModifier *> &);
+    void reverse_modifiers(std::vector<AnyModifier *> &);
 
     /* CONSTRAINTS */
     bool constrained_solver() const;
@@ -423,10 +506,17 @@ public:
     void eval();
 
     /* UTILS */
-    inline void fixvol()   { flags.fix_vol = true; }
-    inline void unfixvol() { flags.fix_vol = false; }
-    void set_vib_data(const Eigen::MatrixXd &projection_matrix,
-                      const Eigen::VectorXd &mode_factor);
+    inline void fixvol()
+    {
+        flags.fix_vol = true;
+    }
+
+    inline void unfixvol()
+    {
+        flags.fix_vol = false;
+    }
+
+    void set_vib_data(const Eigen::MatrixXd &projection_matrix, const Eigen::VectorXd &mode_factor);
     void write_relax_log(double _f);
 
     /* OPTIMIZATION */
@@ -459,12 +549,15 @@ public:
     bool check_cons_convergence();
 
     /* MEM MANAGEMENT */
-    void free_modifiers() {
+    void free_modifiers()
+    {
         for (auto *m : modifiers_list)
-            if (m) delete m;
+            if (m)
+                delete m;
         modifiers_list.clear();
         for (auto *m : modifiers_list_carg)
-            if (m) delete m;
+            if (m)
+                delete m;
         modifiers_list_carg.clear();
     }
 
@@ -474,12 +567,20 @@ public:
     bool inplace_modifiers_init = true;
     void add_modifiers_filter_fixcm();
 
-    RelaxationDrvV2() { InitSettings(); }
-    RelaxationDrvV2(const GPSettings &_settings);
-    ~RelaxationDrvV2() {
-        free_modifiers();
-        if (ofs.is_open()) ofs.close();
+    RelaxationDrvV2()
+    {
+        InitSettings();
     }
+
+    RelaxationDrvV2(const GPSettings &_settings);
+
+    ~RelaxationDrvV2()
+    {
+        free_modifiers();
+        if (ofs.is_open())
+            ofs.close();
+    }
+
     double operator()(const Eigen::VectorXd &mx, Eigen::VectorXd &mg);
 
     void InitSettings();

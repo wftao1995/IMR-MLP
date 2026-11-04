@@ -1,19 +1,22 @@
 """Public coordinate conversions respect the stored representation."""
+
 import numpy as np
 import pytest
 
 pytest.importorskip('imrmlp._imrmlp')
 from imrmlp import Atoms, read_one
 
-CELL = np.array([[4., 0., 0.], [1., 5., 0.], [.2, .4, 6.]])
-POSITIONS = np.array([[1., 2., 3.], [-.4, 5.6, 7.8]])
+CELL = np.array([[4.0, 0.0, 0.0], [1.0, 5.0, 0.0], [0.2, 0.4, 6.0]])
+POSITIONS = np.array([[1.0, 2.0, 3.0], [-0.4, 5.6, 7.8]])
 FRACTIONS = np.linalg.solve(CELL.T, POSITIONS.T).T
 
 
 def test_cartesian_reader_output_is_safe_to_normalize(tmp_path):
-    text = ('2\nLattice="4 0 0 1 5 0 .2 .4 6" pbc="T T F" '
-            'Properties=species:S:1:pos:R:3\n'
-            'H 1 2 3\nH -.4 5.6 7.8\n')
+    text = (
+        '2\nLattice="4 0 0 1 5 0 .2 .4 6" pbc="T T F" '
+        'Properties=species:S:1:pos:R:3\n'
+        'H 1 2 3\nH -.4 5.6 7.8\n'
+    )
     path = tmp_path / 'coordinates.xyz'
     path.write_text(text)
     atoms = read_one(path)
@@ -29,8 +32,8 @@ def test_cartesian_reader_output_is_safe_to_normalize(tmp_path):
 @pytest.mark.parametrize('initial_fractional', [False, True])
 def test_repeated_skew_coordinate_conversion_is_idempotent_and_roundtrips(initial_fractional):
     source = Atoms(numbers=[1, 1], positions=POSITIONS, cell=CELL, pbc=[True, True, False])
-    source.energy = -2.
-    source.forces = [[1., 2., 3.], [4., 5., 6.]]
+    source.energy = -2.0
+    source.forces = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
     if initial_fractional:
         source.to_fractional()
     original_positions = source.positions.copy()
@@ -50,8 +53,8 @@ def test_repeated_skew_coordinate_conversion_is_idempotent_and_roundtrips(initia
     np.testing.assert_array_equal(atoms.positions, first_cartesian)
     assert atoms._impl.cartesian
     np.testing.assert_array_equal(atoms.cell, CELL)
-    np.testing.assert_array_equal(atoms.forces, [[1., 2., 3.], [4., 5., 6.]])
-    assert atoms.energy == -2.
+    np.testing.assert_array_equal(atoms.forces, [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    assert atoms.energy == -2.0
     np.testing.assert_array_equal(source.positions, original_positions)
     assert source._impl.cartesian == (not initial_fractional)
 

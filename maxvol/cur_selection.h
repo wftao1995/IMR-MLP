@@ -7,7 +7,8 @@
 #include <vector>
 
 /// Result of CUR row selection.
-struct CURResult {
+struct CURResult
+{
     /// Indices of selected rows in the original matrix.
     std::vector<int> selected_indices;
     /// Leverage score for every row (m entries, sum ≈ 1), or empty for a
@@ -45,6 +46,5 @@ struct CURResult {
 /// @param seed           Random seed for probabilistic sampling.
 /// @param compute_error  If true, also compute relative reconstruction error
 ///                       (adds O(m·k·n) cost).
-CURResult cur_select_rows(const Eigen::MatrixXd &A, int k,
-                          bool deterministic = false, int seed = 42,
-                          bool compute_error = false);
+CURResult cur_select_rows(const Eigen::MatrixXd &A, int k, bool deterministic = false,
+                          int seed = 42, bool compute_error = false);

@@ -12,21 +12,30 @@
 
 // Only this header knows the vendor runtime. Kernel code shares typed wrappers;
 // no CUDA-name macros leak into callers or third-party headers.
-namespace MLIPCore::GpuDirect::Runtime {
+namespace MLIPCore::GpuDirect::Runtime
+{
 #if defined(IMRMLP_HIP)
 using gpuError_t = hipError_t;
 using gpuDeviceProp = hipDeviceProp_t;
 using gpuStream_t = hipStream_t;
 using gpuEvent_t = hipEvent_t;
 #define IMRMLP_GPU_CONSTANT(name) inline constexpr auto gpu##name = hip##name
-#define IMRMLP_GPU_API(name) template<class... Args> inline auto gpu##name(Args... args) { return hip##name(args...); }
+#define IMRMLP_GPU_API(name)                                                                       \
+    template <class... Args> inline auto gpu##name(Args... args)                                   \
+    {                                                                                              \
+        return hip##name(args...);                                                                 \
+    }
 #else
 using gpuError_t = cudaError_t;
 using gpuDeviceProp = cudaDeviceProp;
 using gpuStream_t = cudaStream_t;
 using gpuEvent_t = cudaEvent_t;
 #define IMRMLP_GPU_CONSTANT(name) inline constexpr auto gpu##name = cuda##name
-#define IMRMLP_GPU_API(name) template<class... Args> inline auto gpu##name(Args... args) { return cuda##name(args...); }
+#define IMRMLP_GPU_API(name)                                                                       \
+    template <class... Args> inline auto gpu##name(Args... args)                                   \
+    {                                                                                              \
+        return cuda##name(args...);                                                                \
+    }
 #endif
 IMRMLP_GPU_CONSTANT(Success);
 IMRMLP_GPU_CONSTANT(MemcpyHostToDevice);
@@ -56,9 +65,11 @@ IMRMLP_GPU_API(EventCreateWithFlags);
 IMRMLP_GPU_API(EventDestroy);
 IMRMLP_GPU_API(EventRecord);
 IMRMLP_GPU_API(EventSynchronize);
-template<class Kernel>
-inline gpuError_t gpuFuncSetAttribute(Kernel kernel,
-    decltype(gpuFuncAttributeMaxDynamicSharedMemorySize) attribute, int value)
+
+template <class Kernel>
+inline gpuError_t
+gpuFuncSetAttribute(Kernel kernel, decltype(gpuFuncAttributeMaxDynamicSharedMemorySize) attribute,
+                    int value)
 {
 #if defined(IMRMLP_HIP)
     return hipFuncSetAttribute(reinterpret_cast<const void *>(kernel), attribute, value);
@@ -66,6 +77,7 @@ inline gpuError_t gpuFuncSetAttribute(Kernel kernel,
     return cudaFuncSetAttribute(kernel, attribute, value);
 #endif
 }
+
 #undef IMRMLP_GPU_API
 #undef IMRMLP_GPU_CONSTANT
 
@@ -76,8 +88,8 @@ inline size_t max_dynamic_shared_memory(const gpuDeviceProp &props)
     // per-block LDS limit is the allocation limit; do not invent an opt-in.
     return props.sharedMemPerBlock;
 #else
-    return props.sharedMemPerBlockOptin > 0
-        ? props.sharedMemPerBlockOptin : props.sharedMemPerBlock;
+    return props.sharedMemPerBlockOptin > 0 ? props.sharedMemPerBlockOptin
+                                            : props.sharedMemPerBlock;
 #endif
 }
 

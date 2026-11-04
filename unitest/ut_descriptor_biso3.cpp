@@ -23,12 +23,7 @@ static Neighborhood make_square_nbh(double side = 2.0)
     Neighborhood nbh;
     nbh.nbhcount_ = 4;
     nbh.distances_ = {side, side, side * std::sqrt(2.0), side * std::sqrt(2.0)};
-    nbh.pos_ = {
-        { side,  0.0,   0.0},
-        { 0.0,   side,  0.0},
-        { side,  side,  0.0},
-        {-side,  side,  0.0}
-    };
+    nbh.pos_ = {{side, 0.0, 0.0}, {0.0, side, 0.0}, {side, side, 0.0}, {-side, side, 0.0}};
     nbh.chemmap_ = {0, 0, 0, 0};
     nbh.centertype = 0;
     return nbh;
@@ -152,7 +147,8 @@ TEST_CASE("Descriptor_BispectrumSO3 get_bi_ind returns valid indices", "[biso3]"
 {
     Descriptor_BispectrumSO3 biso3(2, 0.0, 5.0, 3);
 
-    for (int i = 0; i < std::min(10, biso3.feature_size()); ++i) {
+    for (int i = 0; i < std::min(10, biso3.feature_size()); ++i)
+    {
         auto indices = biso3.get_bi_ind(i);
         REQUIRE(indices.size() == 4);
         for (int idx : indices)

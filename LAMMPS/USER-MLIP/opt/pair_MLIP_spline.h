@@ -17,7 +17,7 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(mlip/spline, PairMLIPSpline)
+PairStyle(mlip / spline, PairMLIPSpline)
 
 #else
 
@@ -30,30 +30,31 @@ PairStyle(mlip/spline, PairMLIPSpline)
 
 #include "pair.h"
 #include "pair_MLIP_opt.h"
+
 namespace LAMMPS_NS
 {
 
-    class PairMLIPSpline : public PairMLIPOPT
-    {
-    public:
-        PairMLIPSpline(class LAMMPS *);
-        void LoadPot() override;
-        virtual ~PairMLIPSpline();
-        virtual void compute(int, int);
-        void settings(int, char **);
+class PairMLIPSpline : public PairMLIPOPT
+{
+  public:
+    PairMLIPSpline(class LAMMPS *);
+    void LoadPot() override;
+    virtual ~PairMLIPSpline();
+    virtual void compute(int, int);
+    void settings(int, char **);
 
-    protected:
-        // spline coeffs
-        // typei, typej, mu, sp_rval, sp_coeff
-        int Nr;
-        double deltar;
-        double *rvals = NULL;
-        // typei, typej, mu, id
-        double ****spdata = NULL;
-        // Flat layout: [type_i][type_j][mu][interval][6 coefficients].
-        double *spcoeffs = NULL;
-        void interpolate(int n, double delta, double *vals, double *spcoeffs_data);
-    };
+  protected:
+    // spline coeffs
+    // typei, typej, mu, sp_rval, sp_coeff
+    int Nr;
+    double deltar;
+    double *rvals = NULL;
+    // typei, typej, mu, id
+    double ****spdata = NULL;
+    // Flat layout: [type_i][type_j][mu][interval][6 coefficients].
+    double *spcoeffs = NULL;
+    void interpolate(int n, double delta, double *vals, double *spcoeffs_data);
+};
 };
 
 #endif

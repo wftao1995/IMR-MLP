@@ -11,11 +11,13 @@
 #include <sstream>
 #include <string>
 
-namespace {
+namespace
+{
 
 using Catch::Approx;
 
-std::string split_potential(bool with_coefficients = true) {
+std::string split_potential(bool with_coefficients = true)
+{
     std::ostringstream out;
     out << "MTP\n"
         << "version = 1.1.0\n"
@@ -46,7 +48,8 @@ std::string split_potential(bool with_coefficients = true) {
         << "  max_dist = 3.2\n"
         << "  radial_basis_size = 2\n"
         << "radial_funcs_count = 1\n";
-    if (with_coefficients) {
+    if (with_coefficients)
+    {
         out << "radial_coeffs\n"
             << "  0-0\n    {0.70, -0.20}\n"
             << "  0-1\n    {0.45, 0.10}\n"
@@ -61,30 +64,34 @@ std::string split_potential(bool with_coefficients = true) {
         << "alpha_index_times = {{1, 1, 1, 4}, {2, 2, 1, 4}, {3, 3, 1, 4}}\n"
         << "alpha_scalar_moments = 2\n"
         << "alpha_moment_mapping = {0, 4}\n";
-    if (with_coefficients) {
+    if (with_coefficients)
+    {
         out << "species_coeffs = {0.3, -0.1}\n"
             << "moment_coeffs = {1.2, -0.4}\n";
     }
     return out.str();
 }
 
-std::string read_file(const std::filesystem::path &path) {
+std::string read_file(const std::filesystem::path &path)
+{
     std::ifstream input(path);
-    return {std::istreambuf_iterator<char>(input),
-            std::istreambuf_iterator<char>()};
+    return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
 }
 
 } // namespace
 
-TEST_CASE("Spline export preserves pair bases and clamps the inner radius",
-          "[mtp][spline]") {
+TEST_CASE("Spline export preserves pair bases and clamps the inner radius", "[mtp][spline]")
+{
     const bool split = GENERATE(false, true);
     const double rmin = GENERATE(-1., 0.2, 2.);
     Potentials::PotMTP pot;
-    if (split) {
+    if (split)
+    {
         std::stringstream input(split_potential());
         pot.Load(input);
-    } else {
+    }
+    else
+    {
         pot.Load("unitest/test-data/potential.mtp");
     }
     const auto path = std::filesystem::current_path() / "mtp-spline.mtp";
@@ -94,7 +101,9 @@ TEST_CASE("Spline export preserves pair bases and clamps the inner radius",
     // The LAMMPS readers require a single RBSpline header followed by
     // species_count^2 * radial_func_count rows carrying explicit pair indices.
     std::string line, token;
-    while (std::getline(output, line) && !line.starts_with("potential_tag")) {}
+    while (std::getline(output, line) && !line.starts_with("potential_tag"))
+    {
+    }
     std::getline(output, line);
     REQUIRE(line == "radial_basis_type = RBSpline");
     double minimum, maximum;
@@ -112,11 +121,13 @@ TEST_CASE("Spline export preserves pair bases and clamps the inner radius",
     REQUIRE(nr > 2);
     REQUIRE(radial_count == pot.radial_func_count);
     std::vector<double> radii(nr), values(nr);
-    for (double &r : radii) output >> r;
+    for (double &r : radii)
+        output >> r;
     REQUIRE(radii.front() == 0);
     REQUIRE(radii.back() == Approx(pot.cutoff));
     std::vector<bool> seen(pot.species_count * pot.species_count * radial_count, false);
-    for (int row = 0; row < (int)seen.size(); ++row) {
+    for (int row = 0; row < (int)seen.size(); ++row)
+    {
         int mu, i, j;
         output >> mu >> i >> j;
         REQUIRE(output.good());
@@ -127,20 +138,24 @@ TEST_CASE("Spline export preserves pair bases and clamps the inner radius",
         const int index = pair * radial_count + mu;
         REQUIRE_FALSE(seen[index]);
         seen[index] = true;
-        for (double &v : values) output >> v;
+        for (double &v : values)
+            output >> v;
         auto *basis = split ? pot.p_radical_basis_pair[pair] : pot.p_radical_basis;
         const double inner = rmin < 0 ? basis->min_val : rmin;
         std::vector<double> basis_values(pot.rb_size);
-        for (int k = 0; k < nr; ++k) {
+        for (int k = 0; k < nr; ++k)
+        {
             const double r = std::max(inner, radii[k]);
             double expected = 0;
-            if (r <= basis->max_val) {
+            if (r <= basis->max_val)
+            {
                 basis->calc_val(r, basis_values);
                 for (int xi = 0; xi < pot.rb_size; ++xi)
                     expected += pot.radial_coeffs[index * pot.rb_size + xi] * basis_values[xi];
             }
             REQUIRE(values[k] == Approx(expected).margin(1e-12));
-            if (radii[k] <= inner) REQUIRE(values[k] == values.front());
+            if (radii[k] <= inner)
+                REQUIRE(values[k] == values.front());
         }
     }
     output >> token;
@@ -149,8 +164,8 @@ TEST_CASE("Spline export preserves pair bases and clamps the inner radius",
     std::filesystem::remove(path);
 }
 
-TEST_CASE("adjust_species validates and permutes every species parameter",
-          "[adjustmtp][species]") {
+TEST_CASE("adjust_species validates and permutes every species parameter", "[adjustmtp][species]")
+{
     std::stringstream input(split_potential());
     Potentials::PotMTP pot;
     pot.Load(input);
@@ -181,7 +196,8 @@ TEST_CASE("adjust_species validates and permutes every species parameter",
 }
 
 TEST_CASE("adjust_species expands split radial potentials with cloned default bases",
-          "[adjustmtp][species][split]") {
+          "[adjustmtp][species][split]")
+{
     std::stringstream input(split_potential());
     Potentials::PotMTP pot;
     pot.Load(input);
@@ -210,11 +226,10 @@ TEST_CASE("adjust_species expands split radial potentials with cloned default ba
 }
 
 TEST_CASE("SaveOrdered writes loadable parameterized and empty ladders",
-          "[adjustmtp][reorder][ladder]") {
-    const auto parameterized_path =
-        std::filesystem::current_path() / "adjustmtp-parameterized.mtp";
-    const auto empty_path =
-        std::filesystem::current_path() / "adjustmtp-empty.mtp";
+          "[adjustmtp][reorder][ladder]")
+{
+    const auto parameterized_path = std::filesystem::current_path() / "adjustmtp-parameterized.mtp";
+    const auto empty_path = std::filesystem::current_path() / "adjustmtp-empty.mtp";
 
     {
         std::stringstream input(split_potential());
@@ -223,8 +238,7 @@ TEST_CASE("SaveOrdered writes loadable parameterized and empty ladders",
         pot.ReorderByLevel();
         pot.SaveOrdered(parameterized_path.string());
     }
-    Potentials::PotMTP parameterized_ladder(
-        parameterized_path.string() + ".ladder2");
+    Potentials::PotMTP parameterized_ladder(parameterized_path.string() + ".ladder2");
     REQUIRE(parameterized_ladder.inited());
     REQUIRE(parameterized_ladder.alpha_scalar_moments == 1);
     REQUIRE(parameterized_ladder.species_coeffs[0] == Approx(0.3));

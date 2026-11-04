@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Validate phonopy displacement inputs and force-file failure reporting."""
+
 from pathlib import Path
 
 import pytest
@@ -35,8 +36,13 @@ def prepare(tmp_path, order=2):
     (tmp_path / 'index.map').write_text('H')  # Final newline is optional.
     text = SUPERCELL + DISPLACEMENT
     (tmp_path / 'input.yaml').write_text(text)
-    return ['phonopyfc', ROOT / 'unitest/test-data/potential.mtp', 'input.yaml',
-            '--num_threads', '1']
+    return [
+        'phonopyfc',
+        ROOT / 'unitest/test-data/potential.mtp',
+        'input.yaml',
+        '--num_threads',
+        '1',
+    ]
 
 
 @pytest.mark.parametrize('order', [2])

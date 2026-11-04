@@ -84,7 +84,8 @@ void NeighborhoodsCluster::construct(Atoms &atom, const double cutoff)
                                     int indj = boxes[i + l1][j + l2][k + l3][t];
                                     Eigen::RowVector3d rij = pos[indj] - pos[indi];
                                     double dij = rij.norm();
-                                    if ((dij < cutoff) && (indi != indj) && (indi <= indices_orig[indj]))
+                                    if ((dij < cutoff) && (indi != indj) &&
+                                        (indi <= indices_orig[indj]))
                                     {
                                         Neighborhood &nebi = nbhs[indi];
 
@@ -92,7 +93,8 @@ void NeighborhoodsCluster::construct(Atoms &atom, const double cutoff)
                                         nebi.indices_.emplace_back(indices_orig[indj]);
                                         nebi.pos_.emplace_back(rij);
                                         nebi.distances_.emplace_back(dij);
-                                        nebi.chemmap_.emplace_back(atom.chemmap_[indices_orig[indj]]);
+                                        nebi.chemmap_.emplace_back(
+                                            atom.chemmap_[indices_orig[indj]]);
                                     }
                                 }
                             }

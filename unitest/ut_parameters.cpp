@@ -8,64 +8,87 @@
 #include <limits>
 #include <unistd.h>
 
-namespace {
-void command_line(CMDOption::CommandLineOptions &options, std::vector<std::string> args) {
+namespace
+{
+void command_line(CMDOption::CommandLineOptions &options, std::vector<std::string> args)
+{
     args.insert(args.begin(), "parameter-test");
     std::vector<char *> argv;
-    for (auto &arg : args) argv.push_back(arg.data());
+    for (auto &arg : args)
+        argv.push_back(arg.data());
     options.set_helponexit(false);
     options.phrase_options(static_cast<int>(argv.size()), argv.data());
 }
 
-template<class T>
-void apply(T &value, const std::string &text, int route, int count = 1) {
+template <class T> void apply(T &value, const std::string &text, int route, int count = 1)
+{
     GPSettings settings;
     settings.Modify("value", text);
-    if (route == 2) {
+    if (route == 2)
+    {
         ConnectSettings connected;
         connected.Connect(value, "value", "", count);
         connected.ApplySettings(settings);
-    } else {
+    }
+    else
+    {
         CMDOption::CommandLineOptions options;
         options.addop(value, "value", "", "", false, count);
-        if (route == 1) apply_settings_to_cmdopts(options, settings);
-        else {
+        if (route == 1)
+            apply_settings_to_cmdopts(options, settings);
+        else
+        {
             std::vector<std::string> args{"--value"};
-            if constexpr (Parameters::Container<T>::value) {
+            if constexpr (Parameters::Container<T>::value)
+            {
                 std::istringstream stream(text);
-                for (std::string token; stream >> token;) args.push_back(token);
-            } else args.push_back(text);
+                for (std::string token; stream >> token;)
+                    args.push_back(token);
+            }
+            else
+                args.push_back(text);
             command_line(options, args);
         }
     }
 }
 
-struct SettingsFile {
+struct SettingsFile
+{
     std::string path;
-    explicit SettingsFile(const std::string &content) {
+
+    explicit SettingsFile(const std::string &content)
+    {
         char name[] = "/tmp/imrmlp_parameters_XXXXXX";
         const int fd = mkstemp(name);
-        if (fd < 0) throw std::runtime_error("cannot create temporary settings");
+        if (fd < 0)
+            throw std::runtime_error("cannot create temporary settings");
         close(fd);
         path = name;
         std::ofstream(path) << content;
     }
-    ~SettingsFile() { std::filesystem::remove(path); }
+
+    ~SettingsFile()
+    {
+        std::filesystem::remove(path);
+    }
 };
 }
 
-TEST_CASE("boolean grammar agrees across all parameter entry points", "[parameters]") {
+TEST_CASE("boolean grammar agrees across all parameter entry points", "[parameters]")
+{
     const int route = GENERATE(0, 1, 2);
     const auto text = GENERATE("1", "true", "TRUE", "yes", "Y", "0", "false", "FALSE", "no", "N");
     CAPTURE(route, text);
     const bool expected = std::string(text) == "1" || std::string(text) == "true" ||
-                          std::string(text) == "TRUE" || std::string(text) == "yes" || std::string(text) == "Y";
+                          std::string(text) == "TRUE" || std::string(text) == "yes" ||
+                          std::string(text) == "Y";
     bool value = !expected;
     apply(value, text, route);
     REQUIRE(value == expected);
 }
 
-TEST_CASE("settings snapshots include effective defaults and hidden bound values", "[parameters]") {
+TEST_CASE("settings snapshots include effective defaults and hidden bound values", "[parameters]")
+{
     ConnectSettings connected;
     double value = 0.12345678901234567;
     std::vector<double> weights{0.32109876543210987, 2.0};
@@ -82,7 +105,8 @@ TEST_CASE("settings snapshots include effective defaults and hidden bound values
     REQUIRE(snapshot.count("empty") == 0);
 }
 
-TEST_CASE("invalid boolean words cannot silently disable a parameter", "[parameters]") {
+TEST_CASE("invalid boolean words cannot silently disable a parameter", "[parameters]")
+{
     const int route = GENERATE(0, 1, 2);
     const auto text = GENERATE("garbage", "tomato", "yesplease", "falsehood", "10");
     CAPTURE(route, text);
@@ -91,7 +115,8 @@ TEST_CASE("invalid boolean words cannot silently disable a parameter", "[paramet
     REQUIRE(value);
 }
 
-TEST_CASE("unsigned values are checked against the destination range", "[parameters]") {
+TEST_CASE("unsigned values are checked against the destination range", "[parameters]")
+{
     const int route = GENERATE(0, 1, 2);
     const auto text = GENERATE("-1", " -1", "4294967296", "18446744073709551616");
     CAPTURE(route, text);
@@ -100,7 +125,8 @@ TEST_CASE("unsigned values are checked against the destination range", "[paramet
     REQUIRE(value == 17);
 }
 
-TEST_CASE("scalar conversion failure preserves the bound value", "[parameters]") {
+TEST_CASE("scalar conversion failure preserves the bound value", "[parameters]")
+{
     const int route = GENERATE(0, 1, 2);
     const auto text = GENERATE("12junk", "1.5", "2147483648", "-2147483649", "word");
     CAPTURE(route, text);
@@ -109,7 +135,8 @@ TEST_CASE("scalar conversion failure preserves the bound value", "[parameters]")
     REQUIRE(value == 7);
 }
 
-TEST_CASE("container conversion failure preserves the complete previous value", "[parameters]") {
+TEST_CASE("container conversion failure preserves the complete previous value", "[parameters]")
+{
     const int route = GENERATE(0, 1, 2);
     const auto text = GENERATE("1 2junk 3", "1 word 3", "1 2147483648 3");
     CAPTURE(route, text);
@@ -118,7 +145,8 @@ TEST_CASE("container conversion failure preserves the complete previous value", 
     REQUIRE(values == std::vector<int>{7, 8});
 }
 
-TEST_CASE("fixed container sizes are enforced through every entry point", "[parameters]") {
+TEST_CASE("fixed container sizes are enforced through every entry point", "[parameters]")
+{
     const int route = GENERATE(0, 1, 2);
     const auto text = GENERATE("1 2", "1 2 3 4");
     CAPTURE(route, text);
@@ -127,7 +155,8 @@ TEST_CASE("fixed container sizes are enforced through every entry point", "[para
     REQUIRE(values == std::vector<int>{7, 8, 9});
 }
 
-TEST_CASE("containers use the same element grammar and replace defaults", "[parameters]") {
+TEST_CASE("containers use the same element grammar and replace defaults", "[parameters]")
+{
     const int route = GENERATE(0, 1, 2);
     std::vector<bool> flags{false};
     apply(flags, "true 0 Yes", route, 3);
@@ -140,7 +169,8 @@ TEST_CASE("containers use the same element grammar and replace defaults", "[para
     REQUIRE(ids == std::set<unsigned long>{2, 3});
 }
 
-TEST_CASE("repeated CLI containers commit only after all occurrences validate", "[parameters]") {
+TEST_CASE("repeated CLI containers commit only after all occurrences validate", "[parameters]")
+{
     CMDOption::CommandLineOptions options;
     std::vector<int> values{9};
     options.addop(values, "values", "", "", false, 2);
@@ -150,7 +180,9 @@ TEST_CASE("repeated CLI containers commit only after all occurrences validate", 
     REQUIRE(values == std::vector<int>{1, 2, 3, 4});
 }
 
-TEST_CASE("shared bindings preserve CLI precedence across repeated settings applications", "[parameters]") {
+TEST_CASE("shared bindings preserve CLI precedence across repeated settings applications",
+          "[parameters]")
+{
     const bool settings_first = GENERATE(false, true);
     int value = 1;
     ConnectSettings connected;
@@ -158,7 +190,8 @@ TEST_CASE("shared bindings preserve CLI precedence across repeated settings appl
     connected.ConnectWithConsole(options, value, "count");
     GPSettings settings;
     settings.Modify("count", "3");
-    if (settings_first) connected.ApplySettings(settings);
+    if (settings_first)
+        connected.ApplySettings(settings);
     command_line(options, {"--count", "7"});
     apply_settings_to_cmdopts(options, settings);
     connected.ApplySettings(settings);
@@ -169,7 +202,8 @@ TEST_CASE("shared bindings preserve CLI precedence across repeated settings appl
     REQUIRE(value == 3);
 }
 
-TEST_CASE("CLI aliases share the original setting identity", "[parameters]") {
+TEST_CASE("CLI aliases share the original setting identity", "[parameters]")
+{
     double tolerance = 1;
     ConnectSettings connected;
     connected.Connect(tolerance, "gtol");
@@ -186,7 +220,8 @@ TEST_CASE("CLI aliases share the original setting identity", "[parameters]") {
     REQUIRE(tolerance == Catch::Approx(0.02));
 }
 
-TEST_CASE("copied and reset parsers rebind their own flags", "[parameters]") {
+TEST_CASE("copied and reset parsers rebind their own flags", "[parameters]")
+{
     CMDOption::CommandLineOptions original;
     int value = 1;
     original.addop(value, "value");
@@ -203,7 +238,8 @@ TEST_CASE("copied and reset parsers rebind their own flags", "[parameters]") {
     REQUIRE_FALSE(copy.displayhelp);
 }
 
-TEST_CASE("multiple CLI aliases apply occurrences to one parameter in input order", "[parameters]") {
+TEST_CASE("multiple CLI aliases apply occurrences to one parameter in input order", "[parameters]")
+{
     bool enabled = false;
     ConnectSettings connected;
     connected.Connect(enabled, "enabled", "", 0);
@@ -218,12 +254,15 @@ TEST_CASE("multiple CLI aliases apply occurrences to one parameter in input orde
     REQUIRE(enabled);
 }
 
-TEST_CASE("deferred module shortcuts preserve explicit false and zero values", "[parameters]") {
+TEST_CASE("deferred module shortcuts preserve explicit false and zero values", "[parameters]")
+{
     bool enabled = true;
     double pressure = -1;
     CMDOption::CommandLineOptions options;
-    options.addop(enabled, "enabled").map_setting("enabled", "relax:enabled")
-           .addop(pressure, "pressure").map_setting("pressure", "relax:pressure");
+    options.addop(enabled, "enabled")
+        .map_setting("enabled", "relax:enabled")
+        .addop(pressure, "pressure")
+        .map_setting("pressure", "relax:pressure");
     GPSettings settings;
     settings.Modify("relax:enabled", "true");
     settings.Modify("relax:pressure", "3");
@@ -246,7 +285,8 @@ TEST_CASE("deferred module shortcuts preserve explicit false and zero values", "
     REQUIRE(module_pressure == 0);
 }
 
-TEST_CASE("explicit empty CLI strings survive deferred configuration", "[parameters]") {
+TEST_CASE("explicit empty CLI strings survive deferred configuration", "[parameters]")
+{
     std::string value = "initial";
     CMDOption::CommandLineOptions options;
     options.addop(value, "value").map_setting("value", "module:value");
@@ -265,28 +305,33 @@ TEST_CASE("explicit empty CLI strings survive deferred configuration", "[paramet
     REQUIRE(alias_value.empty());
 }
 
-TEST_CASE("deferred mappings keep canonical settings and flat fallback spellings", "[parameters]") {
+TEST_CASE("deferred mappings keep canonical settings and flat fallback spellings", "[parameters]")
+{
     const bool canonical = GENERATE(false, true);
     double value = -1;
     CMDOption::CommandLineOptions options;
     options.addop(value, "gtol").map_setting("gtol", "relax:gtol");
     GPSettings settings;
     settings.Modify("gtol", "0.1");
-    if (canonical) settings.Modify("relax:gtol", "0.2");
+    if (canonical)
+        settings.Modify("relax:gtol", "0.2");
     options.apply_settings(settings);
     options.apply_overrides(settings);
     REQUIRE(value == Catch::Approx(canonical ? 0.2 : 0.1));
     REQUIRE(settings["relax:gtol"] == (canonical ? "0.2" : Parameters::format_value(0.1)));
 }
 
-TEST_CASE("empty programmatic settings retain existing defaults", "[parameters]") {
+TEST_CASE("empty programmatic settings retain existing defaults", "[parameters]")
+{
     const int route = GENERATE(1, 2);
     std::string value = "mtp";
     apply(value, "", route);
     REQUIRE(value == "mtp");
 }
 
-TEST_CASE("settings retain duplicate entries and error locations through extraction", "[parameters]") {
+TEST_CASE("settings retain duplicate entries and error locations through extraction",
+          "[parameters]")
+{
     SettingsFile file("repeat first\nrepeat second\n[relax]\nmaxiter 12junk\n");
     GPSettings settings(file.path);
     REQUIRE(settings["repeat"] == "first");
@@ -300,7 +345,8 @@ TEST_CASE("settings retain duplicate entries and error locations through extract
     REQUIRE(value == 7);
 }
 
-TEST_CASE("settings preserve whitespace continuation and blank section boundaries", "[parameters]") {
+TEST_CASE("settings preserve whitespace continuation and blank section boundaries", "[parameters]")
+{
     SettingsFile file("[group]\nvalues 1 \\\n 2 3\n\nname\tvalue with spaces\n");
     GPSettings settings(file.path);
     std::vector<int> values;
@@ -312,7 +358,8 @@ TEST_CASE("settings preserve whitespace continuation and blank section boundarie
     REQUIRE_FALSE(settings.count("group:name"));
 }
 
-TEST_CASE("positional lists and negative values retain unambiguous boundaries", "[parameters]") {
+TEST_CASE("positional lists and negative values retain unambiguous boundaries", "[parameters]")
+{
     CMDOption::CommandLineOptions options;
     std::vector<double> values;
     std::string output;

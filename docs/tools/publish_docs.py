@@ -3,6 +3,7 @@
 The supported build platform is Linux. renameat2(RENAME_EXCHANGE) keeps the
 old tree at the staging path until its TemporaryDirectory context cleans it up.
 """
+
 import ctypes
 import os
 from pathlib import Path

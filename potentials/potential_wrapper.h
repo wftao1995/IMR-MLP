@@ -17,7 +17,8 @@
 #include <map>
 #include <string>
 
-namespace Potentials {
+namespace Potentials
+{
 
 /// True only for audited concrete CPU implementations (including local composites).
 bool supports_frame_local_efs(const AnyPotential &pot);
@@ -27,8 +28,9 @@ bool supports_frame_local_efs(const AnyPotential &pot);
 /// Usage:
 ///   potential_wrapper pot("potential.mtp", "mtp");
 ///   pot.pot->getEFS(atom, nbhs);
-class potential_wrapper : public ConnectSettings {
-public:
+class potential_wrapper : public ConnectSettings
+{
+  public:
     AnyPotential *pot = nullptr;
 
     std::string potfile;
@@ -37,32 +39,47 @@ public:
     std::string kim_model_name;
     int plev = 2;
 
-    void InitSettings() {
-        Connect(potfile, "potfile", "Path to potential parameter file (e.g. .mtp, .eam, .lj input)");
-        Connect(pottype, "pottype", "Potential type identifier: mtp, mtpnn1, mtp_m, mtp_les, hmtp, eamalloy, eamfs, eampoly, lj612, sw, tersoff, zbl, pair_table, threebody_table, shellfile, openkim, hybrid, hybrid_scale, mindist, descriptor_linear, acelmp");
-        Connect(typemap, "typemap", "Path to index.map file mapping chemical species to type indices");
-        Connect(kim_model_name, "kim_model", "OpenKIM model name (used when pottype=openkim), e.g. EAM_Dynamo_...");
+    void InitSettings()
+    {
+        Connect(potfile, "potfile",
+                "Path to potential parameter file (e.g. .mtp, .eam, .lj input)");
+        Connect(
+            pottype, "pottype",
+            "Potential type identifier: mtp, mtpnn1, mtp_m, mtp_les, hmtp, eamalloy, eamfs, eampoly, lj612, sw, tersoff, zbl, pair_table, threebody_table, shellfile, openkim, hybrid, hybrid_scale, mindist, descriptor_linear, acelmp");
+        Connect(typemap, "typemap",
+                "Path to index.map file mapping chemical species to type indices");
+        Connect(kim_model_name, "kim_model",
+                "OpenKIM model name (used when pottype=openkim), e.g. EAM_Dynamo_...");
         Connect(plev, "potlevel", "");
     }
 
-    potential_wrapper() { InitSettings(); }
+    potential_wrapper()
+    {
+        InitSettings();
+    }
 
     // todo: depreach this
-    potential_wrapper(std::string _potfile, std::string _pottype, GPSettings settings = GPSettings()) {
+    potential_wrapper(std::string _potfile, std::string _pottype,
+                      GPSettings settings = GPSettings())
+    {
         InitSettings();
         ApplySettings(settings);
-        if (settings["potfile"].empty()) potfile = _potfile;
-        if (settings["pottype"].empty()) pottype = _pottype;
+        if (settings["potfile"].empty())
+            potfile = _potfile;
+        if (settings["pottype"].empty())
+            pottype = _pottype;
 
         settings.Modify("potfile", potfile);
         settings.Modify("pottype", pottype);
-        if (pottype.empty()) {
+        if (pottype.empty())
+        {
             pottype = "mtp";
         }
         init(settings);
     }
 
-    potential_wrapper(GPSettings settings) {
+    potential_wrapper(GPSettings settings)
+    {
         init(settings);
     }
 
@@ -72,7 +89,8 @@ public:
     void read_map(std::string file, std::map<int, std::string> &mi2s,
                   std::map<std::string, int> &ms2i);
 
-    ~potential_wrapper() {
+    ~potential_wrapper()
+    {
         delete pot;
     }
 };

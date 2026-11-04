@@ -10,16 +10,16 @@
 
 struct NeighborhoodSimple
 {
-    std::vector<int> indices_;     // indices of each atom
+    std::vector<int> indices_;      // indices of each atom
     std::vector<double> distances_; //relative distance about center atom
 };
 
 class AnyNeighborhoodsSimple
 {
-protected:
+  protected:
     std::vector<NeighborhoodSimple> nbhs;
 
-public:
+  public:
     inline int size() const
     {
         return nbhs.size();

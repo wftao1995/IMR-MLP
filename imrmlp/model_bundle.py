@@ -1,4 +1,5 @@
 """Single-file potential bundles and explicitly activated AL sessions."""
+
 from types import SimpleNamespace
 from ._imrmlp import _ModelBundle
 from .atoms import Atoms
@@ -68,6 +69,7 @@ class ALSession:
     @property
     def selector(self):
         from .al import ActiveSelector
+
         inner = self._impl.selector
         if inner is None:
             return None

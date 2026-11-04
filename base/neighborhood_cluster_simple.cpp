@@ -76,7 +76,8 @@ void NeighborhoodsClusterSimple::construct(Atoms &atom, const double cutoff)
                                     int indj = boxes[i + l1][j + l2][k + l3][t];
                                     Eigen::RowVector3d rij = pos[indj] - pos[indi];
                                     double dij = rij.norm();
-                                    if ((dij < cutoff) && (indi != indj) && (indi <= indices_orig[indj]))
+                                    if ((dij < cutoff) && (indi != indj) &&
+                                        (indi <= indices_orig[indj]))
                                     {
                                         NeighborhoodSimple &nebi = nbhs[indi];
 

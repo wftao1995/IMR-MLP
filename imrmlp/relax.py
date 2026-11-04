@@ -46,6 +46,7 @@ class RelaxResult:
     final_atoms : Atoms
         Relaxed structure.
     """
+
     converged: bool
     n_iter: int
     final_energy: float
@@ -122,38 +123,39 @@ class Relaxation:
     >>> print(result.converged, result.final_energy)
     """
 
-    def __init__(self,
-                 potential,
-                 driver: str = "lbfgs",
-                 max_iter: int = 1000,
-                 gtol: float = 1e-3,
-                 ftol: float = 0.0,
-                 xtol: float = 0.0,
-                 relax_cell: bool = False,
-                 fix_vol: bool = False,
-                 fix_shape: bool = False,
-                 pressure: float = 0.0,
-                 max_move: float = 0.1,
-                 selective_dynamics: bool = False,
-                 trajfile: str = "",
-                 downhill_check: bool = False,
-                 constraints: Optional[List[dict]] = None,
-                 constraint_loops: int = 10,
-                 max_linesearch: int = 20,
-                 timestep: Optional[float] = None,
-                 force_only: bool = False,
-                 constraint_version: int = 1,
-                 periodic_subspace: bool = False,
-                 hessian_precond_file: str = "",
-                 sparse_precond: bool = False,
-                 sparse_shift: float = 1e-3,
-                 precond_floor: float = 1e-8,
-                 fc_update_interval: int = 0,
-                 aul_auto: bool = False,
-                 thin_cell_scaling: bool = False,
-                 rigid_groups=None,
-                 coordinate_map: Optional[dict] = None,
-                 ):
+    def __init__(
+        self,
+        potential,
+        driver: str = "lbfgs",
+        max_iter: int = 1000,
+        gtol: float = 1e-3,
+        ftol: float = 0.0,
+        xtol: float = 0.0,
+        relax_cell: bool = False,
+        fix_vol: bool = False,
+        fix_shape: bool = False,
+        pressure: float = 0.0,
+        max_move: float = 0.1,
+        selective_dynamics: bool = False,
+        trajfile: str = "",
+        downhill_check: bool = False,
+        constraints: Optional[List[dict]] = None,
+        constraint_loops: int = 10,
+        max_linesearch: int = 20,
+        timestep: Optional[float] = None,
+        force_only: bool = False,
+        constraint_version: int = 1,
+        periodic_subspace: bool = False,
+        hessian_precond_file: str = "",
+        sparse_precond: bool = False,
+        sparse_shift: float = 1e-3,
+        precond_floor: float = 1e-8,
+        fc_update_interval: int = 0,
+        aul_auto: bool = False,
+        thin_cell_scaling: bool = False,
+        rigid_groups=None,
+        coordinate_map: Optional[dict] = None,
+    ):
         self._impl = _Relaxation()
 
         # Set parameters
@@ -167,8 +169,11 @@ class Relaxation:
         self._impl.aul_auto = aul_auto
         self._impl.thin_cell_scaling = thin_cell_scaling
         if rigid_groups is not None:
-            self._impl.rigid_groups = (rigid_groups if isinstance(rigid_groups, str) else
-                ";".join(",".join(str(i) for i in group) for group in rigid_groups))
+            self._impl.rigid_groups = (
+                rigid_groups
+                if isinstance(rigid_groups, str)
+                else ";".join(",".join(str(i) for i in group) for group in rigid_groups)
+            )
         if coordinate_map is not None:
             self._impl.set_coordinate_map(**coordinate_map)
         if force_only:
@@ -195,16 +200,19 @@ class Relaxation:
         self._impl.downhill_check = downhill_check
         self._impl.constraint_loops = constraint_loops
         self._impl.max_linesearch = max_linesearch
-        self._constraints_json = (json.dumps({"version": constraint_version, "constraints": constraints})
-                                  if constraints else "")
+        self._constraints_json = (
+            json.dumps({"version": constraint_version, "constraints": constraints})
+            if constraints
+            else ""
+        )
         self._impl.write_traj = bool(trajfile)
         if trajfile:
             self._impl.trajfile = trajfile
 
         self._potential = potential
         self._pot_inner: _AnyPotential = (
-            potential.inner if hasattr(potential, 'inner')
-            else potential._impl.inner)
+            potential.inner if hasattr(potential, 'inner') else potential._impl.inner
+        )
 
     def run(self, atoms: Atoms) -> RelaxResult:
         """Run relaxation starting from the given atomic structure.
@@ -247,6 +255,8 @@ class Relaxation:
         return self._impl.energy
 
     def __repr__(self) -> str:
-        return (f"Relaxation(driver='{self._impl.driver}', "
-                f"max_iter={int(self._impl.max_iter)}, "
-                f"gtol={self._impl.gtol})")
+        return (
+            f"Relaxation(driver='{self._impl.driver}', "
+            f"max_iter={int(self._impl.max_iter)}, "
+            f"gtol={self._impl.gtol})"
+        )

@@ -14,7 +14,8 @@
 #define IMRMLP_GPU
 #endif
 
-namespace MLIPCore::GpuDirect {
+namespace MLIPCore::GpuDirect
+{
 // Backend macros describe this translation unit. Internal linkage also keeps
 // standalone consumers from merging this helper with a different build mode.
 static constexpr const char *compiled_backend()

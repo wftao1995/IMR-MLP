@@ -18,30 +18,30 @@ void trim_all(std::string &instr)
 
 void trim_indent(char *str)
 {
-    int i = 0; 
+    int i = 0;
     while (str[i] == ' ' || str[i] == '\t')
     {
         ++i;
     }
     for (int j = 0; j < strlen(str) - i; ++j)
     {
-        str[j] = str[i+j];
+        str[j] = str[i + j];
     }
 }
 
 char *get_indent(char *str)
 {
-    int i = 0; 
+    int i = 0;
     while (str[i] == ' ' || str[i] == '\t')
     {
         ++i;
     }
-    return str+i;
+    return str + i;
 }
 
 void trim_comment(std::string &instr, const char *headers)
 {
-    for(int i = 0; i < strlen(headers); ++i)
+    for (int i = 0; i < strlen(headers); ++i)
     {
         char st[4];
         st[0] = headers[i];
@@ -59,7 +59,8 @@ bool str_to_bool(const std::string &str)
         return true;
     return false;
 }
-bool str_to_bool(const char * str)
+
+bool str_to_bool(const char *str)
 {
     if (str[0] == 'T' || str[0] == 't' || str[0] == 'Y' || str[0] == 'y' || str[0] == '1')
         return true;
@@ -84,12 +85,17 @@ int str_split(char *instr, char **split)
 {
     char *p = instr;
     int num = 0;
-    while (*p) {
-        while (*p == ' ' || *p == '\n' || *p == '\t' || *p == '\r') ++p;
-        if (*p == '\0') break;
+    while (*p)
+    {
+        while (*p == ' ' || *p == '\n' || *p == '\t' || *p == '\r')
+            ++p;
+        if (*p == '\0')
+            break;
         split[num++] = p;
-        while (*p && *p != ' ' && *p != '\n' && *p != '\t' && *p != '\r') ++p;
-        if (*p) *p++ = '\0';
+        while (*p && *p != ' ' && *p != '\n' && *p != '\t' && *p != '\r')
+            ++p;
+        if (*p)
+            *p++ = '\0';
     }
     return num;
 }
@@ -98,12 +104,17 @@ int str_split(char *instr, char **split, char *token)
 {
     char *p = instr;
     int num = 0;
-    while (*p) {
-        while (*p && strchr(token, *p)) ++p;
-        if (*p == '\0') break;
+    while (*p)
+    {
+        while (*p && strchr(token, *p))
+            ++p;
+        if (*p == '\0')
+            break;
         split[num++] = p;
-        while (*p && !strchr(token, *p)) ++p;
-        if (*p) *p++ = '\0';
+        while (*p && !strchr(token, *p))
+            ++p;
+        if (*p)
+            *p++ = '\0';
     }
     return num;
 }
@@ -112,12 +123,17 @@ int str_split(char *instr, char **split, int count)
 {
     char *p = instr;
     int num = 0;
-    while (*p && num < count) {
-        while (*p == ' ' || *p == '\n' || *p == '\t' || *p == '\r') ++p;
-        if (*p == '\0') break;
+    while (*p && num < count)
+    {
+        while (*p == ' ' || *p == '\n' || *p == '\t' || *p == '\r')
+            ++p;
+        if (*p == '\0')
+            break;
         split[num++] = p;
-        while (*p && *p != ' ' && *p != '\n' && *p != '\t' && *p != '\r') ++p;
-        if (*p) *p++ = '\0';
+        while (*p && *p != ' ' && *p != '\n' && *p != '\t' && *p != '\r')
+            ++p;
+        if (*p)
+            *p++ = '\0';
     }
     return num;
 }
@@ -134,6 +150,7 @@ unsigned int bkdr_hash(const char *opt)
 
     return (hash & 0x7FFFFFFF);
 }
+
 // just for fun, do not call this
 unsigned int kmp_search(char *string, char *pattern)
 {

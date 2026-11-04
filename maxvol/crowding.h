@@ -50,7 +50,7 @@ struct CrowdingParams
 /// query batches without retaining the full descriptor matrix.
 class CrowdingModel
 {
-public:
+  public:
     using RowMatrix = Eigen::Matrix<double, -1, -1, Eigen::RowMajor>;
 
     CrowdingModel(int descriptor_size, const CrowdingParams &params);
@@ -69,11 +69,10 @@ public:
 
     /// Return one density for each query row. Negative buckets return zero and
     /// are later assigned unit weight by weights_from_density().
-    std::vector<double> density(
-        const RowMatrix &B, const std::vector<int> &buckets,
-        const std::vector<std::uint64_t> &row_ids) const;
+    std::vector<double> density(const RowMatrix &B, const std::vector<int> &buckets,
+                                const std::vector<std::uint64_t> &row_ids) const;
 
-private:
+  private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
@@ -91,7 +90,7 @@ private:
 /// bucket is 1 and scales are comparable across elements.
 class CrowdingWeights
 {
-public:
+  public:
     using RowMatrix = Eigen::Matrix<double, -1, -1, Eigen::RowMajor>;
 
     /// @brief Compute crowding weights.
@@ -101,17 +100,14 @@ public:
     ///                Rows with id < 0 are skipped (weight 1).
     /// @param params  Crowding parameters.
     /// @return n weights in [clip_min, clip_max].
-    static std::vector<double> compute(const RowMatrix &B,
-                                       const std::vector<int> &buckets,
+    static std::vector<double> compute(const RowMatrix &B, const std::vector<int> &buckets,
                                        const CrowdingParams &params);
 
     /// @brief Single-bucket overload (no bucketing).
-    static std::vector<double> compute(const RowMatrix &B,
-                                       const CrowdingParams &params);
+    static std::vector<double> compute(const RowMatrix &B, const CrowdingParams &params);
 
     /// Convert precomputed densities to clipped, bucket-normalized weights.
-    static std::vector<double> weights_from_density(
-        const std::vector<double> &density,
-        const std::vector<int> &buckets,
-        const CrowdingParams &params);
+    static std::vector<double> weights_from_density(const std::vector<double> &density,
+                                                    const std::vector<int> &buckets,
+                                                    const CrowdingParams &params);
 };

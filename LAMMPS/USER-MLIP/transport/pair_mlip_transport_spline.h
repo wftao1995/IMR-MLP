@@ -15,25 +15,27 @@ PairStyle(mlip/transport/spline,PairMLIPTransportSpline)
 
 #include "pair_mlip_transport.h"
 
-namespace LAMMPS_NS {
+namespace LAMMPS_NS
+{
 
-class PairMLIPTransportSpline : public PairMLIPTransport {
- public:
-  explicit PairMLIPTransportSpline(class LAMMPS *);
-  ~PairMLIPTransportSpline() override;
+class PairMLIPTransportSpline : public PairMLIPTransport
+{
+  public:
+    explicit PairMLIPTransportSpline(class LAMMPS *);
+    ~PairMLIPTransportSpline() override;
 
- protected:
-  int spline_points_ = 0;
-  double spline_delta_ = 0.0;
-  double *spline_radii_ = nullptr;
-  double *spline_coefficients_ = nullptr;
+  protected:
+    int spline_points_ = 0;
+    double spline_delta_ = 0.0;
+    double *spline_radii_ = nullptr;
+    double *spline_coefficients_ = nullptr;
 
-  void load_potential() override;
-  bool evaluate_radial(int, double, Scratch &) const override;
-  static void interpolate(int, double, const double *, double *);
+    void load_potential() override;
+    bool evaluate_radial(int, double, Scratch &) const override;
+    static void interpolate(int, double, const double *, double *);
 };
 
-}    // namespace LAMMPS_NS
+} // namespace LAMMPS_NS
 
 #endif
 #endif

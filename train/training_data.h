@@ -6,7 +6,8 @@
 #include "base/neighborhood.h"
 #include "io/gpio.h"
 
-namespace Training {
+namespace Training
+{
 
 std::vector<Atoms> load_training_data(GPIO &io, const std::string &filename,
                                       const std::string &format);

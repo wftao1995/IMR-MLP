@@ -41,8 +41,9 @@ def load_allowlist(path: Path):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--strict", action="store_true",
-                        default=os.environ.get("DOC_CHECK_STRICT") == "1")
+    parser.add_argument(
+        "--strict", action="store_true", default=os.environ.get("DOC_CHECK_STRICT") == "1"
+    )
     parser.add_argument("--allowlist", type=Path, default=ALLOWLIST)
     args = parser.parse_args()
 
@@ -84,22 +85,25 @@ def main() -> int:
                 documented_aliases = documented[name]["aliases"]
                 lost = expected - documented_aliases
                 if lost:
-                    alias_problems.append(
-                        f"{language}: {name} missing aliases {sorted(lost)}")
+                    alias_problems.append(f"{language}: {name} missing aliases {sorted(lost)}")
         for name in sorted(set(documented) - set(code)):
             extra_options.append(f"{language}: undocumented command section {name}")
 
     total = len(code)
-    print(f"CLI surface: {total} commands derived from apps/, "
-          f"{len(DOCUMENTS)} command references checked")
+    print(
+        f"CLI surface: {total} commands derived from apps/, "
+        f"{len(DOCUMENTS)} command references checked"
+    )
     if not (missing_commands or missing_options or extra_options or alias_problems):
         print("Command reference matches the registered CLI surface.")
         return 0
 
-    for title, items in (("Missing command sections", missing_commands),
-                         ("Options in code but not documented", missing_options),
-                         ("Options documented but not registered", extra_options),
-                         ("Alias labels out of date", alias_problems)):
+    for title, items in (
+        ("Missing command sections", missing_commands),
+        ("Options in code but not documented", missing_options),
+        ("Options documented but not registered", extra_options),
+        ("Alias labels out of date", alias_problems),
+    ):
         if not items:
             continue
         print(f"\n{title} ({len(items)}):")
@@ -112,7 +116,9 @@ def main() -> int:
             print("\nStrict mode: update the command reference or the allowlist.")
             return 1
     else:
-        print("\nAdvisory mode: set DOC_CHECK_STRICT=1 to fail on command/option/alias differences.")
+        print(
+            "\nAdvisory mode: set DOC_CHECK_STRICT=1 to fail on command/option/alias differences."
+        )
     return 0
 
 

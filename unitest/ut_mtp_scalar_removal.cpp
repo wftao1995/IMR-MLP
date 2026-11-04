@@ -15,15 +15,22 @@
 using Catch::Approx;
 using Potentials::PotMTP;
 
-namespace {
-struct ThreadSettings {
+namespace
+{
+struct ThreadSettings
+{
     int preference = omp_num_threads;
 #ifdef USE_OMP
     int requested = omp_get_max_threads();
     int dynamic = omp_get_dynamic();
 #endif
-    ThreadSettings() { set_omp_num_threads(2); }
-    ~ThreadSettings() {
+    ThreadSettings()
+    {
+        set_omp_num_threads(2);
+    }
+
+    ~ThreadSettings()
+    {
         omp_num_threads = preference;
 #ifdef USE_OMP
         omp_set_num_threads(requested);
@@ -90,18 +97,21 @@ void equal_efs(const Atoms &actual, const Atoms &expected)
     for (int i = 0; i < expected.size(); ++i)
     {
         REQUIRE(std::isfinite(actual.site_energies_[i]));
-        REQUIRE(actual.site_energies_[i] == Approx(expected.site_energies_[i]).epsilon(1e-11).margin(1e-11));
+        REQUIRE(actual.site_energies_[i] ==
+                Approx(expected.site_energies_[i]).epsilon(1e-11).margin(1e-11));
         for (int a = 0; a < 3; ++a)
         {
             REQUIRE(std::isfinite(actual.forces_[i][a]));
-            REQUIRE(actual.forces_[i][a] == Approx(expected.forces_[i][a]).epsilon(1e-11).margin(1e-11));
+            REQUIRE(actual.forces_[i][a] ==
+                    Approx(expected.forces_[i][a]).epsilon(1e-11).margin(1e-11));
         }
     }
     for (int a = 0; a < 3; ++a)
         for (int b = 0; b < 3; ++b)
         {
             REQUIRE(std::isfinite(actual.stress_(a, b)));
-            REQUIRE(actual.stress_(a, b) == Approx(expected.stress_(a, b)).epsilon(1e-11).margin(1e-11));
+            REQUIRE(actual.stress_(a, b) ==
+                    Approx(expected.stress_(a, b)).epsilon(1e-11).margin(1e-11));
         }
 }
 
@@ -124,7 +134,8 @@ void check_species_only(const Atoms &atoms)
     REQUIRE(atoms.energy_ == Approx(0.4).margin(1e-12));
     for (int i = 0; i < atoms.size(); ++i)
     {
-        REQUIRE(atoms.site_energies_[i] == Approx(atoms.chemmap_[i] == 0 ? 0.3 : -0.1).margin(1e-12));
+        REQUIRE(atoms.site_energies_[i] ==
+                Approx(atoms.chemmap_[i] == 0 ? 0.3 : -0.1).margin(1e-12));
         REQUIRE(atoms.forces_[i].norm() < 1e-12);
     }
     REQUIRE(atoms.stress_.norm() < 1e-12);
@@ -149,7 +160,8 @@ void check_reload(PotMTP &model, const Atoms &expected)
 }
 }
 
-TEST_CASE("MTP scalar removal preserves the retained model and species-only limit", "[mtp][scalar-removal]")
+TEST_CASE("MTP scalar removal preserves the retained model and species-only limit",
+          "[mtp][scalar-removal]")
 {
     ThreadSettings threads;
     const int count = GENERATE(0, 1, 2);
@@ -158,7 +170,8 @@ TEST_CASE("MTP scalar removal preserves the retained model and species-only limi
     load_model(model);
     load_model(reference);
     REQUIRE(model.alpha_scalar_moments == 2);
-    const std::vector<double> radial(model.radial_coeffs, model.radial_coeffs + model.radial_coeff_size);
+    const std::vector<double> radial(model.radial_coeffs,
+                                     model.radial_coeffs + model.radial_coeff_size);
     const std::vector<int> mapping(model.alpha_moment_mapping, model.alpha_moment_mapping + 2);
     const std::vector<double> moments(model.moment_coeffs, model.moment_coeffs + 2);
     std::set<int> removed;
@@ -169,8 +182,10 @@ TEST_CASE("MTP scalar removal preserves the retained model and species-only limi
     }
     auto expected = geometry();
     reference.getEFS(expected);
-    if (count == 2) check_species_only(expected);
-    else REQUIRE(expected.forces_[0].norm() > 1e-6);
+    if (count == 2)
+        check_species_only(expected);
+    else
+        REQUIRE(expected.forces_[0].norm() > 1e-6);
 
     // Exercise deletion after scratch has already been used, not just a
     // freshly loaded model. Empty removal must preserve the buffer itself.
@@ -178,7 +193,8 @@ TEST_CASE("MTP scalar removal preserves the retained model and species-only limi
     model.getEFSOMP(warm);
     const auto old_coefficients = model.regression_coeffs;
     model.remove_scalar_by_id(removed);
-    if (count == 0) REQUIRE(model.regression_coeffs == old_coefficients);
+    if (count == 0)
+        REQUIRE(model.regression_coeffs == old_coefficients);
     REQUIRE(model.alpha_scalar_moments == 2 - count);
     REQUIRE(model.moment_coeff_size == 2 - count);
     REQUIRE(model.lin_coeff_size == model.species_count + 2 - count);
@@ -186,7 +202,8 @@ TEST_CASE("MTP scalar removal preserves the retained model and species-only limi
     REQUIRE(model.radial_coeffs == model.regression_coeffs);
     REQUIRE(model.species_coeffs == model.regression_coeffs + model.radial_coeff_size);
     REQUIRE(model.moment_coeffs == model.species_coeffs + model.species_count);
-    for (int i = 0; i < model.radial_coeff_size; ++i) REQUIRE(model.radial_coeffs[i] == radial[i]);
+    for (int i = 0; i < model.radial_coeff_size; ++i)
+        REQUIRE(model.radial_coeffs[i] == radial[i]);
     REQUIRE(model.species_coeffs[0] == 0.3);
     REQUIRE(model.species_coeffs[1] == -0.1);
     for (int i = 0; i < model.alpha_scalar_moments; ++i)
@@ -204,7 +221,8 @@ TEST_CASE("MTP scalar removal preserves the retained model and species-only limi
     check_evaluation(model, expected);
 }
 
-TEST_CASE("MTP initially zero-scalar models allow empty removal and reload", "[mtp][scalar-removal]")
+TEST_CASE("MTP initially zero-scalar models allow empty removal and reload",
+          "[mtp][scalar-removal]")
 {
     ThreadSettings threads;
     PotMTP model;

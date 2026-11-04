@@ -13,7 +13,8 @@
 using Catch::Approx;
 using namespace Potentials;
 
-static Atoms make_dimer(double d = 2.0) {
+static Atoms make_dimer(double d = 2.0)
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 20.0;
     atom.pos_ = {{0, 0, 0}, {d, 0, 0}};
@@ -21,7 +22,8 @@ static Atoms make_dimer(double d = 2.0) {
     return atom;
 }
 
-static LJ612 make_pot(double eps = 1.0, double sig = 2.5, double cutoff = 10.0) {
+static LJ612 make_pot(double eps = 1.0, double sig = 2.5, double cutoff = 10.0)
+{
     GPSettings s;
     s.Modify("ntypes", "1");
     s.Modify("0-0", fmt::format("{} {}", eps, sig));
@@ -30,7 +32,8 @@ static LJ612 make_pot(double eps = 1.0, double sig = 2.5, double cutoff = 10.0) 
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 construction and basic quantities", "[lj]") {
+TEST_CASE("LJ612 construction and basic quantities", "[lj]")
+{
     auto pot = make_pot(1.0, 2.5);
     REQUIRE(pot.species_count == 1);
     REQUIRE(pot.get_NL_coeffs_count() == 3); // 1 pair×2 + 1 elem = 3
@@ -38,7 +41,8 @@ TEST_CASE("LJ612 construction and basic quantities", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 zero-energy at large separation", "[lj]") {
+TEST_CASE("LJ612 zero-energy at large separation", "[lj]")
+{
     auto pot = make_pot(1.0, 2.5, 6.0);
     auto atom = make_dimer(12.0);
     // 20A cell, distance 12A: min image = min(12, 20-12) = 8A > 6A cutoff
@@ -49,7 +53,8 @@ TEST_CASE("LJ612 zero-energy at large separation", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 energy at equilibrium distance", "[lj]") {
+TEST_CASE("LJ612 energy at equilibrium distance", "[lj]")
+{
     // LJ minimum: r_eq = 2^(1/6) * sigma ≈ 1.1225 * sigma
     // V(r_eq) = -eps
     double sig = 2.5, eps = 1.0;
@@ -60,12 +65,13 @@ TEST_CASE("LJ612 energy at equilibrium distance", "[lj]") {
     atom.resetEFS();
     pot.getEFS(atom, nbhs);
 
-    double expected = -eps;  // per pair × 0.5 × 2 atoms = single pair energy
+    double expected = -eps; // per pair × 0.5 × 2 atoms = single pair energy
     REQUIRE(atom.energy_ == Approx(expected).epsilon(1e-8));
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 energy at compressed distance", "[lj]") {
+TEST_CASE("LJ612 energy at compressed distance", "[lj]")
+{
     // r = 2.0, sig = 2.5, eps = 1.0
     // V = 4*eps*((sig/r)^12 - (sig/r)^6) = 4*((2.5/2)^12 - (2.5/2)^6) = ...
     double sig = 2.5, eps = 1.0, r = 2.0;
@@ -83,7 +89,8 @@ TEST_CASE("LJ612 energy at compressed distance", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 force finite-difference", "[lj]") {
+TEST_CASE("LJ612 force finite-difference", "[lj]")
+{
     auto pot = make_pot(1.0, 2.5, 6.0);
     auto atom = make_dimer(2.3);
     Neighborhoods nbhs(atom, 6.0);
@@ -92,8 +99,10 @@ TEST_CASE("LJ612 force finite-difference", "[lj]") {
     auto analytical = atom.forces_;
 
     const double dx = 1e-6;
-    for (int i = 0; i < atom.size(); ++i) {
-        for (int a = 0; a < 3; ++a) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
+        for (int a = 0; a < 3; ++a)
+        {
             atom.pos_[i][a] += dx;
             nbhs.init(atom, 6.0);
             atom.resetEFS();
@@ -114,12 +123,13 @@ TEST_CASE("LJ612 force finite-difference", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 stress finite-difference", "[lj]") {
+TEST_CASE("LJ612 stress finite-difference", "[lj]")
+{
     // Use a 4-atom system so stress is nontrivial
     auto pot = make_pot(1.0, 2.5, 8.0);
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 15.0;
-    atom.pos_ = {{0,0,0}, {1.8,0,0}, {0,2.5,0}, {0.5,0.5,2.0}};
+    atom.pos_ = {{0, 0, 0}, {1.8, 0, 0}, {0, 2.5, 0}, {0.5, 0.5, 2.0}};
     atom.chemmap_ = {0, 0, 0, 0};
     Neighborhoods nbhs(atom, 8.0);
     atom.resetEFS();
@@ -133,8 +143,10 @@ TEST_CASE("LJ612 stress finite-difference", "[lj]") {
 
     // FD stress check: dE/dε_ab = -stress_(a,b) for strain ε
     const double dcell = 1e-6;
-    for (int a = 0; a < 3; ++a) {
-        for (int b = 0; b < 3; ++b) {
+    for (int a = 0; a < 3; ++a)
+    {
+        for (int b = 0; b < 3; ++b)
+        {
             auto cell = atom.cell_;
             cell(a, b) += dcell;
             atom.set_cell(cell);
@@ -163,7 +175,8 @@ TEST_CASE("LJ612 stress finite-difference", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 element offset energy", "[lj]") {
+TEST_CASE("LJ612 element offset energy", "[lj]")
+{
     GPSettings s;
     s.Modify("ntypes", "2");
     s.Modify("0-0", "1.0 2.5");
@@ -179,7 +192,7 @@ TEST_CASE("LJ612 element offset energy", "[lj]") {
 
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 20.0;
-    atom.pos_ = {{0,0,0}, {10,0,0}};  // type 0 and type 0, far apart
+    atom.pos_ = {{0, 0, 0}, {10, 0, 0}}; // type 0 and type 0, far apart
     atom.chemmap_ = {0, 0};
     Neighborhoods nbhs(atom, 6.0);
     atom.resetEFS();
@@ -190,14 +203,16 @@ TEST_CASE("LJ612 element offset energy", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 nl_get_coeffs / nl_set_coeffs roundtrip", "[lj]") {
+TEST_CASE("LJ612 nl_get_coeffs / nl_set_coeffs roundtrip", "[lj]")
+{
     auto pot = make_pot(1.5, 3.0, 8.0);
     int n = pot.get_NL_coeffs_count();
     std::vector<double> c1(n), c2(n);
     pot.nl_get_coeffs(c1.data());
 
     // Modify
-    c1[0] = 0.8; c1[1] = 2.2;
+    c1[0] = 0.8;
+    c1[1] = 2.2;
     pot.nl_set_coeffs(c1.data());
     pot.nl_get_coeffs(c2.data());
 
@@ -206,7 +221,8 @@ TEST_CASE("LJ612 nl_get_coeffs / nl_set_coeffs roundtrip", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 train_init sets up maps", "[lj]") {
+TEST_CASE("LJ612 train_init sets up maps", "[lj]")
+{
     auto pot = make_pot(1.0, 2.5);
     pot.train_init();
     // For 1 type: 1 pair * 2 = 2 coeffs at gid 0
@@ -215,41 +231,46 @@ TEST_CASE("LJ612 train_init sets up maps", "[lj]") {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 Save outputs parseable format", "[lj]") {
+TEST_CASE("LJ612 Save outputs parseable format", "[lj]")
+{
     auto pot = make_pot(1.2, 3.0, 7.0);
     pot.Save("/tmp/test_lj.pot");
 
     std::ifstream ifs("/tmp/test_lj.pot");
     REQUIRE(ifs.is_open());
-    std::string content((std::istreambuf_iterator<char>(ifs)),
-                         std::istreambuf_iterator<char>());
+    std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     REQUIRE(content.find("lj612") != std::string::npos);
     REQUIRE(content.find("1.2") != std::string::npos);
 }
 
 // ═══════════════════════════════════════════════════════════════════
-TEST_CASE("LJ612 cutoff: energy zero beyond cutoff", "[lj]") {
+TEST_CASE("LJ612 cutoff: energy zero beyond cutoff", "[lj]")
+{
     auto pot = make_pot(1.0, 2.5, 3.0);
-    auto atom = make_dimer(8.0);  // well beyond 3.0 cutoff, within 10A cell
+    auto atom = make_dimer(8.0); // well beyond 3.0 cutoff, within 10A cell
     Neighborhoods nbhs(atom, 3.0);
     atom.resetEFS();
     pot.getEFS(atom, nbhs);
     REQUIRE(atom.energy_ == Approx(0.0).margin(1e-12));
 }
 
-TEST_CASE("LJ612 parameter gradients match EFS finite differences including zero parameters", "[lj][gradient]") {
+TEST_CASE("LJ612 parameter gradients match EFS finite differences including zero parameters",
+          "[lj][gradient]")
+{
     const int zero_parameter = GENERATE(-1, 0, 1);
     const int target = GENERATE(0, 1, 2, 3); // energy, forces, stress, combined
     GPSettings settings;
     settings.Modify("ntypes", "2");
-    for (const auto &pair : {"0-0", "0-1", "1-1"}) {
+    for (const auto &pair : {"0-0", "0-1", "1-1"})
+    {
         settings.Modify(pair, "1 1");
         settings.Modify(std::string("cut:") + pair, "3");
     }
     LJ612 pot(settings);
     pot.train_init();
     std::vector<double> coeffs{1.2, 1.0, 0.6, 0.9, 0.8, 1.1, 0.2, -0.3};
-    if (zero_parameter >= 0) coeffs[zero_parameter] = 0.0;
+    if (zero_parameter >= 0)
+        coeffs[zero_parameter] = 0.0;
     pot.nl_set_coeffs(coeffs.data());
     auto atom = make_dimer(1.3);
     atom.pbc_ = {false, false, false};
@@ -261,22 +282,29 @@ TEST_CASE("LJ612 parameter gradients match EFS finite differences including zero
     Eigen::Matrix3d stress;
     stress << 0.3, -0.1, 0.2, -0.1, 0.4, -0.2, 0.2, -0.2, 0.5;
     const double energy_weight = (target == 0 || target == 3) ? 0.7 : 0.0;
-    if (target != 1 && target != 3) forces.setZero();
-    if (target != 2 && target != 3) stress.setZero();
+    if (target != 1 && target != 3)
+        forces.setZero();
+    if (target != 2 && target != 3)
+        stress.setZero();
     Eigen::Matrix<double, -1, 3, Eigen::RowMajor> buffer;
     std::vector<double> gradient(coeffs.size(), 0.0);
     if (target == 0)
         pot.AccumulateEFSCombinationGard(atom, nbhs, energy_weight, gradient.data());
     else
-        pot.AccumulateEFSCombinationGard(atom, nbhs, energy_weight, forces, stress, buffer, gradient.data());
-    auto objective = [&] {
+        pot.AccumulateEFSCombinationGard(atom, nbhs, energy_weight, forces, stress, buffer,
+                                         gradient.data());
+    auto objective = [&]
+    {
         pot.nl_set_coeffs(coeffs.data());
         pot.getEFS(atom, nbhs);
-        double result = energy_weight * atom.energy_ + (stress.array() * atom.stress_.array()).sum();
-        for (int i = 0; i < atom.size(); ++i) result += forces.row(i).dot(atom.forces_[i]);
+        double result =
+            energy_weight * atom.energy_ + (stress.array() * atom.stress_.array()).sum();
+        for (int i = 0; i < atom.size(); ++i)
+            result += forces.row(i).dot(atom.forces_[i]);
         return result;
     };
-    for (size_t i = 0; i < coeffs.size(); ++i) {
+    for (size_t i = 0; i < coeffs.size(); ++i)
+    {
         CAPTURE(target, zero_parameter, i);
         const double original = coeffs[i], h = 1e-6;
         coeffs[i] = original + h;
@@ -289,7 +317,8 @@ TEST_CASE("LJ612 parameter gradients match EFS finite differences including zero
     }
 }
 
-TEST_CASE("LJ612 site energies include pair and species contributions", "[lj]") {
+TEST_CASE("LJ612 site energies include pair and species contributions", "[lj]")
+{
     GPSettings settings;
     settings.Modify("ntypes", "1");
     settings.Modify("0-0", "1 1");
@@ -304,15 +333,18 @@ TEST_CASE("LJ612 site energies include pair and species contributions", "[lj]") 
     pot.getEFS(atom, nbhs);
     REQUIRE(atom.site_energies_[2] == Approx(0.7));
     REQUIRE(atom.site_energies_[0] == Approx(atom.site_energies_[1]));
-    REQUIRE(atom.site_energies_[0] + atom.site_energies_[1] + atom.site_energies_[2] == Approx(atom.energy_));
+    REQUIRE(atom.site_energies_[0] + atom.site_energies_[1] + atom.site_energies_[2] ==
+            Approx(atom.energy_));
     const double original = atom.energy_;
     pot.add_efs = true;
     pot.getEFS(atom, nbhs);
     REQUIRE(atom.energy_ == Approx(2 * original));
-    REQUIRE(atom.site_energies_[0] + atom.site_energies_[1] + atom.site_energies_[2] == Approx(atom.energy_));
+    REQUIRE(atom.site_energies_[0] + atom.site_energies_[1] + atom.site_energies_[2] ==
+            Approx(atom.energy_));
 }
 
-static Eigen::MatrixXd lj_dense(const HessianMatrix &blocks) {
+static Eigen::MatrixXd lj_dense(const HessianMatrix &blocks)
+{
     Eigen::MatrixXd result(3 * blocks.size, 3 * blocks.size);
     for (int i = 0; i < blocks.size; ++i)
         for (int j = 0; j < blocks.size; ++j)
@@ -320,7 +352,8 @@ static Eigen::MatrixXd lj_dense(const HessianMatrix &blocks) {
     return result;
 }
 
-static Eigen::VectorXd lj_forces(LJ612 &pot, Atoms atom) {
+static Eigen::VectorXd lj_forces(LJ612 &pot, Atoms atom)
+{
     Neighborhoods nbhs(atom, pot.cutoff);
     pot.getEFS(atom, nbhs);
     Eigen::VectorXd forces(3 * atom.size());
@@ -330,16 +363,19 @@ static Eigen::VectorXd lj_forces(LJ612 &pot, Atoms atom) {
 }
 
 static Eigen::VectorXd lj_force_direction_fd(LJ612 &pot, const Atoms &atom,
-                                            const Eigen::VectorXd &direction, double step) {
+                                             const Eigen::VectorXd &direction, double step)
+{
     Atoms plus = atom, minus = atom;
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         plus.pos_[i] += step * direction.segment<3>(3 * i).transpose();
         minus.pos_[i] -= step * direction.segment<3>(3 * i).transpose();
     }
     return -(lj_forces(pot, plus) - lj_forces(pot, minus)) / (2 * step);
 }
 
-TEST_CASE("LJ612 analytical Hessian has independent dimer curvature and EFS semantics", "[lj][hvp]") {
+TEST_CASE("LJ612 analytical Hessian has independent dimer curvature and EFS semantics", "[lj][hvp]")
+{
     GPSettings settings;
     settings.Modify("ntypes", "1");
     settings.Modify("0-0", "1 1");
@@ -367,7 +403,8 @@ TEST_CASE("LJ612 analytical Hessian has independent dimer curvature and EFS sema
     REQUIRE(atom.energy_ == Approx(1.4 - 63.0 / 1024).margin(1e-13));
     REQUIRE(atom.energy_ == Approx(reference.energy_));
     REQUIRE(atom.stress_.isApprox(reference.stress_, 1e-13));
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         REQUIRE(atom.forces_[i].isApprox(reference.forces_[i], 1e-13));
         REQUIRE(atom.site_energies_[i] == Approx(reference.site_energies_[i]));
     }
@@ -381,7 +418,8 @@ TEST_CASE("LJ612 analytical Hessian has independent dimer curvature and EFS sema
     REQUIRE(lj_dense(blocks).isApprox(expected, 1e-13));
     REQUIRE(atom.energy_ == Approx(2 * reference.energy_));
     REQUIRE(atom.stress_.isApprox(2 * reference.stress_, 1e-13));
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         REQUIRE(atom.forces_[i].isApprox(2 * reference.forces_[i], 1e-13));
         REQUIRE(atom.site_energies_[i] == Approx(2 * reference.site_energies_[i]));
     }
@@ -404,7 +442,8 @@ TEST_CASE("LJ612 analytical Hessian has independent dimer curvature and EFS sema
     REQUIRE(atom.has_energy() == source.has_energy());
     REQUIRE(atom.has_stresses() == source.has_stresses());
     REQUIRE(atom.has_forces() == source.has_forces());
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         REQUIRE(atom.pos_[i].isApprox(source.pos_[i], 0));
         REQUIRE(atom.forces_[i].isApprox(source.forces_[i], 0));
         REQUIRE(atom.site_energies_[i] == source.site_energies_[i]);
@@ -412,7 +451,9 @@ TEST_CASE("LJ612 analytical Hessian has independent dimer curvature and EFS sema
     REQUIRE_THROWS(api.applyHessianVectorProduct(atom, nbhs, Eigen::VectorXd::Zero(3), product));
 }
 
-TEST_CASE("LJ612 analytical curvature matches forces with pair cutoffs and periodic mappings", "[lj][hvp]") {
+TEST_CASE("LJ612 analytical curvature matches forces with pair cutoffs and periodic mappings",
+          "[lj][hvp]")
+{
     GPSettings settings;
     settings.Modify("ntypes", "2");
     settings.Modify("0-0", "0.8 1.1");
@@ -426,10 +467,12 @@ TEST_CASE("LJ612 analytical curvature matches forces with pair cutoffs and perio
     atom.pbc_ = {false, false, false};
     atom.pos_ = {{0, 0, 0}, {1.7, .3, .2}, {.4, 2.1, .5}};
     atom.chemmap_ = {0, 1, 0};
-    SECTION("noncollinear mixed species and strict pair cutoffs") {
+    SECTION("noncollinear mixed species and strict pair cutoffs")
+    {
         // One 0-1 edge lies inside the global cutoff but outside its pair cutoff.
     }
-    SECTION("two periodic images share the same target index") {
+    SECTION("two periodic images share the same target index")
+    {
         settings.Modify("ntypes", "1");
         settings.Modify("0-0", "1 1");
         settings.Modify("cut:0-0", "2.5");
@@ -445,7 +488,8 @@ TEST_CASE("LJ612 analytical curvature matches forces with pair cutoffs and perio
     const Eigen::MatrixXd dense = lj_dense(blocks);
     REQUIRE(dense.isApprox(dense.transpose(), 1e-13));
     Eigen::VectorXd u(3 * atom.size()), v(3 * atom.size());
-    for (int k = 0; k < u.size(); ++k) {
+    for (int k = 0; k < u.size(); ++k)
+    {
         u[k] = (k % 4 - 1.5) / 3;
         v[k] = (k % 5 - 2.0) / 4;
     }
@@ -455,23 +499,28 @@ TEST_CASE("LJ612 analytical curvature matches forces with pair cutoffs and perio
     REQUIRE(hu.isApprox(dense * u, 1e-12));
     REQUIRE(hv.isApprox(dense * v, 1e-12));
     REQUIRE(u.dot(hv) == Approx(v.dot(hu)).margin(1e-12));
-    for (double step : {2e-5, 1e-5}) {
+    for (double step : {2e-5, 1e-5})
+    {
         Eigen::MatrixXd fd(dense.rows(), dense.cols());
         for (int k = 0; k < dense.cols(); ++k)
-            fd.col(k) = lj_force_direction_fd(pot, atom, Eigen::VectorXd::Unit(dense.cols(), k), step);
+            fd.col(k) =
+                lj_force_direction_fd(pot, atom, Eigen::VectorXd::Unit(dense.cols(), k), step);
         REQUIRE((dense - fd).cwiseAbs().maxCoeff() < 2e-7);
         REQUIRE((hu - lj_force_direction_fd(pot, atom, u, step)).cwiseAbs().maxCoeff() < 2e-7);
         REQUIRE((hv - lj_force_direction_fd(pot, atom, v, step)).cwiseAbs().maxCoeff() < 2e-7);
     }
-    for (int axis = 0; axis < 3; ++axis) {
+    for (int axis = 0; axis < 3; ++axis)
+    {
         Eigen::VectorXd translation = Eigen::VectorXd::Zero(dense.cols());
-        for (int i = 0; i < atom.size(); ++i) translation[3 * i + axis] = 1;
+        for (int i = 0; i < atom.size(); ++i)
+            translation[3 * i + axis] = 1;
         pot.applyHessianVectorProduct(atom, nbhs, translation, hv);
         REQUIRE(hv.cwiseAbs().maxCoeff() < 1e-13);
     }
 }
 
-TEST_CASE("LJ612 self images retain EFS but have zero atomic curvature", "[lj][hvp]") {
+TEST_CASE("LJ612 self images retain EFS but have zero atomic curvature", "[lj][hvp]")
+{
     auto pot = make_pot(1, 1, 2.5);
     Atoms atom;
     atom.cell_ = Eigen::Vector3d(2, 7, 9).asDiagonal();
@@ -492,21 +541,30 @@ TEST_CASE("LJ612 self images retain EFS but have zero atomic curvature", "[lj][h
     REQUIRE(atom.pos_[0].isApprox(source.pos_[0], 0));
 }
 
-namespace {
-struct LJNativeFiles {
+namespace
+{
+struct LJNativeFiles
+{
     std::filesystem::path path;
-    LJNativeFiles() {
+
+    LJNativeFiles()
+    {
         char pattern[] = "/tmp/imrmlp_lj_native_XXXXXX";
         const char *directory = mkdtemp(pattern);
-        if (!directory) throw std::runtime_error("Cannot create LJ test directory");
+        if (!directory)
+            throw std::runtime_error("Cannot create LJ test directory");
         path = directory;
     }
-    ~LJNativeFiles() { std::filesystem::remove_all(path); }
+
+    ~LJNativeFiles()
+    {
+        std::filesystem::remove_all(path);
+    }
 };
 
-void check_lj_dimer_reference(AnyPotential &pot, Atoms atom,
-                             double epsilon, double sigma, double distance,
-                             double offset0 = 0., double offset1 = 0.) {
+void check_lj_dimer_reference(AnyPotential &pot, Atoms atom, double epsilon, double sigma,
+                              double distance, double offset0 = 0., double offset1 = 0.)
+{
     const double q = std::pow(sigma / distance, 6);
     const double energy = 4 * epsilon * (q * q - q);
     const double derivative = 24 * epsilon / distance * (q - 2 * q * q);
@@ -518,7 +576,8 @@ void check_lj_dimer_reference(AnyPotential &pot, Atoms atom,
     REQUIRE(atom.site_energies_[1] == Approx(energy / 2 + offset1).margin(1e-12));
     REQUIRE(atom.forces_[0](0) == Approx(derivative).margin(1e-12));
     REQUIRE(atom.forces_[1](0) == Approx(-derivative).margin(1e-12));
-    for (int axis : {1, 2}) {
+    for (int axis : {1, 2})
+    {
         REQUIRE(atom.forces_[0](axis) == Approx(0).margin(1e-12));
         REQUIRE(atom.forces_[1](axis) == Approx(0).margin(1e-12));
     }
@@ -529,7 +588,8 @@ void check_lj_dimer_reference(AnyPotential &pot, Atoms atom,
 }
 }
 
-TEST_CASE("LJ612 reversed cross pair has the canonical physical parameters", "[lj][io]") {
+TEST_CASE("LJ612 reversed cross pair has the canonical physical parameters", "[lj][io]")
+{
     const bool reversed = GENERATE(false, true);
     GPSettings settings;
     settings.Modify("ntypes", "2");
@@ -557,7 +617,8 @@ TEST_CASE("LJ612 reversed cross pair has the canonical physical parameters", "[l
     check_lj_dimer_reference(*reloaded.pot, atom, 2, 1, 1.5);
 }
 
-TEST_CASE("LJ612 explicit zero upper pair takes precedence over lower parameters", "[lj]") {
+TEST_CASE("LJ612 explicit zero upper pair takes precedence over lower parameters", "[lj]")
+{
     GPSettings settings;
     settings.Modify("ntypes", "2");
     settings.Modify("0-1", "0 1.25");
@@ -574,7 +635,8 @@ TEST_CASE("LJ612 explicit zero upper pair takes precedence over lower parameters
     REQUIRE(coefficients[3] == Approx(1.25));
 }
 
-TEST_CASE("LJ612 positive parameter inverse preserves nonunit sigma and native reload", "[lj][io]") {
+TEST_CASE("LJ612 positive parameter inverse preserves nonunit sigma and native reload", "[lj][io]")
+{
     auto pot = make_pot(1.2, 2.5, 8);
     pot.convert_eps2lj();
     pot.convert_lj2eps();
@@ -599,15 +661,19 @@ TEST_CASE("LJ612 positive parameter inverse preserves nonunit sigma and native r
     check_lj_dimer_reference(*reloaded.pot, atom, 1.2, 2.5, 3.4);
 }
 
-namespace {
-std::string handwritten_lj_model() {
+namespace
+{
+std::string handwritten_lj_model()
+{
     return "# independent native LJ model\n"
            "pot:pottype lj612\npot:ntypes 2\n"
            "pot:0-0 .5 1.1\npot:1-0 2 1\npot:1-1 .7 1.3\n"
            "pot:cut:0-0 2.5\npot:cut:1-0 3\npot:cut:1-1 3.5\n"
            "pot:ele:0 .3\npot:ele:1 -.2\n";
 }
-Atoms lj_cross_dimer(double distance = 1.5) {
+
+Atoms lj_cross_dimer(double distance = 1.5)
+{
     Atoms atom = make_dimer(distance);
     atom.pbc_ = {false, false, false};
     atom.chemmap_ = {0, 1};
@@ -615,7 +681,9 @@ Atoms lj_cross_dimer(double distance = 1.5) {
 }
 }
 
-TEST_CASE("LJ612 native stream reload preserves hand-written parameters and EFS", "[lj][io][stream]") {
+TEST_CASE("LJ612 native stream reload preserves hand-written parameters and EFS",
+          "[lj][io][stream]")
+{
     const bool from_file = GENERATE(false, true);
     auto pot = make_pot();
     pot.train_init();
@@ -625,11 +693,18 @@ TEST_CASE("LJ612 native stream reload preserves hand-written parameters and EFS"
     AnyPotential &api = pot;
     LJNativeFiles files;
     const std::string handwritten = handwritten_lj_model();
-    if (from_file) {
+    if (from_file)
+    {
         const auto filename = (files.path / "handwritten.lj").string();
-        { std::ofstream output(filename); output << handwritten; REQUIRE(output.good()); }
+        {
+            std::ofstream output(filename);
+            output << handwritten;
+            REQUIRE(output.good());
+        }
         api.Load(filename);
-    } else {
+    }
+    else
+    {
         std::istringstream input(handwritten);
         api.Load(input);
     }
@@ -645,7 +720,8 @@ TEST_CASE("LJ612 native stream reload preserves hand-written parameters and EFS"
     REQUIRE(pot.r_mins.isZero(0));
     Eigen::VectorXd coefficients(8);
     api.nl_get_coeffs(coefficients.data());
-    const Eigen::VectorXd expected = (Eigen::VectorXd(8) << .5, 1.1, 2., 1., .7, 1.3, .3, -.2).finished();
+    const Eigen::VectorXd expected =
+        (Eigen::VectorXd(8) << .5, 1.1, 2., 1., .7, 1.3, .3, -.2).finished();
     REQUIRE(coefficients == expected);
     REQUIRE(pot.mapgid2oid.size() == 3);
     REQUIRE(pot.mapoid2gid.size() == 4);
@@ -689,7 +765,8 @@ TEST_CASE("LJ612 native stream reload preserves hand-written parameters and EFS"
     check_lj_dimer_reference(direct_api, lj_cross_dimer(), 2., 1., 1.5, .3, -.2);
 }
 
-TEST_CASE("LJ612 stream reload keeps explicit zero upper parameters canonical", "[lj][io][stream]") {
+TEST_CASE("LJ612 stream reload keeps explicit zero upper parameters canonical", "[lj][io][stream]")
+{
     const std::string model = handwritten_lj_model() + "pot:0-1 0 1.25\n";
     auto pot = make_pot();
     AnyPotential &api = pot;
@@ -712,7 +789,9 @@ TEST_CASE("LJ612 stream reload keeps explicit zero upper parameters canonical", 
     check_lj_dimer_reference(api, lj_cross_dimer(), 0., 1.25, 1.5, .3, -.2);
 }
 
-TEST_CASE("LJ612 native reload replaces training maps and accepts legacy settings", "[lj][io][stream]") {
+TEST_CASE("LJ612 native reload replaces training maps and accepts legacy settings",
+          "[lj][io][stream]")
+{
     GPSettings two_types;
     two_types.Modify("ntypes", "2");
     LJ612 pot(two_types);

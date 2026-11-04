@@ -9,18 +9,30 @@ samples its origin (zero contribution from that axis's span).
 AXSF and BXSF are unsupported. Text file objects are accepted; paths also
 support gzip/zstd through the native compressed-stream implementation.
 """
+
 from dataclasses import dataclass
 import operator
 import os
 import numpy as np
 from . import _imrmlp
 
-__all__ = ["GridLayout", "ScalarField", "DataGridBlock", "VectorFieldView",
-           "read_xsf_fields", "write_xsf_fields"]
+__all__ = [
+    "GridLayout",
+    "ScalarField",
+    "DataGridBlock",
+    "VectorFieldView",
+    "read_xsf_fields",
+    "write_xsf_fields",
+]
 
 
 def _identifier(value):
-    if not isinstance(value, str) or not value or value.startswith("#") or any(c.isspace() for c in value):
+    if (
+        not isinstance(value, str)
+        or not value
+        or value.startswith("#")
+        or any(c.isspace() for c in value)
+    ):
         raise ValueError("identifier must be a nonempty single word, not a comment")
     return value
 
@@ -28,6 +40,7 @@ def _identifier(value):
 @dataclass
 class GridLayout:
     """Grid shape, origin and one 3-vector span per logical axis."""
+
     shape: tuple
     origin: np.ndarray
     spanning_vectors: np.ndarray
@@ -56,19 +69,25 @@ class GridLayout:
     def coordinate(self, indices):
         """Return origin + sum(i/(n-1)*span); singleton axes contribute zero."""
         indices = tuple(operator.index(i) for i in indices)
-        if len(indices) != self.dimension or any(i < 0 or i >= n for i, n in zip(indices, self.shape)):
+        if len(indices) != self.dimension or any(
+            i < 0 or i >= n for i, n in zip(indices, self.shape)
+        ):
             raise ValueError("coordinate index out of range or wrong dimension")
         return np.array(self._native().coordinate(indices))
 
     def same_as(self, other):
-        return (isinstance(other, GridLayout) and self.shape == other.shape
-                and np.array_equal(self.origin, other.origin)
-                and np.array_equal(self.spanning_vectors, other.spanning_vectors))
+        return (
+            isinstance(other, GridLayout)
+            and self.shape == other.shape
+            and np.array_equal(self.origin, other.origin)
+            and np.array_equal(self.spanning_vectors, other.spanning_vectors)
+        )
 
 
 @dataclass
 class ScalarField:
     """A named scalar component with an owning C-contiguous ndarray."""
+
     identifier: str
     values: np.ndarray
 
@@ -82,6 +101,7 @@ class ScalarField:
 @dataclass
 class DataGridBlock:
     """An ordered list of scalar fields sharing exactly one layout."""
+
     identifier: str
     layout: GridLayout
     fields: list
@@ -133,13 +153,17 @@ class VectorFieldView:
     array with a final Cartesian component axis. XSF stores the three named
     scalar fields, with no invented vector syntax.
     """
+
     layout: GridLayout
     components: tuple
 
     def __post_init__(self):
         if not isinstance(self.layout, GridLayout) or len(self.components) != 3:
             raise ValueError("a vector view requires one layout and three scalar fields")
-        if any(not isinstance(f, ScalarField) or f.values.shape != self.layout.shape for f in self.components):
+        if any(
+            not isinstance(f, ScalarField) or f.values.shape != self.layout.shape
+            for f in self.components
+        ):
             raise ValueError("vector components must have the common layout shape")
 
     @property
@@ -148,8 +172,13 @@ class VectorFieldView:
 
 
 def _from_native(block):
-    layout = GridLayout(tuple(block.layout.shape), block.layout.origin, block.layout.spanning_vectors)
-    fields = [ScalarField(f.identifier, np.array(f.values).reshape(layout.shape, order="C")) for f in block.fields]
+    layout = GridLayout(
+        tuple(block.layout.shape), block.layout.origin, block.layout.spanning_vectors
+    )
+    fields = [
+        ScalarField(f.identifier, np.array(f.values).reshape(layout.shape, order="C"))
+        for f in block.fields
+    ]
     return DataGridBlock(block.identifier, layout, fields)
 
 

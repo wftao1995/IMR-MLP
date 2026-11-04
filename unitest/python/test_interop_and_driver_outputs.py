@@ -1,4 +1,5 @@
 """Physical quantities, element mappings and driver output regression tests."""
+
 from pathlib import Path
 
 import numpy as np
@@ -14,14 +15,19 @@ ROOT = Path(__file__).resolve().parents[2]
 def system(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     potential = Potential(str(ROOT / 'unitest/test-data/potential.mtp'))
-    atoms = Atoms(numbers=[13, 13], positions=[[1., 1., 1.], [3., 1., 1.]],
-                  cell=np.eye(3) * 30, elements=['Al'])
+    atoms = Atoms(
+        numbers=[13, 13],
+        positions=[[1.0, 1.0, 1.0], [3.0, 1.0, 1.0]],
+        cell=np.eye(3) * 30,
+        elements=['Al'],
+    )
     return potential, atoms
 
 
 def test_ase_stress_matches_energy_derivative(system):
     pytest.importorskip('ase')
     from imrmlp.calculator import IMRMLPCalculator
+
     potential, atoms = system
     ase_atoms = atoms.to_ase()
     ase_atoms.calc = IMRMLPCalculator(potential=potential, elements=['Al'])
@@ -44,9 +50,10 @@ def test_ase_stress_matches_energy_derivative(system):
 def test_ase_import_uses_negative_extensive_virial(system, matrix):
     pytest.importorskip('ase')
     from ase.calculators.singlepoint import SinglePointCalculator
+
     _, atoms = system
     source = atoms.to_ase()
-    stress = np.array([[1., 6., 5.], [6., 2., 4.], [5., 4., 3.]])
+    stress = np.array([[1.0, 6.0, 5.0], [6.0, 2.0, 4.0], [5.0, 4.0, 3.0]])
     source.calc = SinglePointCalculator(source, stress=stress if matrix else [1, 2, 3, 4, 5, 6])
     converted = Atoms.from_ase(source)
     np.testing.assert_allclose(converted.stress, -stress * source.get_volume())
@@ -55,25 +62,30 @@ def test_ase_import_uses_negative_extensive_virial(system, matrix):
 
 @pytest.fixture
 def exportable_atoms():
-    atoms = Atoms(numbers=[13, 8], positions=[[.1, .2, .3], [1., 2., 3.]],
-                  cell=np.diag([4., 5., 20.]), pbc=[True, True, False])
-    atoms.energy = 3.
-    atoms._impl.site_energies = [1., 2.]
-    atoms.forces = [[.1, .2, .3], [-.1, -.2, -.3]]
-    atoms.stress = [[1., .2, .3], [.2, 2., .4], [.3, .4, 3.]]
+    atoms = Atoms(
+        numbers=[13, 8],
+        positions=[[0.1, 0.2, 0.3], [1.0, 2.0, 3.0]],
+        cell=np.diag([4.0, 5.0, 20.0]),
+        pbc=[True, True, False],
+    )
+    atoms.energy = 3.0
+    atoms._impl.site_energies = [1.0, 2.0]
+    atoms.forces = [[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3]]
+    atoms.stress = [[1.0, 0.2, 0.3], [0.2, 2.0, 0.4], [0.3, 0.4, 3.0]]
     return atoms
 
 
 @pytest.fixture(params=['scalar', 'vector'])
 def magnetic_values(request):
     if request.param == 'scalar':
-        return np.array([.7, -.2])
-    return np.array([[.1, .2, .3], [-.4, .5, -.6]])
+        return np.array([0.7, -0.2])
+    return np.array([[0.1, 0.2, 0.3], [-0.4, 0.5, -0.6]])
 
 
 def test_ase_default_export_writes_and_reads_extxyz(exportable_atoms, tmp_path):
     pytest.importorskip('ase')
     from ase.io import read as ase_read, write as ase_write
+
     atoms = exportable_atoms
     exported = atoms.to_ase()
     assert not ({'energy', 'stress'} & exported.info.keys())
@@ -94,9 +106,10 @@ def test_ase_default_export_writes_and_reads_extxyz(exportable_atoms, tmp_path):
 def test_ase_default_export_with_only_forces_is_writable(tmp_path):
     pytest.importorskip('ase')
     from ase.io import read as ase_read, write as ase_write
-    atoms = Atoms(numbers=[13], positions=[[1., 2., 3.]], cell=np.eye(3) * 5)
+
+    atoms = Atoms(numbers=[13], positions=[[1.0, 2.0, 3.0]], cell=np.eye(3) * 5)
     assert atoms.to_ase().calc is None
-    atoms.forces = [[.1, .2, .3]]
+    atoms.forces = [[0.1, 0.2, 0.3]]
     exported = atoms.to_ase()
     assert set(exported.calc.results) == {'forces'}
     assert 'forces' not in exported.arrays
@@ -113,13 +126,14 @@ def test_ase_export_without_calculator_preserves_legacy_fields(exportable_atoms)
     assert exported.info['energy'] == atoms.energy
     np.testing.assert_array_equal(exported.arrays['energies'], atoms.site_energies)
     np.testing.assert_array_equal(exported.arrays['forces'], atoms.forces)
-    np.testing.assert_array_equal(exported.info['stress'], [1., 2., 3., .4, .3, .2])
+    np.testing.assert_array_equal(exported.info['stress'], [1.0, 2.0, 3.0, 0.4, 0.3, 0.2])
     np.testing.assert_array_equal(Atoms.from_ase(exported).stress, atoms.stress)
 
 
 def test_ase_extxyz_native_reader_recognizes_site_energies(exportable_atoms, tmp_path):
     pytest.importorskip('ase')
     from ase.io import write as ase_write
+
     path = tmp_path / 'ase-native.xyz'
     ase_write(path, exportable_atoms.to_ase(), format='extxyz')
     assert ':energies:R:1' in path.read_text().splitlines()[1]
@@ -134,14 +148,14 @@ def test_ase_extxyz_native_reader_recognizes_site_energies(exportable_atoms, tmp
 def test_public_charges_are_optional_read_only_copies(exportable_atoms):
     atoms = exportable_atoms
     assert atoms.charges is None
-    atoms._impl.charges = [.25, -.1]
+    atoms._impl.charges = [0.25, -0.1]
     values = atoms.charges
     assert values.shape == (2,)
-    np.testing.assert_array_equal(values, [.25, -.1])
+    np.testing.assert_array_equal(values, [0.25, -0.1])
     values[:] = 0
-    np.testing.assert_array_equal(atoms.charges, [.25, -.1])
+    np.testing.assert_array_equal(atoms.charges, [0.25, -0.1])
     with pytest.raises(AttributeError):
-        atoms.charges = [.5, -.2]
+        atoms.charges = [0.5, -0.2]
 
 
 def test_magmoms_preserve_shape_and_own_their_values(exportable_atoms, magnetic_values):
@@ -149,10 +163,10 @@ def test_magmoms_preserve_shape_and_own_their_values(exportable_atoms, magnetic_
     assert atoms.magmoms is None
     supplied = magnetic_values.copy()
     atoms.magmoms = supplied
-    supplied[:] = 99.
+    supplied[:] = 99.0
     np.testing.assert_array_equal(atoms.magmoms, magnetic_values)
     result = atoms.magmoms
-    result[:] = 88.
+    result[:] = 88.0
     np.testing.assert_array_equal(atoms.magmoms, magnetic_values)
     copied = atoms.copy()
     atoms.magmoms = np.zeros_like(magnetic_values)
@@ -164,12 +178,13 @@ def test_magmoms_preserve_shape_and_own_their_values(exportable_atoms, magnetic_
     np.testing.assert_array_equal(atoms.magmoms, alternate)
     atoms.magmoms = None
     assert atoms.magmoms is None
-    assert atoms.energy == 3.
+    assert atoms.energy == 3.0
 
 
 @pytest.mark.parametrize('attach_calculator', [False, True])
 def test_ase_computed_magmoms_roundtrip_preserves_representation(
-        exportable_atoms, magnetic_values, attach_calculator):
+    exportable_atoms, magnetic_values, attach_calculator
+):
     pytest.importorskip('ase')
     atoms = exportable_atoms
     atoms.magmoms = magnetic_values
@@ -188,7 +203,7 @@ def test_ase_computed_magmoms_roundtrip_preserves_representation(
     converted = Atoms.from_ase(exported)
     np.testing.assert_array_equal(converted.magmoms, magnetic_values)
     assert Atoms.from_ase(exported, read_results=False).magmoms is None
-    stored[:] = 99.
+    stored[:] = 99.0
     np.testing.assert_array_equal(converted.magmoms, magnetic_values)
     np.testing.assert_array_equal(atoms.magmoms, original.magmoms)
     np.testing.assert_array_equal(atoms.positions, original.positions)
@@ -199,34 +214,37 @@ def test_ase_computed_magmoms_roundtrip_preserves_representation(
 def test_ase_magmoms_prefer_cache_and_never_infer_initial_results(exportable_atoms):
     pytest.importorskip('ase')
     from ase.calculators.singlepoint import SinglePointCalculator
+
     source = exportable_atoms.to_ase(attach_calculator=False)
-    source.set_initial_magnetic_moments([9., 8.])
-    source.arrays['magmoms'] = np.array([.6, -.3])
-    source.calc = SinglePointCalculator(source, magmoms=[.7, -.2], magmom=5.)
+    source.set_initial_magnetic_moments([9.0, 8.0])
+    source.arrays['magmoms'] = np.array([0.6, -0.3])
+    source.calc = SinglePointCalculator(source, magmoms=[0.7, -0.2], magmom=5.0)
     imported = Atoms.from_ase(source)
-    np.testing.assert_array_equal(imported.magmoms, [.7, -.2])
+    np.testing.assert_array_equal(imported.magmoms, [0.7, -0.2])
     assert Atoms.from_ase(source, read_results=False).magmoms is None
-    np.testing.assert_array_equal(source.arrays['magmoms'], [.6, -.3])
-    np.testing.assert_array_equal(source.get_initial_magnetic_moments(), [9., 8.])
+    np.testing.assert_array_equal(source.arrays['magmoms'], [0.6, -0.3])
+    np.testing.assert_array_equal(source.get_initial_magnetic_moments(), [9.0, 8.0])
     source.calc = None
-    np.testing.assert_array_equal(Atoms.from_ase(source).magmoms, [.6, -.3])
+    np.testing.assert_array_equal(Atoms.from_ase(source).magmoms, [0.6, -0.3])
     del source.arrays['magmoms']
-    source.calc = SinglePointCalculator(source, magmom=5.)
+    source.calc = SinglePointCalculator(source, magmom=5.0)
     assert Atoms.from_ase(source).magmoms is None
 
 
 def test_computed_magmoms_survive_both_real_extxyz_directions(tmp_path, magnetic_values):
     pytest.importorskip('ase')
     from ase.io import read as ase_read, write as ase_write
+
     width = 1 if magnetic_values.ndim == 1 else 3
     rows = []
     for symbol, position, moments in zip(('Al', 'O'), ((1, 2, 3), (2, 3, 4)), magnetic_values):
         values = (*position, *np.atleast_1d(moments))
         rows.append(symbol + ' ' + ' '.join(map(str, values)))
     source = tmp_path / 'native-magmoms.xyz'
-    source.write_text('2\nLattice="10 0 0 0 10 0 0 0 10" pbc="T T T" '
-                      f'Properties=species:S:1:pos:R:3:magmoms:R:{width}\n' +
-                      '\n'.join(rows) + '\n')
+    source.write_text(
+        '2\nLattice="10 0 0 0 10 0 0 0 10" pbc="T T T" '
+        f'Properties=species:S:1:pos:R:3:magmoms:R:{width}\n' + '\n'.join(rows) + '\n'
+    )
     atoms = read_one(source)
     np.testing.assert_array_equal(atoms.magmoms, magnetic_values)
     original = atoms.copy()
@@ -249,11 +267,12 @@ def test_computed_magmoms_survive_both_real_extxyz_directions(tmp_path, magnetic
 def test_magmoms_reject_dual_native_representation_without_dropping_data(tmp_path):
     pytest.importorskip('ase')
     import struct
+
     payload = b'GPMLBIN2' + struct.pack('=Ii', 3, 1)
     payload += b'l' + struct.pack('=9d', 10, 0, 0, 0, 10, 0, 0, 0, 10)
     payload += b'p' + struct.pack('=3d', 1, 2, 3) + b't' + struct.pack('=i', 1)
     payload += b'M' + struct.pack('=d', 1.5)
-    payload += b'm' + struct.pack('=3d', .1, .2, .3) + b'#'
+    payload += b'm' + struct.pack('=3d', 0.1, 0.2, 0.3) + b'#'
     source = tmp_path / 'dual-magmoms.bin'
     source.write_bytes(payload)
     atoms = read_one(source)
@@ -271,11 +290,11 @@ def test_magmoms_reject_dual_native_representation_without_dropping_data(tmp_pat
 
 def test_magmoms_reject_wrong_shape_or_nonfinite_values_without_replacing_state(exportable_atoms):
     atoms = exportable_atoms
-    atoms.magmoms = [.7, -.2]
-    for invalid in (np.zeros(1), np.zeros((2, 2)), np.array([np.nan, 0.])):
+    atoms.magmoms = [0.7, -0.2]
+    for invalid in (np.zeros(1), np.zeros((2, 2)), np.array([np.nan, 0.0])):
         with pytest.raises(ValueError, match='Magnetic moments.*shape|Magnetic moments.*finite'):
             atoms.magmoms = invalid
-        np.testing.assert_array_equal(atoms.magmoms, [.7, -.2])
+        np.testing.assert_array_equal(atoms.magmoms, [0.7, -0.2])
 
 
 def test_free_energy_is_optional_and_independent_of_energy(exportable_atoms, tmp_path):
@@ -287,21 +306,22 @@ def test_free_energy_is_optional_and_independent_of_energy(exportable_atoms, tmp
     write_one(path, atoms)
     restored = read_one(path)
     assert restored.free_energy == -1.2
-    assert restored.energy == atoms.energy == 3.
+    assert restored.energy == atoms.energy == 3.0
     atoms.free_energy = 0
-    assert atoms.free_energy == 0.
-    assert atoms.energy == 3.
+    assert atoms.free_energy == 0.0
+    assert atoms.energy == 3.0
     assert copied.free_energy == -1.2
     atoms.free_energy = None
     assert atoms.free_energy is None
     write_one(path, atoms)
     assert 'fenergy=' not in path.read_text().splitlines()[1]
-    assert read_one(path).energy == 3.
+    assert read_one(path).energy == 3.0
 
 
 @pytest.mark.parametrize('attach_calculator', [False, True])
 def test_ase_free_energy_remains_independent_with_either_export_mode(
-        exportable_atoms, attach_calculator):
+    exportable_atoms, attach_calculator
+):
     pytest.importorskip('ase')
     atoms = exportable_atoms
     atoms.free_energy = -1.2
@@ -309,18 +329,18 @@ def test_ase_free_energy_remains_independent_with_either_export_mode(
     exported = atoms.to_ase(attach_calculator=attach_calculator)
     if attach_calculator:
         assert 'free_energy' not in exported.info
-        assert exported.get_potential_energy() == 3.
+        assert exported.get_potential_energy() == 3.0
         assert exported.get_potential_energy(force_consistent=True) == -1.2
         assert exported.calc.results['free_energy'] == -1.2
     else:
         assert exported.calc is None
-        assert exported.info['energy'] == 3.
+        assert exported.info['energy'] == 3.0
         assert exported.info['free_energy'] == -1.2
     converted = Atoms.from_ase(exported)
-    assert converted.energy == 3.
+    assert converted.energy == 3.0
     assert converted.free_energy == -1.2
     assert Atoms.from_ase(exported, read_results=False).free_energy is None
-    exported.info['free_energy'] = 99.
+    exported.info['free_energy'] = 99.0
     assert atoms.free_energy == original.free_energy == -1.2
     assert converted.free_energy == -1.2
     np.testing.assert_array_equal(atoms.positions, original.positions)
@@ -331,45 +351,50 @@ def test_ase_free_energy_remains_independent_with_either_export_mode(
 def test_ase_free_energy_uses_cached_result_before_legacy_info(exportable_atoms):
     pytest.importorskip('ase')
     from ase.calculators.singlepoint import SinglePointCalculator
+
     source = exportable_atoms.to_ase(attach_calculator=False)
-    source.info['free_energy'] = 99.
-    source.info['total_charge'] = .8
-    source.calc = SinglePointCalculator(source, energy=-1., free_energy=-1.2)
+    source.info['free_energy'] = 99.0
+    source.info['total_charge'] = 0.8
+    source.calc = SinglePointCalculator(source, energy=-1.0, free_energy=-1.2)
     imported = Atoms.from_ase(source)
-    assert imported.energy == -1.
+    assert imported.energy == -1.0
     assert imported.free_energy == -1.2
     skipped = Atoms.from_ase(source, read_results=False)
     assert skipped.free_energy is None
     assert skipped.energy is None
-    assert skipped.total_charge == .8
-    assert source.info['free_energy'] == 99.
+    assert skipped.total_charge == 0.8
+    assert source.info['free_energy'] == 99.0
     assert source.calc.results['free_energy'] == -1.2
     source.calc = None
-    assert Atoms.from_ase(source).free_energy == 99.
+    assert Atoms.from_ase(source).free_energy == 99.0
 
 
 def test_ase_free_energy_zero_and_missing_remain_distinct(exportable_atoms):
     pytest.importorskip('ase')
     from ase.calculators.calculator import PropertyNotImplementedError
+
     atoms = exportable_atoms
     missing = atoms.to_ase()
     with pytest.raises(PropertyNotImplementedError):
         missing.get_potential_energy(force_consistent=True)
     assert Atoms.from_ase(missing).free_energy is None
-    atoms.free_energy = 0.
+    atoms.free_energy = 0.0
     zero = atoms.to_ase()
-    assert zero.get_potential_energy(force_consistent=True) == 0.
+    assert zero.get_potential_energy(force_consistent=True) == 0.0
     assert zero.get_potential_energy() == atoms.energy
-    assert Atoms.from_ase(zero).free_energy == 0.
+    assert Atoms.from_ase(zero).free_energy == 0.0
 
 
 def test_ase_free_energy_survives_real_extxyz_and_native_alias_reader(tmp_path):
     pytest.importorskip('ase')
     from ase.io import read as ase_read, write as ase_write
+
     source = tmp_path / 'native-free-energy.xyz'
-    source.write_text('1\nLattice="10 0 0 0 10 0 0 0 10" pbc="T T T" '
-                      'energy=-1 fenergy=-1.2 total_charge=.8 '
-                      'Properties=species:S:1:pos:R:3\nAl 1 2 3\n')
+    source.write_text(
+        '1\nLattice="10 0 0 0 10 0 0 0 10" pbc="T T T" '
+        'energy=-1 fenergy=-1.2 total_charge=.8 '
+        'Properties=species:S:1:pos:R:3\nAl 1 2 3\n'
+    )
     atoms = read_one(source)
     assert atoms.free_energy == -1.2
     exported = atoms.to_ase()
@@ -377,11 +402,11 @@ def test_ase_free_energy_survives_real_extxyz_and_native_alias_reader(tmp_path):
     ase_write(path, exported, format='extxyz')
     assert 'free_energy=' in path.read_text().splitlines()[1]
     native = read_one(path)
-    assert native.energy == -1.
+    assert native.energy == -1.0
     assert native.free_energy == -1.2
-    assert native.total_charge == .8
+    assert native.total_charge == 0.8
     imported = Atoms.from_ase(ase_read(path))
-    assert imported.energy == -1.
+    assert imported.energy == -1.0
     assert imported.free_energy == -1.2
     np.testing.assert_array_equal(native.numbers, atoms.numbers)
     np.testing.assert_allclose(native.positions, atoms.positions)
@@ -392,34 +417,35 @@ def test_ase_free_energy_survives_real_extxyz_and_native_alias_reader(tmp_path):
 
 def test_total_charge_is_optional_independent_native_state(exportable_atoms, tmp_path):
     atoms = exportable_atoms
-    atoms._impl.charges = [.1, .05]
+    atoms._impl.charges = [0.1, 0.05]
     assert atoms.total_charge is None
-    atoms.total_charge = .8
+    atoms.total_charge = 0.8
     copied = atoms.copy()
-    assert copied.total_charge == .8
+    assert copied.total_charge == 0.8
     path = tmp_path / 'explicit-charge.xyz'
     write_one(path, atoms)
     header = path.read_text().splitlines()[1]
     assert 'total_charge=0.8' in header
     assert 'total_charge="' not in header
-    assert read_one(path).total_charge == .8
+    assert read_one(path).total_charge == 0.8
     atoms.total_charge = 0
-    assert atoms.total_charge == 0.
-    assert copied.total_charge == .8
+    assert atoms.total_charge == 0.0
+    assert copied.total_charge == 0.8
     atoms.total_charge = None
     assert atoms.total_charge is None
     write_one(path, atoms)
     assert 'total_charge=' not in path.read_text().splitlines()[1]
-    np.testing.assert_array_equal(atoms.charges, [.1, .05])
+    np.testing.assert_array_equal(atoms.charges, [0.1, 0.05])
 
 
-@pytest.mark.parametrize('charge', [None, 0., .8])
+@pytest.mark.parametrize('charge', [None, 0.0, 0.8])
 @pytest.mark.parametrize('attach_calculator', [False, True])
 def test_ase_total_charge_is_input_metadata_independent_of_computed_charges(
-        exportable_atoms, charge, attach_calculator):
+    exportable_atoms, charge, attach_calculator
+):
     pytest.importorskip('ase')
     atoms = exportable_atoms
-    atoms._impl.charges = [.1, .05]
+    atoms._impl.charges = [0.1, 0.05]
     atoms.total_charge = charge
     original = atoms.copy()
     exported = atoms.to_ase(attach_calculator=attach_calculator)
@@ -435,7 +461,7 @@ def test_ase_total_charge_is_input_metadata_independent_of_computed_charges(
         converted = Atoms.from_ase(exported, read_results=read_results)
         assert converted.total_charge == charge
         if read_results:
-            np.testing.assert_array_equal(converted.charges, [.1, .05])
+            np.testing.assert_array_equal(converted.charges, [0.1, 0.05])
         else:
             assert converted.charges is None
             assert converted.energy is None
@@ -443,7 +469,7 @@ def test_ase_total_charge_is_input_metadata_independent_of_computed_charges(
         np.testing.assert_array_equal(converted.numbers, atoms.numbers)
         np.testing.assert_array_equal(converted.pbc, atoms.pbc)
         np.testing.assert_allclose(converted.positions, atoms.positions)
-    exported.info['total_charge'] = 3.
+    exported.info['total_charge'] = 3.0
     assert atoms.total_charge == charge
     assert converted.total_charge == charge
     np.testing.assert_array_equal(atoms.positions, original.positions)
@@ -459,21 +485,23 @@ def test_ase_explicit_total_charge_import_does_not_use_initial_or_atomic_charges
     pytest.importorskip('ase')
     from ase import Atoms as ASEAtoms
     from ase.calculators.singlepoint import SinglePointCalculator
-    source = ASEAtoms(numbers=[13, 8], positions=[[1., 2., 3.], [2., 3., 4.]],
-                      cell=np.eye(3) * 10, pbc=True)
-    source.info['total_charge'] = .8
-    source.set_initial_charges([9., 8.])
-    source.calc = SinglePointCalculator(source, charges=[.1, .05])
+
+    source = ASEAtoms(
+        numbers=[13, 8], positions=[[1.0, 2.0, 3.0], [2.0, 3.0, 4.0]], cell=np.eye(3) * 10, pbc=True
+    )
+    source.info['total_charge'] = 0.8
+    source.set_initial_charges([9.0, 8.0])
+    source.calc = SinglePointCalculator(source, charges=[0.1, 0.05])
     for read_results in (True, False):
         converted = Atoms.from_ase(source, read_results=read_results)
-        assert converted.total_charge == .8
+        assert converted.total_charge == 0.8
         if read_results:
-            np.testing.assert_array_equal(converted.charges, [.1, .05])
+            np.testing.assert_array_equal(converted.charges, [0.1, 0.05])
         else:
             assert converted.charges is None
-    assert source.info == {'total_charge': .8}
-    np.testing.assert_array_equal(source.get_initial_charges(), [9., 8.])
-    np.testing.assert_array_equal(source.calc.results['charges'], [.1, .05])
+    assert source.info == {'total_charge': 0.8}
+    np.testing.assert_array_equal(source.get_initial_charges(), [9.0, 8.0])
+    np.testing.assert_array_equal(source.calc.results['charges'], [0.1, 0.05])
     del source.info['total_charge']
     assert Atoms.from_ase(source).total_charge is None
 
@@ -481,36 +509,40 @@ def test_ase_explicit_total_charge_import_does_not_use_initial_or_atomic_charges
 def test_ase_total_charge_survives_real_extxyz_write_and_read(tmp_path):
     pytest.importorskip('ase')
     from ase.io import read as ase_read, write as ase_write
+
     source = tmp_path / 'native-charge.xyz'
-    source.write_text('2\nLattice="10 0 0 0 10 0 0 0 10" pbc="T T T" '
-                      'energy=-1 total_charge=.8 '
-                      'Properties=species:S:1:pos:R:3:charges:R:1\n'
-                      'Al 1 2 3 .1\nO 2 3 4 .05\n')
+    source.write_text(
+        '2\nLattice="10 0 0 0 10 0 0 0 10" pbc="T T T" '
+        'energy=-1 total_charge=.8 '
+        'Properties=species:S:1:pos:R:3:charges:R:1\n'
+        'Al 1 2 3 .1\nO 2 3 4 .05\n'
+    )
     atoms = read_one(source)
-    assert atoms.total_charge == .8
+    assert atoms.total_charge == 0.8
     exported = atoms.to_ase()
     path = tmp_path / 'ase-charge.xyz'
     ase_write(path, exported, format='extxyz')
     native = read_one(path)
-    assert native.total_charge == .8
-    assert native.energy == -1.
-    np.testing.assert_allclose(native.charges, [.1, .05])
+    assert native.total_charge == 0.8
+    assert native.energy == -1.0
+    np.testing.assert_allclose(native.charges, [0.1, 0.05])
     converted = Atoms.from_ase(ase_read(path), read_results=False)
-    assert converted.total_charge == .8
+    assert converted.total_charge == 0.8
     assert converted.charges is None
     np.testing.assert_array_equal(native.numbers, atoms.numbers)
     np.testing.assert_allclose(native.positions, atoms.positions)
     np.testing.assert_array_equal(native.pbc, atoms.pbc)
-    assert atoms.total_charge == .8
-    np.testing.assert_array_equal(atoms.charges, [.1, .05])
+    assert atoms.total_charge == 0.8
+    np.testing.assert_array_equal(atoms.charges, [0.1, 0.05])
 
 
 @pytest.mark.parametrize('attach_calculator', [False, True])
-def test_ase_computed_charges_roundtrip_has_independent_results(exportable_atoms,
-                                                              attach_calculator):
+def test_ase_computed_charges_roundtrip_has_independent_results(
+    exportable_atoms, attach_calculator
+):
     pytest.importorskip('ase')
     atoms = exportable_atoms
-    atoms._impl.charges = [.25, -.1]
+    atoms._impl.charges = [0.25, -0.1]
     source = atoms.to_ase(attach_calculator=attach_calculator)
     assert 'initial_charges' not in source.arrays
     if attach_calculator:
@@ -522,25 +554,26 @@ def test_ase_computed_charges_roundtrip_has_independent_results(exportable_atoms
         stored = source.arrays['charges']
     np.testing.assert_array_equal(stored, atoms.charges)
     converted = Atoms.from_ase(source)
-    np.testing.assert_array_equal(converted.charges, [.25, -.1])
+    np.testing.assert_array_equal(converted.charges, [0.25, -0.1])
     stored[:] = 0
-    np.testing.assert_array_equal(atoms.charges, [.25, -.1])
-    np.testing.assert_array_equal(converted.charges, [.25, -.1])
-    atoms._impl.charges = [.6, -.3]
-    np.testing.assert_array_equal(converted.charges, [.25, -.1])
+    np.testing.assert_array_equal(atoms.charges, [0.25, -0.1])
+    np.testing.assert_array_equal(converted.charges, [0.25, -0.1])
+    atoms._impl.charges = [0.6, -0.3]
+    np.testing.assert_array_equal(converted.charges, [0.25, -0.1])
 
 
 def test_ase_computed_charges_prefer_cache_and_skip_initial_guesses(exportable_atoms):
     pytest.importorskip('ase')
     from ase.calculators.singlepoint import SinglePointCalculator
+
     source = exportable_atoms.to_ase(attach_calculator=False)
-    source.set_initial_charges([9., 8.])
-    source.arrays['charges'] = np.array([.6, -.2])
-    source.calc = SinglePointCalculator(source, charges=[.25, -.1])
-    np.testing.assert_array_equal(Atoms.from_ase(source).charges, [.25, -.1])
+    source.set_initial_charges([9.0, 8.0])
+    source.arrays['charges'] = np.array([0.6, -0.2])
+    source.calc = SinglePointCalculator(source, charges=[0.25, -0.1])
+    np.testing.assert_array_equal(Atoms.from_ase(source).charges, [0.25, -0.1])
     assert Atoms.from_ase(source, read_results=False).charges is None
     source.calc = None
-    np.testing.assert_array_equal(Atoms.from_ase(source).charges, [.6, -.2])
+    np.testing.assert_array_equal(Atoms.from_ase(source).charges, [0.6, -0.2])
     del source.arrays['charges']
     imported = Atoms.from_ase(source)
     assert imported.charges is None
@@ -550,9 +583,14 @@ def test_ase_computed_charges_prefer_cache_and_skip_initial_guesses(exportable_a
 def test_ase_charge_only_results_survive_real_extxyz_roundtrips(tmp_path):
     pytest.importorskip('ase')
     from ase.io import read as ase_read, write as ase_write
-    atoms = Atoms(numbers=[1, 8], positions=[[.1, .2, .3], [1., 2., 3.]],
-                  cell=np.diag([4., 5., 20.]), pbc=[True, True, False])
-    atoms._impl.charges = [.25, -.1]
+
+    atoms = Atoms(
+        numbers=[1, 8],
+        positions=[[0.1, 0.2, 0.3], [1.0, 2.0, 3.0]],
+        cell=np.diag([4.0, 5.0, 20.0]),
+        pbc=[True, True, False],
+    )
+    atoms._impl.charges = [0.25, -0.1]
     exported = atoms.to_ase()
     assert set(exported.calc.results) == {'charges'}
     assert 'charges' not in exported.arrays
@@ -573,10 +611,11 @@ def test_ase_charge_only_results_survive_real_extxyz_roundtrips(tmp_path):
     np.testing.assert_allclose(ase_read(native_path).get_charges(), atoms.charges, atol=1e-12)
 
 
-@pytest.mark.parametrize('values', [[.25], [np.nan, -.1]])
+@pytest.mark.parametrize('values', [[0.25], [np.nan, -0.1]])
 def test_ase_charges_require_complete_finite_arrays(exportable_atoms, values):
     pytest.importorskip('ase')
     from ase.calculators.singlepoint import SinglePointCalculator
+
     source = exportable_atoms.to_ase()
     source.calc = SinglePointCalculator(source, charges=values)
     with pytest.raises(ValueError, match=r'charges.*shape \(N,\).*finite'):
@@ -587,13 +626,14 @@ def test_ase_charges_require_complete_finite_arrays(exportable_atoms, values):
 
 
 @pytest.mark.parametrize('attach_calculator', [False, True])
-def test_ase_velocities_have_physical_units_and_independent_state(exportable_atoms,
-                                                                attach_calculator):
+def test_ase_velocities_have_physical_units_and_independent_state(
+    exportable_atoms, attach_calculator
+):
     pytest.importorskip('ase')
     atoms = exportable_atoms
-    expected = np.array([[10., -2., 0.], [0., 3., 4.]])
+    expected = np.array([[10.0, -2.0, 0.0], [0.0, 3.0, 4.0]])
     atoms._impl.velocities = expected
-    atoms._impl.charges = [.25, -.1]
+    atoms._impl.charges = [0.25, -0.1]
     source = atoms.to_ase(attach_calculator=attach_calculator)
     assert source.has('momenta')
     assert 'velocities' not in source.arrays
@@ -604,8 +644,11 @@ def test_ase_velocities_have_physical_units_and_independent_state(exportable_ato
 
     # SI reference is independent of the conversion's ASE time-unit factor.
     # 1 Angstrom/ps = 100 m/s; ASE may use a different CODATA release.
-    kinetic_ev = .5 * np.sum(source.get_masses()[:, None] * 1.66053906660e-27
-                             * (expected * 100) ** 2) / 1.602176634e-19
+    kinetic_ev = (
+        0.5
+        * np.sum(source.get_masses()[:, None] * 1.66053906660e-27 * (expected * 100) ** 2)
+        / 1.602176634e-19
+    )
     assert source.get_kinetic_energy() == pytest.approx(kinetic_ev, rel=1e-7)
     converted = Atoms.from_ase(source)
     np.testing.assert_allclose(converted.velocities, expected, rtol=1e-14, atol=1e-14)
@@ -628,11 +671,10 @@ def test_ase_velocities_have_physical_units_and_independent_state(exportable_ato
 def test_ase_momenta_import_uses_source_masses_and_si_velocity(exportable_atoms):
     pytest.importorskip('ase')
     source = exportable_atoms.to_ase(attach_calculator=False)
-    masses = np.array([4., 20.])
+    masses = np.array([4.0, 20.0])
     source.set_masses(masses)
-    source.set_momenta([[np.sqrt(2 * masses[0]), 0., 0.],
-                        [0., -np.sqrt(4 * masses[1]), 0.]])
-    assert source.get_kinetic_energy() == pytest.approx(3.)
+    source.set_momenta([[np.sqrt(2 * masses[0]), 0.0, 0.0], [0.0, -np.sqrt(4 * masses[1]), 0.0]])
+    assert source.get_kinetic_energy() == pytest.approx(3.0)
     expected = np.zeros((2, 3))
     expected[0, 0] = np.sqrt(2 * 1.602176634e-19 / (masses[0] * 1.66053906660e-27)) / 100
     expected[1, 1] = -np.sqrt(4 * 1.602176634e-19 / (masses[1] * 1.66053906660e-27)) / 100
@@ -645,39 +687,49 @@ def test_ase_momenta_import_uses_source_masses_and_si_velocity(exportable_atoms)
 def test_ase_explicit_isotope_masses_preserve_momenta_and_energy(tmp_path):
     ase = pytest.importorskip('ase')
     from ase.units import fs
-    source = ase.Atoms('H2', positions=[[0., 0., 0.], [1., 0., 0.]], pbc=False,
-                       masses=[2., 3.], momenta=[[2., 0., 0.], [0., 6., 0.]])
+
+    source = ase.Atoms(
+        'H2',
+        positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+        pbc=False,
+        masses=[2.0, 3.0],
+        momenta=[[2.0, 0.0, 0.0], [0.0, 6.0, 0.0]],
+    )
     atoms = Atoms.from_ase(source, read_results=False)
-    np.testing.assert_array_equal(atoms.masses, [2., 3.])
-    np.testing.assert_allclose(atoms.velocities, np.array([[1., 0., 0.], [0., 2., 0.]]) * (1000 * fs))
+    np.testing.assert_array_equal(atoms.masses, [2.0, 3.0])
+    np.testing.assert_allclose(
+        atoms.velocities, np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0]]) * (1000 * fs)
+    )
     for attach in [False, True]:
         exported = atoms.to_ase(attach_calculator=attach)
         assert exported.has('masses')
-        np.testing.assert_array_equal(exported.get_masses(), [2., 3.])
-        np.testing.assert_allclose(exported.get_momenta(), [[2., 0., 0.], [0., 6., 0.]])
-        assert exported.get_kinetic_energy() == pytest.approx(7.)
+        np.testing.assert_array_equal(exported.get_masses(), [2.0, 3.0])
+        np.testing.assert_allclose(exported.get_momenta(), [[2.0, 0.0, 0.0], [0.0, 6.0, 0.0]])
+        assert exported.get_kinetic_energy() == pytest.approx(7.0)
     # Native generic EXTXYZ stores explicit masses and velocities together.
     path = tmp_path / 'isotopes.xyz'
     write_one(path, atoms)
     assert 'masses:R:1' in path.read_text().splitlines()[1]
     restored = read_one(path).to_ase()
-    np.testing.assert_array_equal(restored.get_masses(), [2., 3.])
-    np.testing.assert_allclose(restored.get_momenta(), [[2., 0., 0.], [0., 6., 0.]], atol=1e-9)
-    assert restored.get_kinetic_energy() == pytest.approx(7.)
+    np.testing.assert_array_equal(restored.get_masses(), [2.0, 3.0])
+    np.testing.assert_allclose(
+        restored.get_momenta(), [[2.0, 0.0, 0.0], [0.0, 6.0, 0.0]], atol=1e-9
+    )
+    assert restored.get_kinetic_energy() == pytest.approx(7.0)
 
 
 def test_ase_explicit_masses_are_owned_optional_metadata():
     ase = pytest.importorskip('ase')
-    source = ase.Atoms('H2', masses=[2., 3.])
+    source = ase.Atoms('H2', masses=[2.0, 3.0])
     atoms = Atoms.from_ase(source)
-    source.arrays['masses'][:] = 9.
+    source.arrays['masses'][:] = 9.0
     values = atoms.masses
-    values[:] = 8.
+    values[:] = 8.0
     exported = atoms.to_ase()
-    exported.arrays['masses'][:] = 7.
+    exported.arrays['masses'][:] = 7.0
     copied = atoms.copy()
-    copied.masses = [4., 5.]
-    np.testing.assert_array_equal(atoms.masses, [2., 3.])
+    copied.masses = [4.0, 5.0]
+    np.testing.assert_array_equal(atoms.masses, [2.0, 3.0])
     atoms.masses = None
     assert atoms.masses is None
     assert not atoms.to_ase().has('masses')
@@ -710,7 +762,7 @@ def test_ase_velocities_require_complete_finite_arrays(exportable_atoms):
     source.arrays['momenta'] = np.zeros((2, 2))
     with pytest.raises(ValueError, match=r'Velocities.*shape \(N, 3\).*finite'):
         Atoms.from_ase(source)
-    exportable_atoms._impl.velocities = [[np.nan, 0., 0.], [0., 0., 0.]]
+    exportable_atoms._impl.velocities = [[np.nan, 0.0, 0.0], [0.0, 0.0, 0.0]]
     with pytest.raises(ValueError, match=r'Velocities.*shape \(N, 3\).*finite'):
         exportable_atoms.to_ase()
 
@@ -744,8 +796,13 @@ def test_write_preserves_elements_and_native_species_indices(system, tmp_path):
 
 def test_element_mapping_snapshots_survive_caller_list_reordering(tmp_path):
     elements = ['H', 'He']
-    atoms = Atoms(numbers=[1, 2], positions=[[1., 2., 3.], [2., 3., 4.]],
-                  cell=np.eye(3) * 10, pbc=False, elements=elements)
+    atoms = Atoms(
+        numbers=[1, 2],
+        positions=[[1.0, 2.0, 3.0], [2.0, 3.0, 4.0]],
+        cell=np.eye(3) * 10,
+        pbc=False,
+        elements=elements,
+    )
     copied = atoms.copy()
     elements.reverse()
     for frame in (atoms, copied):
@@ -772,15 +829,23 @@ def test_ase_calculator_element_snapshot_controls_real_species_energy():
     from ase import Atoms as ASEAtoms
     from imrmlp.calculator import IMRMLPCalculator
 
-    potential = Potential.from_settings({
-        'pottype': 'lj612', 'ntypes': 2, '0-0': '1 1', '1-1': '4 1',
-        'cut:0-0': 3, 'cut:0-1': 3, 'cut:1-1': 3,
-    })
+    potential = Potential.from_settings(
+        {
+            'pottype': 'lj612',
+            'ntypes': 2,
+            '0-0': '1 1',
+            '1-1': '4 1',
+            'cut:0-0': 3,
+            'cut:0-1': 3,
+            'cut:1-1': 3,
+        }
+    )
     elements = ['H', 'He']
     calculator = IMRMLPCalculator(potential=potential, elements=elements)
     elements.reverse()
-    atoms = ASEAtoms('H2', positions=[[1., 1., 1.], [2.5, 1., 1.]],
-                     cell=np.eye(3) * 20, pbc=False)
+    atoms = ASEAtoms(
+        'H2', positions=[[1.0, 1.0, 1.0], [2.5, 1.0, 1.0]], cell=np.eye(3) * 20, pbc=False
+    )
     atoms.calc = calculator
     # First actual calculation occurs after the caller changed its list.
     # Species0 has epsilon1; a live alias would choose species1/epsilon4.
@@ -789,13 +854,19 @@ def test_ase_calculator_element_snapshot_controls_real_species_energy():
     assert calculator._imrmlp_atoms.chemmap == [0, 0]
 
 
-@pytest.mark.parametrize('format,multiple', [
-    ('extxyz', False), ('bin', True), ('mlpcfg', True),
-])
+@pytest.mark.parametrize(
+    'format,multiple',
+    [
+        ('extxyz', False),
+        ('bin', True),
+        ('mlpcfg', True),
+    ],
+)
 def test_write_fractional_coordinates_preserves_geometry_and_source(
-        exportable_atoms, tmp_path, format, multiple):
+    exportable_atoms, tmp_path, format, multiple
+):
     cartesian = exportable_atoms
-    cartesian.cell = [[4., .3, .1], [.2, 5., .4], [.1, .2, 20.]]
+    cartesian.cell = [[4.0, 0.3, 0.1], [0.2, 5.0, 0.4], [0.1, 0.2, 20.0]]
     # MLPCFG does not store PBC; retain its existing fully periodic contract.
     if format == 'mlpcfg':
         cartesian.pbc = True
@@ -846,18 +917,17 @@ def test_mismatched_output_and_neb_maps_are_rejected(system, tmp_path):
         NEB(potential, n_images=3).run(atoms, other)
 
 
-@pytest.mark.parametrize('charge', [2.5, 0., None])
+@pytest.mark.parametrize('charge', [2.5, 0.0, None])
 def test_neb_preloads_common_explicit_charge_before_native_initialization(system, charge):
     potential, initial = system
     initial.total_charge = charge
-    initial.energy = 17.
-    initial._impl.charges = [.4, -.4]
+    initial.energy = 17.0
+    initial._impl.charges = [0.4, -0.4]
     final = initial.copy()
-    final.positions = final.positions + [.2, 0, 0]
-    final.energy = 19.
+    final.positions = final.positions + [0.2, 0, 0]
+    final.energy = 19.0
     originals = [frame.copy() for frame in (initial, final)]
-    result = NEB(potential, n_images=3, max_iter=1, neb_ftol=1e20,
-                 climb=False).run(initial, final)
+    result = NEB(potential, n_images=3, max_iter=1, neb_ftol=1e20, climb=False).run(initial, final)
     assert len(result.images) == 3
     assert [image.total_charge for image in result.images] == [charge] * 3
     # Computed atomic charges from the endpoints must not be templated inward.
@@ -875,20 +945,21 @@ def test_neb_preloads_common_explicit_charge_before_native_initialization(system
 
 def run_driver(kind, potential, atoms, trajectory=True):
     if kind == 'neb':
-        driver = NEB(potential, n_images=3, max_iter=1, neb_ftol=1e20,
-                     climb=False, write_traj=trajectory)
+        driver = NEB(
+            potential, n_images=3, max_iter=1, neb_ftol=1e20, climb=False, write_traj=trajectory
+        )
         final = atoms.copy()
         final.positions = final.positions + [0.2, 0, 0]
         run = lambda: driver.run(atoms, final)
         filename = 'nebtraj.cfg'
     elif kind == 'dimer':
-        driver = Dimer(potential, max_iter=1, rot_max_iter=1, trn_max_iter=1,
-                       write_traj=trajectory)
+        driver = Dimer(potential, max_iter=1, rot_max_iter=1, trn_max_iter=1, write_traj=trajectory)
         run = lambda: driver.run(atoms)
         filename = 'dimer.trj'
     else:
-        driver = Relaxation(potential, max_iter=1, gtol=1e-20,
-                            trajfile='relax.xyz' if trajectory else '')
+        driver = Relaxation(
+            potential, max_iter=1, gtol=1e-20, trajfile='relax.xyz' if trajectory else ''
+        )
         run = lambda: driver.run(atoms.copy())
         filename = 'relax.xyz'
     return driver, run, filename
@@ -927,7 +998,7 @@ def test_dimer_final_energy_and_labels_match_returned_geometry(system):
 
 def test_relaxation_fractional_input_has_the_same_initial_physics(system):
     potential, atoms = system
-    atoms.cell = [[30., .3, .1], [.2, 31., .4], [.1, .2, 32.]]
+    atoms.cell = [[30.0, 0.3, 0.1], [0.2, 31.0, 0.4], [0.1, 0.2, 32.0]]
     positions = atoms.positions.copy()
     reference = atoms.copy()
     potential.calculate(reference)
@@ -956,9 +1027,9 @@ def test_relaxation_fractional_input_has_the_same_initial_physics(system):
 
 def test_neb_mixed_coordinate_endpoints_fill_the_same_cartesian_path(system):
     potential, initial = system
-    initial.cell = [[30., .3, .1], [.2, 31., .4], [.1, .2, 32.]]
+    initial.cell = [[30.0, 0.3, 0.1], [0.2, 31.0, 0.4], [0.1, 0.2, 32.0]]
     final = initial.copy()
-    final.positions = final.positions + [.2, 0, 0]
+    final.positions = final.positions + [0.2, 0, 0]
     reference = initial.copy()
     potential.calculate(reference)
     assert np.linalg.norm(reference.forces) > 1e-6
@@ -975,8 +1046,9 @@ def test_neb_mixed_coordinate_endpoints_fill_the_same_cartesian_path(system):
     for index, (got, want) in enumerate(zip(actual.images, expected.images)):
         assert got._impl.cartesian
         np.testing.assert_allclose(got.positions, want.positions, atol=1e-12)
-        np.testing.assert_allclose(got.positions, initial.positions + [index * .2 / 3, 0, 0],
-                                   atol=1e-12)
+        np.testing.assert_allclose(
+            got.positions, initial.positions + [index * 0.2 / 3, 0, 0], atol=1e-12
+        )
         np.testing.assert_allclose(got.cell, initial.cell, atol=1e-12)
         assert got.energy == pytest.approx(want.energy, abs=1e-10)
         np.testing.assert_allclose(got.forces, want.forces, atol=1e-10)
@@ -1023,7 +1095,7 @@ def test_species_agnostic_mindist_accepts_nonnegative_species(tmp_path, monkeypa
     atoms = Atoms(positions=[[1, 1, 1], [2, 1, 1]], cell=np.eye(3) * 20, pbc=False)
     atoms.chemmap = [0, 5]
     getattr(potential.inner, method)(atoms._impl)
-    assert atoms.energy == pytest.approx((1 - potential.cutoff)**2)
+    assert atoms.energy == pytest.approx((1 - potential.cutoff) ** 2)
     assert atoms.forces[0, 0] < 0
     for invalid in [[-1, 0], [0]]:
         atoms.chemmap = invalid
@@ -1036,37 +1108,40 @@ def test_species_agnostic_mindist_accepts_nonnegative_species(tmp_path, monkeypa
 def test_ase_explicit_input_arrays_stay_separate_from_results(read_results, attach_calculator):
     ase = pytest.importorskip('ase')
     from ase.calculators.singlepoint import SinglePointCalculator
-    source = ase.Atoms('HHe', positions=[[0., 0., 0.], [1.5, 0., 0.]], pbc=False)
+
+    source = ase.Atoms('HHe', positions=[[0.0, 0.0, 0.0], [1.5, 0.0, 0.0]], pbc=False)
     source.set_tags([2, 0])
-    source.set_initial_charges([.8, -.2])
-    source.set_initial_magnetic_moments([1.5, -.5])
+    source.set_initial_charges([0.8, -0.2])
+    source.set_initial_magnetic_moments([1.5, -0.5])
     # Cache the results after setting the input state, so it remains valid.
-    source.calc = SinglePointCalculator(source, energy=3., charges=[.25, -.1], magmoms=[.7, -.2])
+    source.calc = SinglePointCalculator(
+        source, energy=3.0, charges=[0.25, -0.1], magmoms=[0.7, -0.2]
+    )
     atoms = Atoms.from_ase(source, read_results=read_results)
     np.testing.assert_array_equal(atoms.tags, [2, 0])
-    np.testing.assert_array_equal(atoms.initial_charges, [.8, -.2])
-    np.testing.assert_array_equal(atoms.initial_magmoms, [1.5, -.5])
+    np.testing.assert_array_equal(atoms.initial_charges, [0.8, -0.2])
+    np.testing.assert_array_equal(atoms.initial_magmoms, [1.5, -0.5])
     assert atoms.total_charge is None  # Neither set of atomic charges supplies Q.
     if read_results:
-        np.testing.assert_array_equal(atoms.charges, [.25, -.1])
-        np.testing.assert_array_equal(atoms.magmoms, [.7, -.2])
-        assert atoms.energy == 3.
+        np.testing.assert_array_equal(atoms.charges, [0.25, -0.1])
+        np.testing.assert_array_equal(atoms.magmoms, [0.7, -0.2])
+        assert atoms.energy == 3.0
     else:
         assert atoms.charges is None and atoms.magmoms is None and atoms.energy is None
     exported = atoms.to_ase(attach_calculator=attach_calculator)
     np.testing.assert_array_equal(exported.get_tags(), [2, 0])
-    np.testing.assert_array_equal(exported.get_initial_charges(), [.8, -.2])
-    np.testing.assert_array_equal(exported.get_initial_magnetic_moments(), [1.5, -.5])
+    np.testing.assert_array_equal(exported.get_initial_charges(), [0.8, -0.2])
+    np.testing.assert_array_equal(exported.get_initial_magnetic_moments(), [1.5, -0.5])
     assert all(exported.has(name) for name in ('tags', 'initial_charges', 'initial_magmoms'))
     assert 'total_charge' not in exported.info
     if read_results and attach_calculator:
-        np.testing.assert_array_equal(exported.get_charges(), [.25, -.1])
-        np.testing.assert_array_equal(exported.get_magnetic_moments(), [.7, -.2])
+        np.testing.assert_array_equal(exported.get_charges(), [0.25, -0.1])
+        np.testing.assert_array_equal(exported.get_magnetic_moments(), [0.7, -0.2])
         assert not ({'tags', 'initial_charges', 'initial_magmoms'} & exported.calc.results.keys())
     elif read_results:
         assert exported.calc is None
-        np.testing.assert_array_equal(exported.arrays['charges'], [.25, -.1])
-        np.testing.assert_array_equal(exported.arrays['magmoms'], [.7, -.2])
+        np.testing.assert_array_equal(exported.arrays['charges'], [0.25, -0.1])
+        np.testing.assert_array_equal(exported.arrays['magmoms'], [0.7, -0.2])
     else:
         assert exported.calc is None
         assert 'charges' not in exported.arrays and 'magmoms' not in exported.arrays
@@ -1075,15 +1150,19 @@ def test_ase_explicit_input_arrays_stay_separate_from_results(read_results, atta
 def test_ase_input_arrays_are_owned_optional_and_preserve_vector_moments():
     ase = pytest.importorskip('ase')
     from ase.calculators.singlepoint import SinglePointCalculator
+
     source = ase.Atoms('HHe')
     source.set_tags([4, -1])
-    source.set_initial_charges([.4, -.3])
-    vectors = np.array([[1., 2., 3.], [-1., -2., -3.]])
+    source.set_initial_charges([0.4, -0.3])
+    vectors = np.array([[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]])
     source.set_initial_magnetic_moments(vectors)
-    source.calc = SinglePointCalculator(source, charges=[.25, -.1], magmoms=[.7, -.2])
+    source.calc = SinglePointCalculator(source, charges=[0.25, -0.1], magmoms=[0.7, -0.2])
     atoms = Atoms.from_ase(source)
-    expected = {'tags': np.array([4, -1]), 'initial_charges': np.array([.4, -.3]),
-                'initial_magmoms': vectors.copy()}
+    expected = {
+        'tags': np.array([4, -1]),
+        'initial_charges': np.array([0.4, -0.3]),
+        'initial_magmoms': vectors.copy(),
+    }
     for name in expected:
         source.arrays[name][:] = 9
         returned = getattr(atoms, name)
@@ -1096,11 +1175,11 @@ def test_ase_input_arrays_are_owned_optional_and_preserve_vector_moments():
         np.testing.assert_array_equal(getattr(copied, name), values)
     copied.tags = [9, 8]
     copied.initial_charges = None
-    copied.initial_magmoms = [0., 0.]
+    copied.initial_magmoms = [0.0, 0.0]
     for name, values in expected.items():
         np.testing.assert_array_equal(getattr(atoms, name), values)
-    atoms.initial_magmoms = [.1, .2]
-    np.testing.assert_array_equal(atoms.initial_magmoms, [.1, .2])
+    atoms.initial_magmoms = [0.1, 0.2]
+    np.testing.assert_array_equal(atoms.initial_magmoms, [0.1, 0.2])
     atoms.initial_magmoms = vectors
     np.testing.assert_array_equal(atoms.initial_magmoms, vectors)
     atoms.initial_charges = None
@@ -1111,8 +1190,8 @@ def test_ase_input_arrays_are_owned_optional_and_preserve_vector_moments():
     atoms.tags = None
     cleared = atoms.to_ase()
     assert not any(cleared.has(name) for name in expected)
-    np.testing.assert_array_equal(atoms.charges, [.25, -.1])
-    np.testing.assert_array_equal(atoms.magmoms, [.7, -.2])
+    np.testing.assert_array_equal(atoms.charges, [0.25, -0.1])
+    np.testing.assert_array_equal(atoms.magmoms, [0.7, -0.2])
 
     plain = Atoms.from_ase(ase.Atoms('HHe'), read_results=False)
     assert all(getattr(plain, name) is None for name in expected)
@@ -1131,34 +1210,40 @@ def test_ase_input_arrays_are_owned_optional_and_preserve_vector_moments():
         plain.tags = np.array([2**32 + 2, 0], dtype=np.int64)
     np.testing.assert_array_equal(plain.tags, limits)
     with pytest.raises(ValueError, match='integers'):
-        plain.tags = [1.5, 0.]
+        plain.tags = [1.5, 0.0]
 
 
 def test_ase_input_arrays_survive_independent_extxyz_fields(tmp_path):
     pytest.importorskip('ase')
     path = tmp_path / 'input-state.xyz'
-    path.write_text('2\nLattice="10 0 0 0 10 0 0 0 10" pbc="F F F" '
-                    'Properties=species:S:1:pos:R:3:tags:I:1:initial_charges:R:1:'
-                    'initial_magmoms:R:3:charges:R:1:magmoms:R:1\n'
-                    'H 0 0 0 2 .8 1 2 3 .25 .7\n'
-                    'He 1.5 0 0 0 -.2 -1 -2 -3 -.1 -.2\n')
+    path.write_text(
+        '2\nLattice="10 0 0 0 10 0 0 0 10" pbc="F F F" '
+        'Properties=species:S:1:pos:R:3:tags:I:1:initial_charges:R:1:'
+        'initial_magmoms:R:3:charges:R:1:magmoms:R:1\n'
+        'H 0 0 0 2 .8 1 2 3 .25 .7\n'
+        'He 1.5 0 0 0 -.2 -1 -2 -3 -.1 -.2\n'
+    )
     atoms = read_one(path)
     np.testing.assert_array_equal(atoms.tags, [2, 0])
-    np.testing.assert_array_equal(atoms.initial_charges, [.8, -.2])
-    np.testing.assert_array_equal(atoms.initial_magmoms, [[1., 2., 3.], [-1., -2., -3.]])
+    np.testing.assert_array_equal(atoms.initial_charges, [0.8, -0.2])
+    np.testing.assert_array_equal(atoms.initial_magmoms, [[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]])
     exported = atoms.to_ase()
-    np.testing.assert_array_equal(exported.get_initial_charges(), [.8, -.2])
-    np.testing.assert_array_equal(exported.get_initial_magnetic_moments(), [[1., 2., 3.], [-1., -2., -3.]])
-    np.testing.assert_array_equal(exported.get_charges(), [.25, -.1])
-    np.testing.assert_array_equal(exported.get_magnetic_moments(), [.7, -.2])
+    np.testing.assert_array_equal(exported.get_initial_charges(), [0.8, -0.2])
+    np.testing.assert_array_equal(
+        exported.get_initial_magnetic_moments(), [[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]]
+    )
+    np.testing.assert_array_equal(exported.get_charges(), [0.25, -0.1])
+    np.testing.assert_array_equal(exported.get_magnetic_moments(), [0.7, -0.2])
     assert atoms.total_charge is None and 'total_charge' not in exported.info
     rewritten = tmp_path / 'rewritten-state.xyz'
     write_one(rewritten, atoms)
     header = rewritten.read_text().splitlines()[1]
-    assert 'tags:I:1' in header and 'initial_charges:R:1' in header and 'initial_magmoms:R:3' in header
+    assert (
+        'tags:I:1' in header and 'initial_charges:R:1' in header and 'initial_magmoms:R:3' in header
+    )
     restored = read_one(rewritten)
     np.testing.assert_array_equal(restored.tags, [2, 0])
-    np.testing.assert_array_equal(restored.initial_charges, [.8, -.2])
-    np.testing.assert_array_equal(restored.initial_magmoms, [[1., 2., 3.], [-1., -2., -3.]])
-    np.testing.assert_array_equal(restored.charges, [.25, -.1])
-    np.testing.assert_array_equal(restored.magmoms, [.7, -.2])
+    np.testing.assert_array_equal(restored.initial_charges, [0.8, -0.2])
+    np.testing.assert_array_equal(restored.initial_magmoms, [[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]])
+    np.testing.assert_array_equal(restored.charges, [0.25, -0.1])
+    np.testing.assert_array_equal(restored.magmoms, [0.7, -0.2])

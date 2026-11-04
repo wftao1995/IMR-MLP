@@ -8,60 +8,89 @@
 #include <utility>
 #include <vector>
 
-namespace {
+namespace
+{
 // This external quadratic field tests an NEB force-root solver. Its stationary
 // point has many unstable directions: it is not a material transition-state or
 // minimum-energy-path fixture, and translation invariance is not assumed.
-class NegativeTransverseQuadratic : public Potentials::AnyPotential {
-public:
+class NegativeTransverseQuadratic : public Potentials::AnyPotential
+{
+  public:
     std::vector<double> curvature;
 
-    explicit NegativeTransverseQuadratic(std::vector<double> values)
-        : curvature(std::move(values)) {
+    explicit NegativeTransverseQuadratic(std::vector<double> values) : curvature(std::move(values))
+    {
         cutoff = 1;
         cutoffsq = 1;
         species_count = 1;
     }
 
-    void evaluate(Atoms &atoms) {
+    void evaluate(Atoms &atoms)
+    {
         atoms.resetEFS();
-        for (int i = 0; i < atoms.size(); ++i) {
+        for (int i = 0; i < atoms.size(); ++i)
+        {
             const double y = atoms.pos_[i](1);
             atoms.energy_ -= 0.5 * curvature[i] * y * y;
             atoms.forces_[i](1) = curvature[i] * y;
         }
     }
-    void getEFS(Atoms &atoms, AnyNeighborhoods &) override { evaluate(atoms); }
-    void getEFSOMPthread(Atoms &atoms) override { evaluate(atoms); }
+
+    void getEFS(Atoms &atoms, AnyNeighborhoods &) override
+    {
+        evaluate(atoms);
+    }
+
+    void getEFSOMPthread(Atoms &atoms) override
+    {
+        evaluate(atoms);
+    }
 };
 
-class ShiftedQuadraticSaddle : public Potentials::AnyPotential {
-public:
-    ShiftedQuadraticSaddle() { cutoff = 1; cutoffsq = 1; species_count = 1; }
-    void evaluate(Atoms &atoms) {
+class ShiftedQuadraticSaddle : public Potentials::AnyPotential
+{
+  public:
+    ShiftedQuadraticSaddle()
+    {
+        cutoff = 1;
+        cutoffsq = 1;
+        species_count = 1;
+    }
+
+    void evaluate(Atoms &atoms)
+    {
         atoms.resetEFS();
         const double x = atoms.pos_[0](0) - 0.2;
         const double y = atoms.pos_[0](1);
         atoms.energy_ = 1 - 0.5 * x * x + 0.5 * y * y;
         atoms.forces_[0] << x, -y, 0;
     }
-    void getEFS(Atoms &atoms, AnyNeighborhoods &) override { evaluate(atoms); }
-    void getEFSOMPthread(Atoms &atoms) override { evaluate(atoms); }
+
+    void getEFS(Atoms &atoms, AnyNeighborhoods &) override
+    {
+        evaluate(atoms);
+    }
+
+    void getEFSOMPthread(Atoms &atoms) override
+    {
+        evaluate(atoms);
+    }
 };
 }
 
 TEST_CASE("NEB residual correction expands beyond eighty Krylov directions",
-          "[neb][numerics][guard][krylov]") {
+          "[neb][numerics][guard][krylov]")
+{
     constexpr int degree = 80;
     constexpr int count = degree + 1;
     constexpr double lambda_min = 0.000625;
     constexpr double lambda_max = 100;
     std::vector<double> eigenvalues(count), weights(count);
     double weight_sum = 0;
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < count; ++i)
+    {
         eigenvalues[i] = 0.5 * (lambda_min + lambda_max) +
-            0.5 * (lambda_max - lambda_min) *
-                std::cos(std::numbers::pi * i / degree);
+                         0.5 * (lambda_max - lambda_min) * std::cos(std::numbers::pi * i / degree);
         // The endpoints of a Chebyshev-Lobatto grid have half barycentric
         // weight. Division by lambda makes the minimax polynomial also the
         // least-squares residual polynomial for this initial residual.
@@ -75,8 +104,8 @@ TEST_CASE("NEB residual correction expands beyond eighty Krylov directions",
     // barycentric sum of a polynomial of degree k-1, hence zero. Thus p is
     // the least-squares minimizer, not merely an upper bound. Lower-degree
     // Krylov spaces cannot do better. The 81st direction can solve exactly.
-    const double eta_eighty = 1 / std::cosh(degree * std::acosh(
-        (lambda_max + lambda_min) / (lambda_max - lambda_min)));
+    const double eta_eighty =
+        1 / std::cosh(degree * std::acosh((lambda_max + lambda_min) / (lambda_max - lambda_min)));
     REQUIRE(eta_eighty > 0.9);
     REQUIRE(eta_eighty < 0.95);
 
@@ -86,10 +115,12 @@ TEST_CASE("NEB residual correction expands beyond eighty Krylov directions",
     atoms.pbc_ = {false, false, false};
     atoms.chemmap_.assign(count, 0);
     atoms.pos_.resize(count);
-    for (int i = 0; i < count; ++i) atoms.pos_[i] << 3 * i, 0, 0;
+    for (int i = 0; i < count; ++i)
+        atoms.pos_[i] << 3 * i, 0, 0;
     std::vector<Atoms> path(3, atoms);
     Eigen::VectorXd initial_y(count);
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < count; ++i)
+    {
         initial_y(i) = std::sqrt(weights[i] / weight_sum) / eigenvalues[i];
         path[0].pos_[i](0) -= 1;
         path[1].pos_[i](1) = initial_y(i);
@@ -111,18 +142,22 @@ TEST_CASE("NEB residual correction expands beyond eighty Krylov directions",
     const Eigen::VectorXd initial_x = x;
     REQUIRE(x.size() == 3 * count);
     REQUIRE(gradient.squaredNorm() == Catch::Approx(1).margin(1e-12));
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < count; ++i)
+    {
         // Symmetric endpoints fix the original tangent along x, so projection
         // does not modify these y forces: the Jacobian is -diag(lambda).
-        REQUIRE(gradient(3 * i + 1) ==
-            Catch::Approx(-eigenvalues[i] * initial_y(i)).margin(1e-12));
+        REQUIRE(gradient(3 * i + 1) == Catch::Approx(-eigenvalues[i] * initial_y(i)).margin(1e-12));
     }
     Eigen::VectorXd flow_gradient(gradient.size());
     driver(x - 1e-4 * gradient, flow_gradient);
     REQUIRE(flow_gradient.squaredNorm() > gradient.squaredNorm());
 
     int callbacks = 0;
-    auto stationary_optimizer = [&](int budget) { ++callbacks; return budget; };
+    auto stationary_optimizer = [&](int budget)
+    {
+        ++callbacks;
+        return budget;
+    };
     // Permit a complete Newton correction, while retaining a finite explicit
     // move bound. Nine iterations allow one eight-step rejected batch and one
     // fallback; many short restarted solves cannot stand in for expansion.
@@ -130,7 +165,8 @@ TEST_CASE("NEB residual correction expands beyond eighty Krylov directions",
     const int used = driver.minimize_guarded(stationary_optimizer, 9, max_move, x, objective);
     driver(x, gradient);
     Eigen::VectorXd final_y(count);
-    for (int i = 0; i < count; ++i) final_y(i) = driver.images[1].pos_[i](1);
+    for (int i = 0; i < count; ++i)
+        final_y(i) = driver.images[1].pos_[i](1);
     CAPTURE(eta_eighty, used, callbacks, max_move, gradient.norm(), final_y.norm(),
             driver.stop_reason_string());
     CHECK(used == 9);
@@ -144,7 +180,8 @@ TEST_CASE("NEB residual correction expands beyond eighty Krylov directions",
     // attain (its squared residual is at least eta_eighty^2 > .81).
     CHECK(gradient.squaredNorm() < 1e-6);
     CHECK(final_y.norm() < 1e-2);
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < count; ++i)
+    {
         CHECK(driver.images[1].pos_[i](0) == Catch::Approx(atoms.pos_[i](0)).margin(1e-12));
         CHECK(driver.images[1].pos_[i](2) == 0);
         CHECK(driver.images.front().pos_[i].isApprox(path.front().pos_[i], 1e-14));
@@ -153,7 +190,8 @@ TEST_CASE("NEB residual correction expands beyond eighty Krylov directions",
 }
 
 TEST_CASE("NEB guard restarts its residual model when climbing activates",
-          "[neb][numerics][guard][climb-delay]") {
+          "[neb][numerics][guard][climb-delay]")
+{
     const int delay = GENERATE(0, 1, 2, 3);
     constexpr double max_move = 0.01;
     ShiftedQuadraticSaddle potential;
@@ -179,7 +217,11 @@ TEST_CASE("NEB guard restarts its residual model when climbing activates",
     const Eigen::VectorXd initial_x = x;
     double objective = 0;
     int callbacks = 0;
-    auto stationary_optimizer = [&](int) { ++callbacks; return 1; };
+    auto stationary_optimizer = [&](int)
+    {
+        ++callbacks;
+        return 1;
+    };
 
     // Initially the tangent is horizontal. Before climbing, r=(0,.01,0)
     // has squared norm .0001. Activating the parallel-force reflection gives
@@ -210,9 +252,10 @@ TEST_CASE("NEB guard restarts its residual model when climbing activates",
     CHECK(driver.max_neb_force == Catch::Approx(expected_gradient.norm()).margin(1e-12));
     CHECK(driver.max_neb_force <= std::sqrt(0.0401) + 1e-12);
     CHECK_FALSE(driver.check_convergence());
-    if (delay == 0) CHECK(driver.max_neb_force < 0.999 * std::sqrt(0.0401));
-    const double expected_energy = 0.28 + 0.68 +
-        1 - 0.5 * std::pow(middle(0) - 0.2, 2) + 0.5 * middle(1) * middle(1);
+    if (delay == 0)
+        CHECK(driver.max_neb_force < 0.999 * std::sqrt(0.0401));
+    const double expected_energy =
+        0.28 + 0.68 + 1 - 0.5 * std::pow(middle(0) - 0.2, 2) + 0.5 * middle(1) * middle(1);
     CHECK(objective == Catch::Approx(expected_energy).margin(1e-12));
     CHECK(driver.images.front().pos_[0].isApprox(path.front().pos_[0], 1e-14));
     CHECK(driver.images.back().pos_[0].isApprox(path.back().pos_[0], 1e-14));

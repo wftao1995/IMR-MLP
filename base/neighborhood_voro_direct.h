@@ -10,13 +10,14 @@
 
 class NeighborhoodsVoroDir : public NeighborhoodsVoro
 {
-private:
+  private:
     ;
 
-public:
-    NeighborhoodsVoroDir(){};
-    ~NeighborhoodsVoroDir(){};
-    NeighborhoodsVoroDir(Atoms &atom, const int voro_edge_upto, const double surftol, const double edgetol, const int numneigh);
+  public:
+    NeighborhoodsVoroDir() {};
+    ~NeighborhoodsVoroDir() {};
+    NeighborhoodsVoroDir(Atoms &atom, const int voro_edge_upto, const double surftol,
+                         const double edgetol, const int numneigh);
     void construct(Atoms &atom, const double surftol, const double edgetol, const int numneigh);
 };
 

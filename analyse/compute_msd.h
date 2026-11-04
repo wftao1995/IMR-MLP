@@ -10,9 +10,10 @@
 #include "libalglib/fasttransforms.h"
 #include "libalglib/interpolation.h"
 #include <limits>
+
 /**
  * TODO: adaptive
- * 
+ *
  * group file like this:
  *  num_groups
  *  [group1]
@@ -20,12 +21,12 @@
  *  [group2]
  *  ids
  *  ...
- * 
+ *
  * filter file like this:
  *  ids ... (natoms in total)
- * 
+ *
  * We firstly compute per-atom msd, then add them together
- * 
+ *
  * see:
  * https://www.neutron-sciences.org/articles/sfn/pdf/2011/01/sfn201112010.pdf
  * **/
@@ -33,7 +34,7 @@
 //         instead of MSD(t) = <|r_i(t) - r_i(0)|^2>
 class ComputeMSD : public ConnectSettings
 {
-private:
+  private:
     // ═══════════════════════════════════════════════════════════════════
     // Settings
     // ═══════════════════════════════════════════════════════════════════
@@ -43,7 +44,7 @@ private:
 
     // ── Drift correction ──
     bool drift_cm = true;
-    bool drift_vm = false;   // drift = \sum v_m * M_m
+    bool drift_vm = false; // drift = \sum v_m * M_m
 
     // ── Algorithm selection ──
     bool tac_avg = true;
@@ -69,10 +70,10 @@ private:
     int fit_M = 4;
 
     // ── Finite-size correction for diffusion coefficient ──
-    int fsc_mode = 0;          // 0=none, 1=Yeh-Hummer(2004), 2=generalized
-    double temperature = 300.0;// simulation temperature (K)
-    double viscosity = 0.0;    // shear viscosity (mPa·s), 0=skip
-    double fsc_xi = 2.837298;  // hydrodynamic shape factor (cubic=2.837298)
+    int fsc_mode = 0;           // 0=none, 1=Yeh-Hummer(2004), 2=generalized
+    double temperature = 300.0; // simulation temperature (K)
+    double viscosity = 0.0;     // shear viscosity (mPa·s), 0=skip
+    double fsc_xi = 2.837298;   // hydrodynamic shape factor (cubic=2.837298)
 
     // ── Input files / track / group ──
     std::string f_track_id = "TRACKID";
@@ -97,9 +98,9 @@ private:
     std::map<int, int> types_tbccount;
     std::vector<std::set<int>> group_idxs;
 
-    std::vector<Eigen::RowVector3d> cm;  // center-of-mass per frame
-    std::vector<Eigen::RowVector3d> vm;  // center-of-mass velocity per frame
-    double atoms_volume = 0;              // cell volume from first frame
+    std::vector<Eigen::RowVector3d> cm; // center-of-mass per frame
+    std::vector<Eigen::RowVector3d> vm; // center-of-mass velocity per frame
+    double atoms_volume = 0;            // cell volume from first frame
     std::vector<std::vector<Eigen::RowVector3d>> positions;
     bool using_default_weights = false;
 
@@ -114,7 +115,7 @@ private:
     void apply_drift(const std::vector<Atoms> &atoms);
     void apply_finite_size_correction();
 
-public:
+  public:
     struct DiffusionFitResult
     {
         bool fitted = false;
@@ -185,7 +186,8 @@ public:
     {
         Connect(fft, "fft");
         Connect(drift_cm, "drift_cm", "remove per-frame center-of-mass displacement");
-        Connect(drift_vm, "drift_vm", "remove integrated center-of-mass velocity; exclusive with drift_cm");
+        Connect(drift_vm, "drift_vm",
+                "remove integrated center-of-mass velocity; exclusive with drift_cm");
         Connect(tac_avg, "tacavg");
         Connect(ts, "timestep", "raw-frame timestep in ps; calc_prop applies --skip-every");
         Connect(proj, "projection", "output Cartesian x/y/z components");
@@ -214,22 +216,31 @@ public:
         Connect(fsc_xi, "fsc_xi");
     }
 
-    ComputeMSD() { InitSettings(GPSettings{}); }
-    ~ComputeMSD(){};
+    ComputeMSD()
+    {
+        InitSettings(GPSettings{});
+    }
+
+    ~ComputeMSD() {};
+
     ComputeMSD(const GPSettings &_settings)
     {
         InitSettings(_settings);
         ApplySettings(_settings);
     }
 
-    void compute_spline(alglib::real_1d_array &x, std::vector<double> &y, int &fit_M, double &lam, std::vector<double> &s, std::vector<double> &d);
-    void compute_spline(alglib::real_1d_array &x, std::vector<double> &y, int &fit_M, double &lam, std::vector<double> &s);
+    void compute_spline(alglib::real_1d_array &x, std::vector<double> &y, int &fit_M, double &lam,
+                        std::vector<double> &s, std::vector<double> &d);
+    void compute_spline(alglib::real_1d_array &x, std::vector<double> &y, int &fit_M, double &lam,
+                        std::vector<double> &s);
 
     void compute(const std::vector<Atoms> &atoms);
+
     void compute(std::vector<Atoms> &atoms)
     {
         compute(static_cast<const std::vector<Atoms> &>(atoms));
     }
+
     void compute_der();
 
     // Internal helpers extracted from compute()
@@ -249,15 +260,14 @@ public:
     void postprocessing();
     void postprocessing_nprj();
 
-    void lfit(const std::vector<double> &x, const std::vector<double> &y,
-              double &k, double &b, DiffusionFitResult *result = nullptr);
+    void lfit(const std::vector<double> &x, const std::vector<double> &y, double &k, double &b,
+              DiffusionFitResult *result = nullptr);
 
     void read_group();
     void read_filter();
     void read_weight();
     std::vector<std::string> planned_output_paths(const Atoms &first);
     void write_results();
-
 };
 
 #endif

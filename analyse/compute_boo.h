@@ -11,7 +11,7 @@
 
 class ComputeBondOrder : public ConnectSettings
 {
-private:
+  private:
     int maxl_ = 4;
     int qlmsize;
 
@@ -28,8 +28,9 @@ private:
     std::vector<std::complex<double>> Qlmc;
     AngularFuncs::ComplexSphericalHarmoics csph;
 
-public:
-    ComputeBondOrder(){};
+  public:
+    ComputeBondOrder() {};
+
     ComputeBondOrder(const GPSettings &_settings)
     {
         InitSettings();
@@ -44,11 +45,14 @@ public:
     {
         maxl_ = ml;
         qlmsize = (maxl_ + 1) * (maxl_ + 1);
-        Qlmc.resize(qlmsize); 
+        Qlmc.resize(qlmsize);
         csph.init(maxl_, maxl_);
     }
 
-    inline void set_rcut(const double rcut) { r_cut = rcut; }
+    inline void set_rcut(const double rcut)
+    {
+        r_cut = rcut;
+    }
 
     inline int get_idx(const int &l, const int &m) const
     {
@@ -65,11 +69,10 @@ public:
         Connect(min_nn, "minnn");
         Connect(max_nn, "maxnn");
     }
+
     // Use supplied neighborhoods as-is; the one-argument overload selects neighbors from settings.
     void compute(Atoms &atom, const AnyNeighborhoods &nbhs);
     void compute(Atoms &atom);
-
 };
-
 
 #endif

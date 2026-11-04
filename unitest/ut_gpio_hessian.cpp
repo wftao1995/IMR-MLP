@@ -50,16 +50,16 @@ TEST_CASE("GPIO extxyz rejects Hessian tag with wrong length", "[gpio][hessian]"
 TEST_CASE("GPIO extxyz preserves three-axis PBC flags", "[gpio][pbc]")
 {
     Atoms input;
-    input.cell_=5.0*Eigen::Matrix3d::Identity();
-    input.pos_={{0.0,0.0,0.0}};
-    input.chemmap_={0};
-    input.pbc_={{true,false,true}};
+    input.cell_ = 5.0 * Eigen::Matrix3d::Identity();
+    input.pos_ = {{0.0, 0.0, 0.0}};
+    input.chemmap_ = {0};
+    input.pbc_ = {{true, false, true}};
     std::stringstream buffer;
     GPIO writer;
-    REQUIRE(writer.write_one(input,buffer,"extxyz"));
-    REQUIRE(buffer.str().find("pbc=\"T F T\"")!=std::string::npos);
+    REQUIRE(writer.write_one(input, buffer, "extxyz"));
+    REQUIRE(buffer.str().find("pbc=\"T F T\"") != std::string::npos);
     Atoms output;
     GPIO reader;
-    REQUIRE(reader.read_one(output,buffer,"extxyz"));
-    REQUIRE(output.pbc_==input.pbc_);
+    REQUIRE(reader.read_one(output, buffer, "extxyz"));
+    REQUIRE(output.pbc_ == input.pbc_);
 }

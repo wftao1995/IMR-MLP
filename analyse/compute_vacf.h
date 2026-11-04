@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <vector>
+
 /**
  * group file like this:
  *  num_groups
@@ -24,7 +25,7 @@
  *  ids ... (natoms in total)
  *
  * We firstly compute per-atom vacf, then add them together
- * 
+ *
  * FFT autocorrelation is available via algo=1. Correlations and output retain
  * the Cartesian x/y/z components as well as their total.
  *
@@ -33,12 +34,13 @@
  * **/
 class ComputeVACF : public ConnectSettings
 {
-private:
+  private:
     // common settings
     int nsteps_total = 0;
     double ts = 1.0; // time steps, used in fitting D0, in unit ps
 
-    int algo = 1; // 0 for nac, 1 for ac-fft, 2 for ac-nofft, 3 for AR (autoregression: fit AR(p) on velocity series)
+    int algo =
+        1; // 0 for nac, 1 for ac-fft, 2 for ac-nofft, 3 for AR (autoregression: fit AR(p) on velocity series)
 
     int nstart = 0;
     int nstop = -1;
@@ -112,8 +114,10 @@ private:
     void reset_run_state();
     void prepare_output_selection(const Atoms &first);
     std::string output_prefix(int projection = 0) const;
-    static std::string output_path(const std::string &prefix, const std::string &category, int id = 0, bool vdos = false);
-    void prepare_velocities(const std::vector<Atoms> &atoms, int requested_start, int requested_stop);
+    static std::string output_path(const std::string &prefix, const std::string &category,
+                                   int id = 0, bool vdos = false);
+    void prepare_velocities(const std::vector<Atoms> &atoms, int requested_start,
+                            int requested_stop);
     void prepare_weights();
 
     void clear_arr()
@@ -122,24 +126,28 @@ private:
         for (int i = 0; i < natoms; ++i)
         {
             vacf_array[i].resize(nsteps_total);
-            std::fill(vacf_array[i].begin(), vacf_array[i].end(), std::array<double, 4>{0., 0., 0., 0.});
+            std::fill(vacf_array[i].begin(), vacf_array[i].end(),
+                      std::array<double, 4>{0., 0., 0., 0.});
         }
     }
 
-public:
+  public:
     std::vector<double> atom_masses; // chemical type as index
     std::vector<double> atomic_weight;
     // results
     std::vector<double> time, frquency;
+
     struct vacf_result
     {
         std::vector<std::array<double, 4>> total; //, total_i, total_s;
         std::vector<std::array<double, 4>> vdos_total;
         std::vector<std::vector<std::array<double, 4>>> vdos_type, vdos_track, vdos_group;
-        std::vector<std::vector<std::array<double, 4>>> type; //, type_i, type_s;    // by types, type-vacf
+        std::vector<std::vector<std::array<double, 4>>>
+            type; //, type_i, type_s;    // by types, type-vacf
         std::vector<std::vector<std::array<double, 4>>> track; //, track_i, track_s; // by filters
         std::vector<std::vector<std::array<double, 4>>> group; //, group_i, group_s; // by groups
     };
+
     vacf_result vacf_isotropic;
     std::vector<vacf_result> vacf_projection;
 
@@ -153,7 +161,8 @@ public:
     void InitSettings(const GPSettings &_settings)
     {
         Connect(algo, "algo");
-        Connect(ts, "timestep", "timestep, assume in unit ps, note that velo is assumed in unit A/ps");
+        Connect(ts, "timestep",
+                "timestep, assume in unit ps, note that velo is assumed in unit A/ps");
         Connect(proj, "projection");
         Connect(proj_only, "noiso");
         Connect(compute_total, "total");
@@ -182,13 +191,17 @@ public:
         Connect(f_weight_id, "weightfile");
         Connect(normalize, "normalize");
         Connect(mass_weighted, "mass_weighted", "use atomic masses as aggregation weights");
-        Connect(remove_drift, "remove_drift", "subtract mass-weighted center-of-mass velocity per frame");
+        Connect(remove_drift, "remove_drift",
+                "subtract mass-weighted center-of-mass velocity per frame");
         Connect(nstart, "start_from"); // start from 0
-        Connect(nstop, "end_to"); // negative to include all, if 1000 frams in total, set to 1000 to include all 
+        Connect(
+            nstop,
+            "end_to"); // negative to include all, if 1000 frams in total, set to 1000 to include all
     }
 
-    ComputeVACF(){};
-    ~ComputeVACF(){};
+    ComputeVACF() {};
+    ~ComputeVACF() {};
+
     ComputeVACF(const GPSettings &_settings)
     {
         InitSettings(_settings);
@@ -198,8 +211,8 @@ public:
 
     void compute(const std::vector<Atoms> &atoms);
     // void compute_int(vacf_result &);
-    void compute_vdosfft(std::vector<std::array<double, 4>> &in, std::vector<std::array<double, 4>> &out);
-
+    void compute_vdosfft(std::vector<std::array<double, 4>> &in,
+                         std::vector<std::array<double, 4>> &out);
 
     void compute_vacf_nac(const std::vector<Atoms> &atoms);
     void compute_vacf_ac(const std::vector<Atoms> &atoms);

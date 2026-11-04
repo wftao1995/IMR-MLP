@@ -22,15 +22,13 @@ TEST_CASE("Cubic tensor is invariant under axis permutation projection", "[elast
 {
     Eigen::Matrix<double, 6, 6> cubic = Eigen::Matrix<double, 6, 6>::Zero();
     cubic(0, 0) = cubic(1, 1) = cubic(2, 2) = 200.0;
-    cubic(0, 1) = cubic(1, 0) = cubic(0, 2) = cubic(2, 0)
-        = cubic(1, 2) = cubic(2, 1) = 120.0;
+    cubic(0, 1) = cubic(1, 0) = cubic(0, 2) = cubic(2, 0) = cubic(1, 2) = cubic(2, 1) = 120.0;
     cubic(3, 3) = cubic(4, 4) = cubic(5, 5) = 80.0;
     Eigen::Matrix3d permutation;
-    permutation << 0, 1, 0,
-                   0, 0, 1,
-                   1, 0, 0;
+    permutation << 0, 1, 0, 0, 0, 1, 1, 0, 0;
     const auto projected = ElasticUtils::project_by_symmetry(
-        cubic, Eigen::Matrix3d::Identity(), {Eigen::Matrix3d::Identity(), permutation, permutation * permutation});
+        cubic, Eigen::Matrix3d::Identity(),
+        {Eigen::Matrix3d::Identity(), permutation, permutation * permutation});
     REQUIRE(projected.isApprox(cubic, 1e-12));
 }
 

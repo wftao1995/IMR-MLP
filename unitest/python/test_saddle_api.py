@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Package imports, failure semantics and ownership of saddle/path results."""
+
 import gc
 from pathlib import Path
 
@@ -15,8 +16,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def atoms():
-    a = Atoms(positions=[[1., 1., 1.], [3., 1., 1.]], cell=np.eye(3)*30,
-              elements=['H', 'He'])
+    a = Atoms(
+        positions=[[1.0, 1.0, 1.0], [3.0, 1.0, 1.0]], cell=np.eye(3) * 30, elements=['H', 'He']
+    )
     a.chemmap = [0, 0]
     return a
 
@@ -64,9 +66,16 @@ def test_neb_package_trajectory_and_result_lifetime(tmp_path, monkeypatch, vcneb
     final.positions = final.positions + 0.1
     if vcneb:
         final.cell = final.cell * 1.01
-    n = NEB(potential(), n_images=3, max_iter=1, climb=False,
-            write_traj=True, vcneb=vcneb, pressure=0.1 if vcneb else 0,
-            neb_ftol=1e20)
+    n = NEB(
+        potential(),
+        n_images=3,
+        max_iter=1,
+        climb=False,
+        write_traj=True,
+        vcneb=vcneb,
+        pressure=0.1 if vcneb else 0,
+        neb_ftol=1e20,
+    )
     result = n.run(initial, final)
     assert result.converged
     assert len(result.images) == 3
@@ -86,8 +95,9 @@ def test_neb_evaluates_endpoint_properties_without_input_labels(tmp_path, monkey
     final.positions = final.positions + 0.1
     assert initial.energy is None and final.energy is None
     pressure = 0.1 if vcneb else 0.0
-    result = NEB(pot, n_images=3, max_iter=1, neb_ftol=1e20,
-                 vcneb=vcneb, pressure=pressure).run(initial, final)
+    result = NEB(pot, n_images=3, max_iter=1, neb_ftol=1e20, vcneb=vcneb, pressure=pressure).run(
+        initial, final
+    )
     for supplied, returned in zip((initial, final), (result.images[0], result.images[-1])):
         reference = supplied.copy()
         pot.calculate(reference)

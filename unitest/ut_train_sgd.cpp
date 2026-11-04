@@ -35,13 +35,13 @@ TEST_CASE("StepDecayScheduler basic decay", "[sgd]")
 
     REQUIRE(s.get_lr() == Approx(1.0));
 
-    s.on_step(4);  // still in first decay period
+    s.on_step(4); // still in first decay period
     REQUIRE(s.get_lr() == Approx(1.0));
 
-    s.on_step(5);  // first decay
+    s.on_step(5); // first decay
     REQUIRE(s.get_lr() == Approx(0.5));
 
-    s.on_step(9);  // still second period
+    s.on_step(9); // still second period
     REQUIRE(s.get_lr() == Approx(0.5));
 
     s.on_step(10); // second decay
@@ -142,7 +142,8 @@ TEST_CASE("StepDecayScheduler with non-zero initial state", "[sgd]")
     REQUIRE(s.get_lr() == Approx(0.00125));
 }
 
-TEST_CASE("SGD schedulers reject invalid used parameters without rejecting unused controls", "[sgd]")
+TEST_CASE("SGD schedulers reject invalid used parameters without rejecting unused controls",
+          "[sgd]")
 {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     REQUIRE_THROWS_AS(SGDScheduler::create("cosnie", .01, 0., 10, .5, 1), std::invalid_argument);
@@ -152,8 +153,10 @@ TEST_CASE("SGD schedulers reject invalid used parameters without rejecting unuse
     REQUIRE_THROWS_AS(CosineDecayScheduler(.01, 0., 0), std::invalid_argument);
     REQUIRE_THROWS_AS(CosineDecayScheduler(.01, nan, 10), std::invalid_argument);
     REQUIRE_THROWS_AS(ExponentialDecayScheduler(.01, nan), std::invalid_argument);
-    REQUIRE_THROWS_AS(SGDScheduler::create_with_warmup("step", .01, 0., 10, .5, 1, -1, 0.), std::invalid_argument);
-    REQUIRE_THROWS_AS(SGDScheduler::create_with_warmup("step", .01, 0., 10, .5, 1, 1, nan), std::invalid_argument);
+    REQUIRE_THROWS_AS(SGDScheduler::create_with_warmup("step", .01, 0., 10, .5, 1, -1, 0.),
+                      std::invalid_argument);
+    REQUIRE_THROWS_AS(SGDScheduler::create_with_warmup("step", .01, 0., 10, .5, 1, 1, nan),
+                      std::invalid_argument);
     REQUIRE_NOTHROW(SGDScheduler::create("exponential", .01, nan, 0, .5, 0));
     REQUIRE_NOTHROW(SGDScheduler::create("cosine", .01, 0., 10, nan, 0));
     REQUIRE_NOTHROW(SGDScheduler::create_with_warmup("step", .01, nan, 0, .5, 1, 0, nan));
@@ -163,9 +166,14 @@ TEST_CASE("SGD schedulers reject invalid used parameters without rejecting unuse
 TEST_CASE("SGD warmup retains its existing step offset and decay budget", "[sgd]")
 {
     auto scheduler = SGDScheduler::create_with_warmup("cosine", 1., 0., 100, .5, 10, 20, 0.);
-    scheduler->on_step(0); REQUIRE(scheduler->get_lr() == Approx(0.));
-    scheduler->on_step(10); REQUIRE(scheduler->get_lr() == Approx(.5));
-    scheduler->on_step(20); REQUIRE(scheduler->get_lr() == Approx(1.));
-    scheduler->on_step(100); REQUIRE(scheduler->get_lr() == Approx(.5 * (1. + std::cos(.8 * M_PI))));
-    scheduler->on_step(120); REQUIRE(scheduler->get_lr() == Approx(0.).margin(1e-14));
+    scheduler->on_step(0);
+    REQUIRE(scheduler->get_lr() == Approx(0.));
+    scheduler->on_step(10);
+    REQUIRE(scheduler->get_lr() == Approx(.5));
+    scheduler->on_step(20);
+    REQUIRE(scheduler->get_lr() == Approx(1.));
+    scheduler->on_step(100);
+    REQUIRE(scheduler->get_lr() == Approx(.5 * (1. + std::cos(.8 * M_PI))));
+    scheduler->on_step(120);
+    REQUIRE(scheduler->get_lr() == Approx(0.).margin(1e-14));
 }

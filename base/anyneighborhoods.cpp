@@ -14,11 +14,8 @@ std::ostream &operator<<(std::ostream &os, const NeighborhoodSub &nhb)
     os << "Center Type: " << Chemicals::chemical_symbols[nhb.centertype] << '\n';
     for (int i = 0; i < nhb.nbhcount_; ++i)
     {
-        os << " ID: " << i
-           << "  " << nhb.distances_[i]
-           << "  " << nhb.indices_[i]
-           << "  " << nhb.pos_[i]
-           << '\n';
+        os << " ID: " << i << "  " << nhb.distances_[i] << "  " << nhb.indices_[i] << "  "
+           << nhb.pos_[i] << '\n';
     }
     os << '\n';
     return os;
@@ -31,12 +28,8 @@ std::ostream &operator<<(std::ostream &os, const Neighborhood &nhb)
     os << "Center Type: " << Chemicals::chemical_symbols[nhb.centertype] << '\n';
     for (int i = 0; i < nhb.nbhcount_; ++i)
     {
-        os << " ID: " << i
-           << "  " << Chemicals::chemical_symbols[nhb.chemmap_[i]]
-           << "  " << nhb.distances_[i]
-           << "  " << nhb.indices_[i]
-           << "  " << nhb.pos_[i]
-           << '\n';
+        os << " ID: " << i << "  " << Chemicals::chemical_symbols[nhb.chemmap_[i]] << "  "
+           << nhb.distances_[i] << "  " << nhb.indices_[i] << "  " << nhb.pos_[i] << '\n';
     }
     os << '\n';
     return os;
@@ -56,12 +49,9 @@ std::ostream &operator<<(std::ostream &os, const AnyNeighborhoods &nhb)
         os << " Atoms: " << std::endl;
         for (int j = 0; j < nhb[i].nbhcount_; ++j)
         {
-            os << "  " << Chemicals::chemical_symbols[nhb[i].chemmap_[j]]
-               << "  " << nhb[i].distances_[j]
-               << "  " << nhb[i].indices_[j]
-               << "  " << nhb[i].pos_[j]
-               << "  " << nhb[i].distances_[j]
-               << std::endl;
+            os << "  " << Chemicals::chemical_symbols[nhb[i].chemmap_[j]] << "  "
+               << nhb[i].distances_[j] << "  " << nhb[i].indices_[j] << "  " << nhb[i].pos_[j]
+               << "  " << nhb[i].distances_[j] << std::endl;
         }
         os << std::endl;
     }
@@ -120,7 +110,8 @@ AnyNeighborhoods AnyNeighborhoods::sub_neighborhoods(const double rcut) const
     return ret;
 }
 
-AnyNeighborhoods AnyNeighborhoods::sub_neighborhoods(const int &nn) const {
+AnyNeighborhoods AnyNeighborhoods::sub_neighborhoods(const int &nn) const
+{
     AnyNeighborhoods ret;
     ret.resize(nbhs.size());
     for (int i = 0; i < nbhs.size(); ++i)
@@ -129,25 +120,31 @@ AnyNeighborhoods AnyNeighborhoods::sub_neighborhoods(const int &nn) const {
         nbhnew.nbhcount_ = 0;
         const Neighborhood &nhb = nbhs[i];
         nbhnew.centertype = nhb.centertype;
-        if (nhb.nbhcount_ <= nn) {
+        if (nhb.nbhcount_ <= nn)
+        {
             // ret.nbhs.push_back(nbhs[i]);
             ret.nbhs[i] = nbhs[i];
         }
-        else {
+        else
+        {
             std::vector<int> inds(nbhs[i].nbhcount_);
             auto &rdists = nbhs[i].distances_;
             auto &pos = nbhs[i].pos_;
             auto &indices = nbhs[i].indices_;
             auto &chemmap = nbhs[i].chemmap_;
             std::iota(inds.begin(), inds.end(), 0);
-            std::partial_sort(inds.begin(), inds.begin()+nn, inds.end(),
-                              [&rdists](int i, int j) {return rdists[i] < rdists[j];});
+            std::partial_sort(inds.begin(), inds.begin() + nn, inds.end(),
+                              [&rdists](int i, int j)
+                              {
+                                  return rdists[i] < rdists[j];
+                              });
             nbhnew.nbhcount_ = nn;
             nbhnew.indices_.resize(nn);
             nbhnew.chemmap_.resize(nn);
             nbhnew.distances_.resize(nn);
             nbhnew.pos_.resize(nn);
-            for (int k = 0; k < nn; ++k) {
+            for (int k = 0; k < nn; ++k)
+            {
                 int idx = inds[k];
                 nbhnew.indices_[k] = indices[idx];
                 nbhnew.chemmap_[k] = chemmap[idx];

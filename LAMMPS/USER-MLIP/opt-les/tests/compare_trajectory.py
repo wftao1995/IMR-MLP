@@ -4,24 +4,27 @@
 # Adapted for the IMR-MLP public source layout, 2026-09-22.
 
 """Compare short moving/changing-cell trajectories to a reference executable."""
+
 import argparse
 from pathlib import Path
 import subprocess
 import numpy as np
 
-p=argparse.ArgumentParser()
-p.add_argument('--reference-lmp',required=True,type=Path)
-p.add_argument('--lmp',required=True,type=Path)
-p.add_argument('--model',required=True,type=Path)
-p.add_argument('--data',required=True,type=Path)
-p.add_argument('--work',required=True,type=Path)
-p.add_argument('--ranks',type=int,nargs='+',default=[1,4])
-a=p.parse_args()
-a.work=a.work.resolve();a.work.mkdir(parents=True,exist_ok=True)
+p = argparse.ArgumentParser()
+p.add_argument('--reference-lmp', required=True, type=Path)
+p.add_argument('--lmp', required=True, type=Path)
+p.add_argument('--model', required=True, type=Path)
+p.add_argument('--data', required=True, type=Path)
+p.add_argument('--work', required=True, type=Path)
+p.add_argument('--ranks', type=int, nargs='+', default=[1, 4])
+a = p.parse_args()
+a.work = a.work.resolve()
+a.work.mkdir(parents=True, exist_ok=True)
 
-def run(executable,tag,ranks,phase):
-    dump=a.work/(tag+'.dump')
-    source=f'''units metal
+
+def run(executable, tag, ranks, phase):
+    dump = a.work / (tag + '.dump')
+    source = f'''units metal
 atom_style atomic
 boundary p p p
 newton on
@@ -47,30 +50,51 @@ change_box all xy delta 0.07 x scale 1.01 remap units box
 displace_atoms all move 0.07 -0.04 0.02 units box
 run 8
 '''
-    input_file=a.work/(tag+'.in');input_file.write_text(source)
-    log=a.work/(tag+'.log')
-    cmd=['mpirun','-np',str(ranks),str(executable.resolve()),'-in',str(input_file),'-log',str(log),'-screen','none']
-    subprocess.run(cmd,cwd=a.work,check=True,timeout=120)
-    lines=dump.read_text().splitlines()
-    atoms=[]
-    for i,line in enumerate(lines):
+    input_file = a.work / (tag + '.in')
+    input_file.write_text(source)
+    log = a.work / (tag + '.log')
+    cmd = [
+        'mpirun',
+        '-np',
+        str(ranks),
+        str(executable.resolve()),
+        '-in',
+        str(input_file),
+        '-log',
+        str(log),
+        '-screen',
+        'none',
+    ]
+    subprocess.run(cmd, cwd=a.work, check=True, timeout=120)
+    lines = dump.read_text().splitlines()
+    atoms = []
+    for i, line in enumerate(lines):
         if line.startswith('ITEM: ATOMS'):
-            end=next((j for j in range(i+1,len(lines)) if lines[j].startswith('ITEM:')),len(lines))
-            atoms.append(np.loadtxt(lines[i+1:end],ndmin=2))
-    thermo=[];active=False
+            end = next(
+                (j for j in range(i + 1, len(lines)) if lines[j].startswith('ITEM:')), len(lines)
+            )
+            atoms.append(np.loadtxt(lines[i + 1 : end], ndmin=2))
+    thermo = []
+    active = False
     for line in log.read_text().splitlines():
-        if line.split()[:2]==['Step','PotEng']:active=True;continue
-        if line.startswith('Loop time'):active=False
-        if active:thermo.append(np.fromstring(line,sep=' '))
-    return np.asarray(atoms),np.asarray(thermo)
+        if line.split()[:2] == ['Step', 'PotEng']:
+            active = True
+            continue
+        if line.startswith('Loop time'):
+            active = False
+        if active:
+            thermo.append(np.fromstring(line, sep=' '))
+    return np.asarray(atoms), np.asarray(thermo)
 
-reference=run(a.reference_lmp,'reference',1,'')
+
+reference = run(a.reference_lmp, 'reference', 1, '')
 for ranks in a.ranks:
-    for phase in ('direct','recurrence'):
-        actual=run(a.lmp,f'{phase}-np{ranks}',ranks,'phase '+phase)
-        errors=[]
-        for ref,value in zip(reference,actual):
-            if ref.shape!=value.shape:raise AssertionError((ref.shape,value.shape))
-            np.testing.assert_allclose(value,ref,atol=2e-8,rtol=2e-10)
-            errors.append(np.max(np.abs(value-ref)))
-        print(ranks,phase,'max atom/thermo errors',errors,flush=True)
+    for phase in ('direct', 'recurrence'):
+        actual = run(a.lmp, f'{phase}-np{ranks}', ranks, 'phase ' + phase)
+        errors = []
+        for ref, value in zip(reference, actual):
+            if ref.shape != value.shape:
+                raise AssertionError((ref.shape, value.shape))
+            np.testing.assert_allclose(value, ref, atol=2e-8, rtol=2e-10)
+            errors.append(np.max(np.abs(value - ref)))
+        print(ranks, phase, 'max atom/thermo errors', errors, flush=True)

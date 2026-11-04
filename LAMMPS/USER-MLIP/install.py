@@ -43,26 +43,52 @@ def main():
 
     if manifest.exists():
         parser.error('already installed; uninstall before updating')
-    if args.with_omp and not any((target / name).is_file()
-                                for name in ('thr_omp.h', 'OPENMP/thr_omp.h')):
+    if args.with_omp and not any(
+        (target / name).is_file() for name in ('thr_omp.h', 'OPENMP/thr_omp.h')
+    ):
         parser.error('--with-omp requires LAMMPS OPENMP sources')
     package = Path(__file__).resolve().parent
     sources = [package / 'pair_MLIP.cpp', package / 'pair_MLIP.h']
     for folder in ('opt', 'opt-les', 'transport', 'hyb-ti'):
-        sources += sorted(p for p in (package / folder).iterdir()
-                          if p.suffix in ('.cpp', '.h') and
-                          (args.with_omp or '_omp.' not in p.name))
-    sources += [package / name for name in
-                ('mlip_pair_metadata.h', 'mlip_legacy_reader.h', 'mlip_model_mpi.h', 'mlip_restart.h')]
+        sources += sorted(
+            p
+            for p in (package / folder).iterdir()
+            if p.suffix in ('.cpp', '.h') and (args.with_omp or '_omp.' not in p.name)
+        )
+    sources += [
+        package / name
+        for name in (
+            'mlip_pair_metadata.h',
+            'mlip_legacy_reader.h',
+            'mlip_model_mpi.h',
+            'mlip_restart.h',
+        )
+    ]
     core = package.parents[1] / 'runtime/mtp'
-    sources += [core / name for name in
-                ('mlip.cpp', 'mlip.h', 'radial_basis.h', 'radial_cache.h',
-                 'radial_basis_setup.cpp', 'cpu/mtp_cpu.cpp', 'cpu/mtp_cpu.h',
-                 'gpu-direct/radial_gpu_math.h', 'gpu-direct/mtp_gpu_direct.h',
-                 'gpu-direct/gpu_backend.h', 'gpu-direct/sog_gpu.h', 'gpu-direct/gpu_cache.h')]
-    sources += [package.parents[1] / 'tools' / name for name in ('mtp_metadata.h', 'picojson.h', 'gpm_container.h', 'gpm_mtp.h')]
-    sources += [package.parents[1] / 'potentials' / name
-                for name in ('sog_model.h', 'reciprocal_phases.h')]
+    sources += [
+        core / name
+        for name in (
+            'mlip.cpp',
+            'mlip.h',
+            'radial_basis.h',
+            'radial_cache.h',
+            'radial_basis_setup.cpp',
+            'cpu/mtp_cpu.cpp',
+            'cpu/mtp_cpu.h',
+            'gpu-direct/radial_gpu_math.h',
+            'gpu-direct/mtp_gpu_direct.h',
+            'gpu-direct/gpu_backend.h',
+            'gpu-direct/sog_gpu.h',
+            'gpu-direct/gpu_cache.h',
+        )
+    ]
+    sources += [
+        package.parents[1] / 'tools' / name
+        for name in ('mtp_metadata.h', 'picojson.h', 'gpm_container.h', 'gpm_mtp.h')
+    ]
+    sources += [
+        package.parents[1] / 'potentials' / name for name in ('sog_model.h', 'reciprocal_phases.h')
+    ]
     sources += [package.parent / 'COPYING.GPL-2.0']
     for source in sources:
         dest = target / source.name

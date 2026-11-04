@@ -8,12 +8,27 @@
 
 class RelaxationDrvV2;
 
-namespace Constraints {
+namespace Constraints
+{
 
-enum class ConstraintKind { Volume, Length, Angle, Ratio, Distance, AtomicAngle, Dihedral, Position, Wall, Formula, Symmetry };
+enum class ConstraintKind
+{
+    Volume,
+    Length,
+    Angle,
+    Ratio,
+    Distance,
+    AtomicAngle,
+    Dihedral,
+    Position,
+    Wall,
+    Formula,
+    Symmetry
+};
 using LatticeConstraintKind = ConstraintKind;
 
-struct ConstraintDeclaration {
+struct ConstraintDeclaration
+{
     ConstraintKind kind = ConstraintKind::Volume;
     int version = 1;
     std::optional<double> lower, upper;
@@ -42,7 +57,7 @@ void configure_symmetry(const ConstraintDeclarations &, RelaxationDrvV2 &);
 ConstraintDeclarations parse_constraints(std::istream &input);
 ConstraintDeclarations read_constraints(const std::string &path);
 std::vector<regulator> bind_constraints(const ConstraintDeclarations &declarations,
-                                      const Atoms &initial_frame);
+                                        const Atoms &initial_frame);
 
 // Strict version-1 schema; malformed input throws invalid_argument, IO errors
 // throw runtime_error. Parsing does not bind omitted targets to a structure.
@@ -51,8 +66,7 @@ LatticeConstraintDeclarations read_lattice_constraints(const std::string &path);
 
 // Bind fresh AUL equality regulators to this frame's initial right-handed cell.
 // The caller must separately enforce the raw9 driver/layout restrictions.
-std::vector<regulator> bind_lattice_constraints(
-    const LatticeConstraintDeclarations &declarations,
-    const Eigen::Matrix3d &initial_cell);
+std::vector<regulator> bind_lattice_constraints(const LatticeConstraintDeclarations &declarations,
+                                                const Eigen::Matrix3d &initial_cell);
 
 } // namespace Constraints

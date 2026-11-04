@@ -4,12 +4,17 @@
 #include <sstream>
 #include <limits>
 
-namespace {
-std::string xsf(const std::string &atoms = "H 1 2 3\nO 4 5 6\n", const std::string &count = "2 1") {
+namespace
+{
+std::string xsf(const std::string &atoms = "H 1 2 3\nO 4 5 6\n", const std::string &count = "2 1")
+{
     return "# fixture\nCRYSTAL\nPRIMVEC\n3 0.2 0.1\n0.3 4 0.4\n0.5 0.6 5\nCONVVEC\n"
-           "3 0.2 0.1\n0.3 4 0.4\n0.5 0.6 5\nPRIMCOORD\n" + count + "\n" + atoms;
+           "3 0.2 0.1\n0.3 4 0.4\n0.5 0.6 5\nPRIMCOORD\n" +
+           count + "\n" + atoms;
 }
-void reject_xsf(const std::string &input) {
+
+void reject_xsf(const std::string &input)
+{
     GPIO reader;
     reader.setmap({"H", "O"});
     Atoms atom;
@@ -27,7 +32,8 @@ void reject_xsf(const std::string &input) {
 }
 }
 
-TEST_CASE("XSF writer crystal subset round trips symbol and numeric species", "[gpio][xsf]") {
+TEST_CASE("XSF writer crystal subset round trips symbol and numeric species", "[gpio][xsf]")
+{
     const auto symbols = GENERATE(false, true);
     const auto lossless = GENERATE(false, true);
     GPIO io;
@@ -51,10 +57,12 @@ TEST_CASE("XSF writer crystal subset round trips symbol and numeric species", "[
     REQUIRE(decoded.forces_.empty());
 }
 
-TEST_CASE("XSF maps legal boundary species and keeps complete empty structures", "[gpio][xsf]") {
+TEST_CASE("XSF maps legal boundary species and keeps complete empty structures", "[gpio][xsf]")
+{
     GPIO io;
     io.setmap({"Og", "X", "H"});
-    for (const auto &atoms : {"0 1 2 3\n118 4 5 6\n", "X 1 2 3\nOg 4 5 6\n"}) {
+    for (const auto &atoms : {"0 1 2 3\n118 4 5 6\n", "X 1 2 3\nOg 4 5 6\n"})
+    {
         std::istringstream input(xsf(atoms));
         Atoms result;
         REQUIRE(io.read_one(result, input, "xsf"));
@@ -74,26 +82,34 @@ TEST_CASE("XSF maps legal boundary species and keeps complete empty structures",
     REQUIRE(result.chemmap_ == std::vector<int>{118});
 }
 
-TEST_CASE("XSF invalid numbers counts tags and incomplete data fail atomically", "[gpio][xsf]") {
-    for (const auto &token : {"-1", "119", "9999999999999999999", "8junk", "NoSuchElement", "Og", ""}) {
+TEST_CASE("XSF invalid numbers counts tags and incomplete data fail atomically", "[gpio][xsf]")
+{
+    for (const auto &token :
+         {"-1", "119", "9999999999999999999", "8junk", "NoSuchElement", "Og", ""})
+    {
         CAPTURE(token);
         reject_xsf(xsf(std::string(token) + " 1 2 3\n", "1 1"));
     }
-    for (const auto &count : {"-1 1", "2147483648 1", "2147483647 1", "1junk 1", "1", "1 2", "1 1 junk", ""}) {
+    for (const auto &count :
+         {"-1 1", "2147483648 1", "2147483647 1", "1junk 1", "1", "1 2", "1 1 junk", ""})
+    {
         CAPTURE(count);
         reject_xsf(xsf("", count));
     }
-    for (const auto &position : {"bad 2 3", "nan 2 3", "inf 2 3", "1e999 2 3", "1 2", "1 2 3 4"}) {
+    for (const auto &position : {"bad 2 3", "nan 2 3", "inf 2 3", "1e999 2 3", "1 2", "1 2 3 4"})
+    {
         CAPTURE(position);
         reject_xsf(xsf(std::string("H ") + position + "\n", "1 1"));
     }
     const auto good = xsf();
-    for (const auto &tag : {"CRYSTAL", "PRIMVEC", "CONVVEC", "PRIMCOORD"}) {
+    for (const auto &tag : {"CRYSTAL", "PRIMVEC", "CONVVEC", "PRIMCOORD"})
+    {
         auto bad = good;
         bad.replace(bad.find(tag), std::string(tag).size(), "INVALID");
         reject_xsf(bad);
     }
-    for (const auto &row : {"nan 0.2 0.1", "3 0.2"}) {
+    for (const auto &row : {"nan 0.2 0.1", "3 0.2"})
+    {
         auto bad = good;
         bad.replace(bad.find("3 0.2 0.1"), 9, row);
         reject_xsf(bad);
@@ -101,12 +117,16 @@ TEST_CASE("XSF invalid numbers counts tags and incomplete data fail atomically",
     reject_xsf(xsf("", std::to_string(gpio_binary::MAX_ATOMS) + " 1"));
     reject_xsf(xsf("", std::to_string(gpio_binary::MAX_ATOMS + 1) + " 1"));
     reject_xsf("");
-    for (size_t end = 0; (end = good.find('\n', end)) != std::string::npos; ++end) {
-        if (end + 1 < good.size()) reject_xsf(good.substr(0, end + 1));
+    for (size_t end = 0; (end = good.find('\n', end)) != std::string::npos; ++end)
+    {
+        if (end + 1 < good.size())
+            reject_xsf(good.substr(0, end + 1));
     }
 }
 
-TEST_CASE("XSF supports whitespace comments and rejects double mapping without pollution", "[gpio][xsf]") {
+TEST_CASE("XSF supports whitespace comments and rejects double mapping without pollution",
+          "[gpio][xsf]")
+{
     GPIO io;
     std::vector<std::string> map(121, "Unused");
     map.back() = "H";
@@ -130,7 +150,8 @@ TEST_CASE("XSF supports whitespace comments and rejects double mapping without p
     REQUIRE(atom.size() == 0);
 }
 
-TEST_CASE("XSF ATOMS retains nonperiodic geometry without a padding cell", "[gpio][xsf]") {
+TEST_CASE("XSF ATOMS retains nonperiodic geometry without a padding cell", "[gpio][xsf]")
+{
     GPIO io;
     io.setmap({"H", "O"});
     std::istringstream handwritten("# molecule\nATOMS\nH 0 0 0\nO 0 0 9");
@@ -166,14 +187,15 @@ TEST_CASE("XSF ATOMS retains nonperiodic geometry without a padding cell", "[gpi
     REQUIRE(decoded.is_nonperiodic());
 }
 
-TEST_CASE("XSF canonical partial boundaries preserve open directions", "[gpio][xsf]") {
+TEST_CASE("XSF canonical partial boundaries preserve open directions", "[gpio][xsf]")
+{
     const bool slab = GENERATE(false, true);
     const std::string label = slab ? "SLAB" : "POLYMER";
     const std::array<bool, 3> pbc{true, slab, false};
     const std::string rows = slab ? "H 0 0 0\nO 0 0 9\n" : "H 0 0 0\nO 0 9 0\n";
     const std::string vectors = "10 0 0\n0 10 0\n0 0 10\n";
-    const std::string text = label + "\nPRIMVEC\n" + vectors + "CONVVEC\n" + vectors +
-                             "PRIMCOORD\n2 1\n" + rows;
+    const std::string text =
+        label + "\nPRIMVEC\n" + vectors + "CONVVEC\n" + vectors + "PRIMCOORD\n2 1\n" + rows;
     GPIO io;
     io.setmap({"H", "O"});
     std::istringstream input(text);
@@ -203,7 +225,9 @@ TEST_CASE("XSF canonical partial boundaries preserve open directions", "[gpio][x
     REQUIRE(roundtrip.get_distance(0, 1) == Catch::Approx(1));
 }
 
-TEST_CASE("XSF rejects unsupported axes and malformed ATOMS instead of publishing a prefix", "[gpio][xsf]") {
+TEST_CASE("XSF rejects unsupported axes and malformed ATOMS instead of publishing a prefix",
+          "[gpio][xsf]")
+{
     GPIO io;
     Atoms atom;
     atom.cell_ = 10 * Eigen::Matrix3d::Identity();
@@ -226,8 +250,8 @@ TEST_CASE("XSF rejects unsupported axes and malformed ATOMS instead of publishin
     REQUIRE(atom.size() == 0);
 }
 
-
-TEST_CASE("XSF reads complete Cartesian forces in Hartree per Angstrom", "[gpio][xsf]") {
+TEST_CASE("XSF reads complete Cartesian forces in Hartree per Angstrom", "[gpio][xsf]")
+{
     const bool periodic = GENERATE(false, true);
     const std::string rows = "H 1 2 3 .01 -.02 .03\n8 4 5 6 -.04 .05 0\n";
     std::istringstream input(periodic ? xsf(rows) : "ATOMS\n" + rows);
@@ -237,29 +261,31 @@ TEST_CASE("XSF reads complete Cartesian forces in Hartree per Angstrom", "[gpio]
     REQUIRE(io.read_one(atom, input, "xsf"));
     REQUIRE(atom.forces_.size() == 2);
     // Independent numeric eV/Angstrom reference for 1 Ha=27.211396641308 eV.
-    REQUIRE(atom.forces_[0].isApprox(Eigen::Vector3d(.27211396641308,
-        -.54422793282616, .81634189923924), 1e-13));
-    REQUIRE(atom.forces_[1].isApprox(Eigen::Vector3d(-1.08845586565232,
-        1.3605698320654, 0), 1e-13));
+    REQUIRE(atom.forces_[0].isApprox(
+        Eigen::Vector3d(.27211396641308, -.54422793282616, .81634189923924), 1e-13));
+    REQUIRE(
+        atom.forces_[1].isApprox(Eigen::Vector3d(-1.08845586565232, 1.3605698320654, 0), 1e-13));
     REQUIRE(atom.pos_ == std::vector<Eigen::RowVector3d>{{1, 2, 3}, {4, 5, 6}});
 }
 
-TEST_CASE("XSF force rows reject mixed missing extra and nonfinite components", "[gpio][xsf]") {
+TEST_CASE("XSF force rows reject mixed missing extra and nonfinite components", "[gpio][xsf]")
+{
     const bool periodic = GENERATE(false, true);
-    for (const std::string rows : {
-        "H 1 2 3 .01 .02\nO 4 5 6 .01 .02 .03\n",
-        "H 1 2 3 .01 .02 .03 .04\nO 4 5 6 .01 .02 .03\n",
-        "H 1 2 3 .01 .02 .03\nO 4 5 6\n",
-        "H 1 2 3\nO 4 5 6 .01 .02 .03\n",
-        "H 1 2 3 nan 0 0\nO 4 5 6 .01 .02 .03\n",
-        "H 1 2 3 .01 inf 0\nO 4 5 6 .01 .02 .03\n",
-        "H 1 2 3 .01 .02 1e308\nO 4 5 6 .01 .02 .03\n"}) {
+    for (const std::string rows :
+         {"H 1 2 3 .01 .02\nO 4 5 6 .01 .02 .03\n",
+          "H 1 2 3 .01 .02 .03 .04\nO 4 5 6 .01 .02 .03\n", "H 1 2 3 .01 .02 .03\nO 4 5 6\n",
+          "H 1 2 3\nO 4 5 6 .01 .02 .03\n", "H 1 2 3 nan 0 0\nO 4 5 6 .01 .02 .03\n",
+          "H 1 2 3 .01 inf 0\nO 4 5 6 .01 .02 .03\n",
+          "H 1 2 3 .01 .02 1e308\nO 4 5 6 .01 .02 .03\n"})
+    {
         CAPTURE(rows);
         reject_xsf(periodic ? xsf(rows) : "ATOMS\n" + rows);
     }
 }
 
-TEST_CASE("XSF writer force columns use Hartree per Angstrom and retain source state", "[gpio][xsf]") {
+TEST_CASE("XSF writer force columns use Hartree per Angstrom and retain source state",
+          "[gpio][xsf]")
+{
     const bool periodic = GENERATE(false, true);
     const bool symbols = GENERATE(false, true);
     const bool lossless = GENERATE(false, true);
@@ -284,10 +310,12 @@ TEST_CASE("XSF writer force columns use Hartree per Angstrom and retain source s
     std::istringstream rows(text.substr(text.find(periodic ? "PRIMCOORD" : "ATOMS")));
     std::string row;
     REQUIRE(static_cast<bool>(std::getline(rows, row)));
-    if (periodic) REQUIRE(static_cast<bool>(std::getline(rows, row)));
-    const std::array<Eigen::RowVector3d, 2> expected{
-        Eigen::RowVector3d(.01, -.02, .03), Eigen::RowVector3d(-.04, .05, 0)};
-    for (int i = 0; i < 2; ++i) {
+    if (periodic)
+        REQUIRE(static_cast<bool>(std::getline(rows, row)));
+    const std::array<Eigen::RowVector3d, 2> expected{Eigen::RowVector3d(.01, -.02, .03),
+                                                     Eigen::RowVector3d(-.04, .05, 0)};
+    for (int i = 0; i < 2; ++i)
+    {
         REQUIRE(static_cast<bool>(std::getline(rows, row)));
         std::istringstream fields(row);
         std::string species, extra;
@@ -302,7 +330,8 @@ TEST_CASE("XSF writer force columns use Hartree per Angstrom and retain source s
     std::istringstream input(text);
     REQUIRE(io.read_one(roundtrip, input, "xsf"));
     REQUIRE(roundtrip.forces_.size() == 2);
-    for (int i = 0; i < 2; ++i) REQUIRE(roundtrip.forces_[i].isApprox(before.forces_[i], 1e-13));
+    for (int i = 0; i < 2; ++i)
+        REQUIRE(roundtrip.forces_[i].isApprox(before.forces_[i], 1e-13));
     REQUIRE(atom.forces_ == before.forces_);
     REQUIRE(atom.stress_ == before.stress_);
     REQUIRE(atom.have_stress == before.have_stress);
@@ -312,7 +341,8 @@ TEST_CASE("XSF writer force columns use Hartree per Angstrom and retain source s
     REQUIRE(atom.chemmap_ == before.chemmap_);
 }
 
-TEST_CASE("XSF writer rejects partial force arrays before emitting a header", "[gpio][xsf]") {
+TEST_CASE("XSF writer rejects partial force arrays before emitting a header", "[gpio][xsf]")
+{
     GPIO io;
     Atoms atom;
     atom.resize(2);
@@ -325,7 +355,10 @@ TEST_CASE("XSF writer rejects partial force arrays before emitting a header", "[
     REQUIRE(atom.chemmap_ == before.chemmap_);
 }
 
-TEST_CASE("XSF primitive coordinates keep their cell with independent or absent conventional vectors", "[gpio][xsf]") {
+TEST_CASE(
+    "XSF primitive coordinates keep their cell with independent or absent conventional vectors",
+    "[gpio][xsf]")
+{
     const auto geometry = GENERATE("CRYSTAL", "SLAB", "POLYMER");
     const auto vectors = GENERATE("same", "different", "absent");
     auto text = xsf("S 0 0 0\nZn 1.355 -1.355 -1.355\n");
@@ -346,15 +379,17 @@ TEST_CASE("XSF primitive coordinates keep their cell with independent or absent 
     REQUIRE(atom.pos_[0].isApprox(Eigen::RowVector3d::Zero()));
     REQUIRE(atom.pos_[1].isApprox(Eigen::RowVector3d(1.355, -1.355, -1.355)));
     REQUIRE(atom.chemmap_ == std::vector<int>{16, 30});
-    const std::array<bool, 3> expected_pbc = {true, std::string(geometry) != "POLYMER", std::string(geometry) == "CRYSTAL"};
+    const std::array<bool, 3> expected_pbc = {true, std::string(geometry) != "POLYMER",
+                                              std::string(geometry) == "CRYSTAL"};
     REQUIRE(atom.pbc_ == expected_pbc);
 }
 
-TEST_CASE("Present XSF conventional blocks still reject invalid and truncated vectors", "[gpio][xsf]") {
-    for (const auto &vectors : {"5.42 0 0\n0 nan 0\n0 0 5.42\n",
-                               "5.42 0 0\n0 5.42\n0 0 5.42\n",
-                               "5.42 0 0\n0 5.42 0\n",
-                               "5.42 0 0\n"}) {
+TEST_CASE("Present XSF conventional blocks still reject invalid and truncated vectors",
+          "[gpio][xsf]")
+{
+    for (const auto &vectors : {"5.42 0 0\n0 nan 0\n0 0 5.42\n", "5.42 0 0\n0 5.42\n0 0 5.42\n",
+                                "5.42 0 0\n0 5.42 0\n", "5.42 0 0\n"})
+    {
         auto text = xsf();
         const auto begin = text.find("CONVVEC") + std::string("CONVVEC\n").size();
         const auto end = text.find("PRIMCOORD");

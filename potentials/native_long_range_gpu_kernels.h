@@ -3,12 +3,14 @@
 #include <cstddef>
 #include <memory>
 
-namespace Potentials {
+namespace Potentials
+{
 
 // POD-only boundary: the device translation unit does not include Eigen or
 // the trainer's C++23 model classes. All arrays passed here reside on host.
-class NativeLongRangeGpu {
-public:
+class NativeLongRangeGpu
+{
+  public:
     explicit NativeLongRangeGpu(int device);
     ~NativeLongRangeGpu();
     NativeLongRangeGpu(const NativeLongRangeGpu &) = delete;
@@ -23,7 +25,8 @@ public:
     void les_self(double coefficient);
     void response(double *phi);
     void outputs(double *energy, double *force, double *virial);
-private:
+
+  private:
     struct State;
     std::unique_ptr<State> state_;
 };

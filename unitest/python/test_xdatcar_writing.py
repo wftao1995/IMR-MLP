@@ -1,4 +1,5 @@
 """Single-pass XDATCAR writers retain fixed or per-frame geometry headers."""
+
 from contextlib import closing
 import gzip
 
@@ -10,23 +11,31 @@ import imrmlp
 
 
 def variable_frames():
-    cells = [np.array([[4., 0., 0.], [.5, 6., 0.], [0., .2, 8.]]),
-             np.array([[5., .2, 0.], [0., 7., .1], [.3, 0., 9.]])]
-    fractions = [np.array([[.1, .2, .3], [.4, .5, .6], [.7, .2, .1]]),
-                 np.array([[.2, .3, .4], [.5, .6, .7]])]
+    cells = [
+        np.array([[4.0, 0.0, 0.0], [0.5, 6.0, 0.0], [0.0, 0.2, 8.0]]),
+        np.array([[5.0, 0.2, 0.0], [0.0, 7.0, 0.1], [0.3, 0.0, 9.0]]),
+    ]
+    fractions = [
+        np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.2, 0.1]]),
+        np.array([[0.2, 0.3, 0.4], [0.5, 0.6, 0.7]]),
+    ]
     numbers = [[1, 2, 1], [1, 2]]
-    frames = [imrmlp.Atoms(numbers=species, elements=['He', 'H'],
-                         positions=frac @ cell, cell=cell)
-              for species, frac, cell in zip(numbers, fractions, cells)]
+    frames = [
+        imrmlp.Atoms(numbers=species, elements=['He', 'H'], positions=frac @ cell, cell=cell)
+        for species, frac, cell in zip(numbers, fractions, cells)
+    ]
     frames[0].to_fractional()
     return frames, cells, fractions, [[1, 0, 2], [1, 0]]
 
 
-@pytest.mark.parametrize('format,filename', [
-    ('', 'trajectory.xdatcar6'),
-    ('XDATCAR6', 'trajectory.data'),
-    ('', 'trajectory.xdatcar6.gz'),
-])
+@pytest.mark.parametrize(
+    'format,filename',
+    [
+        ('', 'trajectory.xdatcar6'),
+        ('XDATCAR6', 'trajectory.data'),
+        ('', 'trajectory.xdatcar6.gz'),
+    ],
+)
 def test_write_iter_xdatcar6_has_independent_headers_and_geometry(tmp_path, format, filename):
     frames, cells, fractions, orders = variable_frames()
     snapshots = [frame.copy() for frame in frames]
@@ -42,25 +51,33 @@ def test_write_iter_xdatcar6_has_independent_headers_and_geometry(tmp_path, form
 
     assert imrmlp.write_iter(output, single_pass(), format=format) is None
     assert consumed == [0, 1]
-    text = (gzip.decompress(output.read_bytes()).decode() if filename.endswith('.gz')
-            else output.read_text())
+    text = (
+        gzip.decompress(output.read_bytes()).decode()
+        if filename.endswith('.gz')
+        else output.read_text()
+    )
     lines = text.splitlines()
     offset = 0
     # Inspect the text independently of native reading: headers, counts, and
     # fractional coordinates must describe each frame rather than the first.
     for index, (cell, frac, order) in enumerate(zip(cells, fractions, orders)):
         assert lines[offset] == 'XDATCAR by GPIO'
-        assert float(lines[offset + 1]) == 1.
+        assert float(lines[offset + 1]) == 1.0
         np.testing.assert_allclose(
-            [list(map(float, row.split())) for row in lines[offset + 2:offset + 5]],
-            cell, atol=1e-10, rtol=0)
+            [list(map(float, row.split())) for row in lines[offset + 2 : offset + 5]],
+            cell,
+            atol=1e-10,
+            rtol=0,
+        )
         assert lines[offset + 5].split() == ['He', 'H']
         assert list(map(int, lines[offset + 6].split())) == [1, 2 - index]
         assert lines[offset + 7].startswith('Direct configuration=')
         np.testing.assert_allclose(
-            [list(map(float, row.split()))
-             for row in lines[offset + 8:offset + 8 + len(order)]],
-            frac[order], atol=1e-10, rtol=0)
+            [list(map(float, row.split())) for row in lines[offset + 8 : offset + 8 + len(order)]],
+            frac[order],
+            atol=1e-10,
+            rtol=0,
+        )
         offset += 8 + len(order)
     assert offset == len(lines)
 
@@ -68,7 +85,8 @@ def test_write_iter_xdatcar6_has_independent_headers_and_geometry(tmp_path, form
         actual = list(stream)
     assert len(actual) == 2
     for frame, source, saved, cell, frac, order in zip(
-            actual, frames, snapshots, cells, fractions, orders):
+        actual, frames, snapshots, cells, fractions, orders
+    ):
         np.testing.assert_allclose(frame.cell, cell, atol=1e-10, rtol=0)
         np.testing.assert_allclose(frame.positions, frac[order] @ cell, atol=1e-9, rtol=0)
         np.testing.assert_array_equal(frame.numbers, saved.numbers[order])
@@ -107,8 +125,9 @@ def test_xdatcar_iterator_error_keeps_a_readable_complete_prefix(tmp_path, forma
     with closing(imrmlp.iread(output)) as stream:
         actual = list(stream)
     assert len(actual) == 1
-    np.testing.assert_allclose(actual[0].positions,
-                               fractions[0][orders[0]] @ cells[0], atol=1e-9, rtol=0)
+    np.testing.assert_allclose(
+        actual[0].positions, fractions[0][orders[0]] @ cells[0], atol=1e-9, rtol=0
+    )
 
 
 @pytest.mark.parametrize('format', ['xdatcar', 'xdatcar6'])
@@ -125,17 +144,24 @@ def test_xdatcar_write_iter_preserves_the_unsupported_hvp_contract(tmp_path, for
 def fixed_frames():
     frames, cells, fractions, orders = variable_frames()
     cell = cells[0]
-    second_frac = np.array([[.2, .3, .4], [.6, .5, .2], [.5, .6, .7]])
-    second = imrmlp.Atoms(numbers=[1, 1, 2], elements=['He', 'H'],
-                        positions=second_frac @ cell, cell=cell)
+    second_frac = np.array([[0.2, 0.3, 0.4], [0.6, 0.5, 0.2], [0.5, 0.6, 0.7]])
+    second = imrmlp.Atoms(
+        numbers=[1, 1, 2], elements=['He', 'H'], positions=second_frac @ cell, cell=cell
+    )
     return [frames[0], second], cell, [fractions[0], second_frac], [orders[0], [2, 0, 1]]
 
 
-@pytest.mark.parametrize('format,filename', [
-    ('', 'XDATCAR'), ('XDATCAR', 'fixed.data'), ('', 'fixed.xdatcar.gz'),
-])
+@pytest.mark.parametrize(
+    'format,filename',
+    [
+        ('', 'XDATCAR'),
+        ('XDATCAR', 'fixed.data'),
+        ('', 'fixed.xdatcar.gz'),
+    ],
+)
 def test_fixed_xdatcar_write_iter_writes_one_header_and_remaps_each_frame(
-        tmp_path, format, filename):
+    tmp_path, format, filename
+):
     frames, cell, fractions, orders = fixed_frames()
     snapshots = [frame.copy() for frame in frames]
     output = tmp_path / filename
@@ -150,22 +176,29 @@ def test_fixed_xdatcar_write_iter_writes_one_header_and_remaps_each_frame(
 
     assert imrmlp.write_iter(output, single_pass(), format=format) is None
     assert consumed == [0, 1]
-    text = (gzip.decompress(output.read_bytes()).decode() if filename.endswith('.gz')
-            else output.read_text())
+    text = (
+        gzip.decompress(output.read_bytes()).decode()
+        if filename.endswith('.gz')
+        else output.read_text()
+    )
     lines = text.splitlines()
     assert text.count('XDATCAR by GPIO') == 1
     assert text.count('Direct configuration=') == 2
     assert len(lines) == 15
-    assert float(lines[1]) == 1.
-    np.testing.assert_allclose([list(map(float, row.split())) for row in lines[2:5]],
-                               cell, atol=1e-10, rtol=0)
+    assert float(lines[1]) == 1.0
+    np.testing.assert_allclose(
+        [list(map(float, row.split())) for row in lines[2:5]], cell, atol=1e-10, rtol=0
+    )
     assert lines[5].split() == ['He', 'H']
     assert list(map(int, lines[6].split())) == [1, 2]
     for offset, frac, order in zip([7, 11], fractions, orders):
         assert lines[offset].startswith('Direct configuration=')
         np.testing.assert_allclose(
-            [list(map(float, row.split())) for row in lines[offset + 1:offset + 4]],
-            frac[order], atol=1e-10, rtol=0)
+            [list(map(float, row.split())) for row in lines[offset + 1 : offset + 4]],
+            frac[order],
+            atol=1e-10,
+            rtol=0,
+        )
     with closing(imrmlp.iread(output, format='xdatcar')) as stream:
         actual = list(stream)
     assert len(actual) == 2
@@ -190,9 +223,12 @@ def test_fixed_xdatcar_write_iter_rejects_changes_before_starting_a_bad_frame(tm
         changed.numbers = [2, 2, 1]
     else:
         count = 2 if change == 'shorter' else 4
-        changed = imrmlp.Atoms(numbers=[1] * (count - 1) + [2], elements=['He', 'H'],
-                             positions=np.arange(3 * count).reshape(count, 3) / 10,
-                             cell=cell)
+        changed = imrmlp.Atoms(
+            numbers=[1] * (count - 1) + [2],
+            elements=['He', 'H'],
+            positions=np.arange(3 * count).reshape(count, 3) / 10,
+            cell=cell,
+        )
     output = tmp_path / 'fixed.xdatcar'
     with pytest.raises(RuntimeError, match='Failed to write streaming output'):
         imrmlp.write_iter(output, iter([frames[0], changed]))
@@ -202,5 +238,6 @@ def test_fixed_xdatcar_write_iter_rejects_changes_before_starting_a_bad_frame(tm
     with closing(imrmlp.iread(output)) as stream:
         actual = list(stream)
     assert len(actual) == 1
-    np.testing.assert_allclose(actual[0].positions,
-                               fractions[0][orders[0]] @ cell, atol=1e-9, rtol=0)
+    np.testing.assert_allclose(
+        actual[0].positions, fractions[0][orders[0]] @ cell, atol=1e-9, rtol=0
+    )

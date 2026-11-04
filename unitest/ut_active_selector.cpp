@@ -24,7 +24,8 @@
 
 using Catch::Approx;
 
-struct OmpThreadRestore {
+struct OmpThreadRestore
+{
     int threads = 1;
 
     OmpThreadRestore()
@@ -42,11 +43,21 @@ struct OmpThreadRestore {
     }
 };
 
-struct MTPHandle {
+struct MTPHandle
+{
     Potentials::PotMTP *ptr;
+
     MTPHandle() : ptr(Potentials::quick_mtp_3b_s14_2f0ee25e()) {}
-    ~MTPHandle() { delete ptr; }
-    Potentials::PotMTP &get() { return *ptr; }
+
+    ~MTPHandle()
+    {
+        delete ptr;
+    }
+
+    Potentials::PotMTP &get()
+    {
+        return *ptr;
+    }
 };
 
 static Atoms make_cfg(double a, int nx, int ny, int nz, double noise = 0.0)
@@ -55,7 +66,8 @@ static Atoms make_cfg(double a, int nx, int ny, int nz, double noise = 0.0)
     cfg.cell_ = Eigen::Matrix3d::Identity() * a * nx;
     for (int i = 0; i < nx; ++i)
         for (int j = 0; j < ny; ++j)
-            for (int k = 0; k < nz; ++k) {
+            for (int k = 0; k < nz; ++k)
+            {
                 double dx = noise * (std::rand() / (double)RAND_MAX - 0.5) * a;
                 double dy = noise * (std::rand() / (double)RAND_MAX - 0.5) * a;
                 double dz = noise * (std::rand() / (double)RAND_MAX - 0.5) * a;
@@ -65,12 +77,20 @@ static Atoms make_cfg(double a, int nx, int ny, int nz, double noise = 0.0)
     return cfg;
 }
 
-struct SimpleRowBuilder : BMatrixBuilder {
-    int coeff_count() const override { return 2; }
-    double cutoff() const override { return 0.0; }
-    int build_rows(Atoms &cfg,
-                   Eigen::Matrix<double, -1, -1, Eigen::RowMajor> &B,
-                   double weight, double) override
+struct SimpleRowBuilder : BMatrixBuilder
+{
+    int coeff_count() const override
+    {
+        return 2;
+    }
+
+    double cutoff() const override
+    {
+        return 0.0;
+    }
+
+    int build_rows(Atoms &cfg, Eigen::Matrix<double, -1, -1, Eigen::RowMajor> &B, double weight,
+                   double) override
     {
         const int cur = static_cast<int>(B.rows());
         B.conservativeResize(cur + 1, 2);
@@ -78,72 +98,104 @@ struct SimpleRowBuilder : BMatrixBuilder {
         B(cur, 1) = weight * std::stod(cfg.features_["y"]);
         return 1;
     }
+
     std::unique_ptr<BMatrixBuilder> clone() const override
     {
         return std::make_unique<SimpleRowBuilder>();
     }
 };
 
-struct PositionRowsBuilder : BMatrixBuilder {
-    int coeff_count() const override { return 2; }
-    double cutoff() const override { return 0.0; }
-    int build_rows(Atoms &cfg,
-                   Eigen::Matrix<double, -1, -1, Eigen::RowMajor> &B,
-                   double weight, double) override
+struct PositionRowsBuilder : BMatrixBuilder
+{
+    int coeff_count() const override
+    {
+        return 2;
+    }
+
+    double cutoff() const override
+    {
+        return 0.0;
+    }
+
+    int build_rows(Atoms &cfg, Eigen::Matrix<double, -1, -1, Eigen::RowMajor> &B, double weight,
+                   double) override
     {
         const int cur = static_cast<int>(B.rows());
         const int nrows = static_cast<int>(cfg.pos_.size());
         B.conservativeResize(cur + nrows, 2);
-        for (int i = 0; i < nrows; ++i) {
+        for (int i = 0; i < nrows; ++i)
+        {
             B(cur + i, 0) = weight * cfg.pos_[i][0];
             B(cur + i, 1) = weight * cfg.pos_[i][1];
         }
         return nrows;
     }
+
     std::unique_ptr<BMatrixBuilder> clone() const override
     {
         return std::make_unique<PositionRowsBuilder>();
     }
 };
 
-struct NonCloneablePositionRowsBuilder : PositionRowsBuilder {
+struct NonCloneablePositionRowsBuilder : PositionRowsBuilder
+{
     std::unique_ptr<BMatrixBuilder> clone() const override
     {
         return nullptr;
     }
 };
 
-struct ThreeComponentRowBuilder : BMatrixBuilder {
-    int coeff_count() const override { return 3; }
-    double cutoff() const override { return 0.0; }
-    int build_rows(Atoms &cfg,
-                   Eigen::Matrix<double, -1, -1, Eigen::RowMajor> &B,
-                   double weight, double) override
+struct ThreeComponentRowBuilder : BMatrixBuilder
+{
+    int coeff_count() const override
+    {
+        return 3;
+    }
+
+    double cutoff() const override
+    {
+        return 0.0;
+    }
+
+    int build_rows(Atoms &cfg, Eigen::Matrix<double, -1, -1, Eigen::RowMajor> &B, double weight,
+                   double) override
     {
         const int cur = static_cast<int>(B.rows());
         B.conservativeResize(cur + 1, 3);
         B.row(cur) << weight * std::stod(cfg.features_["x"]),
-                      weight * std::stod(cfg.features_["y"]),
-                      weight * std::stod(cfg.features_["z"]);
+            weight * std::stod(cfg.features_["y"]), weight * std::stod(cfg.features_["z"]);
         return 1;
     }
+
     std::unique_ptr<BMatrixBuilder> clone() const override
     {
         return std::make_unique<ThreeComponentRowBuilder>();
     }
 };
 
-struct CountedRowBuilder : BMatrixBuilder {
+struct CountedRowBuilder : BMatrixBuilder
+{
     explicit CountedRowBuilder(std::shared_ptr<std::atomic<int>> calls = {})
-        : calls(calls ? std::move(calls)
-                      : std::make_shared<std::atomic<int>>(0)) {}
+        : calls(calls ? std::move(calls) : std::make_shared<std::atomic<int>>(0))
+    {
+    }
 
-    int coeff_count() const override { return 2; }
-    double cutoff() const override { return 0.0; }
-    int row_count(const Atoms &) const override { return 1; }
+    int coeff_count() const override
+    {
+        return 2;
+    }
 
-    int build_rows(Atoms &cfg, RowMatrix &B,
-                   double weight, double) override
+    double cutoff() const override
+    {
+        return 0.0;
+    }
+
+    int row_count(const Atoms &) const override
+    {
+        return 1;
+    }
+
+    int build_rows(Atoms &cfg, RowMatrix &B, double weight, double) override
     {
         const int current = static_cast<int>(B.rows());
         B.conservativeResize(current + 1, 2);
@@ -151,14 +203,14 @@ struct CountedRowBuilder : BMatrixBuilder {
         return 1;
     }
 
-    int build_rows_into(Atoms &cfg, Eigen::Ref<RowMatrix> out,
-                        double weight, double,
+    int build_rows_into(Atoms &cfg, Eigen::Ref<RowMatrix> out, double weight, double,
                         std::vector<BRowRef> *refs = nullptr) override
     {
         if (out.rows() < 1 || out.cols() != 2)
             throw std::invalid_argument("CountedRowBuilder output shape");
         fill(cfg, out.row(0), weight);
-        if (refs) {
+        if (refs)
+        {
             BRowRef ref;
             ref.local_row = 0;
             refs->push_back(ref);
@@ -173,9 +225,8 @@ struct CountedRowBuilder : BMatrixBuilder {
 
     std::shared_ptr<std::atomic<int>> calls;
 
-private:
-    template <class Row>
-    void fill(Atoms &cfg, Row &&row, double weight)
+  private:
+    template <class Row> void fill(Atoms &cfg, Row &&row, double weight)
     {
         calls->fetch_add(1, std::memory_order_relaxed);
         row[0] = weight * std::stod(cfg.features_["x"]);
@@ -203,10 +254,8 @@ TEST_CASE("ActiveSelector MLIP initialization retains virtual rank slots",
           "[active_sel][mlip_init]")
 {
     std::vector<Atoms> cfgs{
-        make_three_component_cfg(2.0, 0.0, 0.0),
-        make_three_component_cfg(0.0, 3.0, 0.0),
-        make_three_component_cfg(1.0, 1.0, 0.0),
-        make_three_component_cfg(-1.0, 2.0, 0.0)};
+        make_three_component_cfg(2.0, 0.0, 0.0), make_three_component_cfg(0.0, 3.0, 0.0),
+        make_three_component_cfg(1.0, 1.0, 0.0), make_three_component_cfg(-1.0, 2.0, 0.0)};
 
     ActiveSelector full(new ThreeComponentRowBuilder());
     full.init_mode = "mlip";
@@ -236,12 +285,10 @@ TEST_CASE("ActiveSelector MLIP initialization retains virtual rank slots",
     REQUIRE(stream.selected_indices() == full.selected_indices());
 }
 
-TEST_CASE("ActiveSelector reports capped MLIP selection",
-          "[active_sel][mlip_init]")
+TEST_CASE("ActiveSelector reports capped MLIP selection", "[active_sel][mlip_init]")
 {
-    std::vector<Atoms> cfgs{
-        make_three_component_cfg(2.0, 0.0, 0.0),
-        make_three_component_cfg(0.0, 3.0, 0.0)};
+    std::vector<Atoms> cfgs{make_three_component_cfg(2.0, 0.0, 0.0),
+                            make_three_component_cfg(0.0, 3.0, 0.0)};
     ActiveSelector selector(new ThreeComponentRowBuilder());
     selector.init_mode = "mlip";
     selector.init_value = 1e-6;
@@ -259,7 +306,8 @@ static Atoms make_position_rows(std::initializer_list<std::pair<double, double>>
 {
     Atoms cfg;
     cfg.cell_ = Eigen::Matrix3d::Identity();
-    for (const auto &row : rows) {
+    for (const auto &row : rows)
+    {
         cfg.pos_.push_back({row.first, row.second, 0.0});
         cfg.chemmap_.push_back(0);
     }
@@ -274,13 +322,14 @@ TEST_CASE("ActiveSelector construction and add_candidate", "[active_sel]")
     DescriptorMTM desc_mtm(mtp.get());
     auto *builder = new DescriptorBuilder(desc_mtm);
     ActiveSelector as(builder);
-    as.weight = 1.0; as.pow_scale = 0.0;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     REQUIRE(as.num_candidates() == 0);
 
     Atoms cfg = make_cfg(4.0, 2, 2, 2);
     int nrows = as.add_candidate(cfg);
-    REQUIRE(nrows == cfg.size());  // per-atom → natoms rows
+    REQUIRE(nrows == cfg.size()); // per-atom → natoms rows
     REQUIRE(as.num_candidates() == 1);
     REQUIRE(as.num_rows() == cfg.size());
 }
@@ -290,7 +339,8 @@ TEST_CASE("ActiveSelector clear_candidates", "[active_sel]")
     DescriptorMTM desc_mtm(mtp.get());
     auto *builder = new DescriptorBuilder(desc_mtm);
     ActiveSelector as(builder);
-    as.weight = 1.0; as.pow_scale = 0.0;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     std::vector<Atoms> cfgs;
     cfgs.push_back(make_cfg(4.0, 2, 2, 2));
@@ -306,12 +356,16 @@ TEST_CASE("ActiveSelector parallel add_candidates matches serial", "[active_sel]
     DescriptorMTM desc_serial(mtp.get());
     auto *builder_serial = new DescriptorBuilder(desc_serial);
     ActiveSelector serial(builder_serial);
-    serial.threshold = 1.001; serial.weight = 1.0; serial.pow_scale = 0.0;
+    serial.threshold = 1.001;
+    serial.weight = 1.0;
+    serial.pow_scale = 0.0;
 
     DescriptorMTM desc_parallel(mtp.get());
     auto *builder_parallel = new DescriptorBuilder(desc_parallel);
     ActiveSelector parallel(builder_parallel);
-    parallel.threshold = 1.001; parallel.weight = 1.0; parallel.pow_scale = 0.0;
+    parallel.threshold = 1.001;
+    parallel.weight = 1.0;
+    parallel.pow_scale = 0.0;
 
     std::vector<Atoms> cfgs;
     cfgs.push_back(make_cfg(3.8, 2, 2, 1, 0.01));
@@ -333,12 +387,14 @@ TEST_CASE("ActiveSelector appends prebuilt candidates", "[active_sel]")
     DescriptorMTM desc_a(mtp.get());
     auto *builder_a = new DescriptorBuilder(desc_a);
     ActiveSelector a(builder_a);
-    a.weight = 1.0; a.pow_scale = 0.0;
+    a.weight = 1.0;
+    a.pow_scale = 0.0;
 
     DescriptorMTM desc_b(mtp.get());
     auto *builder_b = new DescriptorBuilder(desc_b);
     ActiveSelector b(builder_b);
-    b.weight = 1.0; b.pow_scale = 0.0;
+    b.weight = 1.0;
+    b.pow_scale = 0.0;
 
     std::vector<Atoms> first;
     first.push_back(make_cfg(4.0, 2, 2, 1));
@@ -360,8 +416,8 @@ TEST_CASE("PotEFSBuilder factory clone matches original rows", "[efs_builder]")
     mtp.get().Save(tmpfile);
 
     GPSettings settings;
-    auto builder = make_builder("pot_efs", tmpfile, "mtp", settings, "nbh",
-                                1.0, 0.0, 0.0, 0.0, false);
+    auto builder =
+        make_builder("pot_efs", tmpfile, "mtp", settings, "nbh", 1.0, 0.0, 0.0, 0.0, false);
     REQUIRE(builder);
     auto cloned = builder->clone();
     REQUIRE(cloned);
@@ -399,7 +455,9 @@ TEST_CASE("ActiveSelector select and grade", "[active_sel]")
     DescriptorMTM desc_mtm(mtp.get());
     auto *builder = new DescriptorBuilder(desc_mtm);
     ActiveSelector as(builder);
-    as.threshold = 1.001; as.weight = 1.0; as.pow_scale = 0.0;
+    as.threshold = 1.001;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     std::vector<Atoms> cfgs;
     cfgs.push_back(make_cfg(3.8, 2, 2, 2, 0.05));
@@ -421,7 +479,9 @@ TEST_CASE("ActiveSelector select and grade", "[active_sel]")
 TEST_CASE("ActiveSelector compact grading state matches full state", "[active_sel]")
 {
     ActiveSelector full(new SimpleRowBuilder());
-    full.threshold = 1.001; full.weight = 1.0; full.pow_scale = 0.0;
+    full.threshold = 1.001;
+    full.weight = 1.0;
+    full.pow_scale = 0.0;
 
     std::vector<Atoms> train;
     train.push_back(make_row_cfg(1.0, 0.0));
@@ -434,8 +494,7 @@ TEST_CASE("ActiveSelector compact grading state matches full state", "[active_se
     REQUIRE(full_grade == Approx(0.75).margin(1e-12));
 
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> C(2, 2);
-    C << 1.0, 0.0,
-         0.0, 1.0;
+    C << 1.0, 0.0, 0.0, 1.0;
 
     ActiveSelector compact(new SimpleRowBuilder());
     REQUIRE(compact.set_active_rows_for_grading(C, {0, 1}, &train));
@@ -463,8 +522,7 @@ TEST_CASE("ActiveSelector streaming initialization keeps low-norm independent ro
     REQUIRE(as.grade(y_axis) == Approx(1.0).margin(1e-12));
 }
 
-TEST_CASE("ActiveSelector streaming initialization ignores a leading zero row",
-          "[active_sel]")
+TEST_CASE("ActiveSelector streaming initialization ignores a leading zero row", "[active_sel]")
 {
     ActiveSelector as(new SimpleRowBuilder());
     as.threshold = 1.001;
@@ -497,17 +555,13 @@ TEST_CASE("ActiveSelector cached stream builds each configuration once",
     as.stream_chunk_size = 2;
 
     std::vector<Atoms> cfgs{
-        make_row_cfg(1.0, 0.0),
-        make_row_cfg(0.0, 1.0),
-        make_row_cfg(4.0, 0.1),
-        make_row_cfg(0.1, 5.0),
-        make_row_cfg(3.0, 3.0),
+        make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0), make_row_cfg(4.0, 0.1),
+        make_row_cfg(0.1, 5.0), make_row_cfg(3.0, 3.0),
     };
     REQUIRE(as.select_streaming(cfgs) == 2);
 
     const auto &stats = as.stream_stats();
-    REQUIRE(calls->load(std::memory_order_relaxed) ==
-            static_cast<int>(cfgs.size()));
+    REQUIRE(calls->load(std::memory_order_relaxed) == static_cast<int>(cfgs.size()));
     REQUIRE(stats.builder_calls == cfgs.size());
     REQUIRE(stats.rows_built == cfgs.size());
     REQUIRE(stats.descriptor_passes == 1);
@@ -520,14 +574,9 @@ TEST_CASE("ActiveSelector cached stream is numerically equivalent across threads
 {
     OmpThreadRestore restore_threads;
     std::vector<Atoms> cfgs{
-        make_row_cfg(1.0, 0.0),
-        make_row_cfg(0.0, 1.0),
-        make_row_cfg(4.0, 0.1),
-        make_row_cfg(0.1, 5.0),
-        make_row_cfg(3.0, 3.0),
-        make_row_cfg(-2.0, 4.0),
-        make_row_cfg(5.0, -1.0),
-        make_row_cfg(0.5, 0.25),
+        make_row_cfg(1.0, 0.0),  make_row_cfg(0.0, 1.0),  make_row_cfg(4.0, 0.1),
+        make_row_cfg(0.1, 5.0),  make_row_cfg(3.0, 3.0),  make_row_cfg(-2.0, 4.0),
+        make_row_cfg(5.0, -1.0), make_row_cfg(0.5, 0.25),
     };
 
 #ifdef USE_OMP
@@ -555,14 +604,12 @@ TEST_CASE("ActiveSelector cached stream is numerically equivalent across threads
     const int parallel_selected = parallel.select_streaming(cfgs);
 
     REQUIRE(parallel_selected == serial_selected);
-    REQUIRE(parallel.log_determinant() ==
-            Approx(serial.log_determinant()).epsilon(1e-9));
+    REQUIRE(parallel.log_determinant() == Approx(serial.log_determinant()).epsilon(1e-9));
     REQUIRE(parallel.stream_stats().configured_threads >= 1);
     REQUIRE(parallel.stream_stats().build_seconds >= 0.0);
     REQUIRE(parallel.stream_stats().initialization_seconds >= 0.0);
     REQUIRE(parallel.stream_stats().score_seconds >= 0.0);
-    REQUIRE(parallel.stream_stats().total_seconds >=
-            parallel.stream_stats().score_seconds);
+    REQUIRE(parallel.stream_stats().total_seconds >= parallel.stream_stats().score_seconds);
 #ifdef USE_OMP
     REQUIRE(parallel.stream_stats().configured_threads == 4);
     REQUIRE(parallel.stream_stats().build_threads >= 2);
@@ -570,8 +617,7 @@ TEST_CASE("ActiveSelector cached stream is numerically equivalent across threads
 #endif
 
     for (auto cfg : cfgs)
-        REQUIRE(parallel.grade(cfg) <=
-                parallel.threshold + 1e-9);
+        REQUIRE(parallel.grade(cfg) <= parallel.threshold + 1e-9);
 }
 
 TEST_CASE("ActiveSelector parallel fast shortlist matches serial volume",
@@ -579,29 +625,24 @@ TEST_CASE("ActiveSelector parallel fast shortlist matches serial volume",
 {
     OmpThreadRestore restore_threads;
     std::vector<Atoms> cfgs{
-        make_row_cfg(1.0, 0.0),
-        make_row_cfg(0.0, 1.0),
-        make_row_cfg(4.0, 0.1),
-        make_row_cfg(0.1, 5.0),
-        make_row_cfg(3.0, 3.0),
-        make_row_cfg(-2.0, 4.0),
+        make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0), make_row_cfg(4.0, 0.1),
+        make_row_cfg(0.1, 5.0), make_row_cfg(3.0, 3.0), make_row_cfg(-2.0, 4.0),
     };
 
-    auto run = [&](int threads) {
+    auto run = [&](int threads)
+    {
 #ifdef USE_OMP
         omp_set_num_threads(threads);
 #else
         (void)threads;
 #endif
-        auto selector = std::make_unique<ActiveSelector>(
-            new CountedRowBuilder());
+        auto selector = std::make_unique<ActiveSelector>(new CountedRowBuilder());
         selector->threshold = 1.001;
         selector->weight = 1.0;
         selector->pow_scale = 0.0;
         selector->stream_mode = "fast";
         selector->stream_fast_passes = 8;
-        selector->stream_fast_shortlist =
-            static_cast<int>(cfgs.size());
+        selector->stream_fast_shortlist = static_cast<int>(cfgs.size());
         selector->stream_cache_mode = "memory";
         selector->stream_chunk_size = 1;
         selector->select_streaming(cfgs);
@@ -610,10 +651,8 @@ TEST_CASE("ActiveSelector parallel fast shortlist matches serial volume",
 
     auto serial = run(1);
     auto parallel = run(4);
-    REQUIRE(parallel->get_selected().size() ==
-            serial->get_selected().size());
-    REQUIRE(parallel->log_determinant() ==
-            Approx(serial->log_determinant()).epsilon(1e-9));
+    REQUIRE(parallel->get_selected().size() == serial->get_selected().size());
+    REQUIRE(parallel->log_determinant() == Approx(serial->log_determinant()).epsilon(1e-9));
 }
 
 TEST_CASE("ActiveSelector non-cloneable stream builder falls back to one thread",
@@ -640,15 +679,11 @@ TEST_CASE("ActiveSelector non-cloneable stream builder falls back to one thread"
     REQUIRE(selector.stream_stats().build_threads == 1);
 }
 
-TEST_CASE("ActiveSelector mmap cache preserves exact stream result",
-          "[active_sel][stream_cache]")
+TEST_CASE("ActiveSelector mmap cache preserves exact stream result", "[active_sel][stream_cache]")
 {
     std::vector<Atoms> cfgs{
-        make_row_cfg(1.0, 0.0),
-        make_row_cfg(0.0, 1.0),
-        make_row_cfg(4.0, 0.1),
-        make_row_cfg(0.1, 5.0),
-        make_row_cfg(3.0, 3.0),
+        make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0), make_row_cfg(4.0, 0.1),
+        make_row_cfg(0.1, 5.0), make_row_cfg(3.0, 3.0),
     };
 
     ActiveSelector memory(new CountedRowBuilder());
@@ -667,8 +702,7 @@ TEST_CASE("ActiveSelector mmap cache preserves exact stream result",
     REQUIRE(mapped.select_streaming(cfgs) == 2);
 
     REQUIRE(mapped.selected_indices() == memory.selected_indices());
-    REQUIRE(mapped.log_determinant() ==
-            Approx(memory.log_determinant()).margin(1e-12));
+    REQUIRE(mapped.log_determinant() == Approx(memory.log_determinant()).margin(1e-12));
     REQUIRE(mapped.stream_stats().resident_bytes == 0);
     REQUIRE(mapped.stream_stats().mapped_bytes > 0);
     REQUIRE(mapped.stream_stats().cache_backend == "mmap");
@@ -678,11 +712,8 @@ TEST_CASE("ActiveSelector fast full shortlist converges like exact stream",
           "[active_sel][stream_fast]")
 {
     std::vector<Atoms> cfgs{
-        make_row_cfg(1.0, 0.0),
-        make_row_cfg(0.0, 1.0),
-        make_row_cfg(4.0, 0.1),
-        make_row_cfg(0.1, 5.0),
-        make_row_cfg(3.0, 3.0),
+        make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0), make_row_cfg(4.0, 0.1),
+        make_row_cfg(0.1, 5.0), make_row_cfg(3.0, 3.0),
     };
 
     ActiveSelector exact(new SimpleRowBuilder());
@@ -704,8 +735,7 @@ TEST_CASE("ActiveSelector fast full shortlist converges like exact stream",
     REQUIRE(fast.select_streaming(cfgs) == 2);
 
     REQUIRE(fast.selected_indices() == exact.selected_indices());
-    REQUIRE(fast.log_determinant() ==
-            Approx(exact.log_determinant()).margin(1e-12));
+    REQUIRE(fast.log_determinant() == Approx(exact.log_determinant()).margin(1e-12));
 }
 
 TEST_CASE("ActiveSelector online upgrade processes configs appended after streaming",
@@ -733,8 +763,7 @@ TEST_CASE("ActiveSelector online upgrade processes configs appended after stream
     REQUIRE(as.grade(candidate) == Approx(1.0).margin(1e-12));
 }
 
-TEST_CASE("ActiveSelector online grade sees directions outside a wide active span",
-          "[active_sel]")
+TEST_CASE("ActiveSelector online grade sees directions outside a wide active span", "[active_sel]")
 {
     ActiveSelector as(new ThreeComponentRowBuilder());
     as.threshold = 1.001;
@@ -778,8 +807,7 @@ TEST_CASE("ActiveSelector exact stream grade sees directions outside a wide acti
     REQUIRE(as.grade(orthogonal) == Approx(2.0).margin(1e-12));
 }
 
-TEST_CASE("ActiveSelector online max-swaps resumes an unfinished config",
-          "[active_sel]")
+TEST_CASE("ActiveSelector online max-swaps resumes an unfinished config", "[active_sel]")
 {
     ActiveSelector as(new PositionRowsBuilder());
     as.threshold = 1.001;
@@ -808,7 +836,9 @@ TEST_CASE("ActiveSelector grade_all", "[active_sel]")
     DescriptorMTM desc_mtm(mtp.get());
     auto *builder = new DescriptorBuilder(desc_mtm);
     ActiveSelector as(builder);
-    as.threshold = 1.001; as.weight = 1.0; as.pow_scale = 0.0;
+    as.threshold = 1.001;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     std::vector<Atoms> train;
     train.push_back(make_cfg(4.0, 2, 2, 2));
@@ -828,8 +858,7 @@ TEST_CASE("ActiveSelector grade_all", "[active_sel]")
 TEST_CASE("ActiveSelector chunked grade_all matches single-config grading", "[active_sel]")
 {
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> C(2, 2);
-    C << 1.0, 0.0,
-         0.0, 1.0;
+    C << 1.0, 0.0, 0.0, 1.0;
 
     ActiveSelector as(new PositionRowsBuilder());
     as.weight = 1.0;
@@ -856,8 +885,7 @@ TEST_CASE("ActiveSelector chunked grade_all matches single-config grading", "[ac
 TEST_CASE("ActiveSelector chunk size and non-cloneable fallback preserve grades", "[active_sel]")
 {
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> C(2, 2);
-    C << 1.0, 0.0,
-         0.0, 1.0;
+    C << 1.0, 0.0, 0.0, 1.0;
 
     std::vector<Atoms> probes;
     probes.push_back(make_position_rows({{0.25, 0.50}, {0.10, 0.80}}));
@@ -890,7 +918,8 @@ TEST_CASE("ActiveSelector chunk size and non-cloneable fallback preserve grades"
 
     REQUIRE(many.size() == ref.size());
     REQUIRE(fallback.size() == ref.size());
-    for (size_t i = 0; i < ref.size(); ++i) {
+    for (size_t i = 0; i < ref.size(); ++i)
+    {
         REQUIRE(many[i] == Approx(ref[i]).margin(1e-12));
         REQUIRE(fallback[i] == Approx(ref[i]).margin(1e-12));
     }
@@ -940,7 +969,9 @@ TEST_CASE("PotEFSBuilder with ActiveSelector integration", "[efs_builder]")
 {
     auto *builder = new PotEFSBuilder(mtp.get());
     ActiveSelector as(builder);
-    as.threshold = 1.001; as.weight = 1.0; as.pow_scale = 0.0;
+    as.threshold = 1.001;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     std::vector<Atoms> cfgs;
     cfgs.push_back(make_cfg(3.8, 2, 2, 2, 0.05));
@@ -962,7 +993,7 @@ TEST_CASE("PotEFSBuilder site-energy mode produces per-atom rows", "[efs_builder
 {
     PotEFSBuilder builder(mtp.get());
     builder.w_energy = 0.0;
-    builder.w_site   = 1.0;
+    builder.w_site = 1.0;
 
     Atoms cfg = make_cfg(4.0, 2, 2, 2, 0.03);
     int natoms = cfg.size();
@@ -970,12 +1001,13 @@ TEST_CASE("PotEFSBuilder site-energy mode produces per-atom rows", "[efs_builder
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> B;
     int nrows = builder.build_rows(cfg, B, 1.0, 0.0);
 
-    REQUIRE(nrows == natoms);  // one row per atom
+    REQUIRE(nrows == natoms); // one row per atom
     REQUIRE(B.rows() == natoms);
     REQUIRE(B.cols() == builder.coeff_count());
 
     // Each row should be finite and non-zero
-    for (int i = 0; i < nrows; ++i) {
+    for (int i = 0; i < nrows; ++i)
+    {
         REQUIRE(B.row(i).array().isFinite().all());
         double nrm = B.row(i).norm();
         REQUIRE(nrm > 0.0);
@@ -986,7 +1018,7 @@ TEST_CASE("PotEFSBuilder site-energy rows apply global weight scaling", "[efs_bu
 {
     PotEFSBuilder builder(mtp.get());
     builder.w_energy = 0.0;
-    builder.w_site   = 1.0;
+    builder.w_site = 1.0;
 
     Atoms cfg_ref = make_cfg(4.0, 2, 2, 1, 0.03);
     Atoms cfg_scaled = cfg_ref;
@@ -1025,12 +1057,12 @@ TEST_CASE("PotEFSBuilder MLIP scaling and row metadata", "[efs_builder]")
     REQUIRE(nref == 1 + 3 * natoms + 9 + natoms);
     REQUIRE(nscaled == nref);
     REQUIRE(refs.size() == static_cast<size_t>(nref));
-    for (int i = 0; i < nref; ++i) {
-        const double ratio = (refs[i].kind == BRowKind::Force ||
-                              refs[i].kind == BRowKind::Site)
-                           ? 2.0 : 2.0 / natoms;
-        REQUIRE((B_scaled.row(i) - ratio * B_ref.row(i)).norm()
-                == Approx(0.0).margin(1e-9));
+    for (int i = 0; i < nref; ++i)
+    {
+        const double ratio = (refs[i].kind == BRowKind::Force || refs[i].kind == BRowKind::Site)
+                                 ? 2.0
+                                 : 2.0 / natoms;
+        REQUIRE((B_scaled.row(i) - ratio * B_ref.row(i)).norm() == Approx(0.0).margin(1e-9));
         REQUIRE(refs[i].local_row == i);
     }
     REQUIRE(refs.front().kind == BRowKind::Energy);
@@ -1047,7 +1079,7 @@ TEST_CASE("PotEFSBuilder mixed energy + site mode", "[efs_builder]")
 {
     PotEFSBuilder builder(mtp.get());
     builder.w_energy = 1.0;
-    builder.w_site   = 1.0;
+    builder.w_site = 1.0;
 
     Atoms cfg = make_cfg(4.0, 2, 2, 2, 0.03);
     int natoms = cfg.size();
@@ -1060,7 +1092,8 @@ TEST_CASE("PotEFSBuilder mixed energy + site mode", "[efs_builder]")
     REQUIRE(B.rows() == 1 + natoms);
     REQUIRE(B.cols() == builder.coeff_count());
 
-    for (int i = 0; i < B.rows(); ++i) {
+    for (int i = 0; i < B.rows(); ++i)
+    {
         REQUIRE(B.row(i).array().isFinite().all());
     }
 }
@@ -1146,7 +1179,8 @@ TEST_CASE("DescriptorBuilder Cfg mode produces one row per structure", "[desc_bu
     int n_nbh = builder_nbh.build_rows(cfg, B_nbh, 1.0, 0.0);
     REQUIRE(n_nbh == cfg.size());
 
-    for (int j = 0; j < B.cols(); ++j) {
+    for (int j = 0; j < B.cols(); ++j)
+    {
         double sum = 0.0;
         for (int i = 0; i < n_nbh; ++i)
             sum += B_nbh(i, j);
@@ -1161,7 +1195,9 @@ TEST_CASE("DescriptorBuilder Cfg mode integrated with ActiveSelector", "[desc_bu
     builder->mode = DescriptorBuilder::Cfg;
 
     ActiveSelector as(builder);
-    as.threshold = 1.001; as.weight = 1.0; as.pow_scale = 0.0;
+    as.threshold = 1.001;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     std::vector<Atoms> cfgs;
     cfgs.push_back(make_cfg(3.8, 2, 2, 2, 0.05));
@@ -1179,7 +1215,8 @@ TEST_CASE("DescriptorBuilder Cfg mode integrated with ActiveSelector", "[desc_bu
     REQUIRE(g >= 0.0);
 }
 
-TEST_CASE("BMatrixBuilder load_config restores DescriptorBuilder from potfile override", "[desc_builder]")
+TEST_CASE("BMatrixBuilder load_config restores DescriptorBuilder from potfile override",
+          "[desc_builder]")
 {
     const std::string tmpfile = "/tmp/active_selector_desc_builder_config.mtp";
     mtp.get().Save(tmpfile);
@@ -1216,8 +1253,7 @@ TEST_CASE("make_builder owns MTM descriptor dependencies", "[desc_builder]")
     mtp.get().Save(tmpfile);
 
     GPSettings settings;
-    auto builder = make_builder("mtm", tmpfile, "mtp", settings, "cfg",
-                                1.0, 0.0, 0.0, 0.0);
+    auto builder = make_builder("mtm", tmpfile, "mtp", settings, "cfg", 1.0, 0.0, 0.0, 0.0);
     REQUIRE(builder);
 
     Atoms cfg = make_cfg(4.0, 2, 2, 1, 0.01);
@@ -1243,12 +1279,13 @@ TEST_CASE("make_builder owns MTM descriptor dependencies", "[desc_builder]")
 TEST_CASE("Descriptor builders reject unsupported types", "[desc_builder]")
 {
     GPSettings settings;
-    for (const std::string dtype : {"soap", "unknown_descriptor"}) {
+    for (const std::string dtype : {"soap", "unknown_descriptor"})
+    {
         INFO(dtype);
         // An unsupported descriptor must fail before attempting to load a
         // potential for an unrelated fallback descriptor.
-        REQUIRE_FALSE(make_builder(dtype, "missing.mtp", "mtp", settings,
-                                   "cfg", 1.0, 0.0, 0.0, 0.0));
+        REQUIRE_FALSE(
+            make_builder(dtype, "missing.mtp", "mtp", settings, "cfg", 1.0, 0.0, 0.0, 0.0));
 
         DescriptorBondOrder desc(settings);
         DescriptorBuilder builder(desc);
@@ -1363,7 +1400,9 @@ TEST_CASE("ActiveSelector v7 state preserves selected config indices", "[active_
     DescriptorMTM desc_mtm(mtp.get());
     auto *builder = new DescriptorBuilder(desc_mtm);
     ActiveSelector as(builder);
-    as.threshold = 1.001; as.weight = 1.0; as.pow_scale = 0.0;
+    as.threshold = 1.001;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     std::vector<Atoms> cfgs;
     cfgs.push_back(make_cfg(4.0, 2, 2, 1, 0.02));
@@ -1404,26 +1443,26 @@ TEST_CASE("ActiveSelector load_state rejects out-of-range selected rows", "[acti
         const int m_full = 1;
         const int bad_selected_row = 2;
 
-        ofs.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-        ofs.write(reinterpret_cast<const char*>(&version), sizeof(version));
-        ofs.write(reinterpret_cast<const char*>(&ncoeff), sizeof(ncoeff));
-        ofs.write(reinterpret_cast<const char*>(&threshold), sizeof(threshold));
-        ofs.write(reinterpret_cast<const char*>(&weight), sizeof(weight));
-        ofs.write(reinterpret_cast<const char*>(&pow_scale), sizeof(pow_scale));
+        ofs.write(reinterpret_cast<const char *>(&magic), sizeof(magic));
+        ofs.write(reinterpret_cast<const char *>(&version), sizeof(version));
+        ofs.write(reinterpret_cast<const char *>(&ncoeff), sizeof(ncoeff));
+        ofs.write(reinterpret_cast<const char *>(&threshold), sizeof(threshold));
+        ofs.write(reinterpret_cast<const char *>(&weight), sizeof(weight));
+        ofs.write(reinterpret_cast<const char *>(&pow_scale), sizeof(pow_scale));
         const int scaling = 0, init_mode = 0, reason_size = 0;
         const double init_value = 1e-6, max_grade = 1.0;
         const char converged = 0;
-        ofs.write(reinterpret_cast<const char*>(&scaling), sizeof(scaling));
-        ofs.write(reinterpret_cast<const char*>(&init_mode), sizeof(init_mode));
-        ofs.write(reinterpret_cast<const char*>(&init_value), sizeof(init_value));
+        ofs.write(reinterpret_cast<const char *>(&scaling), sizeof(scaling));
+        ofs.write(reinterpret_cast<const char *>(&init_mode), sizeof(init_mode));
+        ofs.write(reinterpret_cast<const char *>(&init_value), sizeof(init_value));
         ofs.write(&converged, sizeof(converged));
-        ofs.write(reinterpret_cast<const char*>(&max_grade), sizeof(max_grade));
-        ofs.write(reinterpret_cast<const char*>(&reason_size), sizeof(reason_size));
-        ofs.write(reinterpret_cast<const char*>(&nsel), sizeof(nsel));
-        ofs.write(reinterpret_cast<const char*>(&k), sizeof(k));
-        ofs.write(reinterpret_cast<const char*>(&m_full), sizeof(m_full));
+        ofs.write(reinterpret_cast<const char *>(&max_grade), sizeof(max_grade));
+        ofs.write(reinterpret_cast<const char *>(&reason_size), sizeof(reason_size));
+        ofs.write(reinterpret_cast<const char *>(&nsel), sizeof(nsel));
+        ofs.write(reinterpret_cast<const char *>(&k), sizeof(k));
+        ofs.write(reinterpret_cast<const char *>(&m_full), sizeof(m_full));
         const int refs[6] = {0, 0, bad_selected_row, 0, -1, -1};
-        ofs.write(reinterpret_cast<const char*>(refs), sizeof(refs));
+        ofs.write(reinterpret_cast<const char *>(refs), sizeof(refs));
     }
 
     ActiveSelector loaded;
@@ -1447,22 +1486,22 @@ TEST_CASE("ActiveSelector failed load_state preserves existing builder dimension
         const double pow_scale = 0.0;
         const int nsel = -1;
 
-        ofs.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-        ofs.write(reinterpret_cast<const char*>(&version), sizeof(version));
-        ofs.write(reinterpret_cast<const char*>(&bad_ncoeff), sizeof(bad_ncoeff));
-        ofs.write(reinterpret_cast<const char*>(&threshold), sizeof(threshold));
-        ofs.write(reinterpret_cast<const char*>(&weight), sizeof(weight));
-        ofs.write(reinterpret_cast<const char*>(&pow_scale), sizeof(pow_scale));
+        ofs.write(reinterpret_cast<const char *>(&magic), sizeof(magic));
+        ofs.write(reinterpret_cast<const char *>(&version), sizeof(version));
+        ofs.write(reinterpret_cast<const char *>(&bad_ncoeff), sizeof(bad_ncoeff));
+        ofs.write(reinterpret_cast<const char *>(&threshold), sizeof(threshold));
+        ofs.write(reinterpret_cast<const char *>(&weight), sizeof(weight));
+        ofs.write(reinterpret_cast<const char *>(&pow_scale), sizeof(pow_scale));
         const int scaling = 0, init_mode = 0, reason_size = 0;
         const double init_value = 1e-6, max_grade = 1.0;
         const char converged = 0;
-        ofs.write(reinterpret_cast<const char*>(&scaling), sizeof(scaling));
-        ofs.write(reinterpret_cast<const char*>(&init_mode), sizeof(init_mode));
-        ofs.write(reinterpret_cast<const char*>(&init_value), sizeof(init_value));
+        ofs.write(reinterpret_cast<const char *>(&scaling), sizeof(scaling));
+        ofs.write(reinterpret_cast<const char *>(&init_mode), sizeof(init_mode));
+        ofs.write(reinterpret_cast<const char *>(&init_value), sizeof(init_value));
         ofs.write(&converged, sizeof(converged));
-        ofs.write(reinterpret_cast<const char*>(&max_grade), sizeof(max_grade));
-        ofs.write(reinterpret_cast<const char*>(&reason_size), sizeof(reason_size));
-        ofs.write(reinterpret_cast<const char*>(&nsel), sizeof(nsel));
+        ofs.write(reinterpret_cast<const char *>(&max_grade), sizeof(max_grade));
+        ofs.write(reinterpret_cast<const char *>(&reason_size), sizeof(reason_size));
+        ofs.write(reinterpret_cast<const char *>(&nsel), sizeof(nsel));
     }
 
     std::vector<Atoms> cfgs;
@@ -1525,24 +1564,24 @@ TEST_CASE("ActiveSelector load_state rejects selected count mismatch", "[active_
         int integer = 0;
         double real = 0.0;
         char flag = 0;
-        fs.read(reinterpret_cast<char*>(&integer), sizeof(int)); // magic
-        fs.read(reinterpret_cast<char*>(&integer), sizeof(int)); // version
-        fs.read(reinterpret_cast<char*>(&integer), sizeof(int)); // ncoeff
-        fs.read(reinterpret_cast<char*>(&real), sizeof(double)); // threshold
-        fs.read(reinterpret_cast<char*>(&real), sizeof(double)); // weight
-        fs.read(reinterpret_cast<char*>(&real), sizeof(double)); // pow_scale
-        fs.read(reinterpret_cast<char*>(&integer), sizeof(int)); // row scaling
-        fs.read(reinterpret_cast<char*>(&integer), sizeof(int)); // init mode
-        fs.read(reinterpret_cast<char*>(&real), sizeof(double)); // init value
-        fs.read(&flag, 1);                                       // converged
-        fs.read(reinterpret_cast<char*>(&real), sizeof(double)); // max grade
+        fs.read(reinterpret_cast<char *>(&integer), sizeof(int)); // magic
+        fs.read(reinterpret_cast<char *>(&integer), sizeof(int)); // version
+        fs.read(reinterpret_cast<char *>(&integer), sizeof(int)); // ncoeff
+        fs.read(reinterpret_cast<char *>(&real), sizeof(double)); // threshold
+        fs.read(reinterpret_cast<char *>(&real), sizeof(double)); // weight
+        fs.read(reinterpret_cast<char *>(&real), sizeof(double)); // pow_scale
+        fs.read(reinterpret_cast<char *>(&integer), sizeof(int)); // row scaling
+        fs.read(reinterpret_cast<char *>(&integer), sizeof(int)); // init mode
+        fs.read(reinterpret_cast<char *>(&real), sizeof(double)); // init value
+        fs.read(&flag, 1);                                        // converged
+        fs.read(reinterpret_cast<char *>(&real), sizeof(double)); // max grade
         int reason_size = 0;
-        fs.read(reinterpret_cast<char*>(&reason_size), sizeof(int));
+        fs.read(reinterpret_cast<char *>(&reason_size), sizeof(int));
         REQUIRE(reason_size >= 0);
         fs.seekg(reason_size, std::ios::cur);
         const std::streampos nsel_offset = fs.tellg();
         fs.seekp(nsel_offset);
-        fs.write(reinterpret_cast<const char*>(&bad_nsel), sizeof(bad_nsel));
+        fs.write(reinterpret_cast<const char *>(&bad_nsel), sizeof(bad_nsel));
         REQUIRE(fs);
     }
 
@@ -1588,7 +1627,8 @@ TEST_CASE("ActiveSelector v7 state rebuild restores compute_grades input", "[act
     std::vector<double> actual;
     loaded.compute_grades(actual);
     REQUIRE(actual.size() == expected.size());
-    for (size_t i = 0; i < expected.size(); ++i) {
+    for (size_t i = 0; i < expected.size(); ++i)
+    {
         REQUIRE(std::isfinite(actual[i]));
         REQUIRE(actual[i] == Approx(expected[i]).margin(1e-8));
     }
@@ -1626,8 +1666,7 @@ TEST_CASE("ActiveSelector v7 state restores PotEFSBuilder grading", "[efs_builde
     REQUIRE(loaded.init_value == Approx(1e-6));
     REQUIRE(loaded.virtual_row_count() > 0);
     REQUIRE(loaded.converged() == as.converged());
-    REQUIRE(loaded.max_remaining_grade()
-            == Approx(as.max_remaining_grade()).margin(1e-12));
+    REQUIRE(loaded.max_remaining_grade() == Approx(as.max_remaining_grade()).margin(1e-12));
     loaded.init_builder(mtp.get());
 
     Atoms probe = make_cfg(4.6, 2, 2, 1, 0.05);
@@ -1644,8 +1683,7 @@ TEST_CASE("ActiveSelector v7 state restores non-MTM descriptor builder", "[desc_
     settings.Modify("bondorder:cutoff", "5.0");
     settings.Modify("bondorder:maxl", "4");
 
-    auto desc = std::make_unique<DescriptorBondOrder>(
-        settings.ExtractSubSettings("bondorder"));
+    auto desc = std::make_unique<DescriptorBondOrder>(settings.ExtractSubSettings("bondorder"));
     auto *builder = new DescriptorBuilder(std::move(desc));
     builder->set_config_metadata("bondorder", "cfg", settings);
 
@@ -1749,14 +1787,12 @@ TEST_CASE("ActiveSelector online state resumes with only appended configs", "[ac
     resumed.add_candidates_unbuilt(added);
     REQUIRE(resumed.select_online() == uninterrupted.select_online());
     REQUIRE(resumed.num_candidates() == 4);
-    REQUIRE(resumed.selected_row_refs().size() ==
-            uninterrupted.selected_row_refs().size());
+    REQUIRE(resumed.selected_row_refs().size() == uninterrupted.selected_row_refs().size());
     for (const auto &ref : resumed.selected_row_refs())
         REQUIRE(ref.kind == BRowKind::Descriptor);
 
     Atoms probe = make_cfg(4.6, 2, 2, 1, 0.06);
-    REQUIRE(resumed.grade(probe) ==
-            Approx(uninterrupted.grade(probe)).margin(1e-10));
+    REQUIRE(resumed.grade(probe) == Approx(uninterrupted.grade(probe)).margin(1e-10));
 
     std::ostringstream dump;
     ActiveSelector::dump_state(state_file, dump);
@@ -1770,10 +1806,12 @@ TEST_CASE("PotEFSBuilder site mode grading picks max over atoms", "[efs_builder]
 {
     auto *builder = new PotEFSBuilder(mtp.get());
     builder->w_energy = 0.0;
-    builder->w_site   = 1.0;
+    builder->w_site = 1.0;
 
     ActiveSelector as(builder);
-    as.threshold = 1.001; as.weight = 1.0; as.pow_scale = 0.0;
+    as.threshold = 1.001;
+    as.weight = 1.0;
+    as.pow_scale = 0.0;
 
     // Train with a few configs
     std::vector<Atoms> train;
@@ -1841,9 +1879,8 @@ TEST_CASE("ActiveSelector full data reselection discards an old online cache",
     ActiveSelector selector(new CountedRowBuilder());
     selector.init_mode = "data";
     selector.pow_scale = 0.0;
-    std::vector<Atoms> initial{
-        make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0),
-        make_row_cfg(0.5, 0.5)};
+    std::vector<Atoms> initial{make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0),
+                               make_row_cfg(0.5, 0.5)};
     REQUIRE(selector.select_streaming(initial) == 2);
     REQUIRE(selector.online_capable());
 
@@ -1859,7 +1896,6 @@ TEST_CASE("ActiveSelector full data reselection discards an old online cache",
     REQUIRE(selector.grade(added) == Approx(1.0).margin(1e-12));
 }
 
-
 TEST_CASE("ActiveSelector online updates only build appended configurations",
           "[active_sel][online][stream_cache]")
 {
@@ -1867,9 +1903,8 @@ TEST_CASE("ActiveSelector online updates only build appended configurations",
     ActiveSelector selector(new CountedRowBuilder(calls));
     selector.select_mode = "online";
     selector.pow_scale = 0.0;
-    std::vector<Atoms> initial{
-        make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0),
-        make_row_cfg(1.0, 1.0)};
+    std::vector<Atoms> initial{make_row_cfg(1.0, 0.0), make_row_cfg(0.0, 1.0),
+                               make_row_cfg(1.0, 1.0)};
     selector.add_candidates_unbuilt(initial);
     REQUIRE(selector.select() == 2);
     REQUIRE(calls->load() == 3);
@@ -1897,7 +1932,6 @@ TEST_CASE("ActiveSelector online updates only build appended configurations",
     REQUIRE(grades.size() == 4);
 }
 
-
 TEST_CASE("ActiveSelector scores one large configuration across workers",
           "[active_sel][stream_cache][openmp]")
 {
@@ -1907,11 +1941,13 @@ TEST_CASE("ActiveSelector scores one large configuration across workers",
 #endif
     Atoms cfg;
     cfg.resize(10000);
-    for (auto &pos : cfg.pos_) pos << 0.5, 0.5, 0.0;
+    for (auto &pos : cfg.pos_)
+        pos << 0.5, 0.5, 0.0;
     cfg.pos_[0] << 1.0, 0.0, 0.0;
     cfg.pos_[1] << 0.0, 1.0, 0.0;
     std::vector<Atoms> pool{cfg};
-    for (const std::string mode : {"exact", "fast"}) {
+    for (const std::string mode : {"exact", "fast"})
+    {
         ActiveSelector selector(new PositionRowsBuilder());
         selector.stream_mode = mode;
         selector.stream_cache_mode = "memory";
@@ -1926,7 +1962,6 @@ TEST_CASE("ActiveSelector scores one large configuration across workers",
 #endif
     }
 }
-
 
 TEST_CASE("ActiveSelector online initialization resumes after reaching its swap cap",
           "[active_sel][online][mlip_init]")
@@ -1948,22 +1983,21 @@ TEST_CASE("ActiveSelector online initialization resumes after reaching its swap 
     REQUIRE(selector.grade(pool[1]) <= 1.001 + 1e-10);
 }
 
-
-TEST_CASE("PotEFSBuilder bulk linear EFS matches component gradients",
-          "[efs_builder][bulk]")
+TEST_CASE("PotEFSBuilder bulk linear EFS matches component gradients", "[efs_builder][bulk]")
 {
     Potentials::qmtp_config options;
     options.species_count = 2;
-    std::unique_ptr<Potentials::PotMTP> potential(
-        Potentials::quick_mtp_3b_s14_2f0ee25e(&options));
+    std::unique_ptr<Potentials::PotMTP> potential(Potentials::quick_mtp_3b_s14_2f0ee25e(&options));
     Atoms cfg = make_cfg(3.0, 2, 2, 2, 0.07);
-    for (int i = 0; i < cfg.size(); ++i) cfg.chemmap_[i] = i % 2;
+    for (int i = 0; i < cfg.size(); ++i)
+        cfg.chemmap_[i] = i % 2;
     Neighborhoods nbhs(cfg, potential->cutoff);
 
-    for (auto scaling : {RowScalingMode::Uniform, RowScalingMode::MlipCompatible}) {
-        for (const auto &weights : {std::array{1.3, -0.4, 0.8},
-                                    std::array{0.0, 1.0, 0.0},
-                                    std::array{0.0, 0.0, 1.0}}) {
+    for (auto scaling : {RowScalingMode::Uniform, RowScalingMode::MlipCompatible})
+    {
+        for (const auto &weights :
+             {std::array{1.3, -0.4, 0.8}, std::array{0.0, 1.0, 0.0}, std::array{0.0, 0.0, 1.0}})
+        {
             PotEFSBuilder builder(*potential);
             builder.w_energy = weights[0];
             builder.w_force = weights[1];
@@ -1979,38 +2013,44 @@ TEST_CASE("PotEFSBuilder bulk linear EFS matches component gradients",
             REQUIRE(refs.size() == static_cast<std::size_t>(count));
             REQUIRE(actual.topRows(2).isConstant(17.0));
             const double cfg_scale = global_weight / std::pow(cfg.size(), power);
-            const double local_scale = scaling == RowScalingMode::Uniform ? cfg_scale : global_weight;
-            for (int row = 0; row < count; ++row) {
+            const double local_scale =
+                scaling == RowScalingMode::Uniform ? cfg_scale : global_weight;
+            for (int row = 0; row < count; ++row)
+            {
                 const auto &ref = refs[row];
                 Eigen::VectorXd expected = Eigen::VectorXd::Zero(ncols);
                 Eigen::Matrix<double, -1, 3> dF = Eigen::Matrix<double, -1, 3>::Zero(cfg.size(), 3);
                 Eigen::Matrix3d dS = Eigen::Matrix3d::Zero();
                 double dE = 0.0, scale = cfg_scale;
-                if (ref.kind == BRowKind::Energy) dE = builder.w_energy;
-                if (ref.kind == BRowKind::Force) {
+                if (ref.kind == BRowKind::Energy)
+                    dE = builder.w_energy;
+                if (ref.kind == BRowKind::Force)
+                {
                     dF(ref.atom_index, ref.component) = builder.w_force;
                     scale = local_scale;
                 }
                 if (ref.kind == BRowKind::Stress)
                     dS(ref.component / 3, ref.component % 3) = builder.w_stress;
-                if (ref.kind == BRowKind::Site) {
-                    potential->AccumulateFPGardLonly(
-                        nbhs[ref.atom_index], expected.data(), builder.w_site, nullptr);
+                if (ref.kind == BRowKind::Site)
+                {
+                    potential->AccumulateFPGardLonly(nbhs[ref.atom_index], expected.data(),
+                                                     builder.w_site, nullptr);
                     scale = local_scale;
-                } else {
-                    potential->AccumulateEFSCombinationGardLonly(
-                        cfg, nbhs, dE, dF, dS, expected.data());
+                }
+                else
+                {
+                    potential->AccumulateEFSCombinationGardLonly(cfg, nbhs, dE, dF, dS,
+                                                                 expected.data());
                 }
                 CAPTURE(row, static_cast<int>(ref.kind), static_cast<int>(scaling));
-                REQUIRE((actual.row(row + 2).transpose() - scale * expected).norm()
-                        <= 1e-10 * std::max(1.0, expected.norm()));
+                REQUIRE((actual.row(row + 2).transpose() - scale * expected).norm() <=
+                        1e-10 * std::max(1.0, expected.norm()));
                 REQUIRE(ref.local_row == row);
                 REQUIRE(ref.global_row == row + 2);
             }
         }
     }
 }
-
 
 TEST_CASE("make_builder rejects unknown descriptor types", "[desc_builder]")
 {
@@ -2025,18 +2065,18 @@ TEST_CASE("make_builder rejects unknown descriptor types", "[desc_builder]")
     builder_settings.pottype = "mtp";
 
     REQUIRE_FALSE(make_builder(builder_settings, settings));
-    REQUIRE_FALSE(make_builder(dtype, potfile, "mtp", settings, "nbh",
-                               1.0, 0.0, 0.0, 0.0));
+    REQUIRE_FALSE(make_builder(dtype, potfile, "mtp", settings, "nbh", 1.0, 0.0, 0.0, 0.0));
 }
 
-TEST_CASE("MaxVol readers reject obsolete state versions", "[active_sel][state]") {
+TEST_CASE("MaxVol readers reject obsolete state versions", "[active_sel][state]")
+{
     const int version = GENERATE(7, 8, 9);
     const std::string path = "/tmp/imrmlp_obsolete_maxvol_state_" + std::to_string(version);
     {
         std::ofstream out(path, std::ios::binary);
         const int magic = 0x41435456;
-        out.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-        out.write(reinterpret_cast<const char*>(&version), sizeof(version));
+        out.write(reinterpret_cast<const char *>(&magic), sizeof(magic));
+        out.write(reinterpret_cast<const char *>(&version), sizeof(version));
     }
     ActiveSelector selector;
     REQUIRE_THROWS(selector.load_state(path));

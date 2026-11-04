@@ -10,7 +10,8 @@
 #include <filesystem>
 #include <fstream>
 
-struct MaxVolMTPCase {
+struct MaxVolMTPCase
+{
     std::string name, pottype, path;
     GPSettings settings;
 };
@@ -31,14 +32,16 @@ inline std::vector<MaxVolMTPCase> make_maxvol_mtp_models(const std::filesystem::
     const auto template_file = (dir / "template.mtp").string();
     std::ofstream(template_file) << header;
     std::vector<MaxVolMTPCase> cases;
-    const auto add = [&](std::string name, std::string type, GPSettings settings = {}) {
+    const auto add = [&](std::string name, std::string type, GPSettings settings = {})
+    {
         MaxVolMTPCase c{name, type, (dir / name).string(), settings};
         c.settings.Modify("pottype", type);
         c.settings.Modify("potfile", c.path);
         cases.push_back(c);
         return c.path;
     };
-    for (int layers : {1, 2}) {
+    for (int layers : {1, 2})
+    {
         GPSettings settings;
         settings.Modify("mtpcoeff", base);
         settings.Modify("nncoeff", (dir / "missing.nn").string());
@@ -49,11 +52,13 @@ inline std::vector<MaxVolMTPCase> make_maxvol_mtp_models(const std::filesystem::
         PotMTPNN1 model(settings);
         model.train_init();
         std::vector<double> coefficients(model.get_NL_coeffs_count());
-        for (size_t i = 0; i < coefficients.size(); ++i) coefficients[i] = .04 + .01 * std::cos(i);
+        for (size_t i = 0; i < coefficients.size(); ++i)
+            coefficients[i] = .04 + .01 * std::cos(i);
         model.nl_set_coeffs(coefficients.data());
         model.Save(add("nn" + std::to_string(layers), "mtpnn1"));
     }
-    for (const auto *extmodel : {"mtp_m_fs", "mtp_m_q2", "mtp_m_li", "mtp_m_n1", "mtp_m_n2"}) {
+    for (const auto *extmodel : {"mtp_m_fs", "mtp_m_q2", "mtp_m_li", "mtp_m_n1", "mtp_m_n2"})
+    {
         GPSettings settings;
         settings.Modify("extmodel", extmodel);
         settings.Modify("n_input", "2");
@@ -64,21 +69,25 @@ inline std::vector<MaxVolMTPCase> make_maxvol_mtp_models(const std::filesystem::
         potential_wrapper model(settings);
         model.pot->train_init();
         std::vector<double> coefficients(model.pot->get_NL_coeffs_count());
-        for (size_t i = 0; i < coefficients.size(); ++i) coefficients[i] = .06 + .01 * std::cos(i);
+        for (size_t i = 0; i < coefficients.size(); ++i)
+            coefficients[i] = .06 + .01 * std::cos(i);
         model.pot->nl_set_coeffs(coefficients.data());
         model.pot->Save(add(extmodel, "mtp_m", settings));
     }
-    for (bool sog : {false, true}) {
+    for (bool sog : {false, true})
+    {
         PotMTP_LES model(base);
         model.lr_les = true;
         model.les_species_coeffs = new double[2]{.2, -.15};
         model.les_moment_coeffs = new double[3]{.05, -.02, .01};
-        if (sog) {
+        if (sog)
+        {
             model.les_kernel = "sog";
             model.sog_terms = 2;
         }
         model.train_init();
-        if (sog) {
+        if (sog)
+        {
             model.model_les.sog_weights = {1.2, -.3};
             model.model_les.sog_log_bandwidths = {-.4, .2};
         }
@@ -86,12 +95,14 @@ inline std::vector<MaxVolMTPCase> make_maxvol_mtp_models(const std::filesystem::
         std::ofstream out(path);
         model.Save(out);
     }
-    for (bool sog : {false, true}) {
+    for (bool sog : {false, true})
+    {
         const auto file = dir / "longrange-template.mtp";
         std::ofstream source(file);
         source << header << "les_species_coeffs = {0.2, -0.15}\n"
                << "les_moment_coeffs = {0.05, -0.02, 0.01}\n";
-        if (sog) {
+        if (sog)
+        {
             SOGModel definition;
             definition.weights = {1.2, -.3};
             definition.log_bandwidths = {-.4, .2};
@@ -106,7 +117,8 @@ inline std::vector<MaxVolMTPCase> make_maxvol_mtp_models(const std::filesystem::
         potential_wrapper model(settings);
         model.pot->Save(add(sog ? "mtp_m_sog" : "mtp_m_les", "mtp_m", settings));
     }
-    for (int count : {2, 3}) {
+    for (int count : {2, 3})
+    {
         PotMTP second, third;
         load_swap_fixture(second, 2, true);
         load_swap_fixture(third, 2, false);

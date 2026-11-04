@@ -1,4 +1,5 @@
 """Bounded CP2KXYZ writing preserves the existing geometry-only codec."""
+
 from pathlib import Path
 import gzip
 
@@ -11,15 +12,22 @@ import imrmlp
 
 def frames_for_cp2kxyz():
     elements = ['He', 'H']
-    first = imrmlp.Atoms(numbers=[1, 2], positions=[[1, 2.5, 4.5], [4, 5, 6]],
-                       cell=np.diag([8., 10., 12.]), pbc=True, elements=elements)
+    first = imrmlp.Atoms(
+        numbers=[1, 2],
+        positions=[[1, 2.5, 4.5], [4, 5, 6]],
+        cell=np.diag([8.0, 10.0, 12.0]),
+        pbc=True,
+        elements=elements,
+    )
     first.energy = -12.5
-    first.forces = [[.1, .2, .3], [-.1, -.2, -.3]]
+    first.forces = [[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3]]
     first.stress = np.eye(3)
-    empty = imrmlp.Atoms(numbers=np.array([], dtype=int), positions=np.empty((0, 3)),
-                       elements=elements)
-    last = imrmlp.Atoms(numbers=[2], positions=[[1.25, -2.5, .375]],
-                      cell=np.eye(3) * 20, elements=elements)
+    empty = imrmlp.Atoms(
+        numbers=np.array([], dtype=int), positions=np.empty((0, 3)), elements=elements
+    )
+    last = imrmlp.Atoms(
+        numbers=[2], positions=[[1.25, -2.5, 0.375]], cell=np.eye(3) * 20, elements=elements
+    )
     return [first, empty, last]
 
 
@@ -33,17 +41,24 @@ def check_cp2kxyz_text(text, *, expected_counts=(2, 0, 1)):
         parsed.append([next(lines).split() for _ in range(count)])
     assert list(lines) == []
     assert [row[0] for row in parsed[0]] == ['H', 'He']
-    np.testing.assert_allclose([[float(x) for x in row[1:]] for row in parsed[0]],
-                               [[1, 2.5, 4.5], [4, 5, 6]], rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(
+        [[float(x) for x in row[1:]] for row in parsed[0]],
+        [[1, 2.5, 4.5], [4, 5, 6]],
+        rtol=1e-6,
+        atol=1e-6,
+    )
     if len(parsed) == 3:
         assert parsed[1] == []
         assert parsed[2][0][0] == 'He'
-        np.testing.assert_allclose([float(x) for x in parsed[2][0][1:]],
-                                   [1.25, -2.5, .375], rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(
+            [float(x) for x in parsed[2][0][1:]], [1.25, -2.5, 0.375], rtol=1e-6, atol=1e-6
+        )
 
 
 @pytest.mark.parametrize('compressed,format', [(False, ''), (True, 'cp2kxyz')])
-def test_cp2kxyz_write_iter_is_single_pass_and_uses_cartesian_geometry(tmp_path, compressed, format):
+def test_cp2kxyz_write_iter_is_single_pass_and_uses_cartesian_geometry(
+    tmp_path, compressed, format
+):
     frames = frames_for_cp2kxyz()
     first = frames[0]
     first.to_fractional()
@@ -108,7 +123,7 @@ def test_cp2kxyz_write_iter_preserves_generator_error_and_complete_prefix(tmp_pa
 
 def test_cp2kxyz_write_iter_rejects_hvp_labels(tmp_path):
     atom = imrmlp.Atoms(numbers=[1], positions=[[0, 0, 0]])
-    directions = np.array([[1.], [0.], [0.]])
+    directions = np.array([[1.0], [0.0], [0.0]])
     atom.set_hvp(directions, 2 * directions)
     with pytest.raises(ValueError, match='HVP labels require'):
         imrmlp.write_iter(tmp_path / 'hvp.cp2kxyz', iter([atom]))

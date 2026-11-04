@@ -17,8 +17,12 @@ from typing import List, Optional, Dict
 import numpy as np
 
 from ._imrmlp import (
-    _ActiveSelector, _FPSSelector,
-    _AnyPotential, _MaxVol, _build_bmatrix, cur_select_rows,
+    _ActiveSelector,
+    _FPSSelector,
+    _AnyPotential,
+    _MaxVol,
+    _build_bmatrix,
+    cur_select_rows,
 )
 from .atoms import Atoms
 from .utils import _coerce_atoms
@@ -28,6 +32,7 @@ from .utils import _coerce_atoms
 #  ActiveSelector — MaxVol-based selection
 # ============================================================================
 
+
 class MaxVol:
     """Matrix-level Maximum Volume row selection.
 
@@ -35,8 +40,13 @@ class MaxVol:
     pools, use build_bmatrix() or ActiveSelector.
     """
 
-    def __init__(self, tolerance: float = 1e-6, max_iterations: int = 100,
-                 max_swaps: int = 0, verbose: bool = False):
+    def __init__(
+        self,
+        tolerance: float = 1e-6,
+        max_iterations: int = 100,
+        max_swaps: int = 0,
+        verbose: bool = False,
+    ):
         self._impl = _MaxVol()
         self._impl.tolerance = tolerance
         self._impl.max_iterations = max_iterations
@@ -66,25 +76,41 @@ class MaxVol:
         return list(self._impl.swap_history)
 
 
-def build_bmatrix(structures: List[object],
-                  potfile: str,
-                  pottype: str = "mtp",
-                  dtype: str = "mtm",
-                  mode: str = "nbh",
-                  params: Optional[Dict[str, str]] = None,
-                  weight: float = 1.0,
-                  pow_scale: float = 0.5,
-                  w_energy: float = 1.0,
-                  w_site: float = 0.0,
-                  w_force: float = 0.0,
-                  w_stress: float = 0.0,
-                  all_coeffs: bool = False) -> np.ndarray:
+def build_bmatrix(
+    structures: List[object],
+    potfile: str,
+    pottype: str = "mtp",
+    dtype: str = "mtm",
+    mode: str = "nbh",
+    params: Optional[Dict[str, str]] = None,
+    weight: float = 1.0,
+    pow_scale: float = 0.5,
+    w_energy: float = 1.0,
+    w_site: float = 0.0,
+    w_force: float = 0.0,
+    w_stress: float = 0.0,
+    all_coeffs: bool = False,
+) -> np.ndarray:
     """Build the MaxVol B-matrix for imrmlp/ASE/pymatgen structures."""
     cpp_atoms = [_coerce_atoms(s)._impl for s in structures]
-    return np.asarray(_build_bmatrix(
-        cpp_atoms, str(potfile), pottype, dtype, mode, params or {},
-        weight, pow_scale, w_energy, w_site, w_force, w_stress, all_coeffs,
-    ), dtype=np.float64)
+    return np.asarray(
+        _build_bmatrix(
+            cpp_atoms,
+            str(potfile),
+            pottype,
+            dtype,
+            mode,
+            params or {},
+            weight,
+            pow_scale,
+            w_energy,
+            w_site,
+            w_force,
+            w_stress,
+            all_coeffs,
+        ),
+        dtype=np.float64,
+    )
 
 
 class ActiveSelector:
@@ -116,31 +142,40 @@ class ActiveSelector:
     >>> aselect2 = ActiveSelector.load("active_set.sel")
     """
 
-    def __init__(self,
-                 threshold: float = 1.001,
-                 weight: float = 1.0,
-                 pow_scale: float = 0.5,
-                 max_swaps: int = 0,
-                 potential=None,
-                 potfile: Optional[str] = None,
-                 pottype: str = "mtp",
-                 dtype: str = "mtm",
-                 mode: str = "nbh",
-                 params: Optional[Dict[str, str]] = None,
-                 w_energy: float = 1.0,
-                 w_site: float = 0.0,
-                 w_force: float = 0.0,
-                 w_stress: float = 0.0,
-                 all_coeffs: bool = False,
-                 select_mode: str = "stream",
-                 stream_mode: str = "exact",
-                 stream_chunk_size: int = 32,
-                 stream_fast_passes: int = 2,
-                 ):
+    def __init__(
+        self,
+        threshold: float = 1.001,
+        weight: float = 1.0,
+        pow_scale: float = 0.5,
+        max_swaps: int = 0,
+        potential=None,
+        potfile: Optional[str] = None,
+        pottype: str = "mtp",
+        dtype: str = "mtm",
+        mode: str = "nbh",
+        params: Optional[Dict[str, str]] = None,
+        w_energy: float = 1.0,
+        w_site: float = 0.0,
+        w_force: float = 0.0,
+        w_stress: float = 0.0,
+        all_coeffs: bool = False,
+        select_mode: str = "stream",
+        stream_mode: str = "exact",
+        stream_chunk_size: int = 32,
+        stream_fast_passes: int = 2,
+    ):
         if potfile is not None:
             self._impl = _ActiveSelector(
-                str(potfile), pottype, dtype, mode, params or {},
-                w_energy, w_site, w_force, w_stress, all_coeffs,
+                str(potfile),
+                pottype,
+                dtype,
+                mode,
+                params or {},
+                w_energy,
+                w_site,
+                w_force,
+                w_stress,
+                all_coeffs,
             )
         else:
             self._impl = _ActiveSelector()
@@ -219,6 +254,7 @@ class ActiveSelector:
 #  FPSSelector — Farthest Point Sampling
 # ============================================================================
 
+
 class FPSSelector:
     """Farthest Point Sampling for diversity selection.
 
@@ -251,8 +287,7 @@ class FPSSelector:
         self._impl.select(n, first_idx)
         return [Atoms(_impl=a) for a in self._impl.get_selected()]
 
-    def select_by_threshold(self, dist_thr: float, max_n: int = 0,
-                            first_idx: int = -1):
+    def select_by_threshold(self, dist_thr: float, max_n: int = 0, first_idx: int = -1):
         self._impl.select_by_threshold(dist_thr, max_n, first_idx)
 
     @property
@@ -268,6 +303,7 @@ class FPSSelector:
 #  CUR selection
 # ============================================================================
 
+
 @dataclass
 class CURResult:
     selected_indices: List[int]
@@ -275,10 +311,9 @@ class CURResult:
     reconstruction_error: float
 
 
-def cur_select(A: np.ndarray, k: int,
-               deterministic: bool = False,
-               seed: int = 42,
-               compute_error: bool = False) -> CURResult:
+def cur_select(
+    A: np.ndarray, k: int, deterministic: bool = False, seed: int = 42, compute_error: bool = False
+) -> CURResult:
     """CUR leverage-score row selection from a descriptor matrix.
 
     Args:
@@ -299,11 +334,23 @@ def cur_select(A: np.ndarray, k: int,
 def select_from_pool(structures: List[object], potfile: str, **kwargs) -> ActiveSelector:
     """Build a MaxVol active selector from a structure pool."""
     selector_kwargs = {
-        key: kwargs.pop(key) for key in list(kwargs)
-        if key in {
-            "threshold", "weight", "pow_scale", "max_swaps", "pottype",
-            "dtype", "mode", "params", "w_energy", "w_site", "w_force",
-            "w_stress", "all_coeffs",
+        key: kwargs.pop(key)
+        for key in list(kwargs)
+        if key
+        in {
+            "threshold",
+            "weight",
+            "pow_scale",
+            "max_swaps",
+            "pottype",
+            "dtype",
+            "mode",
+            "params",
+            "w_energy",
+            "w_site",
+            "w_force",
+            "w_stress",
+            "all_coeffs",
         }
     }
     selector = ActiveSelector(potfile=potfile, **selector_kwargs)

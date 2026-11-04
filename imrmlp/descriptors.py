@@ -83,8 +83,7 @@ class Descriptor:
         """
         return self._impl.compute_averaged(atoms._impl)
 
-    def compute_averaged_with_gradient(self, atoms: Atoms
-                                       ) -> tuple[np.ndarray, np.ndarray]:
+    def compute_averaged_with_gradient(self, atoms: Atoms) -> tuple[np.ndarray, np.ndarray]:
         """Return structure values ``(D,)`` and their Jacobian ``(D, N, 3)``.
 
         Values follow :meth:`compute_averaged`. ``jac[f, i, a]`` is the
@@ -104,8 +103,7 @@ class Descriptor:
         """
         return self._impl.compute_averaged_with_gradient(atoms._impl)
 
-    def compute_averaged_with_strain_gradient(self, atoms: Atoms
-                                              ) -> tuple[np.ndarray, np.ndarray]:
+    def compute_averaged_with_strain_gradient(self, atoms: Atoms) -> tuple[np.ndarray, np.ndarray]:
         """Return structure values ``(D,)`` and their strain Jacobian ``(D, 3, 3)``.
 
         Values follow :meth:`compute_averaged`. For raw strain ``epsilon``,
@@ -133,8 +131,9 @@ class Descriptor:
         """
         return self._impl.compute_averaged_with_cell_gradient(atoms._impl)
 
-    def compute_weighted_global_hvp(self, atoms: Atoms, weights, direction,
-                                    include_cell: bool = False):
+    def compute_weighted_global_hvp(
+        self, atoms: Atoms, weights, direction, include_cell: bool = False
+    ):
         """SO4 inner-density weighted value, gradient and Hessian product.
 
         Coordinates are atom-major Cartesian residuals, prefixed by nine
@@ -142,21 +141,25 @@ class Descriptor:
         fixed. Cross-center density coupling is included.
         """
         return self._impl.compute_weighted_global_hvp(
-            atoms._impl, np.asarray(weights, dtype=float),
-            np.asarray(direction, dtype=float), include_cell)
+            atoms._impl,
+            np.asarray(weights, dtype=float),
+            np.asarray(direction, dtype=float),
+            include_cell,
+        )
 
-    def compute_weighted_global_hessian(self, atoms: Atoms, weights,
-                                        include_cell: bool = False):
+    def compute_weighted_global_hessian(self, atoms: Atoms, weights, include_cell: bool = False):
         """Return SO4 inner-density weighted value, gradient and dense Hessian.
 
         Uses the same coordinates as :meth:`compute_weighted_global_hvp`.
         The returned arrays own their storage; this creates no global model.
         """
         return self._impl.compute_weighted_global_hessian(
-            atoms._impl, np.asarray(weights, dtype=float), include_cell)
+            atoms._impl, np.asarray(weights, dtype=float), include_cell
+        )
 
-    def compute_with_gradient(self, atoms: Atoms, center: int
-                              ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def compute_with_gradient(
+        self, atoms: Atoms, center: int
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Return local values, source atom indices and their position Jacobian.
 
         ``center`` is an explicit zero-based atom index. The returned arrays
@@ -178,8 +181,9 @@ class Descriptor:
         """
         return self._impl.compute_with_gradient(atoms._impl, center)
 
-    def compute_with_strain_gradient(self, atoms: Atoms, center: int
-                                     ) -> tuple[np.ndarray, np.ndarray]:
+    def compute_with_strain_gradient(
+        self, atoms: Atoms, center: int
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Return local values ``(D,)`` and a strain Jacobian ``(D, 3, 3)``.
 
         ``jac[f, a, b]`` differentiates feature ``f`` with respect to the raw

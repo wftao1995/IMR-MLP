@@ -1,4 +1,5 @@
 """Bounded Python I/O owns frames and preserves single-pass writer contracts."""
+
 from contextlib import closing
 import gzip
 import shlex
@@ -10,26 +11,34 @@ pytest.importorskip('imrmlp._imrmlp')
 import imrmlp
 
 
-FIRST = ('2\nLattice="6 0 0 .2 7 0 .1 .3 8" pbc="T T F" '
-         'Properties=species:S:1:pos:R:3:forces:R:3:charges:R:1 '
-         'energy=-.5 virial="1 0 0 0 2 0 0 0 3" '
-         'label="first frame" config_type="bulk"\n'
-         'H .1 .2 .3 .4 .5 .6 .25\nHe 1.6 .7 .8 -.4 -.5 -.6 -.25\n')
+FIRST = (
+    '2\nLattice="6 0 0 .2 7 0 .1 .3 8" pbc="T T F" '
+    'Properties=species:S:1:pos:R:3:forces:R:3:charges:R:1 '
+    'energy=-.5 virial="1 0 0 0 2 0 0 0 3" '
+    'label="first frame" config_type="bulk"\n'
+    'H .1 .2 .3 .4 .5 .6 .25\nHe 1.6 .7 .8 -.4 -.5 -.6 -.25\n'
+)
 
 
-SECOND = ('1\nLattice="9 .2 .1 0 10 .3 0 0 11" pbc="F F F" '
-          'Properties=species:S:1:pos:R:3 energy=.25 label="second frame"\n'
-          'He 2 3 4\n')
+SECOND = (
+    '1\nLattice="9 .2 .1 0 10 .3 0 0 11" pbc="F F F" '
+    'Properties=species:S:1:pos:R:3 energy=.25 label="second frame"\n'
+    'He 2 3 4\n'
+)
 
 
-THIRD = ('3\nLattice="12 0 0 0 13 0 0 0 14" pbc="T T T" '
-         'Properties=species:S:1:pos:R:3:forces:R:3 energy=1.5 '
-         'label="third frame"\n'
-         'He .2 .3 .4 .1 .2 .3\nH 2.2 .5 .6 -.1 -.2 -.3\nH 1.1 2.1 .8 0 0 0\n')
+THIRD = (
+    '3\nLattice="12 0 0 0 13 0 0 0 14" pbc="T T T" '
+    'Properties=species:S:1:pos:R:3:forces:R:3 energy=1.5 '
+    'label="third frame"\n'
+    'He .2 .3 .4 .1 .2 .3\nH 2.2 .5 .6 -.1 -.2 -.3\nH 1.1 2.1 .8 0 0 0\n'
+)
 
 
-EMPTY_FRAME = ('0\nLattice="4 0 0 0 5 0 0 0 6" pbc="F F F" '
-               'Properties=species:S:1:pos:R:3 label="empty frame"\n')
+EMPTY_FRAME = (
+    '0\nLattice="4 0 0 0 5 0 0 0 6" pbc="F F F" '
+    'Properties=species:S:1:pos:R:3 label="empty frame"\n'
+)
 
 
 def assert_same(actual, expected):
@@ -70,7 +79,7 @@ def test_next_and_close_do_not_reuse_or_invalidate_previous_frames(tmp_path):
     saved = first.copy()
     second = next(frames)
     assert_same(first, saved)
-    second.positions = [[9., 8., 7.]]
+    second.positions = [[9.0, 8.0, 7.0]]
     frames.close()
     frames.close()
     with pytest.raises(StopIteration):
@@ -84,7 +93,7 @@ def test_closing_supports_early_exit_without_consuming_bad_suffix(tmp_path):
     with closing(imrmlp.iread(path)) as frames:
         first = next(frames)
     assert len(first) == 2
-    np.testing.assert_allclose(first.positions[0], [.1, .2, .3])
+    np.testing.assert_allclose(first.positions[0], [0.1, 0.2, 0.3])
     with pytest.raises(StopIteration):
         next(frames)
 
@@ -141,18 +150,22 @@ def test_file_is_opened_on_first_iteration_and_missing_file_fails(tmp_path):
         next(missing)
 
 
-CFG_FIRST = ('BEGIN_CFG\nSize\n3\nSupercell\n10 0 0\n.2 11 0\n.1 .3 12\n'
-             'AtomData: id type cartes_x cartes_y cartes_z fx fy fz\n'
-             '3 2 3.1 3.2 3.3 .7 .8 .9\n'
-             '1 2 .1 .2 .3 .1 .2 .3\n'
-             '2 0 1.1 1.2 1.3 -.1 -.2 -.3\n'
-             'Energy\n-4.5\nPlusStress: xx yy zz yz xz xy\n1 2 3 .4 .5 .6\n'
-             'Feature label train1\nEND_CFG\n')
+CFG_FIRST = (
+    'BEGIN_CFG\nSize\n3\nSupercell\n10 0 0\n.2 11 0\n.1 .3 12\n'
+    'AtomData: id type cartes_x cartes_y cartes_z fx fy fz\n'
+    '3 2 3.1 3.2 3.3 .7 .8 .9\n'
+    '1 2 .1 .2 .3 .1 .2 .3\n'
+    '2 0 1.1 1.2 1.3 -.1 -.2 -.3\n'
+    'Energy\n-4.5\nPlusStress: xx yy zz yz xz xy\n1 2 3 .4 .5 .6\n'
+    'Feature label train1\nEND_CFG\n'
+)
 
 
-CFG_SECOND = ('BEGIN_CFG\nSize\n1\nSupercell\n20 0 0\n0 18 0\n0 0 17\n'
-              'AtomData: id type cartes_x cartes_y cartes_z\n'
-              '1 2 2 1 .5\nEnergy\n1\nFeature label train2\nEND_CFG\n')
+CFG_SECOND = (
+    'BEGIN_CFG\nSize\n1\nSupercell\n20 0 0\n0 18 0\n0 0 17\n'
+    'AtomData: id type cartes_x cartes_y cartes_z\n'
+    '1 2 2 1 .5\nEnergy\n1\nFeature label train2\nEND_CFG\n'
+)
 
 
 @pytest.fixture
@@ -161,21 +174,28 @@ def training_paths(tmp_path):
     cfg.write_text(CFG_FIRST + CFG_SECOND)
 
     # These map to internal model types [2, 0, 2], not atomic numbers.
-    first = imrmlp.Atoms(numbers=[13, 8, 13], elements=['O', 'N', 'Al'],
-                       positions=[[.1, .2, .3], [1.1, .5, .8], [2.4, 1.3, .7]],
-                       cell=[[8., .2, .1], [.1, 9., .3], [0., .2, 10.]],
-                       pbc=[True, False, True])
+    first = imrmlp.Atoms(
+        numbers=[13, 8, 13],
+        elements=['O', 'N', 'Al'],
+        positions=[[0.1, 0.2, 0.3], [1.1, 0.5, 0.8], [2.4, 1.3, 0.7]],
+        cell=[[8.0, 0.2, 0.1], [0.1, 9.0, 0.3], [0.0, 0.2, 10.0]],
+        pbc=[True, False, True],
+    )
     first.energy = -4.5
-    first.forces = [[.1, .2, .3], [-.1, -.2, -.3], [.7, .8, .9]]
-    first.stress = [[1., .6, .5], [.6, 2., .4], [.5, .4, 3.]]
-    first._impl.site_energies = [-1., -2., -1.5]
-    first._impl.charges = [.25, -.1, -.15]
+    first.forces = [[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3], [0.7, 0.8, 0.9]]
+    first.stress = [[1.0, 0.6, 0.5], [0.6, 2.0, 0.4], [0.5, 0.4, 3.0]]
+    first._impl.site_energies = [-1.0, -2.0, -1.5]
+    first._impl.charges = [0.25, -0.1, -0.15]
     directions = np.arange(18, dtype=float).reshape(9, 2) / 17
     first.set_hvp(directions, 1.5 * directions)
-    second = imrmlp.Atoms(numbers=[8], elements=['O', 'N', 'Al'],
-                        positions=[[2., 1., .5]], cell=np.diag([20., 18., 17.]),
-                        pbc=False)
-    second.energy = 1.
+    second = imrmlp.Atoms(
+        numbers=[8],
+        elements=['O', 'N', 'Al'],
+        positions=[[2.0, 1.0, 0.5]],
+        cell=np.diag([20.0, 18.0, 17.0]),
+        pbc=False,
+    )
+    second.energy = 1.0
     binary = tmp_path / 'training.bin'
     imrmlp.write(binary, [first, second], format='bin')
     return {'cfg': cfg, 'bin': binary}
@@ -190,12 +210,15 @@ def test_cfg_stream_keeps_id_slots_raw_types_and_optional_labels(training_paths,
         assert_same(frame, reference)
     assert actual[0].chemmap == [2, 0, 2]
     np.testing.assert_array_equal(actual[0].numbers, [2, 0, 2])
-    np.testing.assert_allclose(actual[0].positions,
-                               [[.1, .2, .3], [1.1, 1.2, 1.3], [3.1, 3.2, 3.3]])
-    np.testing.assert_allclose(actual[0].forces,
-                               [[.1, .2, .3], [-.1, -.2, -.3], [.7, .8, .9]])
-    np.testing.assert_allclose(actual[0].stress,
-                               [[1., .6, .5], [.6, 2., .4], [.5, .4, 3.]])
+    np.testing.assert_allclose(
+        actual[0].positions, [[0.1, 0.2, 0.3], [1.1, 1.2, 1.3], [3.1, 3.2, 3.3]]
+    )
+    np.testing.assert_allclose(
+        actual[0].forces, [[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3], [0.7, 0.8, 0.9]]
+    )
+    np.testing.assert_allclose(
+        actual[0].stress, [[1.0, 0.6, 0.5], [0.6, 2.0, 0.4], [0.5, 0.4, 3.0]]
+    )
     assert actual[1].chemmap == [2]
     assert actual[1].forces is None and actual[1].stress is None
     np.testing.assert_array_equal(actual[0].pbc, [True, True, True])
@@ -221,8 +244,8 @@ def test_binary_stream_keeps_partial_pbc_hvp_and_independent_frames(training_pat
     assert second.chemmap == [0]
     np.testing.assert_array_equal(first.pbc, [True, False, True])
     np.testing.assert_array_equal(second.pbc, [False, False, False])
-    np.testing.assert_allclose(first.site_energies, [-1., -2., -1.5])
-    np.testing.assert_allclose(first.charges, [.25, -.1, -.15])
+    np.testing.assert_allclose(first.site_energies, [-1.0, -2.0, -1.5])
+    np.testing.assert_allclose(first.charges, [0.25, -0.1, -0.15])
     directions = np.arange(18, dtype=float).reshape(9, 2) / 17
     np.testing.assert_allclose(first.hvp_directions, directions, rtol=1e-14, atol=1e-14)
     np.testing.assert_allclose(first.hvp_targets, 1.5 * directions, rtol=1e-14, atol=1e-14)
@@ -249,7 +272,7 @@ def test_started_training_frame_truncation_is_not_eof(training_paths, codec, err
     assert_same(first, saved)
 
 
-N2P2_BOHR = .529177210903
+N2P2_BOHR = 0.529177210903
 
 
 N2P2_HARTREE = 27.211396641308
@@ -258,42 +281,61 @@ N2P2_HARTREE = 27.211396641308
 N2P2_LATTICE = 'lattice 6 0 0\nlattice .2 7 0\nlattice .1 .3 8\n'
 
 
-N2P2_FIRST = ('begin\ncomment label=ignored config_type=ignored\n' + N2P2_LATTICE +
-              'atom 1 2 3 H .25 -.5 .1 -.2 .3\n'
-              'atom 2 3 4 O -.1 .125 -.4 .5 -.6\n'
-              'energy -.25\ncharge .8\nend\n')
+N2P2_FIRST = (
+    'begin\ncomment label=ignored config_type=ignored\n'
+    + N2P2_LATTICE
+    + 'atom 1 2 3 H .25 -.5 .1 -.2 .3\n'
+    'atom 2 3 4 O -.1 .125 -.4 .5 -.6\n'
+    'energy -.25\ncharge .8\nend\n'
+)
 
 
 N2P2_EMPTY = 'begin\n' + N2P2_LATTICE + 'end\n'
 
 
-N2P2_SECOND = ('begin\nlattice 8 0 0\nlattice 0 9 0\nlattice 0 0 10\n'
-               'atom 3 1 2 O -.2 .125 0 0 .3\nend\n')
+N2P2_SECOND = (
+    'begin\nlattice 8 0 0\nlattice 0 9 0\nlattice 0 0 10\natom 3 1 2 O -.2 .125 0 0 .3\nend\n'
+)
 
 
 def assert_n2p2_first(frame):
     np.testing.assert_array_equal(frame.numbers, [1, 8])
     assert frame.chemmap == [1, 8]
     np.testing.assert_array_equal(frame.pbc, [True, True, True])
-    np.testing.assert_allclose(frame.positions,
-                               np.array([[1., 2., 3.], [2., 3., 4.]]) * N2P2_BOHR,
-                               rtol=1e-13, atol=1e-13)
-    np.testing.assert_allclose(frame.cell,
-                               np.array([[6., 0., 0.], [.2, 7., 0.], [.1, .3, 8.]]) * N2P2_BOHR,
-                               rtol=1e-13, atol=1e-13)
-    np.testing.assert_allclose(frame.forces,
-                               np.array([[.1, -.2, .3], [-.4, .5, -.6]]) *
-                               N2P2_HARTREE / N2P2_BOHR, rtol=1e-13, atol=1e-13)
-    assert frame.energy == pytest.approx(-.25 * N2P2_HARTREE, rel=1e-13, abs=1e-13)
-    np.testing.assert_allclose(frame.site_energies, np.array([-.5, .125]) * N2P2_HARTREE,
-                               rtol=1e-13, atol=1e-13)
-    np.testing.assert_allclose(frame.charges, [.25, -.1], rtol=0, atol=1e-14)
+    np.testing.assert_allclose(
+        frame.positions,
+        np.array([[1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]) * N2P2_BOHR,
+        rtol=1e-13,
+        atol=1e-13,
+    )
+    np.testing.assert_allclose(
+        frame.cell,
+        np.array([[6.0, 0.0, 0.0], [0.2, 7.0, 0.0], [0.1, 0.3, 8.0]]) * N2P2_BOHR,
+        rtol=1e-13,
+        atol=1e-13,
+    )
+    np.testing.assert_allclose(
+        frame.forces,
+        np.array([[0.1, -0.2, 0.3], [-0.4, 0.5, -0.6]]) * N2P2_HARTREE / N2P2_BOHR,
+        rtol=1e-13,
+        atol=1e-13,
+    )
+    assert frame.energy == pytest.approx(-0.25 * N2P2_HARTREE, rel=1e-13, abs=1e-13)
+    np.testing.assert_allclose(
+        frame.site_energies, np.array([-0.5, 0.125]) * N2P2_HARTREE, rtol=1e-13, atol=1e-13
+    )
+    np.testing.assert_allclose(frame.charges, [0.25, -0.1], rtol=0, atol=1e-14)
     assert frame.stress is None
 
 
-@pytest.mark.parametrize('format,filename', [
-    ('', 'frames.n2p2'), ('n2p2', 'input.data'), ('n2p2dat', 'input.data'),
-])
+@pytest.mark.parametrize(
+    'format,filename',
+    [
+        ('', 'frames.n2p2'),
+        ('n2p2', 'input.data'),
+        ('n2p2dat', 'input.data'),
+    ],
+)
 def test_n2p2_stream_units_elements_and_independent_charge_labels(tmp_path, format, filename):
     path = tmp_path / filename
     path.write_text(N2P2_FIRST + N2P2_EMPTY + N2P2_SECOND)
@@ -315,18 +357,21 @@ def test_n2p2_stream_units_elements_and_independent_charge_labels(tmp_path, form
     assert empty.energy is None and empty.charges is None and empty.site_energies is None
     assert second.chemmap == [8]
     assert second.energy is None
-    np.testing.assert_allclose(second.charges, [-.2])
-    np.testing.assert_allclose(second.site_energies, [.125 * N2P2_HARTREE])
+    np.testing.assert_allclose(second.charges, [-0.2])
+    np.testing.assert_allclose(second.site_energies, [0.125 * N2P2_HARTREE])
     assert second.cell[0, 0] == pytest.approx(8 * N2P2_BOHR)
 
     for i, frame in enumerate(actual):
         output = tmp_path / f'n2p2-frame-{i}.xyz'
         imrmlp.write_one(output, frame)
-        fields = dict(token.split('=', 1) for token in shlex.split(
-            output.read_text().splitlines()[1]) if '=' in token)
+        fields = dict(
+            token.split('=', 1)
+            for token in shlex.split(output.read_text().splitlines()[1])
+            if '=' in token
+        )
         if i == 0:
-            assert float(fields['total_charge']) == pytest.approx(.8)
-            assert first.charges.sum() == pytest.approx(.15)
+            assert float(fields['total_charge']) == pytest.approx(0.8)
+            assert first.charges.sum() == pytest.approx(0.15)
         else:
             assert 'total_charge' not in fields
         assert 'label' not in fields and 'config_type' not in fields
@@ -349,12 +394,18 @@ def xdat_trajectory(variable, *, bad_second=False):
     return XDAT_HEADER + XDAT_FIRST + (XDAT_HEADER2 if variable else '') + second
 
 
-@pytest.mark.parametrize('format,filename,variable', [
-    ('', 'XDATCAR', False), ('xdatcar', 'input.data', False),
-    ('', 'xdatcar6', True), ('XDATCAR6', 'input.data', True),
-])
+@pytest.mark.parametrize(
+    'format,filename,variable',
+    [
+        ('', 'XDATCAR', False),
+        ('xdatcar', 'input.data', False),
+        ('', 'xdatcar6', True),
+        ('XDATCAR6', 'input.data', True),
+    ],
+)
 def test_xdatcar_stream_keeps_first_frame_cells_species_and_cartesian_coordinates(
-        tmp_path, format, filename, variable):
+    tmp_path, format, filename, variable
+):
     path = tmp_path / filename
     path.write_text(xdat_trajectory(variable).rstrip('\n'))
     bulk = imrmlp.read(path, format=format)
@@ -366,14 +417,19 @@ def test_xdatcar_stream_keeps_first_frame_cells_species_and_cartesian_coordinate
             next(frames)
     for actual, expected in zip([first, second], bulk):
         assert_same(actual, expected)
-    cells = [np.array([[4., 0., 0.], [.5, 6., 0.], [0., .2, 8.]])]
-    cells.append(np.array([[5., .2, 0.], [0., 7., .1], [.3, 0., 9.]])
-                 if variable else cells[0])
-    fractions = [np.array([[.1, .2, .3], [.4, .5, .6]]),
-                 np.array([[.2, .3, .4], [.5, .6, .7]])]
+    cells = [np.array([[4.0, 0.0, 0.0], [0.5, 6.0, 0.0], [0.0, 0.2, 8.0]])]
+    cells.append(
+        np.array([[5.0, 0.2, 0.0], [0.0, 7.0, 0.1], [0.3, 0.0, 9.0]]) if variable else cells[0]
+    )
+    fractions = [
+        np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]),
+        np.array([[0.2, 0.3, 0.4], [0.5, 0.6, 0.7]]),
+    ]
     for index, atom in enumerate([first, second]):
         np.testing.assert_allclose(atom.cell, cells[index], atol=1e-13, rtol=0)
-        np.testing.assert_allclose(atom.positions, fractions[index] @ cells[index], atol=1e-13, rtol=0)
+        np.testing.assert_allclose(
+            atom.positions, fractions[index] @ cells[index], atol=1e-13, rtol=0
+        )
         np.testing.assert_array_equal(atom.numbers, [2, 1] if variable and index else [1, 2])
         np.testing.assert_array_equal(atom.pbc, [True, True, True])
         assert atom.energy is None and atom.forces is None and atom.stress is None
@@ -405,8 +461,8 @@ def test_write_iter_consumes_frames_once_and_matches_bulk(tmp_path, format, suff
     for frame in frames:
         frame.pbc = True  # CFG retains its native full-PBC convention.
     first = frames[0]
-    first._impl.velocities = np.array([[.2, .3, .4], [-.1, .5, .6]])
-    directions = np.arange(1., 13.).reshape(6, 2) / 10
+    first._impl.velocities = np.array([[0.2, 0.3, 0.4], [-0.1, 0.5, 0.6]])
+    directions = np.arange(1.0, 13.0).reshape(6, 2) / 10
     first.set_hvp(directions, 1.7 * directions)
     expected = [frame.copy() for frame in frames]
     first.to_fractional()
@@ -434,7 +490,7 @@ def test_write_iter_consumes_frames_once_and_matches_bulk(tmp_path, format, suff
     for frame, reference, bulk_frame in zip(actual, expected, imrmlp.read(bulk)):
         assert_same(frame, reference)
         assert_same(frame, bulk_frame)
-    np.testing.assert_allclose(actual[0].velocities, [[.2, .3, .4], [-.1, .5, .6]])
+    np.testing.assert_allclose(actual[0].velocities, [[0.2, 0.3, 0.4], [-0.1, 0.5, 0.6]])
     np.testing.assert_allclose(actual[0].hvp_directions, directions)
     np.testing.assert_allclose(actual[0].hvp_targets, 1.7 * directions)
     assert actual[2].velocities is None and actual[2].charges is None
@@ -452,10 +508,15 @@ def test_write_iter_composes_with_iread_and_finalizes_gzip(tmp_path):
 
 
 def test_write_iter_uses_the_declared_element_order_for_extxyz(tmp_path):
-    frames = [imrmlp.Atoms(numbers=[1, 2], elements=['He', 'H'],
-                         positions=[[0, 0, 0], [2, 0, 0]], cell=np.eye(3)*10),
-              imrmlp.Atoms(numbers=[1], elements=['He', 'H'],
-                         positions=[[1, 0, 0]], cell=np.eye(3)*10)]
+    frames = [
+        imrmlp.Atoms(
+            numbers=[1, 2],
+            elements=['He', 'H'],
+            positions=[[0, 0, 0], [2, 0, 0]],
+            cell=np.eye(3) * 10,
+        ),
+        imrmlp.Atoms(numbers=[1], elements=['He', 'H'], positions=[[1, 0, 0]], cell=np.eye(3) * 10),
+    ]
     output = tmp_path / 'mapped.xyz'
     imrmlp.write_iter(output, iter(frames), format='xyz')
     actual = imrmlp.read(output)
@@ -464,7 +525,7 @@ def test_write_iter_uses_the_declared_element_order_for_extxyz(tmp_path):
 
 
 def test_write_iter_preserves_an_iterator_error_and_the_written_prefix(tmp_path):
-    atom = imrmlp.Atoms(numbers=[1], positions=[[1, 2, 3]], cell=np.eye(3)*10)
+    atom = imrmlp.Atoms(numbers=[1], positions=[[1, 2, 3]], cell=np.eye(3) * 10)
     error = ValueError('source generation failed')
     output = tmp_path / 'prefix.cfg'
 
@@ -482,8 +543,7 @@ def test_write_iter_preserves_an_iterator_error_and_the_written_prefix(tmp_path)
 
 def test_write_iter_snapshots_the_mapping_and_rejects_later_changes(tmp_path):
     elements = ['H', 'He']
-    atom = imrmlp.Atoms(numbers=[1], elements=elements, positions=[[0, 0, 0]],
-                      cell=np.eye(3)*10)
+    atom = imrmlp.Atoms(numbers=[1], elements=elements, positions=[[0, 0, 0]], cell=np.eye(3) * 10)
     output = tmp_path / 'mapping.xyz'
 
     def changed_mapping():
@@ -492,8 +552,9 @@ def test_write_iter_snapshots_the_mapping_and_rejects_later_changes(tmp_path):
         # Atoms snapshots the caller list: the original remains compatible.
         yield atom
         # A later Atoms with a genuinely different mapping must be rejected.
-        yield imrmlp.Atoms(numbers=[1], elements=elements, positions=[[1, 0, 0]],
-                         cell=np.eye(3)*10)
+        yield imrmlp.Atoms(
+            numbers=[1], elements=elements, positions=[[1, 0, 0]], cell=np.eye(3) * 10
+        )
 
     with pytest.raises(ValueError, match='same element mapping'):
         imrmlp.write_iter(output, changed_mapping())
@@ -534,22 +595,27 @@ def test_write_iter_rejects_other_formats_before_consuming_or_opening(tmp_path, 
 @pytest.mark.parametrize('compressed', [False, True])
 def test_write_iter_reports_output_close_failures(tmp_path, compressed):
     from pathlib import Path
+
     if not Path('/dev/full').exists():
         pytest.skip('/dev/full is unavailable')
     output = tmp_path / ('full.xyz.gz' if compressed else 'full.xyz')
     output.symlink_to('/dev/full')
-    atom = imrmlp.Atoms(numbers=[1], positions=[[0, 0, 0]], cell=np.eye(3)*10)
+    atom = imrmlp.Atoms(numbers=[1], positions=[[0, 0, 0]], cell=np.eye(3) * 10)
     with pytest.raises(RuntimeError, match='write|clos'):
         imrmlp.write_iter(output, iter([atom]))
 
 
 def test_write_iter_normalizes_numeric_element_symbols_without_changing_sources(tmp_path):
     elements = ['28', 'Al']
-    frames = [imrmlp.Atoms(numbers=[13, 28, 13], elements=elements,
-                         positions=[[1, 2, 3], [3, 2, 1], [2, 3, 1]],
-                         cell=np.eye(3) * 10),
-              imrmlp.Atoms(numbers=[28], elements=elements,
-                         positions=[[2, 1, 3]], cell=np.eye(3) * 10)]
+    frames = [
+        imrmlp.Atoms(
+            numbers=[13, 28, 13],
+            elements=elements,
+            positions=[[1, 2, 3], [3, 2, 1], [2, 3, 1]],
+            cell=np.eye(3) * 10,
+        ),
+        imrmlp.Atoms(numbers=[28], elements=elements, positions=[[2, 1, 3]], cell=np.eye(3) * 10),
+    ]
     frames[0].to_fractional()
     positions = frames[0].positions.copy()
     output = tmp_path / 'numeric-map.xyz'
@@ -562,8 +628,7 @@ def test_write_iter_normalizes_numeric_element_symbols_without_changing_sources(
     assert frames[0]._elements == elements
     assert not frames[0]._impl.cartesian
     np.testing.assert_array_equal(frames[0].positions, positions)
-    np.testing.assert_allclose(actual[0].positions,
-                               [[1, 2, 3], [3, 2, 1], [2, 3, 1]])
+    np.testing.assert_allclose(actual[0].positions, [[1, 2, 3], [3, 2, 1], [2, 3, 1]])
     rows = output.read_text().splitlines()
     assert [row.split()[0] for row in rows[2:5]] == ['Al', 'Ni', 'Al']
     assert rows[-1].split()[0] == 'Ni'
@@ -578,28 +643,37 @@ OUTCAR_TOTEN = '  free  energy   TOTEN  ='
 def bounded_outcar_step(step, *, mlff=False):
     electronic = '' if mlff else f'{OUTCAR_ITER} 1(1)\n{OUTCAR_ABORT}\n'
     side = step + 2
-    return (electronic + ' VOLUME and BASIS-vectors are now :\n'
-            ' ---\n energy-cutoff : 400\n volume of cell : 8\n'
-            ' direct lattice vectors reciprocal lattice vectors\n'
-            f' {side} 0 0 0 0 0\n 0 {side} 0 0 0 0\n 0 0 {side} 0 0 0\n'
-            f'{OUTCAR_POSITION}\n ---\n'
-            f' {step + 1} 2 3 .1 .2 .3\n {step + 4} 5 6 -.1 -.2 -.3\n'
-            f'{OUTCAR_TOTEN} {-10 - step} eV\n')
+    return (
+        electronic + ' VOLUME and BASIS-vectors are now :\n'
+        ' ---\n energy-cutoff : 400\n volume of cell : 8\n'
+        ' direct lattice vectors reciprocal lattice vectors\n'
+        f' {side} 0 0 0 0 0\n 0 {side} 0 0 0 0\n 0 0 {side} 0 0 0\n'
+        f'{OUTCAR_POSITION}\n ---\n'
+        f' {step + 1} 2 3 .1 .2 .3\n {step + 4} 5 6 -.1 -.2 -.3\n'
+        f'{OUTCAR_TOTEN} {-10 - step} eV\n'
+    )
 
 
 def bounded_outcar(version=5, *, mlff=False, second=None):
-    header = (f' vasp.{version}.4.4\n INCAR: SYSTEM = bounded\n'
-              + (' MLFF enabled\n' if mlff else '')
-              + ' POTCAR: PAW_PBE H 2000\n VRHFIN =H: s1\n'
-              ' ions per type = 2\n NELM = 60\n EDIFF = .00001\n'
-              ' EDIFFG = -.1\n NSW = 2\n IBRION = 0\n ISIF = 2\n')
-    return (header + bounded_outcar_step(0, mlff=mlff)
-            + (bounded_outcar_step(1, mlff=mlff) if second is None else second))
+    header = (
+        f' vasp.{version}.4.4\n INCAR: SYSTEM = bounded\n'
+        + (' MLFF enabled\n' if mlff else '')
+        + ' POTCAR: PAW_PBE H 2000\n VRHFIN =H: s1\n'
+        ' ions per type = 2\n NELM = 60\n EDIFF = .00001\n'
+        ' EDIFFG = -.1\n NSW = 2\n IBRION = 0\n ISIF = 2\n'
+    )
+    return (
+        header
+        + bounded_outcar_step(0, mlff=mlff)
+        + (bounded_outcar_step(1, mlff=mlff) if second is None else second)
+    )
 
 
 @pytest.mark.parametrize('version,mlff', [(5, False), (6, False), (6, True)])
 @pytest.mark.parametrize('compressed', [False, True])
-def test_outcar_iread_owns_complete_steps_and_accepts_statistics_tail(tmp_path, version, mlff, compressed):
+def test_outcar_iread_owns_complete_steps_and_accepts_statistics_tail(
+    tmp_path, version, mlff, compressed
+):
     path = tmp_path / ('OUTCAR.gz' if compressed else 'OUTCAR')
     text = bounded_outcar(version, mlff=mlff) + ' General timing and accounting informations'
     data = text.encode()
@@ -615,17 +689,20 @@ def test_outcar_iread_owns_complete_steps_and_accepts_statistics_tail(tmp_path, 
         assert atom.natoms == 2
         np.testing.assert_allclose(atom.cell, np.eye(3) * (step + 2))
         np.testing.assert_allclose(atom.positions, [[step + 1, 2, 3], [step + 4, 5, 6]])
-        np.testing.assert_allclose(atom.forces, [[.1, .2, .3], [-.1, -.2, -.3]])
+        np.testing.assert_allclose(atom.forces, [[0.1, 0.2, 0.3], [-0.1, -0.2, -0.3]])
         assert atom.energy == pytest.approx(-10 - step)
     assert_same(first, saved)
 
 
-@pytest.mark.parametrize('broken', [
-    OUTCAR_ITER + ' 1(1)\n',
-    bounded_outcar_step(1).split(OUTCAR_POSITION)[0],
-    bounded_outcar_step(1).replace(' 2 2 3 .1 .2 .3', ' 2 2 3 .1 .2'),
-    bounded_outcar_step(1).replace(f'{OUTCAR_TOTEN} -11', f'{OUTCAR_TOTEN} invalid'),
-])
+@pytest.mark.parametrize(
+    'broken',
+    [
+        OUTCAR_ITER + ' 1(1)\n',
+        bounded_outcar_step(1).split(OUTCAR_POSITION)[0],
+        bounded_outcar_step(1).replace(' 2 2 3 .1 .2 .3', ' 2 2 3 .1 .2'),
+        bounded_outcar_step(1).replace(f'{OUTCAR_TOTEN} -11', f'{OUTCAR_TOTEN} invalid'),
+    ],
+)
 def test_outcar_iread_reports_started_incomplete_step_after_valid_prefix(tmp_path, broken):
     path = tmp_path / 'OUTCAR'
     path.write_text(bounded_outcar(second=broken))

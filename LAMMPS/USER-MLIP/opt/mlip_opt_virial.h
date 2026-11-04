@@ -5,11 +5,11 @@
 #ifndef LMP_MLIP_OPT_VIRIAL_H
 #define LMP_MLIP_OPT_VIRIAL_H
 
-namespace MLIPOpt {
+namespace MLIPOpt
+{
 
 // r = x_neighbor - x_center, derivative = d U_center / d r.
-inline void standard_virial(const double *r, const double *derivative,
-                            double *virial)
+inline void standard_virial(const double *r, const double *derivative, double *virial)
 {
     virial[0] = -r[0] * derivative[0];
     virial[1] = -r[1] * derivative[1];
@@ -20,10 +20,10 @@ inline void standard_virial(const double *r, const double *derivative,
 }
 
 // LAMMPS stress/atom assigns half of an edge virial to each endpoint.
-inline void add_per_atom_virial(double *center, double *neighbor,
-                                const double *virial)
+inline void add_per_atom_virial(double *center, double *neighbor, const double *virial)
 {
-    for (int component = 0; component < 6; ++component) {
+    for (int component = 0; component < 6; ++component)
+    {
         const double contribution = 0.5 * virial[component];
         center[component] += contribution;
         neighbor[component] += contribution;

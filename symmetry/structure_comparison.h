@@ -8,9 +8,11 @@
 
 #include <memory>
 
-namespace Symmetry3D {
+namespace Symmetry3D
+{
 
-struct StructureComparisonOptions {
+struct StructureComparisonOptions
+{
     double symmetry_tolerance = 1e-4;
     double position_tolerance = 0.1;
     double volume_tolerance = 1e-3;
@@ -26,7 +28,8 @@ struct StructureComparisonOptions {
 // Only fully periodic structures are reduced to primitive cells. Partial/nonperiodic
 // structures retain their cells and atom counts; wrapping follows their PBC flags.
 // Prepare once, then reuse the cell and descriptor data for batch comparisons.
-struct ComparableStructure {
+struct ComparableStructure
+{
     Atoms atoms;
     std::map<int, int> composition;
     Eigen::MatrixXd descriptors;
@@ -34,14 +37,15 @@ struct ComparableStructure {
     std::vector<Eigen::Matrix3d> lattice_operations;
 };
 
-class StructureComparator {
-public:
+class StructureComparator
+{
+  public:
     explicit StructureComparator(StructureComparisonOptions options = {});
     ComparableStructure prepare(Atoms atoms);
     // Does not modify either input; concurrent comparisons may share prepared data.
     bool equivalent(const ComparableStructure &first, const ComparableStructure &second) const;
 
-private:
+  private:
     StructureComparisonOptions options_;
     std::unique_ptr<Potentials::PotMTP> descriptor_potential_;
     void describe(ComparableStructure &structure) const;

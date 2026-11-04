@@ -8,7 +8,10 @@
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <vector>
 
-namespace Potentials { class PotMTP; }
+namespace Potentials
+{
+class PotMTP;
+}
 
 /// @brief MTM descriptor wrapping the MTP scalar basis.
 /// @ingroup descriptors
@@ -23,7 +26,7 @@ namespace Potentials { class PotMTP; }
 /// must outlive this descriptor.
 class DescriptorMTM : public Descriptors
 {
-public:
+  public:
     /// Construct from an existing, fully-loaded PotMTP.
     /// @param pot  Must outlive this descriptor.  The descriptor reads
     ///             radial_coeffs, basis parameters, and radial basis from it.
@@ -38,34 +41,47 @@ public:
     /// Compute scalar moments with optional position gradients.
     /// When opts.compute_derivative is true, opts.gradient->grad is resized
     /// to (feature_size, n_neighbors, 3) and filled with d(desc)/d(pos).
-    void compute(Neighborhood &nbh, Eigen::VectorXd &out,
-                 const ComputeOptions &opts) override;
+    void compute(Neighborhood &nbh, Eigen::VectorXd &out, const ComputeOptions &opts) override;
 
     /// Number of scalar moments = alpha_scalar_moments.
-    int feature_size() const override { return ncols_; }
-    bool supports_weighted_site_hvp() const override { return true; }
-    bool supports_weighted_site_hessian() const override { return true; }
+    int feature_size() const override
+    {
+        return ncols_;
+    }
+
+    bool supports_weighted_site_hvp() const override
+    {
+        return true;
+    }
+
+    bool supports_weighted_site_hessian() const override
+    {
+        return true;
+    }
+
     void compute_weighted_site_hvp(Neighborhood &, const Eigen::VectorXd &,
-        const DescriptorSiteMatrix &, double &, DescriptorSiteMatrix &, DescriptorSiteMatrix &) override;
-    void compute_weighted_site_hessian(Neighborhood &, const Eigen::VectorXd &,
-        double &, DescriptorSiteMatrix &, Eigen::MatrixXd &) override;
+                                   const DescriptorSiteMatrix &, double &, DescriptorSiteMatrix &,
+                                   DescriptorSiteMatrix &) override;
+    void compute_weighted_site_hessian(Neighborhood &, const Eigen::VectorXd &, double &,
+                                       DescriptorSiteMatrix &, Eigen::MatrixXd &) override;
 
     /// Access the underlying MTP potential (read-only configuration).
-    Potentials::PotMTP &pot() const { return *pot_; }
+    Potentials::PotMTP &pot() const
+    {
+        return *pot_;
+    }
 
     std::unique_ptr<Descriptors> clone() const override;
 
-private:
+  private:
     struct CurvatureWorkspace;
     std::unique_ptr<CurvatureWorkspace> curvature_;
     /// Compute d(basis_scalar_moment) / d(neighbor_position) for all neighbors.
     /// \p jac is pre-sized to (feature_size, nbhcount, 3) and zeroed.
-    void compute_moment_jacobian(
-        Neighborhood &nbh,
-        Eigen::Tensor<double, 3, Eigen::RowMajor> &jac);
+    void compute_moment_jacobian(Neighborhood &nbh, Eigen::Tensor<double, 3, Eigen::RowMajor> &jac);
 
     Potentials::PotMTP *pot_;
-    int ncols_;              // alpha_scalar_moments
+    int ncols_; // alpha_scalar_moments
     int alpha_moments_count_;
     int alpha_index_basic_count_;
     int alpha_index_times_count_;

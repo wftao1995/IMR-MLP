@@ -9,15 +9,27 @@
 #endif
 
 using namespace LAMMPS_NS;
-namespace {
-Pair *create_opt(LAMMPS *lmp) { return new PairMLIPOPT(lmp); }
+
+namespace
+{
+Pair *create_opt(LAMMPS *lmp)
+{
+    return new PairMLIPOPT(lmp);
+}
 #ifdef MTP_STANDALONE_OPENMP
-Pair *create_omp(LAMMPS *lmp) { return new PairMLIPOMP(lmp); }
+Pair *create_omp(LAMMPS *lmp)
+{
+    return new PairMLIPOMP(lmp);
+}
 #endif
 #ifdef MTP_STANDALONE_GPU
-Pair *create_gpu(LAMMPS *lmp) { return new PairMLIPGpuDirect(lmp); }
+Pair *create_gpu(LAMMPS *lmp)
+{
+    return new PairMLIPGpuDirect(lmp);
+}
 #endif
 }
+
 extern "C" void lammpsplugin_init(void *lmp, void *handle, void *regfunc)
 {
     const auto register_plugin = reinterpret_cast<lammpsplugin_regfunc>(regfunc);

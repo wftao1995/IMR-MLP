@@ -14,7 +14,8 @@
 #include <numeric>
 #include <stdexcept>
 
-namespace {
+namespace
+{
 void validate_vacf_trajectory(const std::vector<Atoms> &atoms, int ndim)
 {
     if (atoms.empty())
@@ -25,18 +26,19 @@ void validate_vacf_trajectory(const std::vector<Atoms> &atoms, int ndim)
         throw std::invalid_argument("VACF ndim must be between 1 and 3");
 
     const int natoms = atoms[0].size();
-    for (int i = 0; i < (int)atoms.size(); ++i) {
+    for (int i = 0; i < (int)atoms.size(); ++i)
+    {
         if (atoms[i].size() != natoms)
             throw std::invalid_argument("VACF requires a constant atom count across frames");
         if ((int)atoms[i].chemmap_.size() != natoms)
             throw std::invalid_argument("VACF requires chemmap size to match atom count");
         if (atoms[i].chemmap_ != atoms[0].chemmap_)
-            throw std::invalid_argument("VACF requires stable atom types and ordering across frames");
+            throw std::invalid_argument(
+                "VACF requires stable atom types and ordering across frames");
     }
 }
 
-Eigen::RowVector3d minimum_image_displacement(const Atoms &frame,
-                                               const Eigen::RowVector3d &delta)
+Eigen::RowVector3d minimum_image_displacement(const Atoms &frame, const Eigen::RowVector3d &delta)
 {
     Atoms pair;
     pair.cell_ = frame.cell_;
@@ -49,22 +51,28 @@ Eigen::RowVector3d minimum_image_displacement(const Atoms &frame,
 
 Eigen::RowVector3d cartesian_position(const Atoms &frame, int iatom)
 {
-    if (frame.cartesian) return frame.pos_[iatom];
+    if (frame.cartesian)
+        return frame.pos_[iatom];
     return frame.pos_[iatom] * frame.cell_;
 }
 
 void normalize_series(std::vector<std::array<double, 4>> &series)
 {
-    if (series.empty()) return;
-    for (int a = 0; a < 4; ++a) {
+    if (series.empty())
+        return;
+    for (int a = 0; a < 4; ++a)
+    {
         const double c0 = series[0][a];
         if (!std::isfinite(c0))
             throw std::runtime_error("VACF contains a non-finite zero-lag value");
-        if (std::abs(c0) <= 1e-30) {
-            for (auto &row : series) row[a] = 0.0;
+        if (std::abs(c0) <= 1e-30)
+        {
+            for (auto &row : series)
+                row[a] = 0.0;
             continue;
         }
-        for (auto &row : series) row[a] /= c0;
+        for (auto &row : series)
+            row[a] /= c0;
     }
 }
 
@@ -79,8 +87,8 @@ void normalize_series(std::vector<std::array<double, 4>> &series)
 // recursion provides the coefficients for every order incrementally in one
 // pass; recursion stops early if a reflection coefficient reaches 1 (the
 // series is no longer stationary at that order).
-static int fit_ar(const std::vector<double> &v, int pmax, int fixed_order,
-                  std::vector<double> &a, std::vector<double> &r)
+static int fit_ar(const std::vector<double> &v, int pmax, int fixed_order, std::vector<double> &a,
+                  std::vector<double> &r)
 {
     const int n = (int)v.size();
     a.assign(pmax, 0.0);
@@ -89,7 +97,8 @@ static int fit_ar(const std::vector<double> &v, int pmax, int fixed_order,
         return 0;
 
     // biased autocovariance estimates r(k), k = 0..pmax
-    for (int k = 0; k <= pmax; ++k) {
+    for (int k = 0; k <= pmax; ++k)
+    {
         for (int t = k; t < n; ++t)
             r[k] += v[t] * v[t - k];
         r[k] /= n;
@@ -102,7 +111,8 @@ static int fit_ar(const std::vector<double> &v, int pmax, int fixed_order,
     int best_p = 1;
     double best_bic = 1e300;
     double sigma2 = r[0];
-    for (int p = 1; p <= pmax; ++p) {
+    for (int p = 1; p <= pmax; ++p)
+    {
         if (2 * p + 1 > n)
             break;
         double num = r[p];
@@ -119,13 +129,16 @@ static int fit_ar(const std::vector<double> &v, int pmax, int fixed_order,
         if (sigma2 <= 1e-30)
             break;
 
-        if (fixed_order > 0 && p == fixed_order) {
+        if (fixed_order > 0 && p == fixed_order)
+        {
             std::copy(ak.begin(), ak.begin() + p, a.begin());
             return p;
         }
-        if (fixed_order == 0) {
+        if (fixed_order == 0)
+        {
             const double bic = n * std::log(sigma2) + p * std::log((double)n);
-            if (bic < best_bic) {
+            if (bic < best_bic)
+            {
                 best_bic = bic;
                 best_p = p;
                 std::copy(ak.begin(), ak.begin() + p, a.begin());
@@ -139,14 +152,15 @@ static int fit_ar(const std::vector<double> &v, int pmax, int fixed_order,
     return best_p;
 }
 
-static void ar_vacf(const std::vector<double> &r, const std::vector<double> &a, int p,
-                    int nlag, std::vector<double> &gamma)
+static void ar_vacf(const std::vector<double> &r, const std::vector<double> &a, int p, int nlag,
+                    std::vector<double> &gamma)
 {
     gamma.resize(nlag);
     // the Yule-Walker fit reproduces the sample autocovariances r(0..p-1)
     for (int m = 0; m < p && m < nlag; ++m)
         gamma[m] = r[m];
-    for (int m = p; m < nlag; ++m) {
+    for (int m = p; m < nlag; ++m)
+    {
         double g = 0.0;
         for (int k = 1; k <= p; ++k)
             g += a[k - 1] * gamma[m - k];
@@ -159,13 +173,13 @@ static void vacf_from_ar(const std::vector<double> &v, int ar_order, int ar_pmax
 {
     gamma.resize(nlag);
     std::vector<double> a, r;
-    const int pmax = (ar_order > 0)
-                         ? ar_order
-                         : std::min(ar_pmax, (static_cast<int>(v.size()) - 1) / 2);
+    const int pmax =
+        (ar_order > 0) ? ar_order : std::min(ar_pmax, (static_cast<int>(v.size()) - 1) / 2);
     int p = fit_ar(v, pmax, ar_order, a, r);
     if (p < 0)
         throw std::runtime_error("VACF could not fit the requested fixed AR order");
-    if (p < 1) {
+    if (p < 1)
+    {
         std::fill(gamma.begin(), gamma.end(), 0.0);
         return;
     }
@@ -194,23 +208,23 @@ void ComputeVACF::reset_run_state()
     frquency.clear();
 }
 
-Eigen::Vector3d ComputeVACF::velocity_at(const std::vector<Atoms> &atoms,
-                                         int iframe, int iatom) const
+Eigen::Vector3d ComputeVACF::velocity_at(const std::vector<Atoms> &atoms, int iframe,
+                                         int iatom) const
 {
-    Eigen::Vector3d v = using_derived_velocities
-        ? derived_velocities[iframe - run_start][iatom]
-        : atoms[iframe].velocities_[iatom];
+    Eigen::Vector3d v = using_derived_velocities ? derived_velocities[iframe - run_start][iatom]
+                                                 : atoms[iframe].velocities_[iatom];
     if (!velocity_drift.empty())
         v -= velocity_drift[iframe - run_start];
     return v;
 }
 
-void ComputeVACF::prepare_velocities(const std::vector<Atoms> &atoms,
-                                     int requested_start, int requested_stop)
+void ComputeVACF::prepare_velocities(const std::vector<Atoms> &atoms, int requested_start,
+                                     int requested_stop)
 {
     bool any_velocity = false;
     bool all_velocity = true;
-    for (const auto &frame : atoms) {
+    for (const auto &frame : atoms)
+    {
         const bool full = (int)frame.velocities_.size() == natoms;
         const bool empty = frame.velocities_.empty();
         if (!full && !empty)
@@ -221,35 +235,41 @@ void ComputeVACF::prepare_velocities(const std::vector<Atoms> &atoms,
     if (any_velocity && !all_velocity)
         throw std::invalid_argument("VACF requires velocities in all frames or in none");
 
-    if (all_velocity) {
+    if (all_velocity)
+    {
         run_start = requested_start;
         nsteps_total = requested_stop - requested_start;
         return;
     }
 
     if (atoms.size() < 3)
-        throw std::invalid_argument("VACF requires velocities or at least three frames for central differences");
+        throw std::invalid_argument(
+            "VACF requires velocities or at least three frames for central differences");
     for (const auto &frame : atoms)
         if ((int)frame.pos_.size() != natoms)
-            throw std::invalid_argument("VACF position size must match atom count when estimating velocities");
+            throw std::invalid_argument(
+                "VACF position size must match atom count when estimating velocities");
 
     run_start = std::max(requested_start, 1);
     const int run_stop = std::min(requested_stop, (int)atoms.size() - 1);
     nsteps_total = run_stop - run_start;
     if (nsteps_total <= 0)
-        throw std::invalid_argument("VACF selected range has no central-difference velocity samples");
+        throw std::invalid_argument(
+            "VACF selected range has no central-difference velocity samples");
 
     using_derived_velocities = true;
     derived_velocities.assign(nsteps_total,
                               std::vector<Eigen::Vector3d>(natoms, Eigen::Vector3d::Zero()));
-    for (int iframe = run_start; iframe < run_stop; ++iframe) {
-        for (int iatom = 0; iatom < natoms; ++iatom) {
+    for (int iframe = run_start; iframe < run_stop; ++iframe)
+    {
+        for (int iatom = 0; iatom < natoms; ++iatom)
+        {
             const auto dprev = minimum_image_displacement(
-                atoms[iframe], cartesian_position(atoms[iframe], iatom)
-                    - cartesian_position(atoms[iframe - 1], iatom));
+                atoms[iframe], cartesian_position(atoms[iframe], iatom) -
+                                   cartesian_position(atoms[iframe - 1], iatom));
             const auto dnext = minimum_image_displacement(
-                atoms[iframe + 1], cartesian_position(atoms[iframe + 1], iatom)
-                    - cartesian_position(atoms[iframe], iatom));
+                atoms[iframe + 1], cartesian_position(atoms[iframe + 1], iatom) -
+                                       cartesian_position(atoms[iframe], iatom));
             derived_velocities[iframe - run_start][iatom] =
                 ((dprev + dnext) / (2.0 * ts)).transpose();
         }
@@ -258,21 +278,29 @@ void ComputeVACF::prepare_velocities(const std::vector<Atoms> &atoms,
 
 void ComputeVACF::prepare_weights()
 {
-    auto validate_masses = [&]() {
-        for (int type : chemmap) {
-            if (type < 0 || type >= (int)atom_masses.size() ||
-                !std::isfinite(atom_masses[type]) || atom_masses[type] <= 0.0)
-                throw std::invalid_argument("VACF requires a positive mass for every chemical type");
+    auto validate_masses = [&]()
+    {
+        for (int type : chemmap)
+        {
+            if (type < 0 || type >= (int)atom_masses.size() || !std::isfinite(atom_masses[type]) ||
+                atom_masses[type] <= 0.0)
+                throw std::invalid_argument(
+                    "VACF requires a positive mass for every chemical type");
         }
     };
 
-    if (mass_weighted) {
+    if (mass_weighted)
+    {
         if (!f_weight_id.empty())
-            throw std::invalid_argument("VACF mass_weighted and weightfile cannot be used together");
+            throw std::invalid_argument(
+                "VACF mass_weighted and weightfile cannot be used together");
         validate_masses();
         atomic_weight.resize(natoms);
-        for (int i = 0; i < natoms; ++i) atomic_weight[i] = atom_masses[chemmap[i]];
-    } else if (atomic_weight.size() != (size_t)natoms) {
+        for (int i = 0; i < natoms; ++i)
+            atomic_weight[i] = atom_masses[chemmap[i]];
+    }
+    else if (atomic_weight.size() != (size_t)natoms)
+    {
         if (!f_weight_id.empty())
             throw std::invalid_argument("VACF weight file size must match atom count");
         if (!atomic_weight.empty())
@@ -284,7 +312,8 @@ void ComputeVACF::prepare_weights()
         if (!std::isfinite(weight) || weight < 0.0)
             throw std::invalid_argument("VACF atom weights must be finite and non-negative");
 
-    if (remove_drift) validate_masses();
+    if (remove_drift)
+        validate_masses();
 }
 
 void ComputeVACF::compute(const std::vector<Atoms> &atoms)
@@ -292,8 +321,7 @@ void ComputeVACF::compute(const std::vector<Atoms> &atoms)
     reset_run_state();
     validate_vacf_trajectory(atoms, ndim);
     const int requested_start = std::max(nstart, 0);
-    const int requested_stop = (nstop < 0 || nstop > (int)atoms.size())
-        ? (int)atoms.size() : nstop;
+    const int requested_stop = (nstop < 0 || nstop > (int)atoms.size()) ? (int)atoms.size() : nstop;
     if (requested_stop <= requested_start)
         throw std::invalid_argument("VACF end_to must be greater than start_from");
     if (ts <= 0.0)
@@ -313,23 +341,28 @@ void ComputeVACF::compute(const std::vector<Atoms> &atoms)
     if (proj_only && !proj)
         throw std::invalid_argument("VACF noiso requires projection=true");
     if (!compute_total && !compute_partial && !compute_track && !compute_groups)
-        throw std::invalid_argument("VACF requires at least one total, types, track, or groups output");
+        throw std::invalid_argument(
+            "VACF requires at least one total, types, track, or groups output");
 
     natoms = atoms[0].size();
     chemmap = atoms[0].chemmap_;
     prepare_velocities(atoms, requested_start, requested_stop);
     prepare_weights();
 
-    if (remove_drift) {
+    if (remove_drift)
+    {
         velocity_drift.assign(nsteps_total, Eigen::Vector3d::Zero());
         double total_mass = 0.0;
-        for (int i = 0; i < natoms; ++i) total_mass += atom_masses[chemmap[i]];
-        for (int iframe = run_start; iframe < run_start + nsteps_total; ++iframe) {
+        for (int i = 0; i < natoms; ++i)
+            total_mass += atom_masses[chemmap[i]];
+        for (int iframe = run_start; iframe < run_start + nsteps_total; ++iframe)
+        {
             Eigen::Vector3d comv = Eigen::Vector3d::Zero();
-            for (int i = 0; i < natoms; ++i) {
+            for (int i = 0; i < natoms; ++i)
+            {
                 const Eigen::Vector3d raw = using_derived_velocities
-                    ? derived_velocities[iframe - run_start][i]
-                    : atoms[iframe].velocities_[i];
+                                                ? derived_velocities[iframe - run_start][i]
+                                                : atoms[iframe].velocities_[i];
                 comv += atom_masses[chemmap[i]] * raw;
             }
             velocity_drift[iframe - run_start] = comv / total_mass;
@@ -337,7 +370,8 @@ void ComputeVACF::compute(const std::vector<Atoms> &atoms)
     }
     if (nsteps_total <= 0)
         throw std::invalid_argument("VACF selected frame range is empty");
-    if (algo == 3) {
+    if (algo == 3)
+    {
         if (ar_order < 0)
             throw std::invalid_argument("VACF ar_order must be non-negative");
         if (ar_pmax < 1)
@@ -352,7 +386,8 @@ void ComputeVACF::compute(const std::vector<Atoms> &atoms)
 
     prepare_output_selection(atoms[0]);
 
-    if (compute_vdos) {
+    if (compute_vdos)
+    {
         const double required = std::ceil(1.0 / (2.0 * ts * freq_step)) + 1.0;
         if (required > (double)std::numeric_limits<int>::max())
             throw std::invalid_argument("VACF requested frequency grid is too large");
@@ -361,10 +396,12 @@ void ComputeVACF::compute(const std::vector<Atoms> &atoms)
         const double nyquist = 1.0 / (2.0 * ts);
         const double output_max = std::min(fmax, nyquist);
         if (fmax > nyquist)
-            Warning(fmt::format("VACF fmax={} THz exceeds Nyquist={} THz; output is truncated", fmax, nyquist));
+            Warning(fmt::format("VACF fmax={} THz exceeds Nyquist={} THz; output is truncated",
+                                fmax, nyquist));
         ndos_output = std::min(ndos_total, (int)std::floor(output_max / dv) + 1);
         frquency.resize(ndos_output);
-        for (int i = 0; i < ndos_output; ++i) frquency[i] = i * dv;
+        for (int i = 0; i < ndos_output; ++i)
+            frquency[i] = i * dv;
     }
 
     // init memory
@@ -447,12 +484,11 @@ void ComputeVACF::compute(const std::vector<Atoms> &atoms)
     {
         for (int i = 0; i < nprojection; ++i)
         {
-            std::vector<std::vector<double>> projected(nsteps_total,
-                                                       std::vector<double>(natoms));
+            std::vector<std::vector<double>> projected(nsteps_total, std::vector<double>(natoms));
             for (int iframe = 0; iframe < nsteps_total; ++iframe)
                 for (int iatom = 0; iatom < natoms; ++iatom)
-                    projected[iframe][iatom] = projection_dir[i].dot(
-                        velocity_at(atoms, iframe + run_start, iatom));
+                    projected[iframe][iatom] =
+                        projection_dir[i].dot(velocity_at(atoms, iframe + run_start, iatom));
             if (algo == 1)
             {
                 compute_vacf_ac_fft(projected);
@@ -492,8 +528,7 @@ void ComputeVACF::compute_vacf_ac(std::vector<std::vector<double>> &vs)
             // vacf at time m
             for (auto &idx : tbc)
             {
-                vacf_array[idx][m][0] +=
-                    vs[k + m][idx] * vs[k][idx] * pref;
+                vacf_array[idx][m][0] += vs[k + m][idx] * vs[k][idx] * pref;
             }
         }
         for (int idx : tbc)
@@ -524,7 +559,9 @@ void ComputeVACF::compute_vacf_ac(const std::vector<Atoms> &atoms)
             }
         }
         for (auto &idx : tbc)
-            vacf_array[idx][m][3] = (vacf_array[idx][m][0] + vacf_array[idx][m][1] + vacf_array[idx][m][2]) / (double)ndim;
+            vacf_array[idx][m][3] =
+                (vacf_array[idx][m][0] + vacf_array[idx][m][1] + vacf_array[idx][m][2]) /
+                (double)ndim;
     }
 }
 
@@ -538,8 +575,7 @@ void ComputeVACF::compute_vacf_nac(std::vector<std::vector<double>> &v_s)
     {
         for (auto &idx : tbc)
         {
-            vacf_array[idx][m][0] +=
-                v_s[m][idx] * v_s[0][idx];
+            vacf_array[idx][m][0] += v_s[m][idx] * v_s[0][idx];
             vacf_array[idx][m][3] = vacf_array[idx][m][0];
         }
     }
@@ -560,9 +596,10 @@ void ComputeVACF::compute_vacf_nac(const std::vector<Atoms> &atoms)
             const auto vm = velocity_at(atoms, m + run_start, idx);
             const auto v0 = velocity_at(atoms, run_start, idx);
             for (int a = 0; a < ndim; ++a)
-                vacf_array[idx][m][a] += 
-                    vm[a] * v0[a];
-            vacf_array[idx][m][3] += (vacf_array[idx][m][0] + vacf_array[idx][m][1] + vacf_array[idx][m][2]) / (double)ndim;
+                vacf_array[idx][m][a] += vm[a] * v0[a];
+            vacf_array[idx][m][3] +=
+                (vacf_array[idx][m][0] + vacf_array[idx][m][1] + vacf_array[idx][m][2]) /
+                (double)ndim;
         }
     }
 }
@@ -579,8 +616,10 @@ void ComputeVACF::compute_vacf_ac_fft(const std::vector<Atoms> &atoms)
         alglib::real_1d_array sigx, sigy, sigz;
         alglib::real_1d_array corrx, corry, corrz;
         sigx.setlength(nsteps_total);
-        if (ndim > 1) sigy.setlength(nsteps_total);
-        if (ndim > 2) sigz.setlength(nsteps_total);
+        if (ndim > 1)
+            sigy.setlength(nsteps_total);
+        if (ndim > 2)
+            sigz.setlength(nsteps_total);
 
 #ifdef USE_OMP
 #pragma omp for schedule(static)
@@ -592,20 +631,28 @@ void ComputeVACF::compute_vacf_ac_fft(const std::vector<Atoms> &atoms)
             {
                 const auto v = velocity_at(atoms, i + run_start, idx);
                 sigx[i] = v[0];
-                if (ndim > 1) sigy[i] = v[1];
-                if (ndim > 2) sigz[i] = v[2];
+                if (ndim > 1)
+                    sigy[i] = v[1];
+                if (ndim > 2)
+                    sigz[i] = v[2];
             }
             alglib::corrr1d(sigx, SigS, sigx, SigS, corrx);
-            if (ndim > 1) alglib::corrr1d(sigy, SigS, sigy, SigS, corry);
-            if (ndim > 2) alglib::corrr1d(sigz, SigS, sigz, SigS, corrz);
+            if (ndim > 1)
+                alglib::corrr1d(sigy, SigS, sigy, SigS, corry);
+            if (ndim > 2)
+                alglib::corrr1d(sigz, SigS, sigz, SigS, corrz);
             // compute vacf
             for (int m = 0; m < nsteps_total; ++m)
             {
                 double pref = 1.0 / (nsteps_total - m);
                 vacf_array[idx][m][0] = pref * corrx[m];
-                if (ndim > 1) vacf_array[idx][m][1] = pref * corry[m];
-                if (ndim > 2) vacf_array[idx][m][2] = pref * corrz[m];
-                vacf_array[idx][m][3] = (vacf_array[idx][m][0] + vacf_array[idx][m][1] + vacf_array[idx][m][2]) / (double)ndim;
+                if (ndim > 1)
+                    vacf_array[idx][m][1] = pref * corry[m];
+                if (ndim > 2)
+                    vacf_array[idx][m][2] = pref * corrz[m];
+                vacf_array[idx][m][3] =
+                    (vacf_array[idx][m][0] + vacf_array[idx][m][1] + vacf_array[idx][m][2]) /
+                    (double)ndim;
             }
         }
     }
@@ -654,7 +701,8 @@ void ComputeVACF::compute_vacf_ac_ar(std::vector<std::vector<double>> &vs)
 #endif
     for (int tidx = 0; tidx < (int)tbc.size(); ++tidx)
     {
-        try {
+        try
+        {
             const int idx = tbc[tidx];
             std::vector<double> v(nsteps_total), gamma;
             for (int i = 0; i < nsteps_total; ++i)
@@ -665,7 +713,9 @@ void ComputeVACF::compute_vacf_ac_ar(std::vector<std::vector<double>> &vs)
                 vacf_array[idx][m][0] = gamma[m];
                 vacf_array[idx][m][3] = gamma[m];
             }
-        } catch (...) {
+        }
+        catch (...)
+        {
 #ifdef USE_OMP
 #pragma omp critical(vacf_ar_error)
 #endif
@@ -688,7 +738,8 @@ void ComputeVACF::compute_vacf_ac_ar(const std::vector<Atoms> &atoms)
 #endif
     for (int tidx = 0; tidx < (int)tbc.size(); ++tidx)
     {
-        try {
+        try
+        {
             const int idx = tbc[tidx];
             std::vector<double> v(nsteps_total), gamma;
             for (int a = 0; a < ndim; ++a)
@@ -706,7 +757,9 @@ void ComputeVACF::compute_vacf_ac_ar(const std::vector<Atoms> &atoms)
                     iso += vacf_array[idx][m][a];
                 vacf_array[idx][m][3] = iso / (double)ndim;
             }
-        } catch (...) {
+        }
+        catch (...)
+        {
 #ifdef USE_OMP
 #pragma omp critical(vacf_ar_error)
 #endif
@@ -738,8 +791,10 @@ void ComputeVACF::postprocessing(vacf_result &res)
             for (int i = 0; i < natoms; ++i)
                 for (int a = 0; a < 4; ++a)
                     res.total[m][a] += vacf_array[i][m][a] * wgt[i];
-        if (normalize) normalize_series(res.total);
-        if (compute_vdos) {
+        if (normalize)
+            normalize_series(res.total);
+        if (compute_vdos)
+        {
             compute_vdosfft(res.total, res.vdos_total);
         }
     }
@@ -747,7 +802,8 @@ void ComputeVACF::postprocessing(vacf_result &res)
     {
         int tid = 0;
         res.type.resize(types_tbc.size());
-        if (compute_vdos) res.vdos_type.resize(types_tbc.size());
+        if (compute_vdos)
+            res.vdos_type.resize(types_tbc.size());
         for (auto &itype : types_tbc)
         {
             std::vector<double> wgt(natoms, 0);
@@ -767,14 +823,17 @@ void ComputeVACF::postprocessing(vacf_result &res)
                 wgt[i] /= wgt_total;
             }
             res.type[tid].resize(nsteps_total);
-            std::fill(res.type[tid].begin(), res.type[tid].end(), std::array<double, 4>{0., 0., 0., 0.});
+            std::fill(res.type[tid].begin(), res.type[tid].end(),
+                      std::array<double, 4>{0., 0., 0., 0.});
             for (int m = 0; m < nsteps_total; ++m)
                 for (int i = 0; i < natoms; ++i)
                     if (chemmap[i] == itype)
                         for (int a = 0; a < 4; ++a)
                             res.type[tid][m][a] += vacf_array[i][m][a] * wgt[i];
-            if (normalize) normalize_series(res.type[tid]);
-            if (compute_vdos) {
+            if (normalize)
+                normalize_series(res.type[tid]);
+            if (compute_vdos)
+            {
                 compute_vdosfft(res.type[tid], res.vdos_type[tid]);
             }
             ++tid;
@@ -783,15 +842,18 @@ void ComputeVACF::postprocessing(vacf_result &res)
     if (compute_track)
     {
         res.track.resize(track_inds.size());
-        if (compute_vdos) res.vdos_track.resize(track_inds.size());
+        if (compute_vdos)
+            res.vdos_track.resize(track_inds.size());
         for (int i = 0; i < track_inds.size(); ++i)
         {
             int idx = track_inds[i];
             res.track[i].resize(nsteps_total);
             for (int m = 0; m < nsteps_total; ++m)
                 res.track[i][m] = vacf_array[idx][m];
-            if (normalize) normalize_series(res.track[i]);
-            if (compute_vdos) {
+            if (normalize)
+                normalize_series(res.track[i]);
+            if (compute_vdos)
+            {
                 compute_vdosfft(res.track[i], res.vdos_track[i]);
             }
         }
@@ -799,7 +861,8 @@ void ComputeVACF::postprocessing(vacf_result &res)
     if (compute_groups)
     {
         res.group.resize(group_size);
-        if (compute_vdos) res.vdos_group.resize(group_size);
+        if (compute_vdos)
+            res.vdos_group.resize(group_size);
         for (int gid = 0; gid < group_size; ++gid)
         {
             std::vector<double> wgt(natoms, 0);
@@ -816,18 +879,22 @@ void ComputeVACF::postprocessing(vacf_result &res)
                 wgt[i] /= wgt_total;
             }
             res.group[gid].resize(nsteps_total);
-            std::fill(res.group[gid].begin(), res.group[gid].end(), std::array<double, 4>{0., 0., 0., 0.});
+            std::fill(res.group[gid].begin(), res.group[gid].end(),
+                      std::array<double, 4>{0., 0., 0., 0.});
             for (auto &idx : group_idxs[gid])
                 for (int m = 0; m < nsteps_total; ++m)
                     for (int a = 0; a < 4; ++a)
                         res.group[gid][m][a] += vacf_array[idx][m][a] * wgt[idx];
-            if (normalize) normalize_series(res.group[gid]);
-            if (compute_vdos) {
+            if (normalize)
+                normalize_series(res.group[gid]);
+            if (compute_vdos)
+            {
                 compute_vdosfft(res.group[gid], res.vdos_group[gid]);
             }
         }
     }
 }
+
 // Time-domain smearing/damping window for VACF before FFT.
 // Applies a smooth cutoff around tau0 with width dtau to suppress
 // long-time noise in the VACF, which otherwise pollutes the VDOS.
@@ -843,41 +910,52 @@ void ComputeVACF::postprocessing(vacf_result &res)
 // where dx = (t - tau0) / dtau, t = istep * ts
 double ComputeVACF::smearing(int istep)
 {
-    if (ismear == 0) return 1.0;
+    if (ismear == 0)
+        return 1.0;
     double x = istep * ts;
     double dx = (x - tau0) / dtau;
 
-    switch (ismear) {
+    switch (ismear)
+    {
     case 1:
-        if (dx >= 0.0) {
+        if (dx >= 0.0)
+        {
             const double e = std::exp(-dx);
             return e / (1.0 + e);
         }
         return 1.0 / (1.0 + std::exp(dx));
-    case 2: return 0.5 * std::erfc(dx);
+    case 2:
+        return 0.5 * std::erfc(dx);
     case 3:
-        if (dx > 0.0) {
+        if (dx > 0.0)
+        {
             double x2 = dx * dx;
             return 1.0 / (1.0 + x2 * x2);
         }
         return 1.0;
-    case 4: {
+    case 4:
+    {
         const double dx3 = dx * dx * dx;
-        if (dx3 >= 0.0) {
+        if (dx3 >= 0.0)
+        {
             const double e = std::exp(-dx3);
             return e / (1.0 + e);
         }
         return 1.0 / (1.0 + std::exp(dx3));
     }
-    case 5: return 0.5 * std::erfc(dx * dx * dx);
-    default: return 1.0;
+    case 5:
+        return 0.5 * std::erfc(dx * dx * dx);
+    default:
+        return 1.0;
     }
 }
 
 // compute_int() and compute_spline() were superseded by direct FFT-based VDOS
 // (compute_vdosfft). The spline-integration path is no longer maintained.
 
-void ComputeVACF::compute_vdosfft(std::vector<std::array<double, 4>> &in, std::vector<std::array<double, 4>> &out) {
+void ComputeVACF::compute_vdosfft(std::vector<std::array<double, 4>> &in,
+                                  std::vector<std::array<double, 4>> &out)
+{
     std::vector<double> fftw_in, fftw_out;
     // v1 v2 v3 .. vn 0 0 .. 0 vn-1 vn-2 .. v2 : dt (ps), length = 2 * nlag - 2
     // f1 f2 f3 .. fm : dv (THz)
@@ -888,27 +966,39 @@ void ComputeVACF::compute_vdosfft(std::vector<std::array<double, 4>> &in, std::v
     out.assign(ndos_total, std::array<double, 4>{0., 0., 0., 0.});
     fftw_in.assign(ndos_total, 0.0);
     fftw_out.assign(ndos_total, 0.0);
-    fftw_plan r2r = fftw_plan_r2r_1d(ndos_total, fftw_in.data(), fftw_out.data(), FFTW_REDFT00, FFTW_ESTIMATE);
+    fftw_plan r2r =
+        fftw_plan_r2r_1d(ndos_total, fftw_in.data(), fftw_out.data(), FFTW_REDFT00, FFTW_ESTIMATE);
     if (!r2r)
         throw std::runtime_error("VACF failed to create FFTW VDOS plan");
-    for (int a = 0; a < 4; ++a) {
-        if (std::abs(in[0][a]) <= 1e-30) continue;
-        for (int i = 0; i < nlag; ++i) fftw_in[i] = in[i][a] * smearing(i);
-        for (int i = nlag; i < ndos_total; ++i) fftw_in[i] = 0.;
+    for (int a = 0; a < 4; ++a)
+    {
+        if (std::abs(in[0][a]) <= 1e-30)
+            continue;
+        for (int i = 0; i < nlag; ++i)
+            fftw_in[i] = in[i][a] * smearing(i);
+        for (int i = nlag; i < ndos_total; ++i)
+            fftw_in[i] = 0.;
         fftw_execute(r2r);
-        for (int i = 0; i < ndos_total; ++i) out[i][a] = ts * fftw_out[i];
+        for (int i = 0; i < ndos_total; ++i)
+            out[i][a] = ts * fftw_out[i];
     }
     fftw_destroy_plan(r2r);
 
-    if (normalize) {
-        for (int a = 0; a < 4; ++a) {
-            if (std::abs(in[0][a]) <= 1e-30) continue;
+    if (normalize)
+    {
+        for (int a = 0; a < 4; ++a)
+        {
+            if (std::abs(in[0][a]) <= 1e-30)
+                continue;
             double integral = 0.5 * (out[0][a] + out[ndos_total - 1][a]);
-            for (int i = 1; i < ndos_total - 1; ++i) integral += out[i][a];
+            for (int i = 1; i < ndos_total - 1; ++i)
+                integral += out[i][a];
             integral *= dv;
             if (!std::isfinite(integral) || std::abs(integral) <= 1e-30)
-                throw std::runtime_error("VACF cannot normalize a zero or non-finite VDOS integral");
-            for (int i = 0; i < ndos_total; ++i) out[i][a] /= integral;
+                throw std::runtime_error(
+                    "VACF cannot normalize a zero or non-finite VDOS integral");
+            for (int i = 0; i < ndos_total; ++i)
+                out[i][a] /= integral;
         }
     }
 }
@@ -932,8 +1022,11 @@ void ComputeVACF::prepare_output_selection(const Atoms &first)
     chemmap = first.chemmap_;
     const std::set<int> types(chemmap.begin(), chemmap.end());
     types_tbc.assign(types.begin(), types.end());
-    track_inds.clear(); group_idxs.clear(); group_size = 0;
-    projection_dir.clear(); nprojection = 0;
+    track_inds.clear();
+    group_idxs.clear();
+    group_size = 0;
+    projection_dir.clear();
+    nprojection = 0;
     // init by file
     if (compute_track)
     {
@@ -945,7 +1038,8 @@ void ComputeVACF::prepare_output_selection(const Atoms &first)
         }
         track_size = (int)track_inds.size();
         track_filters.assign(natoms, 0);
-        for (int idx : track_inds) {
+        for (int idx : track_inds)
+        {
             if (idx < 0 || idx >= natoms)
                 throw std::out_of_range("VACF track index out of range");
             track_filters[idx] = 1;
@@ -970,10 +1064,11 @@ std::string ComputeVACF::output_prefix(int projection) const
     return projection == 0 ? f_header : f_header + "_proj_" + std::to_string(projection);
 }
 
-std::string ComputeVACF::output_path(const std::string &prefix, const std::string &category, int id, bool vdos)
+std::string ComputeVACF::output_path(const std::string &prefix, const std::string &category, int id,
+                                     bool vdos)
 {
     return prefix + (vdos ? "_vdos_" : "_") + category +
-        (category == "total" ? "" : "_" + std::to_string(id)) + ".dat";
+           (category == "total" ? "" : "_" + std::to_string(id)) + ".dat";
 }
 
 std::vector<std::string> ComputeVACF::planned_output_paths(const Atoms &first)
@@ -982,30 +1077,45 @@ std::vector<std::string> ComputeVACF::planned_output_paths(const Atoms &first)
         throw std::invalid_argument("VACF noiso requires projection=true");
     prepare_output_selection(first);
     std::vector<std::string> paths;
-    auto append = [&](const std::string &prefix) {
-        auto add = [&](const std::string &category, int id = 0) {
+    auto append = [&](const std::string &prefix)
+    {
+        auto add = [&](const std::string &category, int id = 0)
+        {
             paths.push_back(output_path(prefix, category, id));
-            if (compute_vdos) paths.push_back(output_path(prefix, category, id, true));
+            if (compute_vdos)
+                paths.push_back(output_path(prefix, category, id, true));
         };
-        if (compute_total) add("total");
-        if (compute_partial) for (int id : types_tbc) add("type", id);
-        if (compute_groups) for (int id = 0; id < group_size; ++id) add("group", id);
-        if (compute_track) for (int id : track_inds) add("track", id);
+        if (compute_total)
+            add("total");
+        if (compute_partial)
+            for (int id : types_tbc)
+                add("type", id);
+        if (compute_groups)
+            for (int id = 0; id < group_size; ++id)
+                add("group", id);
+        if (compute_track)
+            for (int id : track_inds)
+                add("track", id);
     };
-    if (!proj_only) append(output_prefix());
-    if (proj) for (int i = 0; i < nprojection; ++i) append(output_prefix(i + 1));
+    if (!proj_only)
+        append(output_prefix());
+    if (proj)
+        for (int i = 0; i < nprojection; ++i)
+            append(output_prefix(i + 1));
     return paths;
 }
 
 void ComputeVACF::write_results(vacf_result &res, const std::string &fnm_header)
 {
     const bool projected = fnm_header.find("_proj_") != std::string::npos;
-    auto open_output = [](std::ofstream &ofs, const std::string &path) {
+    auto open_output = [](std::ofstream &ofs, const std::string &path)
+    {
         ofs.open(path);
         if (!ofs)
             throw std::runtime_error("VACF cannot open output file: " + path);
     };
-    auto finish_output = [](std::ofstream &ofs, const std::string &path) {
+    auto finish_output = [](std::ofstream &ofs, const std::string &path)
+    {
         ofs.close();
         if (!ofs)
             throw std::runtime_error("VACF failed while writing output file: " + path);
@@ -1021,11 +1131,13 @@ void ComputeVACF::write_results(vacf_result &res, const std::string &fnm_header)
             fmt::print(ofs, "{} {}\n", time[i], fmt::join(res.total[i], " "));
         }
         finish_output(ofs, path);
-        if (compute_vdos) {
+        if (compute_vdos)
+        {
             const std::string vdos_path = output_path(fnm_header, "total", 0, true);
             open_output(ofs, vdos_path);
             write_header_dos(ofs);
-            for (int i = 0; i < ndos_output; ++i) {
+            for (int i = 0; i < ndos_output; ++i)
+            {
                 fmt::print(ofs, "{} {}\n", i * dv, fmt::join(res.vdos_total[i], " "));
             }
             finish_output(ofs, vdos_path);
@@ -1045,11 +1157,13 @@ void ComputeVACF::write_results(vacf_result &res, const std::string &fnm_header)
                 fmt::print(ofs, "{} {}\n", time[i], fmt::join(res.type[idtype][i], " "));
             }
             finish_output(ofs, path);
-            if (compute_vdos) {
+            if (compute_vdos)
+            {
                 const std::string vdos_path = output_path(fnm_header, "type", tid, true);
                 open_output(ofs, vdos_path);
                 write_header_dos(ofs);
-                for (int i = 0; i < ndos_output; ++i) {
+                for (int i = 0; i < ndos_output; ++i)
+                {
                     fmt::print(ofs, "{} {}\n", i * dv, fmt::join(res.vdos_type[idtype][i], " "));
                 }
                 finish_output(ofs, vdos_path);
@@ -1069,11 +1183,13 @@ void ComputeVACF::write_results(vacf_result &res, const std::string &fnm_header)
                 fmt::print(ofs, "{} {}\n", time[i], fmt::join(res.group[gid][i], " "));
             }
             finish_output(ofs, path);
-            if (compute_vdos) {
+            if (compute_vdos)
+            {
                 const std::string vdos_path = output_path(fnm_header, "group", gid, true);
                 open_output(ofs, vdos_path);
                 write_header_dos(ofs);
-                for (int i = 0; i < ndos_output; ++i) {
+                for (int i = 0; i < ndos_output; ++i)
+                {
                     fmt::print(ofs, "{} {}\n", i * dv, fmt::join(res.vdos_group[gid][i], " "));
                 }
                 finish_output(ofs, vdos_path);
@@ -1094,11 +1210,13 @@ void ComputeVACF::write_results(vacf_result &res, const std::string &fnm_header)
                 fmt::print(ofs, "{} {}\n", time[i], fmt::join(res.track[ict][i], " "));
             }
             finish_output(ofs, path);
-            if (compute_vdos) {
+            if (compute_vdos)
+            {
                 const std::string vdos_path = output_path(fnm_header, "track", idx, true);
                 open_output(ofs, vdos_path);
                 write_header_dos(ofs);
-                for (int i = 0; i < ndos_output; ++i) {
+                for (int i = 0; i < ndos_output; ++i)
+                {
                     fmt::print(ofs, "{} {}\n", i * dv, fmt::join(res.vdos_track[ict][i], " "));
                 }
                 finish_output(ofs, vdos_path);
@@ -1135,8 +1253,8 @@ void ComputeVACF::read_group()
     for (int i = 0; i < group_size; ++i)
     {
         int gidsize, gid;
-        if (!(ifs >> tmpch >> word >> gid >> gidsize >> tmpch) ||
-            gid < 0 || gid >= group_size || gidsize <= 0)
+        if (!(ifs >> tmpch >> word >> gid >> gidsize >> tmpch) || gid < 0 || gid >= group_size ||
+            gidsize <= 0)
             throw std::runtime_error("VACF group file has an invalid group header");
         for (int j = 0; j < gidsize; ++j)
         {
@@ -1161,7 +1279,8 @@ void ComputeVACF::read_filter()
     if (!(ifs >> size) || size <= 0)
         throw std::runtime_error("VACF track file must contain a positive atom count");
     std::set<int> unique;
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i)
+    {
         int idx;
         if (!(ifs >> idx))
             throw std::runtime_error("VACF track file is truncated");
@@ -1177,7 +1296,8 @@ void ComputeVACF::read_weight()
      * [size]
      * [... ids ...]
      * */
-    if (f_weight_id.empty()) return;
+    if (f_weight_id.empty())
+        return;
     std::ifstream ifs(f_weight_id);
     if (!ifs)
         throw std::runtime_error("VACF cannot open weight file: " + f_weight_id);
@@ -1186,7 +1306,8 @@ void ComputeVACF::read_weight()
         throw std::runtime_error("VACF weight file must contain a positive weight count");
     atomic_weight.resize(size);
     for (int i = 0; i < size; ++i)
-        if (!(ifs >> atomic_weight[i]) || !std::isfinite(atomic_weight[i]) || atomic_weight[i] < 0.0)
+        if (!(ifs >> atomic_weight[i]) || !std::isfinite(atomic_weight[i]) ||
+            atomic_weight[i] < 0.0)
             throw std::runtime_error("VACF weight file contains an invalid weight");
 }
 

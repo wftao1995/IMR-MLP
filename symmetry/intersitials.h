@@ -18,23 +18,20 @@ class NeighborhoodKD;
  * */
 
 void get_intersitial_sites(Atoms &atom, std::vector<Eigen::RowVector3d> &intpos,
-                           std::map<int, double> atomradii,
-                           bool count_vec = true,
-                           bool count_cedg = true,
-                           bool count_cface = true,
-                           double mindist = 0.6,
-                           double volprec = 1.0,
-                           double edgeprec = 0.1,
-                           double faceprec = 0.1);
+                           std::map<int, double> atomradii, bool count_vec = true,
+                           bool count_cedg = true, bool count_cface = true, double mindist = 0.6,
+                           double volprec = 1.0, double edgeprec = 0.1, double faceprec = 0.1);
 
 // FFF candidates strictly inside the host convex hull. Cartesian geometry is
 // independent of a simulation box. Artificial container-wall features are
 // excluded. Local queries use Euclidean neighbors and the global host hull.
-void get_intersitial_sites_nonperiodic(Atoms &atom,
-    std::vector<Eigen::RowVector3d> &intpos, std::map<int,double> atomradii,
-    bool count_vec=true, bool count_cedg=true, bool count_cface=true,
-    double mindist=0.6, double volprec=1.0, double edgeprec=0.1, double faceprec=0.1,
-    const Eigen::RowVector3d *query=nullptr, double search_radius=8.0);
+void get_intersitial_sites_nonperiodic(Atoms &atom, std::vector<Eigen::RowVector3d> &intpos,
+                                       std::map<int, double> atomradii, bool count_vec = true,
+                                       bool count_cedg = true, bool count_cface = true,
+                                       double mindist = 0.6, double volprec = 1.0,
+                                       double edgeprec = 0.1, double faceprec = 0.1,
+                                       const Eigen::RowVector3d *query = nullptr,
+                                       double search_radius = 8.0);
 
 /**
  * @brief Find interstitial sites near a given position using a local Voronoi approach.
@@ -57,18 +54,12 @@ void get_intersitial_sites_nonperiodic(Atoms &atom,
  * @param edgeprec    Minimum edge length (default: 0.1)
  * @param faceprec    Minimum face area (default: 0.1)
  */
-void get_intersitial_sites_near(Atoms &atom,
-                                const Eigen::RowVector3d &query_pos,
+void get_intersitial_sites_near(Atoms &atom, const Eigen::RowVector3d &query_pos,
                                 std::vector<Eigen::RowVector3d> &intpos,
-                                std::map<int, double> atomradii,
-                                double search_radius = 8.0,
-                                bool count_vec = true,
-                                bool count_cedg = true,
-                                bool count_cface = true,
-                                double mindist = 0.6,
-                                double volprec = 1.0,
-                                double edgeprec = 0.1,
-                                double faceprec = 0.1,
+                                std::map<int, double> atomradii, double search_radius = 8.0,
+                                bool count_vec = true, bool count_cedg = true,
+                                bool count_cface = true, double mindist = 0.6, double volprec = 1.0,
+                                double edgeprec = 0.1, double faceprec = 0.1,
                                 NeighborhoodKD *nkd_external = nullptr);
 
 // todo: add an option merge:

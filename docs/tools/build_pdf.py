@@ -11,6 +11,7 @@ page hierarchy hangs off the mainpage (index.tex), so the body is just
 
 Run it through `make doc-pdf`, which regenerates the LaTeX sources first.
 """
+
 import argparse
 import re
 import shutil
@@ -24,10 +25,12 @@ LATEX_CMD = 'xelatex'
 # The full document needs more string pool than the TeX Live default.
 LATEX_OPTIONS = ['-cnf-line=pool_size=20000000', '-interaction=nonstopmode']
 LANGUAGES = {
-    'en': dict(tree=ROOT / 'docs/build/latex', chapter='IMR-MLP Manual',
-               output='imrmlp-manual-en.pdf'),
-    'zh': dict(tree=ROOT / 'docs/build_zh/latex', chapter='IMR-MLP 手册',
-               output='imrmlp-manual-zh.pdf'),
+    'en': dict(
+        tree=ROOT / 'docs/build/latex', chapter='IMR-MLP Manual', output='imrmlp-manual-en.pdf'
+    ),
+    'zh': dict(
+        tree=ROOT / 'docs/build_zh/latex', chapter='IMR-MLP 手册', output='imrmlp-manual-zh.pdf'
+    ),
 }
 
 
@@ -42,7 +45,8 @@ def strip_underscores_in_text(tree):
     for path in tree.glob('*.tex'):
         text = path.read_text(encoding='utf-8', errors='replace')
         fixed = pattern.sub(
-            lambda m: r'\text{' + re.sub(r'(?<!\\)_', r'\\_', m.group(1)) + '}', text)
+            lambda m: r'\text{' + re.sub(r'(?<!\\)_', r'\\_', m.group(1)) + '}', text
+        )
         if fixed != text:
             path.write_text(fixed, encoding='utf-8')
             changed += 1
@@ -118,28 +122,42 @@ def write_manual(tree):
 
 def needs_rerun(log):
     text = log.read_text(encoding='utf-8', errors='replace')
-    return any(marker in text for marker in (
-        'Rerun to get cross-references right',
-        'Label(s) may have changed',
-        'There were undefined references',
-    ))
+    return any(
+        marker in text
+        for marker in (
+            'Rerun to get cross-references right',
+            'Label(s) may have changed',
+            'There were undefined references',
+        )
+    )
 
 
 def compile_pdf(tree, passes=5):
     log = tree / 'refman_manual.log'
     for attempt in range(passes):
-        result = subprocess.run([LATEX_CMD, *LATEX_OPTIONS, 'refman_manual.tex'],
-                                cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        result = subprocess.run(
+            [LATEX_CMD, *LATEX_OPTIONS, 'refman_manual.tex'],
+            cwd=tree,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+        )
         index = tree / 'refman_manual.idx'
         if attempt == 0 and index.is_file():
-            subprocess.run(['makeindex', '-q', 'refman_manual.idx'], cwd=tree,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                ['makeindex', '-q', 'refman_manual.idx'],
+                cwd=tree,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         if result.returncode and not log.is_file():
             raise RuntimeError(f'{LATEX_CMD} failed in {tree} without writing a log')
         if attempt >= 1 and not needs_rerun(log):
             break
-    errors = [line for line in log.read_text(encoding='utf-8', errors='replace').splitlines()
-              if line.startswith('! ')]
+    errors = [
+        line
+        for line in log.read_text(encoding='utf-8', errors='replace').splitlines()
+        if line.startswith('! ')
+    ]
     if errors:
         raise RuntimeError(f'{len(errors)} LaTeX error(s) in {log}:\n' + '\n'.join(errors[:5]))
     missing = log.read_text(encoding='utf-8', errors='replace').count('Missing character')
@@ -168,20 +186,28 @@ def build(language):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     target = OUTPUT_DIR / spec['output']
     shutil.copyfile(pdf, target)
-    pages = re.search(r'Output written on refman_manual\.pdf \((\d+) pages',
-                      (tree / 'refman_manual.log').read_text(encoding='utf-8', errors='replace'))
+    pages = re.search(
+        r'Output written on refman_manual\.pdf \((\d+) pages',
+        (tree / 'refman_manual.log').read_text(encoding='utf-8', errors='replace'),
+    )
     detail = f'{pages.group(1)} pages' if pages else 'pages unknown'
     if missing:
         detail += f', {missing} missing glyph(s)'
-    print(f'{language}: {target.relative_to(ROOT)} ({detail})' + (
-        f'; applied fixes: {", ".join(fixes)}' if fixes else ''))
+    print(
+        f'{language}: {target.relative_to(ROOT)} ({detail})'
+        + (f'; applied fixes: {", ".join(fixes)}' if fixes else '')
+    )
     return target
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--lang', choices=['en', 'zh', 'all'], default='all',
-                        help='language to build (default: all)')
+    parser.add_argument(
+        '--lang',
+        choices=['en', 'zh', 'all'],
+        default='all',
+        help='language to build (default: all)',
+    )
     args = parser.parse_args()
     languages = ['en', 'zh'] if args.lang == 'all' else [args.lang]
     try:

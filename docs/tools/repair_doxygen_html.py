@@ -7,6 +7,7 @@ Only repair a link when its original target is absent and the correct destinatio
 can be identified from the generated headings or the canonical method definition.
 The full HTML check still rejects any remaining invalid targets.
 """
+
 from html import unescape
 import re
 from urllib.parse import unquote, urlsplit
@@ -51,8 +52,11 @@ def repair_html(directory):
             return match[0]
 
         text = re.sub(r'href="([^"]+)"', index_link, text)
-        missing = {urlsplit(target).fragment for _, target in Page(text).links
-                   if target.startswith('#index_') and not valid(path, target)}
+        missing = {
+            urlsplit(target).fragment
+            for _, target in Page(text).links
+            if target.startswith('#index_') and not valid(path, target)
+        }
 
         def item(match):
             label = unescape(re.sub(r'<[^>]*>', '', match[2])).strip().lower()
@@ -86,13 +90,21 @@ def repair_html(directory):
                     if len(member) > 1:
                         body = member[1]
                         replacement = re.search(r'<p class="definition">.*?</p>', body, re.S)
-                        if replacement and all(valid(path, t) for t in re.findall(
-                                r'href="([^"]+_source\.html#[^"]+)"', replacement[0])):
+                        if replacement and all(
+                            valid(path, t)
+                            for t in re.findall(
+                                r'href="([^"]+_source\.html#[^"]+)"', replacement[0]
+                            )
+                        ):
                             return prefix + replacement[0]
             return match[0]
 
-        texts[path] = re.sub(r'(<div class="memitem">.*?)(<p class="definition">.*?</p>)',
-                             definition, text, flags=re.S)
+        texts[path] = re.sub(
+            r'(<div class="memitem">.*?)(<p class="definition">.*?</p>)',
+            definition,
+            text,
+            flags=re.S,
+        )
 
     for path, text in texts.items():
         if text != path.read_text():

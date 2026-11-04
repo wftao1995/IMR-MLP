@@ -53,13 +53,15 @@ class Atoms:
     4
     """
 
-    def __init__(self,
-                 numbers: Optional[np.ndarray] = None,
-                 positions: Optional[np.ndarray] = None,
-                 cell: Optional[np.ndarray] = None,
-                 pbc: Optional[Union[bool, Sequence[bool]]] = None,
-                 elements: Optional[List[str]] = None,
-                 _impl: Optional[_Atoms] = None):
+    def __init__(
+        self,
+        numbers: Optional[np.ndarray] = None,
+        positions: Optional[np.ndarray] = None,
+        cell: Optional[np.ndarray] = None,
+        pbc: Optional[Union[bool, Sequence[bool]]] = None,
+        elements: Optional[List[str]] = None,
+        _impl: Optional[_Atoms] = None,
+    ):
         if _impl is not None:
             self._impl = _impl
         else:
@@ -137,8 +139,9 @@ class Atoms:
 
     def set_hvp(self, directions: np.ndarray, targets: np.ndarray):
         """Set paired HVP labels; reject invalid shapes, nonfinite or zero probes."""
-        self._impl.set_hvp(np.asarray(directions, dtype=np.float64),
-                           np.asarray(targets, dtype=np.float64))
+        self._impl.set_hvp(
+            np.asarray(directions, dtype=np.float64), np.asarray(targets, dtype=np.float64)
+        )
 
     def clear_hvp(self):
         """Remove all HVP labels."""
@@ -195,8 +198,9 @@ class Atoms:
 
     @pbc.setter
     def pbc(self, value):
-        flags = np.asarray([value] * 3 if isinstance(value, (bool, np.bool_)) else value,
-                           dtype=bool)
+        flags = np.asarray(
+            [value] * 3 if isinstance(value, (bool, np.bool_)) else value, dtype=bool
+        )
         if flags.shape != (3,):
             raise ValueError("pbc must be a bool or a length-3 sequence")
         self._impl.pbc = [bool(v) for v in flags]
@@ -341,8 +345,9 @@ class Atoms:
     @velocities.setter
     def velocities(self, value: Optional[np.ndarray]):
         """Set Cartesian velocities in Angstrom/ps, or clear them with None."""
-        self._impl.velocities = (np.empty((0, 3)) if value is None
-                                 else np.asarray(value, dtype=np.float64))
+        self._impl.velocities = (
+            np.empty((0, 3)) if value is None else np.asarray(value, dtype=np.float64)
+        )
 
     # ── Methods ──────────────────────────────────────────────────────
 
@@ -377,9 +382,13 @@ class Atoms:
         """Return finite per-atom energies consistent with the stored total."""
         values = self.site_energies
         energy = self.energy
-        if (values is None or values.shape != (len(self),)
-                or energy is None or not np.isfinite(energy)
-                or not np.all(np.isfinite(values))):
+        if (
+            values is None
+            or values.shape != (len(self),)
+            or energy is None
+            or not np.isfinite(energy)
+            or not np.all(np.isfinite(values))
+        ):
             return None
         if not np.isclose(values.sum(), energy, rtol=1e-10, atol=1e-10):
             return None
@@ -410,7 +419,9 @@ class Atoms:
             from ase.calculators.singlepoint import SinglePointCalculator
             from ase.units import fs
         except ImportError as exc:
-            raise ImportError("ASE interop requires installing the optional 'ase' dependency") from exc
+            raise ImportError(
+                "ASE interop requires installing the optional 'ase' dependency"
+            ) from exc
 
         numbers = self.numbers
         cartesian = self.copy()
@@ -465,7 +476,9 @@ class Atoms:
         charges = self.charges
         if charges is not None:
             if charges.shape != (len(self),) or not np.all(np.isfinite(charges)):
-                raise ValueError("Computed charges must have shape (N,) and contain only finite values")
+                raise ValueError(
+                    "Computed charges must have shape (N,) and contain only finite values"
+                )
             if not attach_calculator:
                 at.arrays['charges'] = charges.copy()
             calc_results['charges'] = charges
@@ -482,10 +495,7 @@ class Atoms:
             calc_results["forces"] = self.forces.copy()
         if self._impl.has_stress and self.stress is not None:
             s = self.stress
-            stress_internal = np.array([
-                s[0, 0], s[1, 1], s[2, 2],
-                s[1, 2], s[0, 2], s[0, 1]
-            ])
+            stress_internal = np.array([s[0, 0], s[1, 1], s[2, 2], s[1, 2], s[0, 2], s[0, 1]])
             volume = at.cell.volume
             if attach_calculator and volume > 0:
                 calc_results["stress"] = -stress_internal / volume
@@ -542,6 +552,7 @@ class Atoms:
 
         if atoms.has('momenta'):
             from ase.units import fs
+
             velocities = np.array(atoms.get_velocities(), dtype=np.float64, copy=True) * (1000 * fs)
             if velocities.shape != (len(numbers), 3) or not np.all(np.isfinite(velocities)):
                 raise ValueError("Velocities must have shape (N, 3) and contain only finite values")
@@ -570,9 +581,13 @@ class Atoms:
             imrmlp_at.free_energy = atoms.info['fenergy']
 
         if "energies" in results or "energies" in atoms.arrays or "site_en" in atoms.arrays:
-            values = (results["energies"] if "energies" in results
-                      else atoms.arrays["energies"] if "energies" in atoms.arrays
-                      else atoms.arrays["site_en"])
+            values = (
+                results["energies"]
+                if "energies" in results
+                else atoms.arrays["energies"]
+                if "energies" in atoms.arrays
+                else atoms.arrays["site_en"]
+            )
             site_energies = np.array(values, dtype=np.float64, copy=True)
             if site_energies.shape != (len(numbers),):
                 raise ValueError("ASE per-atom energies must have shape (N,)")
@@ -582,7 +597,9 @@ class Atoms:
             values = results["charges"] if "charges" in results else atoms.arrays["charges"]
             charges = np.array(values, dtype=np.float64, copy=True)
             if charges.shape != (len(numbers),) or not np.all(np.isfinite(charges)):
-                raise ValueError("Computed charges must have shape (N,) and contain only finite values")
+                raise ValueError(
+                    "Computed charges must have shape (N,) and contain only finite values"
+                )
             imrmlp_at._impl.charges = charges
 
         if "magmoms" in results or "magmoms" in atoms.arrays:
@@ -599,20 +616,24 @@ class Atoms:
             if stress_voigt.shape == (3, 3):
                 s33 = stress_voigt
             else:
-                s33 = np.array([
-                    [stress_voigt[0], stress_voigt[5], stress_voigt[4]],
-                    [stress_voigt[5], stress_voigt[1], stress_voigt[3]],
-                    [stress_voigt[4], stress_voigt[3], stress_voigt[2]],
-                ])
+                s33 = np.array(
+                    [
+                        [stress_voigt[0], stress_voigt[5], stress_voigt[4]],
+                        [stress_voigt[5], stress_voigt[1], stress_voigt[3]],
+                        [stress_voigt[4], stress_voigt[3], stress_voigt[2]],
+                    ]
+                )
             imrmlp_at._impl.stress = -s33 * atoms.get_volume()
         elif 'stress' in atoms.info:
             stress_voigt = atoms.info['stress']
             # Convert Voigt [σxx, σyy, σzz, σyz, σxz, σxy] to 3x3 symmetric tensor
-            s33 = np.array([
-                [stress_voigt[0], stress_voigt[5], stress_voigt[4]],
-                [stress_voigt[5], stress_voigt[1], stress_voigt[3]],
-                [stress_voigt[4], stress_voigt[3], stress_voigt[2]],
-            ])
+            s33 = np.array(
+                [
+                    [stress_voigt[0], stress_voigt[5], stress_voigt[4]],
+                    [stress_voigt[5], stress_voigt[1], stress_voigt[3]],
+                    [stress_voigt[4], stress_voigt[3], stress_voigt[2]],
+                ]
+            )
             imrmlp_at._impl.stress = s33
 
         return imrmlp_at
@@ -627,7 +648,9 @@ class Atoms:
         try:
             from pymatgen.core import Lattice, Molecule, Structure
         except ImportError as exc:
-            raise ImportError("pymatgen interop requires installing the optional 'pymatgen' dependency") from exc
+            raise ImportError(
+                "pymatgen interop requires installing the optional 'pymatgen' dependency"
+            ) from exc
 
         species = [Z_TO_SYMBOL.get(int(z), str(int(z))) for z in self.numbers]
         cartesian = self.copy()
@@ -658,7 +681,9 @@ class Atoms:
         try:
             from pymatgen.core import Molecule, Structure
         except ImportError as exc:
-            raise ImportError("pymatgen interop requires installing the optional 'pymatgen' dependency") from exc
+            raise ImportError(
+                "pymatgen interop requires installing the optional 'pymatgen' dependency"
+            ) from exc
 
         if isinstance(obj, Structure):
             numbers = np.array([site.specie.Z for site in obj], dtype=np.int32)

@@ -7,7 +7,8 @@
 class Atoms;
 class RelaxationDrvV2;
 
-namespace AppsRelax {
+namespace AppsRelax
+{
 // Validate selective-dynamics masks before modifying atoms. Configuration IDs
 // are one-based; atom IDs are zero-based. Unlisted atoms remain fully movable.
 void read_masks(std::istream &input, std::vector<Atoms> &atoms);

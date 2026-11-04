@@ -100,8 +100,10 @@ void NeighborhoodsGhost::construct(Atoms &atom, const double cutoff)
                                 {
                                     int indj = boxes[i + l1][j + l2][k + l3][t];
                                     Eigen::RowVector3d rij = pos[indj] - pos[indi];
-                                    const double dijsq = rij(0) * rij(0) + rij(1) * rij(1) + rij(2) * rij(2);
-                                    if ((dijsq < cutoffsq) && (indi != indj) && (indi <= indices_orig[indj]))
+                                    const double dijsq =
+                                        rij(0) * rij(0) + rij(1) * rij(1) + rij(2) * rij(2);
+                                    if ((dijsq < cutoffsq) && (indi != indj) &&
+                                        (indi <= indices_orig[indj]))
                                     {
                                         Neighborhood &nebi = nbhs[indi];
                                         const double dij = sqrt(dijsq);
@@ -110,7 +112,8 @@ void NeighborhoodsGhost::construct(Atoms &atom, const double cutoff)
                                         nebi.indices_.emplace_back(indices_orig[indj]);
                                         nebi.pos_.emplace_back(rij);
                                         nebi.distances_.emplace_back(dij);
-                                        nebi.chemmap_.emplace_back(atom.chemmap_[indices_orig[indj]]);
+                                        nebi.chemmap_.emplace_back(
+                                            atom.chemmap_[indices_orig[indj]]);
                                         if (indi != indices_orig[indj])
                                         {
                                             Neighborhood &nebj = nbhs[indices_orig[indj]];

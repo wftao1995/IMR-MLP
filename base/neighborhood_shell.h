@@ -9,7 +9,7 @@
 
 class NeighborhoodsShell : public NeighborhoodsBase<NeighborhoodsShell, AnyNeighborhoods>
 {
-public:
+  public:
     void construct(Atoms &atom, const double cutoff_inner, const double cutoff_outer);
 
     NeighborhoodsShell() = default;

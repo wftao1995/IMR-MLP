@@ -8,20 +8,25 @@
 #include <fstream>
 #include <sstream>
 
-namespace {
-struct TrainingData {
+namespace
+{
+struct TrainingData
+{
     Potentials::PotMTP potential{"unitest/test-data/portable-mtp/les.mtp"};
     std::vector<Atoms> atoms;
     std::vector<Neighborhoods> neighborhoods;
 
-    TrainingData() {
+    TrainingData()
+    {
         potential.train_init();
         potential.set_inited();
-        for (int k = 0; k < 16; ++k) {
+        for (int k = 0; k < 16; ++k)
+        {
             Atoms a;
             a.id = k;
             a.cell_ = Eigen::Matrix3d::Identity() * 12.;
-            a.pos_ = {{2., 2., 2.}, {4.1 + .2 * std::sin(k), 2.2, 2.},
+            a.pos_ = {{2., 2., 2.},
+                      {4.1 + .2 * std::sin(k), 2.2, 2.},
                       {2.3, 4.2 + .2 * std::cos(k), 2.4},
                       {5., 4.8, 3.1 + .15 * std::sin(2 * k)}};
             a.chemmap_ = {0, 1, 0, 1};
@@ -36,7 +41,8 @@ struct TrainingData {
     }
 };
 
-GPSettings settings(int limit, bool refit = true) {
+GPSettings settings(int limit, bool refit = true)
+{
     GPSettings s;
     s.Modify("skip_preinit", "true");
     s.Modify("do_orthogonalization", "false");
@@ -50,16 +56,17 @@ GPSettings settings(int limit, bool refit = true) {
     return s;
 }
 
-int occurrences(const std::string &text, const std::string &needle) {
+int occurrences(const std::string &text, const std::string &needle)
+{
     int count = 0;
-    for (size_t pos = 0; (pos = text.find(needle, pos)) != std::string::npos;
-         pos += needle.size())
+    for (size_t pos = 0; (pos = text.find(needle, pos)) != std::string::npos; pos += needle.size())
         ++count;
     return count;
 }
 }
 
-TEST_CASE("MTP training exposes EFS and Hessian target weights", "[training][mtp]") {
+TEST_CASE("MTP training exposes EFS and Hessian target weights", "[training][mtp]")
+{
     Trainer_MTP trainer;
     std::ostringstream help;
     trainer.ListSettings(help, "fit:");
@@ -70,12 +77,14 @@ TEST_CASE("MTP training exposes EFS and Hessian target weights", "[training][mtp
     REQUIRE(output.find("hessian_pow") != std::string::npos);
 }
 
-TEST_CASE("MTP EFS training ignores attached Hessian data", "[training][mtp]") {
+TEST_CASE("MTP EFS training ignores attached Hessian data", "[training][mtp]")
+{
     const bool fast = GENERATE(false, true);
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
     TrainingData plain, annotated;
-    for (auto &atom : annotated.atoms) {
+    for (auto &atom : annotated.atoms)
+    {
         atom.hessian_ = 1e6 * Eigen::MatrixXd::Identity(3 * atom.size(), 3 * atom.size());
         atom.have_hessian = true;
         REQUIRE(atom.has_hessian());
@@ -100,85 +109,110 @@ TEST_CASE("MTP EFS training ignores attached Hessian data", "[training][mtp]") {
     plain_trainer.TrainLinear();
     annotated_trainer.TrainLinear();
     for (int i = 0; i < plain.potential.lin_coeff_size; ++i)
-        REQUIRE(annotated.potential.linear_coeffs[i]
-            == Catch::Approx(plain.potential.linear_coeffs[i]).margin(1e-12));
+        REQUIRE(annotated.potential.linear_coeffs[i] ==
+                Catch::Approx(plain.potential.linear_coeffs[i]).margin(1e-12));
     plain_trainer.AccumulateLoss(plain_loss);
     annotated_trainer.AccumulateLoss(annotated_loss);
     REQUIRE(std::isfinite(plain_loss));
     REQUIRE(annotated_loss == Catch::Approx(plain_loss));
 }
 
-TEST_CASE("MTP six-row stress export reproduces the full tensor least squares system", "[training][mtp][stress]") {
+TEST_CASE("MTP six-row stress export reproduces the full tensor least squares system",
+          "[training][mtp][stress]")
+{
     TrainingData data;
-    Atoms original=data.atoms.front();
-    original.stress_(0,0)+=.7;
-    original.stress_(0,1)+=.2;original.stress_(1,0)+=.2;
-    auto config=settings(0);
-    config.Modify("energy_weight","0");config.Modify("force_weight","0");
-    config.Modify("stress_weight","1");
-    const int n=data.potential.lin_coeff_size;
-    const std::string filename="MatrixA_Stress_CMPT_ON_CORE"+std::to_string(mpi.rank);
+    Atoms original = data.atoms.front();
+    original.stress_(0, 0) += .7;
+    original.stress_(0, 1) += .2;
+    original.stress_(1, 0) += .2;
+    auto config = settings(0);
+    config.Modify("energy_weight", "0");
+    config.Modify("force_weight", "0");
+    config.Modify("stress_weight", "1");
+    const int n = data.potential.lin_coeff_size;
+    const std::string filename = "MatrixA_Stress_CMPT_ON_CORE" + std::to_string(mpi.rank);
     Eigen::MatrixXd baseline_gram;
     Eigen::VectorXd baseline_rhs;
-    double baseline_target_norm=0;
-    for(const double angle:{0.,M_PI/4.}) {
-        const Eigen::Matrix3d rotation=Eigen::AngleAxisd(angle,Eigen::Vector3d::UnitZ()).toRotationMatrix();
-        Atoms ref=original;
-        ref.cell_=(ref.cell_*rotation.transpose()).eval();
-        for(auto& r:ref.pos_) r=(r*rotation.transpose()).eval();
-        for(auto& f:ref.forces_) f=(rotation*f).eval();
-        ref.stress_=(rotation*ref.stress_*rotation.transpose()).eval();
+    double baseline_target_norm = 0;
+    for (const double angle : {0., M_PI / 4.})
+    {
+        const Eigen::Matrix3d rotation =
+            Eigen::AngleAxisd(angle, Eigen::Vector3d::UnitZ()).toRotationMatrix();
+        Atoms ref = original;
+        ref.cell_ = (ref.cell_ * rotation.transpose()).eval();
+        for (auto &r : ref.pos_)
+            r = (r * rotation.transpose()).eval();
+        for (auto &f : ref.forces_)
+            f = (rotation * f).eval();
+        ref.stress_ = (rotation * ref.stress_ * rotation.transpose()).eval();
         std::vector<Atoms> frames{ref};
         std::vector<Neighborhoods> nbhs;
-        nbhs.emplace_back(frames[0],data.potential.cutoff);
-        Trainer_MTP trainer(config);trainer.init(frames,nbhs,&data.potential);
+        nbhs.emplace_back(frames[0], data.potential.cutoff);
+        Trainer_MTP trainer(config);
+        trainer.init(frames, nbhs, &data.potential);
         trainer.get_A();
 
-        std::ifstream input(filename,std::ios::binary);
+        std::ifstream input(filename, std::ios::binary);
         REQUIRE(input.is_open());
-        Eigen::MatrixXd A(6,n);
+        Eigen::MatrixXd A(6, n);
         Eigen::VectorXd target(6);
-        for(int row=0;row<6;++row) {
-            int id=-1;input.read(reinterpret_cast<char*>(&id),sizeof(id));
-            REQUIRE(id==ref.id);
-            for(int k=0;k<n;++k) input.read(reinterpret_cast<char*>(&A(row,k)),sizeof(double));
-            input.read(reinterpret_cast<char*>(&target[row]),sizeof(double));
+        for (int row = 0; row < 6; ++row)
+        {
+            int id = -1;
+            input.read(reinterpret_cast<char *>(&id), sizeof(id));
+            REQUIRE(id == ref.id);
+            for (int k = 0; k < n; ++k)
+                input.read(reinterpret_cast<char *>(&A(row, k)), sizeof(double));
+            input.read(reinterpret_cast<char *>(&target[row]), sizeof(double));
             REQUIRE(input.good());
         }
-        REQUIRE(input.peek()==std::char_traits<char>::eof());
-        input.close();std::filesystem::remove(filename);
+        REQUIRE(input.peek() == std::char_traits<char>::eof());
+        input.close();
+        std::filesystem::remove(filename);
 
         std::vector<double> energy;
-        Eigen::Tensor<double,3> force,stress;
-        data.potential.CalcEFSCmpt(ref,nbhs[0],energy,force,stress);
-        Eigen::MatrixXd full(9,n);Eigen::VectorXd full_target(9);
-        int row=0;
-        for(int i=0;i<3;++i) for(int j=0;j<3;++j) {
-            for(int k=0;k<n;++k) full(3*i+j,k)=stress(k,i,j);
-            full_target[3*i+j]=ref.stress_(i,j);
-            if(j>=i) {
-                const double factor=i==j?1.:std::sqrt(2.);
-                REQUIRE((A.row(row)-factor*full.row(3*i+j)).norm()<1e-12);
-                REQUIRE(target[row]==Catch::Approx(factor*full_target[3*i+j]).margin(1e-12));
-                ++row;
+        Eigen::Tensor<double, 3> force, stress;
+        data.potential.CalcEFSCmpt(ref, nbhs[0], energy, force, stress);
+        Eigen::MatrixXd full(9, n);
+        Eigen::VectorXd full_target(9);
+        int row = 0;
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j)
+            {
+                for (int k = 0; k < n; ++k)
+                    full(3 * i + j, k) = stress(k, i, j);
+                full_target[3 * i + j] = ref.stress_(i, j);
+                if (j >= i)
+                {
+                    const double factor = i == j ? 1. : std::sqrt(2.);
+                    REQUIRE((A.row(row) - factor * full.row(3 * i + j)).norm() < 1e-12);
+                    REQUIRE(target[row] ==
+                            Catch::Approx(factor * full_target[3 * i + j]).margin(1e-12));
+                    ++row;
+                }
             }
+        const Eigen::MatrixXd gram = A.transpose() * A;
+        const Eigen::VectorXd rhs = A.transpose() * target;
+        REQUIRE((gram - full.transpose() * full).norm() < 1e-10);
+        REQUIRE((rhs - full.transpose() * full_target).norm() < 1e-10);
+        REQUIRE(target.squaredNorm() == Catch::Approx(full_target.squaredNorm()).margin(1e-10));
+        if (angle == 0)
+        {
+            baseline_gram = gram;
+            baseline_rhs = rhs;
+            baseline_target_norm = target.squaredNorm();
         }
-        const Eigen::MatrixXd gram=A.transpose()*A;
-        const Eigen::VectorXd rhs=A.transpose()*target;
-        REQUIRE((gram-full.transpose()*full).norm()<1e-10);
-        REQUIRE((rhs-full.transpose()*full_target).norm()<1e-10);
-        REQUIRE(target.squaredNorm()==Catch::Approx(full_target.squaredNorm()).margin(1e-10));
-        if(angle==0) {baseline_gram=gram;baseline_rhs=rhs;baseline_target_norm=target.squaredNorm();}
-        else {
-            REQUIRE((gram-baseline_gram).norm()<1e-10);
-            REQUIRE((rhs-baseline_rhs).norm()<1e-10);
-            REQUIRE(target.squaredNorm()==Catch::Approx(baseline_target_norm).margin(1e-10));
+        else
+        {
+            REQUIRE((gram - baseline_gram).norm() < 1e-10);
+            REQUIRE((rhs - baseline_rhs).norm() < 1e-10);
+            REQUIRE(target.squaredNorm() == Catch::Approx(baseline_target_norm).margin(1e-10));
         }
     }
 }
 
-
-TEST_CASE("MTP ALGLIB refits at accepted iterations across restarts", "[training][mtp][bfgs]") {
+TEST_CASE("MTP ALGLIB refits at accepted iterations across restarts", "[training][mtp][bfgs]")
+{
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
     TrainingData data;
@@ -195,9 +229,10 @@ TEST_CASE("MTP ALGLIB refits at accepted iterations across restarts", "[training
     REQUIRE(output.find("f_hess") == std::string::npos);
     REQUIRE(output.find("HRMS") == std::string::npos);
     REQUIRE(occurrences(output, "BFGS linear fit at iteration ") == 4);
-    for (int step : {25, 100, 200}) {
-        REQUIRE(occurrences(output, "BFGS linear fit at iteration "
-            + std::to_string(step) + " (scheduled)") == 1);
+    for (int step : {25, 100, 200})
+    {
+        REQUIRE(occurrences(output, "BFGS linear fit at iteration " + std::to_string(step) +
+                                        " (scheduled)") == 1);
     }
     REQUIRE(occurrences(output, "BFGS linear fit at iteration 201 (end)") == 1);
     REQUIRE(occurrences(output, "BFGS restart after iteration ") == 3);
@@ -208,7 +243,8 @@ TEST_CASE("MTP ALGLIB refits at accepted iterations across restarts", "[training
     REQUIRE(report.iterationscount == 1); // Only the last segment is in ALGLIB's report.
 }
 
-TEST_CASE("MTP training rejects fixing every coefficient", "[training][mtp][errors]") {
+TEST_CASE("MTP training rejects fixing every coefficient", "[training][mtp][errors]")
+{
     TrainingData data;
     auto config = settings(1);
     config.Modify("fix_linear_coeffs", "true");
@@ -218,7 +254,9 @@ TEST_CASE("MTP training rejects fixing every coefficient", "[training][mtp][erro
                         Catch::Matchers::ContainsSubstring("Nothing to be optimized"));
 }
 
-TEST_CASE("MTP loss and gradient paths apply the same atomic force weights", "[training][mtp][weights]") {
+TEST_CASE("MTP loss and gradient paths apply the same atomic force weights",
+          "[training][mtp][weights]")
+{
     const double weight = GENERATE(0., .25, 2.);
     TrainingData data;
     data.atoms.resize(1);
@@ -244,7 +282,9 @@ TEST_CASE("MTP loss and gradient paths apply the same atomic force weights", "[t
     REQUIRE(loss == Catch::Approx(weight).margin(1e-14));
 }
 
-TEST_CASE("MTP SGD updates every trainable coordinate with the averaged penalized gradient", "[training][mtp][sgd]") {
+TEST_CASE("MTP SGD updates every trainable coordinate with the averaged penalized gradient",
+          "[training][mtp][sgd]")
+{
     const std::string coordinates = GENERATE("all", "radial", "linear");
     const bool clipped = GENERATE(false, true);
     CAPTURE(coordinates, clipped);
@@ -276,12 +316,14 @@ TEST_CASE("MTP SGD updates every trainable coordinate with the averaged penalize
     gradient.setlength(before.length());
     after.setlength(before.length());
     model.ae_get_coeffs(before, trainer.fix_radial_coeffs, trainer.fix_linear_coeffs);
-    const Eigen::VectorXd species = Eigen::Map<Eigen::VectorXd>(model.species_coeffs, model.species_count);
+    const Eigen::VectorXd species =
+        Eigen::Map<Eigen::VectorXd>(model.species_coeffs, model.species_count);
     double loss;
     trainer.AccumulateGard(loss, gradient);
     trainer.TrainSGD();
     model.ae_get_coeffs(after, trainer.fix_radial_coeffs, trainer.fix_linear_coeffs);
-    for (int i = 0; i < before.length(); ++i) {
+    for (int i = 0; i < before.length(); ++i)
+    {
         CAPTURE(i);
         const double g = clipped ? std::clamp(gradient[i], -.001, .001) : gradient[i];
         REQUIRE(after[i] == Catch::Approx(before[i] - .0001 * g).epsilon(1e-12).margin(1e-14));
@@ -290,7 +332,8 @@ TEST_CASE("MTP SGD updates every trainable coordinate with the averaged penalize
         REQUIRE(model.species_coeffs[i] == species[i]);
 }
 
-TEST_CASE("MTP BFGS preconditioning supports zero and tiny coefficients", "[training][mtp][bfgs]") {
+TEST_CASE("MTP BFGS preconditioning supports zero and tiny coefficients", "[training][mtp][bfgs]")
+{
     const double initial = GENERATE(0., 1e-14);
     TrainingData data;
     auto &model = data.potential;
@@ -310,24 +353,29 @@ TEST_CASE("MTP BFGS preconditioning supports zero and tiny coefficients", "[trai
     REQUIRE(after < before);
     // Each four-atom structure has two atoms of species 0: d2L/dc0^2 = 2 * 2^2 / 4.
     REQUIRE(trainer.hess_diag[0] == Catch::Approx(2.).epsilon(1e-5));
-    for (int i = 0; i < trainer.hess_diag.length(); ++i) {
+    for (int i = 0; i < trainer.hess_diag.length(); ++i)
+    {
         REQUIRE(std::isfinite(trainer.hess_diag[i]));
         REQUIRE(trainer.hess_diag[i] > 0.);
     }
 }
 
-TEST_CASE("MTP curvature checks restore the potential coefficients", "[training][mtp][diagnostics]") {
+TEST_CASE("MTP curvature checks restore the potential coefficients", "[training][mtp][diagnostics]")
+{
     TrainingData data;
     auto &model = data.potential;
     Trainer_MTP trainer(settings(1));
     trainer.init(data.atoms, data.neighborhoods, &model);
-    const Eigen::VectorXd original = Eigen::Map<Eigen::VectorXd>(model.regression_coeffs, model.reg_coeff_size);
+    const Eigen::VectorXd original =
+        Eigen::Map<Eigen::VectorXd>(model.regression_coeffs, model.reg_coeff_size);
     trainer.test_curv(0, 1e-5);
     for (int i = 0; i < model.reg_coeff_size; ++i)
         REQUIRE(model.regression_coeffs[i] == original[i]);
 }
 
-TEST_CASE("MTP fixed species retain penalties for every moment coefficient", "[training][mtp][regularization]") {
+TEST_CASE("MTP fixed species retain penalties for every moment coefficient",
+          "[training][mtp][regularization]")
+{
     TrainingData data;
     auto config = settings(1);
     config.Modify("fix_species_coeffs", "true");
@@ -355,7 +403,9 @@ TEST_CASE("MTP fixed species retain penalties for every moment coefficient", "[t
         REQUIRE(gradient[i] == 0.);
 }
 
-TEST_CASE("MTP fixed species linear fits match an augmented ridge solve", "[training][mtp][regularization]") {
+TEST_CASE("MTP fixed species linear fits match an augmented ridge solve",
+          "[training][mtp][regularization]")
+{
     const bool fast = GENERATE(false, true);
     const bool energy_only = GENERATE(false, true);
     const bool adapt_regularization = GENERATE(false, true);
@@ -375,21 +425,25 @@ TEST_CASE("MTP fixed species linear fits match an augmented ridge solve", "[trai
     REQUIRE(model.reg_L2_vector.size() == model.lin_coeff_size);
     const int n = model.lin_coeff_size - model.species_count;
     const int rows = data.atoms.size();
-    const Eigen::VectorXd species = Eigen::Map<Eigen::VectorXd>(model.species_coeffs, model.species_count);
+    const Eigen::VectorXd species =
+        Eigen::Map<Eigen::VectorXd>(model.species_coeffs, model.species_count);
     Eigen::MatrixXd augmented = Eigen::MatrixXd::Zero(rows + n, n);
     Eigen::VectorXd target = Eigen::VectorXd::Zero(rows + n);
-    for (int k = 0; k < rows; ++k) {
+    for (int k = 0; k < rows; ++k)
+    {
         std::vector<double> basis;
         model.CalcECmpt(data.atoms[k], data.neighborhoods[k], basis);
         const double weight = 1. / std::sqrt(data.atoms[k].size());
         double energy = data.atoms[k].energy_;
-        for (int i = 0; i < model.species_count; ++i) energy -= basis[i] * species[i];
+        for (int i = 0; i < model.species_count; ++i)
+            energy -= basis[i] * species[i];
         target[k] = weight * energy;
         for (int i = 0; i < n; ++i)
             augmented(k, i) = weight * basis[model.species_count + i];
     }
     Eigen::VectorXd penalties(n);
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
+    {
         const double diagonal = augmented.col(i).squaredNorm();
         const double initial = .01 * std::max(1., diagonal / rows) * (1. + .01 * i);
         // Zero weights trigger the trainer's automatic regularization update.
@@ -407,7 +461,9 @@ TEST_CASE("MTP fixed species linear fits match an augmented ridge solve", "[trai
         REQUIRE(model.species_coeffs[i] == species[i]);
 }
 
-TEST_CASE("MTP ALGLIB respects the passed limit and saves accepted parameters", "[training][mtp][bfgs]") {
+TEST_CASE("MTP ALGLIB respects the passed limit and saves accepted parameters",
+          "[training][mtp][bfgs]")
+{
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
     TrainingData data;
@@ -424,14 +480,16 @@ TEST_CASE("MTP ALGLIB respects the passed limit and saves accepted parameters", 
     REQUIRE(report.nfev > report.iterationscount);
     Potentials::PotMTP saved("_Current_potential_save_1.mtp");
     REQUIRE(saved.reg_coeff_size == data.potential.reg_coeff_size);
-    for (int i = 0; i < saved.reg_coeff_size; ++i) {
+    for (int i = 0; i < saved.reg_coeff_size; ++i)
+    {
         REQUIRE(saved.regression_coeffs[i] == x[i]);
         REQUIRE(data.potential.regression_coeffs[i] == x[i]);
     }
     REQUIRE(occurrences(log->str(), "Iteration ") == 1);
 }
 
-TEST_CASE("MTP ALGLIB disabled refits leave an uninterrupted run", "[training][mtp][bfgs]") {
+TEST_CASE("MTP ALGLIB disabled refits leave an uninterrupted run", "[training][mtp][bfgs]")
+{
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
     TrainingData data;
@@ -446,7 +504,8 @@ TEST_CASE("MTP ALGLIB disabled refits leave an uninterrupted run", "[training][m
     REQUIRE(report.iterationscount == 26);
 }
 
-TEST_CASE("MTP ALGLIB merges a scheduled and final refit", "[training][mtp][bfgs]") {
+TEST_CASE("MTP ALGLIB merges a scheduled and final refit", "[training][mtp][bfgs]")
+{
     const bool fast = GENERATE(false, true);
     const bool energy_only = GENERATE(false, true);
     auto *log = new std::ostringstream;
@@ -464,7 +523,8 @@ TEST_CASE("MTP ALGLIB merges a scheduled and final refit", "[training][mtp][bfgs
     REQUIRE(log->str().find("BFGS restart") == std::string::npos);
 }
 
-TEST_CASE("MTP ALGLIB initial convergence still performs the final refit", "[training][mtp][bfgs]") {
+TEST_CASE("MTP ALGLIB initial convergence still performs the final refit", "[training][mtp][bfgs]")
+{
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
     TrainingData data;
@@ -478,7 +538,8 @@ TEST_CASE("MTP ALGLIB initial convergence still performs the final refit", "[tra
     REQUIRE(occurrences(log->str(), "BFGS linear fit at iteration 0 (end)") == 1);
 }
 
-TEST_CASE("MTP ALGLIB pretraining has its own iteration budget", "[training][mtp][bfgs]") {
+TEST_CASE("MTP ALGLIB pretraining has its own iteration budget", "[training][mtp][bfgs]")
+{
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
     TrainingData data;
@@ -494,7 +555,9 @@ TEST_CASE("MTP ALGLIB pretraining has its own iteration budget", "[training][mtp
     REQUIRE(occurrences(log->str(), "BFGS linear fit at iteration ") == 1);
 }
 
-TEST_CASE("MTP ALGLIB reloads radial-only optimizer parameters after refitting", "[training][mtp][bfgs]") {
+TEST_CASE("MTP ALGLIB reloads radial-only optimizer parameters after refitting",
+          "[training][mtp][bfgs]")
+{
     auto *log = new std::ostringstream;
     ScopedStreamRedirect redirect(global_ostream, log);
     TrainingData data;

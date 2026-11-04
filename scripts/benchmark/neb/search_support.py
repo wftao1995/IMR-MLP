@@ -1,4 +1,5 @@
 """Shared helpers for the NEB path-search tool."""
+
 import hashlib
 import json
 import os
@@ -13,7 +14,7 @@ def sha(path):
 
 
 def dump(path, value):
-    Path(path).write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False)+'\n')
+    Path(path).write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + '\n')
 
 
 def runtime_inventory(binaries):
@@ -21,13 +22,21 @@ def runtime_inventory(binaries):
     records = {}
     for name, binary in binaries.items():
         env = os.environ.copy()
-        env['LD_LIBRARY_PATH'] = str(binary.parent)+':'+env.get('LD_LIBRARY_PATH', '')
-        result = subprocess.run(['ldd', str(binary)], env=env, text=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+        env['LD_LIBRARY_PATH'] = str(binary.parent) + ':' + env.get('LD_LIBRARY_PATH', '')
+        result = subprocess.run(
+            ['ldd', str(binary)],
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
         libraries = {}
         for line in result.stdout.splitlines():
             fields = line.split()
-            candidate = fields[2] if len(fields) > 2 and fields[1] == '=>' else fields[0] if fields else ''
+            candidate = (
+                fields[2] if len(fields) > 2 and fields[1] == '=>' else fields[0] if fields else ''
+            )
             if candidate.startswith('/') and Path(candidate).is_file():
                 libraries[str(Path(candidate).resolve())] = sha(candidate)
         records[name] = dict(returncode=result.returncode, ldd=result.stdout, libraries=libraries)
@@ -49,21 +58,33 @@ def physical_cores():
     lines = subprocess.check_output(['lscpu', '-p=CPU,CORE,SOCKET'], text=True).splitlines()
     selected = {}
     for line in lines:
-        if line.startswith('#'): continue
+        if line.startswith('#'):
+            continue
         cpu, core, socket = map(int, line.split(','))
-        if cpu in allowed: selected.setdefault((socket, core), cpu)
+        if cpu in allowed:
+            selected.setdefault((socket, core), cpu)
     return list(selected.values())
 
 
 def execute(command, folder, env, timeout):
     start = time.perf_counter()
-    with (folder/'run.log').open('w') as log:
-        proc = subprocess.Popen(command, cwd=folder, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-        try: code = proc.wait(timeout=timeout)
+    with (folder / 'run.log').open('w') as log:
+        proc = subprocess.Popen(
+            command,
+            cwd=folder,
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        try:
+            code = proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGTERM)
-            try: proc.wait(timeout=10)
+            try:
+                proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, signal.SIGKILL); proc.wait()
+                os.killpg(proc.pid, signal.SIGKILL)
+                proc.wait()
             code = 'timeout'
-    return code, time.perf_counter()-start
+    return code, time.perf_counter() - start

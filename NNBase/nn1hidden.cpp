@@ -7,26 +7,33 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-void IMRMLPNN::NN1lay::resize_omp_buffers(int n_threads) {
-    if (buffers.size() < n_threads) {
+void IMRMLPNN::NN1lay::resize_omp_buffers(int n_threads)
+{
+    if (buffers.size() < n_threads)
+    {
         buffers.resize(n_threads);
-        for (int i = 1; i < n_threads; ++i) {
+        for (int i = 1; i < n_threads; ++i)
+        {
             auto &buf = buffers[i];
             buf.hiddenlay = Vector::Zero(n_neuron);
             buf.dhdi = Matrix::Zero(n_neuron, n_input);
         }
     }
 }
+
 void IMRMLPNN::NN1lay::add_pnal(const double &l1, const double &l2, double &loss, double *pgard)
 {
     // if (x[i] > 0) pgard[i] -= reg_L1vec[i];
     //     else if (x[i] < 0) pgard[i] += reg_L1vec[i];
     //     pgard[i] += 2 * x[i] * reg_L2vec[i];
     int m = 0;
-    if (l1 > 0 || l2 > 0) {
+    if (l1 > 0 || l2 > 0)
+    {
         // w_input : n_input x n_neuron
-        for (int col = 0; col < w_input.cols(); ++col) {
-            for (int row = 0; row < w_input.rows(); ++row) {
+        for (int col = 0; col < w_input.cols(); ++col)
+        {
+            for (int row = 0; row < w_input.rows(); ++row)
+            {
                 double &x = w_input(row, col);
                 loss += l1 * fabs(x) + l2 * x * x;
                 pgard[m++] += (x > 0 ? l1 : -l1) + 2 * x * l2;
@@ -34,14 +41,16 @@ void IMRMLPNN::NN1lay::add_pnal(const double &l1, const double &l2, double &loss
         }
 
         // Copy b_hidden
-        for (int i = 0; i < b_hidden.size(); ++i) {
+        for (int i = 0; i < b_hidden.size(); ++i)
+        {
             double &x = b_hidden(i);
             loss += l1 * fabs(x) + l2 * x * x;
             pgard[m++] += (x > 0 ? l1 : -l1) + 2 * x * l2;
         }
 
         // Copy w_hidden
-        for (int i = 0; i < w_hidden.size(); ++i) {
+        for (int i = 0; i < w_hidden.size(); ++i)
+        {
             double &x = w_hidden(i);
             loss += l1 * fabs(x) + l2 * x * x;
             pgard[m++] += (x > 0 ? l1 : -l1) + 2 * x * l2;
@@ -51,6 +60,7 @@ void IMRMLPNN::NN1lay::add_pnal(const double &l1, const double &l2, double &loss
     // // Copy b_output
     // *x = b_output;
 }
+
 // LeCun Init, one should ensure that setup() is called before.
 void IMRMLPNN::NN1lay::random_init()
 {
@@ -63,15 +73,24 @@ void IMRMLPNN::NN1lay::random_init()
     std::normal_distribution<Scalar> dist2(0, sig2);
 
     // Initialize weights with random values
-    w_input = Matrix::NullaryExpr(n_input, n_neuron, [&]() { return dist(gen); });
-    w_hidden = Vector::NullaryExpr(n_neuron, [&]() { return dist2(gen); });
+    w_input = Matrix::NullaryExpr(n_input, n_neuron,
+                                  [&]()
+                                  {
+                                      return dist(gen);
+                                  });
+    w_hidden = Vector::NullaryExpr(n_neuron,
+                                   [&]()
+                                   {
+                                       return dist2(gen);
+                                   });
     // b_hidden = Vector::NullaryExpr(n_neuron, [&]() { return dist(gen); });
     b_hidden.setZero();
     // b_output = dist(gen);
 }
 
-void IMRMLPNN::NN1lay::setup(int _n_input, int _n_neuron, int _n_threads) {
-    // n_input(n_input), n_neuron(n_neuron) 
+void IMRMLPNN::NN1lay::setup(int _n_input, int _n_neuron, int _n_threads)
+{
+    // n_input(n_input), n_neuron(n_neuron)
     n_input = _n_input;
     n_neuron = _n_neuron;
     // Compute dimensions
@@ -88,16 +107,23 @@ void IMRMLPNN::NN1lay::setup(int _n_input, int _n_neuron, int _n_threads) {
 
     // Allocate buffers for threading
     buffers.resize(_n_threads);
-    for (auto &buf : buffers) {
+    for (auto &buf : buffers)
+    {
         buf.hiddenlay = Vector::Zero(n_neuron);
         buf.dhdi = Matrix::Zero(n_neuron, n_input);
     }
 }
 
-void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, int &tag , int ibuffer) {
+void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, int &tag, int ibuffer)
+{
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(input);
-    buf.hiddenlay = (w_input.transpose() * buf.input + b_hidden).unaryExpr([&](Scalar x) { return activation_function(x, acfunc); });
+    buf.hiddenlay = (w_input.transpose() * buf.input + b_hidden)
+                        .unaryExpr(
+                            [&](Scalar x)
+                            {
+                                return activation_function(x, acfunc);
+                            });
     // for (int i = 0; i < n_neuron; ++i) {
     //     // one change activation function here
     //     Scalar activation = w_input.col(i).dot(buf.input) + b_hidden(i);
@@ -106,7 +132,8 @@ void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, int &tag ,
     output = w_hidden.dot(buf.hiddenlay); // + b_output;
 }
 
-void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, Vector &outder, int &tag , int ibuffer)
+void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, Vector &outder, int &tag,
+                                 int ibuffer)
 {
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(input);
@@ -115,7 +142,8 @@ void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, Vector &ou
     // buf.hiddenlay.setZero();
     // buf.dhdi.resize(n_neuron, n_input);
     // buf.dhdi.setZero();
-    for (int i = 0; i < n_neuron; ++i) {
+    for (int i = 0; i < n_neuron; ++i)
+    {
         // one change activation function here
         Scalar activation = w_input.col(i).dot(buf.input) + b_hidden(i);
         buf.hiddenlay(i) = activation_function(activation, acfunc);
@@ -129,7 +157,8 @@ void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, Vector &ou
     outder = (w_hidden.transpose() * buf.dhdi).transpose().array() * norm_irstd.array();
 }
 
-void IMRMLPNN::NN1lay::propagate(const Vector& input, Scalar& output, Vector& dedq, Matrix& d2edqdq, int &tag , int ibuffer)
+void IMRMLPNN::NN1lay::propagate(const Vector &input, Scalar &output, Vector &dedq, Matrix &d2edqdq,
+                                 int &tag, int ibuffer)
 {
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(input);
@@ -144,7 +173,8 @@ void IMRMLPNN::NN1lay::propagate(const Vector& input, Scalar& output, Vector& de
         Scalar activation = w_input.col(i).dot(buf.input) + b_hidden(i);
         buf.hiddenlay(i) = activation_function(activation, acfunc);
         Scalar derivative = activation_derivative(activation, buf.hiddenlay(i), acfunc);
-        Scalar derivative_2nd = activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
+        Scalar derivative_2nd =
+            activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
         actis[i] = activation;
         deris[i] = derivative;
         der2nd[i] = derivative_2nd;
@@ -155,11 +185,16 @@ void IMRMLPNN::NN1lay::propagate(const Vector& input, Scalar& output, Vector& de
     dedq = w_hidden.transpose() * buf.dhdi;
 
     // step 4, compute d2udqdq, fill lower part
-    for (int i = 0; i < n_neuron; ++i) {
-        for (int m = 0; m < n_input; ++m) {
-            d2edqdq(m, m) += w_hidden(i) * w_input(m, i) * w_input(m, i) * der2nd[i] * norm_irstd(m) * norm_irstd(m);
-            for (int n = m + 1; n < n_input; ++n) {
-                double c = w_hidden(i) * w_input(n, i) * w_input(m, i) * der2nd[i] * norm_irstd(m) * norm_irstd(n);
+    for (int i = 0; i < n_neuron; ++i)
+    {
+        for (int m = 0; m < n_input; ++m)
+        {
+            d2edqdq(m, m) += w_hidden(i) * w_input(m, i) * w_input(m, i) * der2nd[i] *
+                             norm_irstd(m) * norm_irstd(m);
+            for (int n = m + 1; n < n_input; ++n)
+            {
+                double c = w_hidden(i) * w_input(n, i) * w_input(m, i) * der2nd[i] * norm_irstd(m) *
+                           norm_irstd(n);
                 d2edqdq(n, m) += c;
                 d2edqdq(m, n) += c;
             }
@@ -167,7 +202,8 @@ void IMRMLPNN::NN1lay::propagate(const Vector& input, Scalar& output, Vector& de
     }
 }
 
-void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector &dedq, Vector &dedt, Matrix &d2edqdt, int &tag , int ibuffer)
+void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector &dedq,
+                                    Vector &dedt, Matrix &d2edqdt, int &tag, int ibuffer)
 {
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(_input);
@@ -188,7 +224,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector
         buf.hiddenlay(i) = activation_function(activation, acfunc);
         ;
         Scalar derivative = activation_derivative(activation, buf.hiddenlay(i), acfunc);
-        Scalar derivative_2nd = activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
+        Scalar derivative_2nd =
+            activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
         actis[i] = activation;
         deris[i] = derivative;
         der2nd[i] = derivative_2nd;
@@ -236,7 +273,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector
                 {
                     d2edqdt(k, index) += w_hidden(i) * derivative * norm_irstd(k);
                 }
-                d2edqdt(k, index) += w_hidden(i) * w_input(k, i) * buf.input(j) * derivative_2nd * norm_irstd(k);
+                d2edqdt(k, index) +=
+                    w_hidden(i) * w_input(k, i) * buf.input(j) * derivative_2nd * norm_irstd(k);
             }
             index++;
         }
@@ -266,7 +304,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector
     // No second-order contribution needed, keep zero
 }
 
-void IMRMLPNN::NN1lay::backpropgate(const Vector& input, Scalar& output, Vector& dedq, Vector& dedt, int &tag , int ibuffer)
+void IMRMLPNN::NN1lay::backpropgate(const Vector &input, Scalar &output, Vector &dedq, Vector &dedt,
+                                    int &tag, int ibuffer)
 {
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(input);
@@ -307,7 +346,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector& input, Scalar& output, Vector&
     }
 }
 
-void IMRMLPNN::NN1lay::backpropgate(const Vector& input, Scalar& output, Vector& dedt, int &tag , int ibuffer)
+void IMRMLPNN::NN1lay::backpropgate(const Vector &input, Scalar &output, Vector &dedt, int &tag,
+                                    int ibuffer)
 {
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(input);
@@ -346,14 +386,9 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector& input, Scalar& output, Vector&
     }
 }
 
-void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, 
-        Scalar &output, 
-        Vector &dedq, 
-        Vector &dedt, 
-        Matrix &d2edqdt, 
-        Matrix &d2edqdq, 
-        int &tag , 
-        int ibuffer)
+void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector &dedq,
+                                    Vector &dedt, Matrix &d2edqdt, Matrix &d2edqdq, int &tag,
+                                    int ibuffer)
 {
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(_input);
@@ -374,7 +409,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input,
         Scalar activation = w_input.col(i).dot(buf.input) + b_hidden(i);
         buf.hiddenlay(i) = activation_function(activation, acfunc);
         Scalar derivative = activation_derivative(activation, buf.hiddenlay(i), acfunc);
-        Scalar derivative_2nd = activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
+        Scalar derivative_2nd =
+            activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
         actis[i] = activation;
         deris[i] = derivative;
         der2nd[i] = derivative_2nd;
@@ -422,7 +458,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input,
                 {
                     d2edqdt(k, index) += w_hidden(i) * derivative * norm_irstd(k);
                 }
-                d2edqdt(k, index) += w_hidden(i) * w_input(k, i) * buf.input(j) * derivative_2nd * norm_irstd(k);
+                d2edqdt(k, index) +=
+                    w_hidden(i) * w_input(k, i) * buf.input(j) * derivative_2nd * norm_irstd(k);
             }
             index++;
         }
@@ -452,11 +489,16 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input,
     // No second-order contribution needed, keep zero
 
     // step 4, compute d2udqdq, fill lower part
-    for (int i = 0; i < n_neuron; ++i) {
-        for (int m = 0; m < n_input; ++m) {
-            d2edqdq(m, m) += w_hidden(i) * w_input(m, i) * w_input(m, i) * der2nd[i] * norm_irstd(m) * norm_irstd(m);
-            for (int n = m + 1; n < n_input; ++n) {
-                double c = w_hidden(i) * w_input(n, i) * w_input(m, i) * der2nd[i] * norm_irstd(m) * norm_irstd(n);
+    for (int i = 0; i < n_neuron; ++i)
+    {
+        for (int m = 0; m < n_input; ++m)
+        {
+            d2edqdq(m, m) += w_hidden(i) * w_input(m, i) * w_input(m, i) * der2nd[i] *
+                             norm_irstd(m) * norm_irstd(m);
+            for (int n = m + 1; n < n_input; ++n)
+            {
+                double c = w_hidden(i) * w_input(n, i) * w_input(m, i) * der2nd[i] * norm_irstd(m) *
+                           norm_irstd(n);
                 d2edqdq(n, m) += c;
                 d2edqdq(m, n) += c;
             }
@@ -464,7 +506,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input,
     }
 }
 
-void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector &dedt, Matrix &d2edqdt, int &tag , int ibuffer)
+void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector &dedt,
+                                    Matrix &d2edqdt, int &tag, int ibuffer)
 {
     Buffer &buf = buffers[ibuffer];
     buf.input = normalize(_input);
@@ -484,7 +527,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector
         Scalar activation = w_input.col(i).dot(buf.input) + b_hidden(i);
         buf.hiddenlay(i) = activation_function(activation, acfunc);
         Scalar derivative = activation_derivative(activation, buf.hiddenlay(i), acfunc);
-        Scalar derivative_2nd = activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
+        Scalar derivative_2nd =
+            activation_2nd_derivative(activation, buf.hiddenlay(i), derivative, acfunc);
         actis[i] = activation;
         deris[i] = derivative;
         der2nd[i] = derivative_2nd;
@@ -531,7 +575,8 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector
                 {
                     d2edqdt(k, index) += w_hidden(i) * derivative * norm_irstd(k);
                 }
-                d2edqdt(k, index) += w_hidden(i) * w_input(k, i) * buf.input(j) * derivative_2nd * norm_irstd(k);
+                d2edqdt(k, index) +=
+                    w_hidden(i) * w_input(k, i) * buf.input(j) * derivative_2nd * norm_irstd(k);
             }
             index++;
         }
@@ -561,9 +606,11 @@ void IMRMLPNN::NN1lay::backpropgate(const Vector &_input, Scalar &output, Vector
     // No second-order contribution needed, keep zero
 }
 
-void IMRMLPNN::NN1lay::dump_coeffs(const std::string &outfile) {
+void IMRMLPNN::NN1lay::dump_coeffs(const std::string &outfile)
+{
     std::ofstream ofs(outfile, std::ios::binary);
-    if (!ofs) {
+    if (!ofs)
+    {
         throw std::ios_base::failure("Failed to open file for writing: " + outfile);
     }
 
@@ -576,30 +623,36 @@ void IMRMLPNN::NN1lay::dump_coeffs(const std::string &outfile) {
     ofs.write(reinterpret_cast<const char *>(b_hidden.data()), b_hidden.size() * sizeof(Scalar));
     // ofs.write(reinterpret_cast<const char *>(&b_output), sizeof(b_output));
     ofs.write(reinterpret_cast<const char *>(norm_mean.data()), norm_mean.size() * sizeof(Scalar));
-    ofs.write(reinterpret_cast<const char *>(norm_irstd.data()), norm_irstd.size() * sizeof(Scalar));
+    ofs.write(reinterpret_cast<const char *>(norm_irstd.data()),
+              norm_irstd.size() * sizeof(Scalar));
     CoeffIO::finish_output(ofs, outfile);
 }
 
 void IMRMLPNN::NN1lay::dump_coeffs_txt(const std::string &outfile)
 {
     std::ofstream ofs(outfile);
-    if (!ofs) {
+    if (!ofs)
+    {
         throw std::ios_base::failure("Failed to open file for writing: " + outfile);
     }
     ofs << fmt::format("{} {}\n", n_neuron, n_input);
-    for (int i = 0; i < w_input.rows(); ++i) {
+    for (int i = 0; i < w_input.rows(); ++i)
+    {
         ofs << fmt::format("{}\n", fmt::join(w_input.row(i), " "));
     }
-    ofs << fmt::format("{}\n{}\n{}\n{}\n", fmt::join(w_hidden, " "), fmt::join(b_hidden, " "), fmt::join(norm_mean, " "), fmt::join(norm_irstd, " "));
+    ofs << fmt::format("{}\n{}\n{}\n{}\n", fmt::join(w_hidden, " "), fmt::join(b_hidden, " "),
+                       fmt::join(norm_mean, " "), fmt::join(norm_irstd, " "));
     CoeffIO::finish_output(ofs, outfile);
 }
 
 void IMRMLPNN::NN1lay::load_coeffs(const std::string &infile)
 {
     std::ifstream ifs(infile, std::ios::binary);
-    if (!ifs) throw std::ios_base::failure("Failed to open file for reading: " + infile);
+    if (!ifs)
+        throw std::ios_base::failure("Failed to open file for reading: " + infile);
     const auto header = CoeffIO::read_header(ifs, infile, 1);
-    if (header.layers != 1) CoeffIO::fail(infile);
+    if (header.layers != 1)
+        CoeffIO::fail(infile);
     int hidden = 0, input = 0;
     ifs.read(reinterpret_cast<char *>(&hidden), sizeof(hidden));
     ifs.read(reinterpret_cast<char *>(&input), sizeof(input));
@@ -610,7 +663,8 @@ void IMRMLPNN::NN1lay::load_coeffs(const std::string &infile)
     CoeffIO::read_array(ifs, loaded.w_input, infile);
     CoeffIO::read_array(ifs, loaded.w_hidden, infile);
     CoeffIO::read_array(ifs, loaded.b_hidden, infile);
-    if (normalized) {
+    if (normalized)
+    {
         CoeffIO::read_array(ifs, loaded.norm_mean, infile);
         CoeffIO::read_array(ifs, loaded.norm_irstd, infile);
     }

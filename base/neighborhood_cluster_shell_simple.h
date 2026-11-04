@@ -13,9 +13,10 @@
 #include "anyneighborhoods_simple.h"
 #include "neighborhoods_base.h"
 
-class NeighborhoodsClusterShellSimple : public NeighborhoodsBase<NeighborhoodsClusterShellSimple, AnyNeighborhoodsSimple>
+class NeighborhoodsClusterShellSimple
+    : public NeighborhoodsBase<NeighborhoodsClusterShellSimple, AnyNeighborhoodsSimple>
 {
-public:
+  public:
     void construct(Atoms &atom, const double cutoff_inner, const double cutoff_outer);
 
     NeighborhoodsClusterShellSimple() = default;

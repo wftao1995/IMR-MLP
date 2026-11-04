@@ -15,7 +15,7 @@
 
 class NeighborhoodsCluster : public NeighborhoodsBase<NeighborhoodsCluster, AnyNeighborhoods>
 {
-public:
+  public:
     void construct(Atoms &atom, const double cutoff);
 
     NeighborhoodsCluster() = default;

@@ -1,4 +1,5 @@
 """Changing the public thread request must preserve every reported MTP output."""
+
 from pathlib import Path
 
 import numpy as np
@@ -18,10 +19,16 @@ def restore_threads():
 
 
 def geometry(count=8):
-    positions = np.array([[2.6*i + .023*j, 2.6*j + .017*k, 2.6*k + .019*i]
-                          for i in range(2) for j in range(2) for k in range(2)])[:count]
-    atoms = imrmlp.Atoms(positions=positions, cell=np.eye(3)*20, pbc=False)
-    atoms.chemmap = [0]*count
+    positions = np.array(
+        [
+            [2.6 * i + 0.023 * j, 2.6 * j + 0.017 * k, 2.6 * k + 0.019 * i]
+            for i in range(2)
+            for j in range(2)
+            for k in range(2)
+        ]
+    )[:count]
+    atoms = imrmlp.Atoms(positions=positions, cell=np.eye(3) * 20, pbc=False)
+    atoms.chemmap = [0] * count
     return atoms
 
 
@@ -30,8 +37,9 @@ def check_values(potential, count):
     potential.calculate(expected, use_omp=False)
     potential.calculate(actual, use_omp=True)
     for name in ("energy", "forces", "stress", "site_energies"):
-        np.testing.assert_allclose(getattr(actual, name), getattr(expected, name),
-                                   rtol=1e-11, atol=1e-11, err_msg=name)
+        np.testing.assert_allclose(
+            getattr(actual, name), getattr(expected, name), rtol=1e-11, atol=1e-11, err_msg=name
+        )
     assert np.asarray(actual.stress).shape == (3, 3)
     assert actual.energy == pytest.approx(np.sum(actual.site_energies), rel=1e-11, abs=1e-11)
 

@@ -34,9 +34,11 @@ TEST_CASE("Dimer normalized W2 and W4 retain their analytic values under rotatio
 {
     const double angle = GENERATE(0., 0.7);
     Atoms atoms = cluster({{2, 2, 2}, {2, 2, 3}});
-    const Eigen::Matrix3d rotation = Eigen::AngleAxisd(angle, Eigen::Vector3d(1, 2, 3).normalized()).toRotationMatrix();
+    const Eigen::Matrix3d rotation =
+        Eigen::AngleAxisd(angle, Eigen::Vector3d(1, 2, 3).normalized()).toRotationMatrix();
     atoms.cell_ *= rotation;
-    for (auto &position : atoms.pos_) position *= rotation;
+    for (auto &position : atoms.pos_)
+        position *= rotation;
     const auto positions = atoms.pos_;
     const auto cell = atoms.cell_;
     const auto species = atoms.chemmap_;
@@ -105,7 +107,8 @@ TEST_CASE("BOP nearest-neighbor settings retain the requested count", "[bop]")
     Atoms atoms = cluster({{2, 2, 2}, {3, 2, 2}, {3, 4, 2}});
     GPSettings settings;
     settings.Modify(option, "1");
-    if (option == "minnn") settings.Modify("cutoff", "0.2");
+    if (option == "minnn")
+        settings.Modify("cutoff", "0.2");
     ComputeBondOrder compute(settings);
     compute.compute(atoms);
     REQUIRE(atoms.local_attribs_v_.at("bopQ").isOnes(1e-12));
@@ -145,7 +148,8 @@ TEST_CASE("Voronoi BOP retains cubic order under rotation", "[bop]")
     Atoms atoms = cluster({{1, 1, 1}});
     atoms.cell_ = 2 * Eigen::Matrix3d::Identity();
     atoms.pbc_ = {true, true, true};
-    const Eigen::Matrix3d rotation = Eigen::AngleAxisd(angle, Eigen::Vector3d(1, 2, 3).normalized()).toRotationMatrix();
+    const Eigen::Matrix3d rotation =
+        Eigen::AngleAxisd(angle, Eigen::Vector3d(1, 2, 3).normalized()).toRotationMatrix();
     atoms.cell_ *= rotation;
     atoms.pos_[0] *= rotation;
     NeighborhoodsVoroDir nbhs(atoms, 10, 0, 0, 0);

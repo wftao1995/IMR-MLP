@@ -11,20 +11,22 @@
 using namespace Eigen;
 using Catch::Approx;
 
-namespace {
+namespace
+{
 
 /// Rows of identical descriptor vectors grouped into clusters.
-Matrix<double, -1, -1, RowMajor>
-make_cluster_matrix(int n_dense, int n_sparse)
+Matrix<double, -1, -1, RowMajor> make_cluster_matrix(int n_dense, int n_sparse)
 {
     constexpr int dim = 4;
     Matrix<double, -1, -1, RowMajor> B(n_dense + n_sparse, dim);
     // dense cluster: same vector x20
-    for (int i = 0; i < n_dense; ++i) {
+    for (int i = 0; i < n_dense; ++i)
+    {
         B.row(i) << 1.0, 0.0, 0.0, 0.0;
     }
     // sparse cluster: identical but far away
-    for (int i = 0; i < n_sparse; ++i) {
+    for (int i = 0; i < n_sparse; ++i)
+    {
         B.row(n_dense + i) << 0.0, 1.0, 0.0, 0.0;
     }
     return B;
@@ -40,7 +42,8 @@ TEST_CASE("CrowdingWeights: alpha=0 reproduces unweighted case")
 
     auto w = CrowdingWeights::compute(B, p);
     REQUIRE(w.size() == 22);
-    for (double wi : w) REQUIRE(wi == Approx(1.0));
+    for (double wi : w)
+        REQUIRE(wi == Approx(1.0));
 }
 
 TEST_CASE("CrowdingWeights: sparse cluster gets larger weight (cosine kernel)")
@@ -52,8 +55,10 @@ TEST_CASE("CrowdingWeights: sparse cluster gets larger weight (cosine kernel)")
     auto w = CrowdingWeights::compute(B, p);
 
     double w_dense = 0.0, w_sparse = 0.0;
-    for (int i = 0; i < 20; ++i) w_dense += w[i];
-    for (int i = 20; i < 22; ++i) w_sparse += w[i];
+    for (int i = 0; i < 20; ++i)
+        w_dense += w[i];
+    for (int i = 20; i < 22; ++i)
+        w_sparse += w[i];
     w_dense /= 20.0;
     w_sparse /= 2.0;
 
@@ -72,8 +77,10 @@ TEST_CASE("CrowdingWeights: gaussian kernel with auto bandwidth")
     auto w = CrowdingWeights::compute(B, p);
 
     double w_dense = 0.0, w_sparse = 0.0;
-    for (int i = 0; i < 20; ++i) w_dense += w[i];
-    for (int i = 20; i < 22; ++i) w_sparse += w[i];
+    for (int i = 0; i < 20; ++i)
+        w_dense += w[i];
+    for (int i = 20; i < 22; ++i)
+        w_sparse += w[i];
     w_dense /= 20.0;
     w_sparse /= 2.0;
 
@@ -86,14 +93,16 @@ TEST_CASE("CrowdingWeights: element bucketing isolates species")
 {
     auto B = make_cluster_matrix(20, 2); // two clusters, single matrix
     std::vector<int> buckets;
-    for (int i = 0; i < 22; ++i) buckets.push_back(i < 20 ? 0 : 1);
+    for (int i = 0; i < 22; ++i)
+        buckets.push_back(i < 20 ? 0 : 1);
 
     CrowdingParams p;
     p.alpha = 0.5;
 
     // Bucketed: every bucket holds identical rows → rho constant → w=1
     auto w_b = CrowdingWeights::compute(B, buckets, p);
-    for (double wi : w_b) REQUIRE(wi == Approx(1.0).margin(1e-9));
+    for (double wi : w_b)
+        REQUIRE(wi == Approx(1.0).margin(1e-9));
 
     // Unbucketed: sparse cluster boosted
     auto w_u = CrowdingWeights::compute(B, p);
@@ -112,7 +121,8 @@ TEST_CASE("CrowdingWeights: clipping caps extreme weights")
     auto w = CrowdingWeights::compute(B, p);
 
     // dense cluster: all rows identical → rho=1 → w=1
-    for (int i = 0; i < 20; ++i) REQUIRE(w[i] == Approx(1.0).margin(1e-6));
+    for (int i = 0; i < 20; ++i)
+        REQUIRE(w[i] == Approx(1.0).margin(1e-6));
     // sparse cluster: isolated → clipped at clip_max
     REQUIRE(w[20] == Approx(10.0));
     REQUIRE(w[21] == Approx(10.0));
@@ -139,8 +149,7 @@ TEST_CASE("CrowdingWeights: bucket count must match row count")
     Matrix<double, -1, -1, RowMajor> B(3, 2);
     CrowdingParams p;
     std::vector<int> buckets{0, 1};
-    REQUIRE_THROWS_AS(CrowdingWeights::compute(B, buckets, p),
-                      std::invalid_argument);
+    REQUIRE_THROWS_AS(CrowdingWeights::compute(B, buckets, p), std::invalid_argument);
 }
 
 TEST_CASE("CrowdingWeights: empty input returns empty weights")
@@ -179,9 +188,12 @@ TEST_CASE("CrowdingWeights: row subsampling keeps ordering")
     // 100 identical rows vs 1 far-away row; sample reference = 10 rows
     constexpr int n = 101;
     Matrix<double, -1, -1, RowMajor> B(n, 2);
-    for (int i = 0; i < n; ++i) {
-        if (i < 100) B.row(i) << 1.0, 0.0;
-        else B.row(i) << 0.0, 1.0;
+    for (int i = 0; i < n; ++i)
+    {
+        if (i < 100)
+            B.row(i) << 1.0, 0.0;
+        else
+            B.row(i) << 0.0, 1.0;
     }
     CrowdingParams p;
     p.max_density_points = 10;
@@ -201,7 +213,8 @@ TEST_CASE("CrowdingWeights: alpha zero overrides isolated rows")
     CrowdingParams p;
     p.alpha = 0.0;
     const auto w = CrowdingWeights::compute(B, p);
-    for (double value : w) REQUIRE(value == Approx(1.0));
+    for (double value : w)
+        REQUIRE(value == Approx(1.0));
 }
 
 TEST_CASE("CrowdingWeights: cosine treats identical zero descriptors as neighbors")
@@ -227,19 +240,23 @@ TEST_CASE("CrowdingWeights: validates public parameters")
     B.setRandom();
     CrowdingParams p;
 
-    SECTION("invalid sample") {
+    SECTION("invalid sample")
+    {
         p.max_density_points = 0;
         REQUIRE_THROWS_AS(CrowdingWeights::compute(B, p), std::invalid_argument);
     }
-    SECTION("invalid kernel") {
+    SECTION("invalid kernel")
+    {
         p.kernel = "linear";
         REQUIRE_THROWS_AS(CrowdingWeights::compute(B, p), std::invalid_argument);
     }
-    SECTION("negative alpha") {
+    SECTION("negative alpha")
+    {
         p.alpha = -0.1;
         REQUIRE_THROWS_AS(CrowdingWeights::compute(B, p), std::invalid_argument);
     }
-    SECTION("non-finite descriptor") {
+    SECTION("non-finite descriptor")
+    {
         B(0, 0) = std::numeric_limits<double>::quiet_NaN();
         REQUIRE_THROWS_AS(CrowdingWeights::compute(B, p), std::invalid_argument);
     }
@@ -248,36 +265,30 @@ TEST_CASE("CrowdingWeights: validates public parameters")
 TEST_CASE("CrowdingModel: streaming batches equal exact matrix API")
 {
     Matrix<double, -1, -1, RowMajor> B(8, 3);
-    B << 1.0, 0.0, 0.1,
-         1.0, 0.1, 0.0,
-         0.9, 0.0, 0.0,
-         0.0, 1.0, 0.0,
-         0.0, 0.9, 0.1,
-         0.1, 1.0, 0.0,
-         0.0, 0.0, 1.0,
-         0.0, 0.1, 1.0;
+    B << 1.0, 0.0, 0.1, 1.0, 0.1, 0.0, 0.9, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.9, 0.1, 0.1, 1.0, 0.0,
+        0.0, 0.0, 1.0, 0.0, 0.1, 1.0;
     const std::vector<int> buckets{1000000, 1000000, 1000000, 7, 7, 7, 7, 7};
     std::vector<std::uint64_t> ids(8);
-    for (std::uint64_t i = 0; i < ids.size(); ++i) ids[i] = i;
+    for (std::uint64_t i = 0; i < ids.size(); ++i)
+        ids[i] = i;
     CrowdingParams p;
     p.max_density_points = -1;
 
     const auto expected = CrowdingWeights::compute(B, buckets, p);
     CrowdingModel model(3, p);
-    model.observe(B.topRows(3),
-                  std::vector<int>(buckets.begin(), buckets.begin() + 3),
+    model.observe(B.topRows(3), std::vector<int>(buckets.begin(), buckets.begin() + 3),
                   std::vector<std::uint64_t>(ids.begin(), ids.begin() + 3));
-    model.observe(B.bottomRows(5),
-                  std::vector<int>(buckets.begin() + 3, buckets.end()),
+    model.observe(B.bottomRows(5), std::vector<int>(buckets.begin() + 3, buckets.end()),
                   std::vector<std::uint64_t>(ids.begin() + 3, ids.end()));
     model.finalize();
     std::vector<double> rho;
-    for (int begin : {0, 2, 5}) {
+    for (int begin : {0, 2, 5})
+    {
         const int end = begin == 0 ? 2 : (begin == 2 ? 5 : 8);
         Matrix<double, -1, -1, RowMajor> block = B.middleRows(begin, end - begin);
-        const auto part = model.density(
-            block, std::vector<int>(buckets.begin() + begin, buckets.begin() + end),
-            std::vector<std::uint64_t>(ids.begin() + begin, ids.begin() + end));
+        const auto part =
+            model.density(block, std::vector<int>(buckets.begin() + begin, buckets.begin() + end),
+                          std::vector<std::uint64_t>(ids.begin() + begin, ids.begin() + end));
         rho.insert(rho.end(), part.begin(), part.end());
     }
     const auto actual = CrowdingWeights::weights_from_density(rho, buckets, p);

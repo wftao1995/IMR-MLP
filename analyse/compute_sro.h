@@ -59,6 +59,7 @@ struct sro_counter
     int order;
     int typea;
     int typeb;
+
     bool operator<(const sro_counter &opt) const
     {
         if (order < opt.order)
@@ -74,32 +75,39 @@ struct sro_counter
         return false;
     };
 };
+
 // compute WC-SRO
 class ComputeSRO : public ConnectSettings
 {
-private:
+  private:
     std::string type_tmp;
     double width = 0.05;
     SROType sro_type = WC;
     std::string tmpsrotype = "";
 
-public:
+  public:
     int nnorder = 1;
     std::vector<int> nnorders;
+
     void InitSettings()
     {
         Connect(nnorder, "neighbor_order");
         Connect(width, "width");
         Connect(tmpsrotype, "sro_type", "WC or PM");
     }
+
     void ExtraSettings(const GPSettings &_settings);
 
-    std::vector<pair_srotype> compute(const Atoms &atom, const AnyNeighborhoods &nbhs, std::map<sro_counter, size_t> *pcount = nullptr); // compute all orders
+    std::vector<pair_srotype>
+    compute(const Atoms &atom, const AnyNeighborhoods &nbhs,
+            std::map<sro_counter, size_t> *pcount = nullptr); // compute all orders
     // for very large structures, where memory is limited and still need a parallel computation. Not flexable as previous one.
-    std::vector<pair_srotype> compute(const Atoms &atom, const AnyNeighborhoodsSimple &nbhs, std::map<sro_counter, size_t> *pcount = nullptr, bool p = true); // compute all orders
-    ComputeSRO(){};
+    std::vector<pair_srotype> compute(const Atoms &atom, const AnyNeighborhoodsSimple &nbhs,
+                                      std::map<sro_counter, size_t> *pcount = nullptr,
+                                      bool p = true); // compute all orders
+    ComputeSRO() {};
     ComputeSRO(const GPSettings &_settings);
-    ~ComputeSRO(){};
+    ~ComputeSRO() {};
 };
 
 #endif

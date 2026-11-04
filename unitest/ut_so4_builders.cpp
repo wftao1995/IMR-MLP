@@ -23,20 +23,24 @@ TEST_CASE("SO4 B-matrix settings survive clone and serialization", "[descriptor]
     Descriptor_BispectrumSO4 descriptor(settings.ExtractSubSettings("biso4"));
     Neighborhoods sites(atoms, descriptor.cutoff_);
     BMatrixBuilder::RowMatrix local(atoms.size(), descriptor.feature_size());
-    for (int i = 0; i < atoms.size(); ++i) {
+    for (int i = 0; i < atoms.size(); ++i)
+    {
         Eigen::VectorXd value;
         descriptor.compute(sites[i], value);
         local.row(i) = value.transpose();
     }
-    if (mode == "nbh") REQUIRE(actual.isApprox(local, 1e-12));
-    else REQUIRE(actual.row(0).isApprox(local.colwise().sum(), 1e-12));
+    if (mode == "nbh")
+        REQUIRE(actual.isApprox(local, 1e-12));
+    else
+        REQUIRE(actual.row(0).isApprox(local.colwise().sum(), 1e-12));
     auto cloned = builder->clone();
     REQUIRE(cloned);
     std::stringstream stream;
     builder->save_config(stream);
     auto restored = BMatrixBuilder::load_config(stream);
     REQUIRE(restored);
-    for (auto *copy : {cloned.get(), restored.get()}) {
+    for (auto *copy : {cloned.get(), restored.get()})
+    {
         BMatrixBuilder::RowMatrix result;
         copy->build_rows(atoms, result, 1., 0.);
         REQUIRE(result.isApprox(actual, 1e-12));

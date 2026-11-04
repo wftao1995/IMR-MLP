@@ -13,11 +13,21 @@
 
 using Catch::Approx;
 
-struct MTPHandle {
+struct MTPHandle
+{
     Potentials::PotMTP *ptr;
+
     MTPHandle() : ptr(Potentials::quick_mtp_3b_s14_2f0ee25e()) {}
-    ~MTPHandle() { delete ptr; }
-    Potentials::PotMTP &get() { return *ptr; }
+
+    ~MTPHandle()
+    {
+        delete ptr;
+    }
+
+    Potentials::PotMTP &get()
+    {
+        return *ptr;
+    }
 };
 
 static Atoms make_cfg(double a, int nx, int ny, int nz, double noise = 0.0)
@@ -26,7 +36,8 @@ static Atoms make_cfg(double a, int nx, int ny, int nz, double noise = 0.0)
     cfg.cell_ = Eigen::Matrix3d::Identity() * a * nx;
     for (int i = 0; i < nx; ++i)
         for (int j = 0; j < ny; ++j)
-            for (int k = 0; k < nz; ++k) {
+            for (int k = 0; k < nz; ++k)
+            {
                 double dx = noise * (std::rand() / (double)RAND_MAX - 0.5) * a;
                 double dy = noise * (std::rand() / (double)RAND_MAX - 0.5) * a;
                 double dz = noise * (std::rand() / (double)RAND_MAX - 0.5) * a;
@@ -59,7 +70,8 @@ TEST_CASE("DescriptorMTM compute matches CalcLocalDescriptors", "[desc_mtm]")
 
     // DescriptorMTM::compute (per-atom, via Neighborhoods)
     Neighborhoods nbhs(cfg, mtp.get().get_cutoff());
-    for (int iat = 0; iat < natoms; ++iat) {
+    for (int iat = 0; iat < natoms; ++iat)
+    {
         Eigen::VectorXd out;
         desc.compute(nbhs[iat], out);
 
@@ -100,7 +112,7 @@ TEST_CASE("DescriptorMTM with DescriptorBuilder via factory pattern", "[desc_mtm
     Eigen::Matrix<double, -1, -1, Eigen::RowMajor> B;
     int nrows = builder.build_rows(cfg, B, 1.0, 0.0);
 
-    REQUIRE(nrows == cfg.size());  // one row per atom
+    REQUIRE(nrows == cfg.size()); // one row per atom
     REQUIRE(B.rows() == cfg.size());
     REQUIRE(B.cols() == desc.feature_size());
 }
@@ -116,23 +128,26 @@ TEST_CASE("DescriptorMTM clones compute concurrently without shared scratch race
 
     DescriptorMTM serial(mtp.get());
     std::vector<Eigen::VectorXd> expected(ncfg);
-    for (int i = 0; i < ncfg; ++i) {
+    for (int i = 0; i < ncfg; ++i)
+    {
         Neighborhoods nbhs(cfgs[i], serial.cutoff_);
         serial.compute(nbhs[i % nbhs.size()], expected[i]);
     }
 
     std::vector<Eigen::VectorXd> actual(ncfg);
 #ifdef USE_OMP
-    #pragma omp parallel for schedule(dynamic, 1) num_threads(4)
+#pragma omp parallel for schedule(dynamic, 1) num_threads(4)
 #endif
-    for (int i = 0; i < ncfg; ++i) {
+    for (int i = 0; i < ncfg; ++i)
+    {
         auto descriptor = serial.clone();
         Atoms local_cfg = cfgs[i];
         Neighborhoods nbhs(local_cfg, descriptor->cutoff_);
         descriptor->compute(nbhs[i % nbhs.size()], actual[i]);
     }
 
-    for (int i = 0; i < ncfg; ++i) {
+    for (int i = 0; i < ncfg; ++i)
+    {
         REQUIRE(actual[i].size() == expected[i].size());
         REQUIRE(actual[i].isApprox(expected[i], 1e-12));
     }

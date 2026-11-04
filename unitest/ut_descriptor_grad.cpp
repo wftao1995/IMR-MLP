@@ -21,10 +21,10 @@ using Catch::Approx;
 static Neighborhood make_dimer_nbh(double d = 2.0)
 {
     Neighborhood nbh;
-    nbh.nbhcount_  = 1;
+    nbh.nbhcount_ = 1;
     nbh.distances_ = {d};
-    nbh.pos_       = {{d, 0.0, 0.0}};
-    nbh.chemmap_   = {0};
+    nbh.pos_ = {{d, 0.0, 0.0}};
+    nbh.chemmap_ = {0};
     nbh.centertype = 0;
     return nbh;
 }
@@ -33,27 +33,21 @@ static Neighborhood make_dimer_nbh(double d = 2.0)
 static Neighborhood make_cluster_nbh()
 {
     Neighborhood nbh;
-    nbh.nbhcount_  = 4;
+    nbh.nbhcount_ = 4;
     nbh.distances_ = {2.0, 2.0, 2.0, std::sqrt(8.0)};
-    nbh.pos_       = {
-        { 2.0,  0.0,  0.0},
-        { 0.0,  2.0,  0.0},
-        { 0.0,  0.0,  2.0},
-        { 2.0,  2.0,  0.0}
-    };
-    nbh.chemmap_   = {0, 0, 1, 0};
+    nbh.pos_ = {{2.0, 0.0, 0.0}, {0.0, 2.0, 0.0}, {0.0, 0.0, 2.0}, {2.0, 2.0, 0.0}};
+    nbh.chemmap_ = {0, 0, 1, 0};
     nbh.centertype = 0;
     return nbh;
 }
 
 /// Compare analytical gradient with central-difference numerical gradient.
 /// Tests a sampled subset of features to keep runtime reasonable.
-static void
-validate_gradient(Descriptors &desc, Neighborhood &nbh,
-                  double dx = 1e-5, double tol = 5e-5, bool exhaustive = false)
+static void validate_gradient(Descriptors &desc, Neighborhood &nbh, double dx = 1e-5,
+                              double tol = 5e-5, bool exhaustive = false)
 {
     const int nfeat = desc.feature_size();
-    const int N     = nbh.nbhcount_;
+    const int N = nbh.nbhcount_;
     REQUIRE(nfeat > 0);
     REQUIRE(N > 0);
 
@@ -73,9 +67,12 @@ validate_gradient(Descriptors &desc, Neighborhood &nbh,
     int feat_step = exhaustive ? 1 : std::max(1, nfeat / 5);
     int neig_step = exhaustive ? 1 : std::max(1, N / 2);
 
-    for (int f = 0; f < nfeat; f += feat_step) {
-        for (int j = 0; j < N; j += neig_step) {
-            for (int a = 0; a < 3; ++a) {
+    for (int f = 0; f < nfeat; f += feat_step)
+    {
+        for (int j = 0; j < N; j += neig_step)
+        {
+            for (int a = 0; a < 3; ++a)
+            {
                 double analytical = grad.grad(f, j, a);
 
                 // Perturb neighbor position (and distance)
@@ -92,14 +89,13 @@ validate_gradient(Descriptors &desc, Neighborhood &nbh,
                 Eigen::VectorXd fminus(nfeat);
                 desc.compute(nbh, fminus);
 
-                nbh.pos_[j][a] = orig_pos;     // restore
+                nbh.pos_[j][a] = orig_pos; // restore
                 nbh.distances_[j] = orig_dist;
 
                 double numerical = (fplus[f] - fminus[f]) / (2.0 * dx);
 
-                INFO("feature=" << f << " neighbor=" << j
-                     << " comp=" << a << " analytical=" << analytical
-                     << " numerical=" << numerical);
+                INFO("feature=" << f << " neighbor=" << j << " comp=" << a
+                                << " analytical=" << analytical << " numerical=" << numerical);
                 REQUIRE(analytical == Approx(numerical).margin(tol));
             }
         }
@@ -113,14 +109,14 @@ validate_gradient(Descriptors &desc, Neighborhood &nbh,
 TEST_CASE("Behler gradient vs finite-difference", "[descriptors][grad][behler]")
 {
     GPSettings settings;
-    settings.Modify("dispcount",  "3");
+    settings.Modify("dispcount", "3");
     settings.Modify("dispselect", "1 2 3");
-    settings.Modify("cutoff",     "5.0");
-    settings.Modify("eta",        "0.3");
-    settings.Modify("rshift",     "0.0");
-    settings.Modify("kppa",       "2.0");
-    settings.Modify("zeta",       "1.0");
-    settings.Modify("lambda",     "1.0");
+    settings.Modify("cutoff", "5.0");
+    settings.Modify("eta", "0.3");
+    settings.Modify("rshift", "0.0");
+    settings.Modify("kppa", "2.0");
+    settings.Modify("zeta", "1.0");
+    settings.Modify("lambda", "1.0");
     DescriptorBehler desc(settings);
 
     auto nbh = make_dimer_nbh(2.0);
@@ -154,7 +150,7 @@ TEST_CASE("BondOrder gradient vs finite-difference", "[descriptors][grad][bondor
 {
     GPSettings settings;
     settings.Modify("cutoff", "5.0");
-    settings.Modify("maxl",   "4");
+    settings.Modify("maxl", "4");
     DescriptorBondOrder desc(settings);
 
     auto nbh = make_cluster_nbh();
@@ -169,7 +165,8 @@ TEST_CASE("MTM gradient vs finite-difference", "[descriptors][grad][mtm]")
 {
     // Load potential.mtp from test data directory
     std::string pot_path = "unitest/test-data/case-descriptors/potential.mtp";
-    if (!GPIO::file_exist(pot_path)) {
+    if (!GPIO::file_exist(pot_path))
+    {
         WARN("potential.mtp not found at " << pot_path << " — skipping MTM gradient test");
         return;
     }
@@ -180,7 +177,8 @@ TEST_CASE("MTM gradient vs finite-difference", "[descriptors][grad][mtm]")
     validate_gradient(desc, nbh, 1e-5, 1e-4);
 }
 
-TEST_CASE("Bond order Cartesian gradients remain correct on both poles", "[descriptors][grad][bondorder]")
+TEST_CASE("Bond order Cartesian gradients remain correct on both poles",
+          "[descriptors][grad][bondorder]")
 {
     GPSettings s;
     s.Modify("cutoff", "5");
@@ -192,6 +190,7 @@ TEST_CASE("Bond order Cartesian gradients remain correct on both poles", "[descr
     nbh.pos_ = {{0, 0, GENERATE(-2.0, 2.0)}, {1.7, .2, .3}, {-.4, 1.6, .5}};
     nbh.chemmap_ = {0, 0, 0};
     nbh.distances_.clear();
-    for (const auto &p : nbh.pos_) nbh.distances_.push_back(p.norm());
+    for (const auto &p : nbh.pos_)
+        nbh.distances_.push_back(p.norm());
     validate_gradient(desc, nbh, 1e-5, 2e-6, true);
 }

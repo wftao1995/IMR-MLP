@@ -68,4 +68,5 @@ MAKE_COMMAND(find_mindist);
 MAKE_COMMAND(calc_crowding);
 #undef MAKE_COMMAND
 
-extern std::map<std::string, std::pair<std::function<int(int, char *[])>, std::string>> command_maps;
+extern std::map<std::string, std::pair<std::function<int(int, char *[])>, std::string>>
+    command_maps;

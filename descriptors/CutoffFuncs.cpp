@@ -10,15 +10,10 @@
 
 using namespace std;
 
-CutoffFunctions::CutoffFunctions() : cutofftype_(CT_HARD),
-                                     radius_(1.0),
-                                     radinv_(1.0),
-                                     radinner_(1.0),
-                                     alpha_(0.0),
-                                     iw(0.0),
-                                     fPtr(&CutoffFunctions::fHARD),
-                                     dfPtr(&CutoffFunctions::dfHARD),
-                                     fdfPtr(&CutoffFunctions::fdfHARD)
+CutoffFunctions::CutoffFunctions()
+    : cutofftype_(CT_HARD), radius_(1.0), radinv_(1.0), radinner_(1.0), alpha_(0.0), iw(0.0),
+      fPtr(&CutoffFunctions::fHARD), dfPtr(&CutoffFunctions::dfHARD),
+      fdfPtr(&CutoffFunctions::fdfHARD)
 {
     ;
 }
@@ -131,7 +126,7 @@ void CutoffFunctions::fdfCOSBasic(double r, double &fc, double &dfc) const
     double const c = cos(t);
     // double const s = sin(t);
     fc = 0.5 * (c + 1.0);
-    dfc = - radinv_ * M_PI_2 * sqrt(1.0 - c * c);
+    dfc = -radinv_ * M_PI_2 * sqrt(1.0 - c * c);
     return;
 }
 
@@ -342,9 +337,7 @@ double CutoffFunctions::fPOLY4(double r) const
         return 1.0;
     double const x = (r - radinner_) * iw;
     double const x2 = x * x;
-    return (x * (x * ((315.0 - 70.0 * x) * x - 540.0) + 420.0) - 126.0) *
-               x2 * x2 * x +
-           1.0;
+    return (x * (x * ((315.0 - 70.0 * x) * x - 540.0) + 420.0) - 126.0) * x2 * x2 * x + 1.0;
 }
 
 double CutoffFunctions::dfPOLY4(double r) const
@@ -353,8 +346,7 @@ double CutoffFunctions::dfPOLY4(double r) const
         return 0.0;
     double const x = (r - radinner_) * iw;
     double const x2 = x * x;
-    return iw * x2 * x2 *
-           (x * (x * ((2520.0 - 630.0 * x) * x - 3780.0) + 2520.0) - 630.0);
+    return iw * x2 * x2 * (x * (x * ((2520.0 - 630.0 * x) * x - 3780.0) + 2520.0) - 630.0);
 }
 
 void CutoffFunctions::fdfPOLY4(double r, double &fc, double &dfc) const
@@ -368,10 +360,7 @@ void CutoffFunctions::fdfPOLY4(double r, double &fc, double &dfc) const
     double const x = (r - radinner_) * iw;
     double x4 = x * x;
     x4 *= x4;
-    fc = (x * (x * ((315.0 - 70.0 * x) * x - 540.0) + 420.0) - 126.0) *
-             x * x4 +
-         1.0;
-    dfc = iw * x4 *
-          (x * (x * ((2520.0 - 630.0 * x) * x - 3780.0) + 2520.0) - 630.0);
+    fc = (x * (x * ((315.0 - 70.0 * x) * x - 540.0) + 420.0) - 126.0) * x * x4 + 1.0;
+    dfc = iw * x4 * (x * (x * ((2520.0 - 630.0 * x) * x - 3780.0) + 2520.0) - 630.0);
     return;
 }

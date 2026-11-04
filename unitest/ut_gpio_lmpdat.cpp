@@ -7,7 +7,8 @@
 
 #include <sstream>
 
-namespace {
+namespace
+{
 
 Atoms make_tio_atom()
 {
@@ -22,9 +23,7 @@ Atoms make_tio_atom()
 Atoms make_triclinic_atom()
 {
     Atoms atom;
-    atom.cell_ << 20.0, 0.0, 0.0,
-                 -8.0, 13.0, 0.0,
-                  3.0, -2.0, 37.0;
+    atom.cell_ << 20.0, 0.0, 0.0, -8.0, 13.0, 0.0, 3.0, -2.0, 37.0;
     atom.pbc_ = {{true, true, true}};
     atom.chemmap_ = {0, 0};
     atom.pos_ = {{1.0, 2.0, 3.0}, {10.0, 6.0, 20.0}};
@@ -86,8 +85,7 @@ TEST_CASE("GPIO lmpdat preserves restricted triclinic box lengths", "[gpio][lmpd
     REQUIRE(back.cell_.isApprox(atom.cell_, 1e-12));
 }
 
-TEST_CASE("GPIO lammpstrj emits bounding bounds for triclinic boxes",
-          "[gpio][lammps][triclinic]")
+TEST_CASE("GPIO lammpstrj emits bounding bounds for triclinic boxes", "[gpio][lammps][triclinic]")
 {
     Atoms atom = make_triclinic_atom();
     GPIO io;
@@ -99,7 +97,8 @@ TEST_CASE("GPIO lammpstrj emits bounding bounds for triclinic boxes",
     const std::string dump = output.str();
     std::istringstream lines(dump);
     std::string line;
-    for (int i = 0; i < 6; ++i) REQUIRE(std::getline(lines, line));
+    for (int i = 0; i < 6; ++i)
+        REQUIRE(std::getline(lines, line));
     std::istringstream x_bounds(line);
     double lo, hi, tilt;
     REQUIRE(x_bounds >> lo >> hi >> tilt);

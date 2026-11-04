@@ -6,7 +6,8 @@
 
 #include <filesystem>
 
-TEST_CASE("Shared training loader restores structure and atom fitness", "[training_data]") {
+TEST_CASE("Shared training loader restores structure and atom fitness", "[training_data]")
+{
     const auto path = std::filesystem::temp_directory_path() / "imrmlp_training_data.bin";
     Atoms first;
     first.cell_ = 10 * Eigen::Matrix3d::Identity();
@@ -31,7 +32,8 @@ TEST_CASE("Shared training loader restores structure and atom fitness", "[traini
     REQUIRE_THROWS(Training::load_training_data(io, path.string(), "bin"));
 }
 
-TEST_CASE("Shared training fitness rejects truncated atom weights", "[training_data]") {
+TEST_CASE("Shared training fitness rejects truncated atom weights", "[training_data]")
+{
     Atoms frame;
     frame.pos_ = {{1, 0, 0}, {3, 0, 0}};
     frame.chemmap_ = {0, 0};

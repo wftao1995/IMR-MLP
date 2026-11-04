@@ -15,7 +15,8 @@
 #include <cstdint>
 
 /// @brief 3D symmetry analysis: space groups, Wyckoff positions, cell standardization.
-namespace Symmetry3D {
+namespace Symmetry3D
+{
 enum CellType // also CrystalFamily
 {
     TRIC, // triclinc, C_i
@@ -26,7 +27,9 @@ enum CellType // also CrystalFamily
     RHOM, // rhombonhedral, D_3d
     CUBI, // cubic, O_h
 };
-enum Centering {
+
+enum Centering
+{
     PRIM, // primitive
     BODY, // body-centered
     FACE, // face-centered
@@ -37,7 +40,9 @@ enum Centering {
     RCEN, // R-centering
     CERR, // unknown
 };
-enum BravsLatt {
+
+enum BravsLatt
+{
     aP, // TRIC + Primitive
     mP,
     mS, // Monoclinic + Permitive|Base-centered
@@ -53,7 +58,9 @@ enum BravsLatt {
     cI,
     cF, // Cubic + Primitive|Body-centered|Face-centered
 };
-enum Holohedry {
+
+enum Holohedry
+{
     HOLO_NONE,
     HOLO_TRIC,
     HOLO_MONO,
@@ -63,6 +70,7 @@ enum Holohedry {
     HOLO_HEXA,
     HOLO_CUBI,
 };
+
 /***
  * There are 34 point gropus, where there is no translation subgroups
  * Put then in order
@@ -86,21 +94,30 @@ enum Holohedry {
 // Opt-in candidate ordering and exact necessary-condition pruning. The
 // default/legacy overloads remain unchanged. Counters accumulate into the
 // caller-owned stats; caches are bounded and discarded after every reduction.
-struct ReductionSearchOptions {
-    bool enabled=false;
-    bool rare_anchor=true;
-    bool order_candidates=true;
-    bool prefilter=true;
-    bool cache_candidates=true;
-    size_t cache_capacity=4096;
+struct ReductionSearchOptions
+{
+    bool enabled = false;
+    bool rare_anchor = true;
+    bool order_candidates = true;
+    bool prefilter = true;
+    bool cache_candidates = true;
+    size_t cache_capacity = 4096;
 };
-struct ReductionSearchStats {
-    std::uint64_t candidates=0,necessary_rejections=0,full_checks=0,cache_hits=0,geometry_stages=0;
+
+struct ReductionSearchStats
+{
+    std::uint64_t candidates = 0, necessary_rejections = 0, full_checks = 0, cache_hits = 0,
+                  geometry_stages = 0;
 };
-int trans_reduce(Atoms&,double,const ReductionSearchOptions&,ReductionSearchStats* stats=nullptr);
-int trans_reduce_1d(Atoms&,int,double,const ReductionSearchOptions&,ReductionSearchStats* stats=nullptr);
-int find_primitive(Atoms&,double,const ReductionSearchOptions&,ReductionSearchStats* stats=nullptr);
-int all_reduce(Atoms&,double,const ReductionSearchOptions&,ReductionSearchStats* stats=nullptr);
+
+int trans_reduce(Atoms &, double, const ReductionSearchOptions &,
+                 ReductionSearchStats *stats = nullptr);
+int trans_reduce_1d(Atoms &, int, double, const ReductionSearchOptions &,
+                    ReductionSearchStats *stats = nullptr);
+int find_primitive(Atoms &, double, const ReductionSearchOptions &,
+                   ReductionSearchStats *stats = nullptr);
+int all_reduce(Atoms &, double, const ReductionSearchOptions &,
+               ReductionSearchStats *stats = nullptr);
 
 // trans_reduce, trans_reduce_1d, find_primitive and all_reduce require a nonempty
 // structure, matching position/species counts, finite positions, a finite

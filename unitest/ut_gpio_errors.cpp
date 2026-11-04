@@ -9,7 +9,8 @@
 
 #include <sstream>
 
-namespace {
+namespace
+{
 
 Atoms make_atom()
 {
@@ -26,13 +27,22 @@ std::string lammps_dump(std::string_view rows)
     return "ITEM: TIMESTEP\n0\n"
            "ITEM: NUMBER OF ATOMS\n2\n"
            "ITEM: BOX BOUNDS pp pp pp\n0 5\n0 5\n0 5\n"
-           "ITEM: ATOMS id type x y z q c_desc[1] c_desc[2]\n" + std::string(rows);
+           "ITEM: ATOMS id type x y z q c_desc[1] c_desc[2]\n" +
+           std::string(rows);
 }
 
-class FailingStreamBuf : public std::streambuf {
-protected:
-    std::streamsize xsputn(const char *, std::streamsize) override { return 0; }
-    int_type overflow(int_type) override { return traits_type::eof(); }
+class FailingStreamBuf : public std::streambuf
+{
+  protected:
+    std::streamsize xsputn(const char *, std::streamsize) override
+    {
+        return 0;
+    }
+
+    int_type overflow(int_type) override
+    {
+        return traits_type::eof();
+    }
 };
 
 } // namespace
@@ -50,13 +60,15 @@ TEST_CASE("GPIO reads charges and bracket vectors from LAMMPS dump", "[gpio][lam
 
 TEST_CASE("GPIO rejects invalid LAMMPS atom ids and vector labels", "[gpio][lammps][errors]")
 {
-    SECTION("duplicate id") {
+    SECTION("duplicate id")
+    {
         std::istringstream input(lammps_dump("1 1 1 1 1 0.1 10 11\n1 2 2 2 2 -0.2 20 21\n"));
         Atoms atom;
         GPIO io;
         REQUIRE_FALSE(io.read_one(atom, input, "lammpstrj"));
     }
-    SECTION("zero vector component") {
+    SECTION("zero vector component")
+    {
         std::string dump = lammps_dump("1 1 1 1 1 0.1 10 11\n2 2 2 2 2 -0.2 20 21\n");
         const auto pos = dump.find("c_desc[1]");
         dump.replace(pos, std::string("c_desc[1]").size(), "c_desc[0]");
@@ -114,24 +126,24 @@ TEST_CASE("GPIO lammpstrj vector labels round-trip with 1-based indices", "[gpio
 
 TEST_CASE("GPIO handles duplicate EXTXYZ pbc metadata", "[gpio][extxyz][errors]")
 {
-    SECTION("a malformed duplicate does not replace a valid value") {
-        std::istringstream input(
-            "1\n"
-            "Lattice=\"5 0 0 0 5 0 0 0 5\" pbc=\"T F T\" pbc=T T T "
-            "Properties=species:S:1:pos:R:3\n"
-            "Al 1 2 3\n");
+    SECTION("a malformed duplicate does not replace a valid value")
+    {
+        std::istringstream input("1\n"
+                                 "Lattice=\"5 0 0 0 5 0 0 0 5\" pbc=\"T F T\" pbc=T T T "
+                                 "Properties=species:S:1:pos:R:3\n"
+                                 "Al 1 2 3\n");
         Atoms atom;
         GPIO io;
         REQUIRE(io.read_one(atom, input, "extxyz"));
         REQUIRE(atom.pbc_ == std::array<bool, 3>{true, false, true});
     }
 
-    SECTION("a malformed sole value is rejected") {
-        std::istringstream input(
-            "1\n"
-            "Lattice=\"5 0 0 0 5 0 0 0 5\" pbc=T "
-            "Properties=species:S:1:pos:R:3\n"
-            "Al 1 2 3\n");
+    SECTION("a malformed sole value is rejected")
+    {
+        std::istringstream input("1\n"
+                                 "Lattice=\"5 0 0 0 5 0 0 0 5\" pbc=T "
+                                 "Properties=species:S:1:pos:R:3\n"
+                                 "Al 1 2 3\n");
         Atoms atom;
         GPIO io;
         REQUIRE_FALSE(io.read_one(atom, input, "extxyz"));
@@ -140,24 +152,26 @@ TEST_CASE("GPIO handles duplicate EXTXYZ pbc metadata", "[gpio][extxyz][errors]"
 
 TEST_CASE("GPIO MLPCFG validates ids, charges, and truncation", "[gpio][mlpcfg][errors]")
 {
-    const std::string prefix =
-        "BEGIN_CFG\nSize\n2\nSupercell\n5 0 0\n0 5 0\n0 0 5\n"
-        "AtomData: id type cartes_x cartes_y cartes_z q\n";
+    const std::string prefix = "BEGIN_CFG\nSize\n2\nSupercell\n5 0 0\n0 5 0\n0 0 5\n"
+                               "AtomData: id type cartes_x cartes_y cartes_z q\n";
 
-    SECTION("valid reordered ids") {
+    SECTION("valid reordered ids")
+    {
         std::istringstream input(prefix + "2 1 2 2 2 -0.2\n1 0 1 1 1 0.1\nEND_CFG\n");
         Atoms atom;
         GPIO io;
         REQUIRE(io.read_one(atom, input, "mlpcfg"));
         REQUIRE(atom.charges_ == std::vector<double>{0.1, -0.2});
     }
-    SECTION("out of range id") {
+    SECTION("out of range id")
+    {
         std::istringstream input(prefix + "3 1 2 2 2 -0.2\n1 0 1 1 1 0.1\nEND_CFG\n");
         Atoms atom;
         GPIO io;
         REQUIRE_FALSE(io.read_one(atom, input, "mlpcfg"));
     }
-    SECTION("truncated frame") {
+    SECTION("truncated frame")
+    {
         std::istringstream input(prefix + "1 0 1 1 1 0.1\n");
         std::vector<Atoms> atoms;
         GPIO io;
@@ -168,7 +182,8 @@ TEST_CASE("GPIO MLPCFG validates ids, charges, and truncation", "[gpio][mlpcfg][
 TEST_CASE("GPIO binary rejects oversized and truncated records", "[gpio][binary][errors]")
 {
     using namespace gpio_binary;
-    SECTION("oversized atom count") {
+    SECTION("oversized atom count")
+    {
         std::stringstream input(std::ios::in | std::ios::out | std::ios::binary);
         REQUIRE(write_span(input, MAGIC, sizeof(MAGIC)));
         REQUIRE(write_value(input, VERSION));
@@ -178,7 +193,8 @@ TEST_CASE("GPIO binary rejects oversized and truncated records", "[gpio][binary]
         GPIO io;
         REQUIRE_FALSE(io.read_one(atom, input, "bin"));
     }
-    SECTION("truncated header") {
+    SECTION("truncated header")
+    {
         std::stringstream input(std::ios::in | std::ios::out | std::ios::binary);
         REQUIRE(write_span(input, MAGIC, 3));
         input.seekg(0);
@@ -228,7 +244,8 @@ TEST_CASE("GPIO sequential LAMMPS writing is available", "[gpio][lammps][sequent
     REQUIRE(output.str().find("ITEM: TIMESTEP") != std::string::npos);
 }
 
-TEST_CASE("Line numeric tokens must end at a valid separator", "[gpio][tokenizer]") {
+TEST_CASE("Line numeric tokens must end at a valid separator", "[gpio][tokenizer]")
+{
     double value;
     GPIO_LineTokenizer plain("-2junk 3");
     REQUIRE_FALSE(plain.next_numeric(value));

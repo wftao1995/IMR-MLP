@@ -17,65 +17,79 @@
 #include <string>
 #define ROUND_PREC 1e-6
 
-namespace {
+namespace
+{
 
 // The dual bounds every translation that can improve the current distance.
 // Only periodic rows participate, so free cell directions need not span space.
-double periodic_minimum_squared(const Eigen::RowVector3d &delta,
-                                const Eigen::MatrixXd &basis,
-                                const Eigen::MatrixXd &dual,
-                                double best_sq, bool self,
+double periodic_minimum_squared(const Eigen::RowVector3d &delta, const Eigen::MatrixXd &basis,
+                                const Eigen::MatrixXd &dual, double best_sq, bool self,
                                 Eigen::RowVector3d *best_vector = nullptr)
 {
     const int rank = basis.rows();
     const Eigen::VectorXd projected = dual * delta.transpose();
-    if (!self) {
+    if (!self)
+    {
         const Eigen::VectorXd nearest = projected.array().round().matrix();
         const Eigen::RowVector3d candidate = delta - nearest.transpose() * basis;
         const double candidate_sq = candidate.squaredNorm();
-        if (candidate_sq < best_sq) {
+        if (candidate_sq < best_sq)
+        {
             best_sq = candidate_sq;
-            if (best_vector) *best_vector = candidate;
+            if (best_vector)
+                *best_vector = candidate;
         }
-        if (best_sq == 0) return 0;
+        if (best_sq == 0)
+            return 0;
     }
     const double radius = std::sqrt(best_sq);
     std::array<std::int64_t, 3> lower{}, upper{};
-    for (int axis = 0; axis < rank; ++axis) {
+    for (int axis = 0; axis < rank; ++axis)
+    {
         const double extent = radius * dual.row(axis).norm();
-        const double padding = 32 * std::numeric_limits<double>::epsilon()
-            * std::max({1.0, std::abs(projected[axis]), extent});
+        const double padding = 32 * std::numeric_limits<double>::epsilon() *
+                               std::max({1.0, std::abs(projected[axis]), extent});
         const double lo = std::ceil(projected[axis] - extent - padding);
         const double hi = std::floor(projected[axis] + extent + padding);
         // 2^63 is exactly representable; the largest int64_t is not.
         const double integer_limit = std::ldexp(1.0, 63);
-        if (!std::isfinite(lo) || !std::isfinite(hi)
-            || lo <= -integer_limit || hi >= integer_limit)
+        if (!std::isfinite(lo) || !std::isfinite(hi) || lo <= -integer_limit || hi >= integer_limit)
             throw std::runtime_error("Minimum-distance translation range is not representable");
-        if (lo > hi) return best_sq;
+        if (lo > hi)
+            return best_sq;
         lower[axis] = static_cast<std::int64_t>(lo);
         upper[axis] = static_cast<std::int64_t>(hi);
     }
-    for (auto i = lower[0];; ++i) {
-        for (auto j = lower[1];; ++j) {
-            for (auto k = lower[2];; ++k) {
-                if (!self || i != 0 || j != 0 || k != 0) {
+    for (auto i = lower[0];; ++i)
+    {
+        for (auto j = lower[1];; ++j)
+        {
+            for (auto k = lower[2];; ++k)
+            {
+                if (!self || i != 0 || j != 0 || k != 0)
+                {
                     Eigen::RowVector3d candidate = delta;
                     const std::array<std::int64_t, 3> shift{i, j, k};
                     for (int axis = 0; axis < rank; ++axis)
                         candidate -= static_cast<double>(shift[axis]) * basis.row(axis);
                     const double candidate_sq = candidate.squaredNorm();
-                    if (candidate_sq < best_sq) {
+                    if (candidate_sq < best_sq)
+                    {
                         best_sq = candidate_sq;
-                        if (best_vector) *best_vector = candidate;
+                        if (best_vector)
+                            *best_vector = candidate;
                     }
-                    if (best_sq == 0) return 0;
+                    if (best_sq == 0)
+                        return 0;
                 }
-                if (k == upper[2]) break;
+                if (k == upper[2])
+                    break;
             }
-            if (j == upper[1]) break;
+            if (j == upper[1])
+                break;
         }
-        if (i == upper[0]) break;
+        if (i == upper[0])
+            break;
     }
     return best_sq;
 }
@@ -84,13 +98,15 @@ double periodic_minimum_squared(const Eigen::RowVector3d &delta,
 // periodic rows. Full cells keep their existing fractional-coordinate convention.
 bool wrap_singular_cell(Atoms &atom, Eigen::RowVector3d *point = nullptr)
 {
-    if (atom.cell_.fullPivLu().isInvertible()) return false;
-    const int rank = static_cast<int>(atom.pbc_[0]) + static_cast<int>(atom.pbc_[1])
-        + static_cast<int>(atom.pbc_[2]);
+    if (atom.cell_.fullPivLu().isInvertible())
+        return false;
+    const int rank = static_cast<int>(atom.pbc_[0]) + static_cast<int>(atom.pbc_[1]) +
+                     static_cast<int>(atom.pbc_[2]);
     Eigen::MatrixXd basis(rank, 3);
     int row = 0;
     for (int axis = 0; axis < 3; ++axis)
-        if (atom.pbc_[axis]) basis.row(row++) = atom.cell_.row(axis);
+        if (atom.pbc_[axis])
+            basis.row(row++) = atom.cell_.row(axis);
     if (!basis.allFinite())
         throw std::runtime_error("Wrapping requires finite periodic cell vectors");
     const Eigen::MatrixXd gram = basis * basis.transpose();
@@ -102,36 +118,44 @@ bool wrap_singular_cell(Atoms &atom, Eigen::RowVector3d *point = nullptr)
     const Eigen::MatrixXd dual = decomposition.solve(basis);
     if (!dual.allFinite())
         throw std::runtime_error("Wrapping periodic dual is not finite");
-    auto wrap_position = [&](Eigen::RowVector3d &position) {
+    auto wrap_position = [&](Eigen::RowVector3d &position)
+    {
         const Eigen::VectorXd coefficients = dual * position.transpose();
         for (int axis = 0; axis < rank; ++axis)
             position -= std::floor(coefficients[axis]) * basis.row(axis);
     };
-    if (point) wrap_position(*point);
-    else for (auto &position : atom.pos_) wrap_position(position);
+    if (point)
+        wrap_position(*point);
+    else
+        for (auto &position : atom.pos_)
+            wrap_position(position);
     return true;
 }
 
-struct DuplicateAtomEdge {
+struct DuplicateAtomEdge
+{
     int to = -1;
     Eigen::RowVector3d disp = Eigen::RowVector3d::Zero();
 };
 
-struct DuplicateAtomComponent {
+struct DuplicateAtomComponent
+{
     std::vector<int> nodes;
     Eigen::RowVector3d mean = Eigen::RowVector3d::Zero();
     int representative = -1;
 };
 
-template<typename T>
-void compact_atom_vector(std::vector<T> &values, const std::vector<int> &keep)
+template <typename T> void compact_atom_vector(std::vector<T> &values, const std::vector<int> &keep)
 {
-    if (values.empty()) return;
+    if (values.empty())
+        return;
     std::vector<T> old = values;
     values.clear();
     values.reserve(keep.size());
-    for (int id : keep) {
-        if (id < static_cast<int>(old.size())) {
+    for (int id : keep)
+    {
+        if (id < static_cast<int>(old.size()))
+        {
             values.push_back(old[id]);
         }
     }
@@ -139,51 +163,67 @@ void compact_atom_vector(std::vector<T> &values, const std::vector<int> &keep)
 
 void compact_local_atom_attribs(Atoms &atom, const std::vector<int> &keep, int old_size)
 {
-    for (auto &it : atom.local_attribs_d_) {
-        if (it.second.size() == 0) continue;
-        if (it.second.size() != old_size) {
+    for (auto &it : atom.local_attribs_d_)
+    {
+        if (it.second.size() == 0)
+            continue;
+        if (it.second.size() != old_size)
+        {
             it.second.resize(0);
             continue;
         }
         Eigen::VectorXd old = it.second;
         it.second.resize(keep.size());
-        for (int i = 0; i < static_cast<int>(keep.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(keep.size()); ++i)
+        {
             it.second(i) = old(keep[i]);
         }
     }
-    for (auto &it : atom.local_attribs_i_) {
-        if (it.second.size() == 0) continue;
-        if (it.second.size() != old_size) {
+    for (auto &it : atom.local_attribs_i_)
+    {
+        if (it.second.size() == 0)
+            continue;
+        if (it.second.size() != old_size)
+        {
             it.second.resize(0);
             continue;
         }
         Eigen::VectorXi old = it.second;
         it.second.resize(keep.size());
-        for (int i = 0; i < static_cast<int>(keep.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(keep.size()); ++i)
+        {
             it.second(i) = old(keep[i]);
         }
     }
-    for (auto &it : atom.local_attribs_v_) {
-        if (it.second.cols() == 0) continue;
-        if (it.second.cols() != old_size) {
+    for (auto &it : atom.local_attribs_v_)
+    {
+        if (it.second.cols() == 0)
+            continue;
+        if (it.second.cols() != old_size)
+        {
             it.second.resize(it.second.rows(), 0);
             continue;
         }
         Eigen::MatrixXd old = it.second;
         it.second.resize(old.rows(), keep.size());
-        for (int i = 0; i < static_cast<int>(keep.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(keep.size()); ++i)
+        {
             it.second.col(i) = old.col(keep[i]);
         }
     }
-    for (auto &it : atom.local_attribs_vi_) {
-        if (it.second.cols() == 0) continue;
-        if (it.second.cols() != old_size) {
+    for (auto &it : atom.local_attribs_vi_)
+    {
+        if (it.second.cols() == 0)
+            continue;
+        if (it.second.cols() != old_size)
+        {
             it.second.resize(it.second.rows(), 0);
             continue;
         }
         Eigen::MatrixXi old = it.second;
         it.second.resize(old.rows(), keep.size());
-        for (int i = 0; i < static_cast<int>(keep.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(keep.size()); ++i)
+        {
             it.second.col(i) = old.col(keep[i]);
         }
     }
@@ -199,7 +239,8 @@ void invalidate_duplicate_atom_indexed_data(Atoms &atom, int old_size)
     atom.mol_types_.clear();
     atom.molnum_ = 0;
 
-    if (atom.hessian_.rows() == 3 * old_size && atom.hessian_.cols() == 3 * old_size) {
+    if (atom.hessian_.rows() == 3 * old_size && atom.hessian_.cols() == 3 * old_size)
+    {
         atom.hessian_.resize(0, 0);
         atom.have_hessian = false;
     }
@@ -212,11 +253,15 @@ void invalidate_duplicate_atom_indexed_data(Atoms &atom, int old_size)
 
 void repeat_supercell_properties(Atoms &atom, int old_size, int copies)
 {
-    if (copies == 1) return;
-    auto repeat = [old_size, copies](auto &values) {
-        if (values.empty()) return;
+    if (copies == 1)
+        return;
+    auto repeat = [old_size, copies](auto &values)
+    {
+        if (values.empty())
+            return;
         if (values.size() != static_cast<size_t>(old_size))
-            throw std::invalid_argument("Supercell property size must match the original atom count");
+            throw std::invalid_argument(
+                "Supercell property size must match the original atom count");
         const auto old = values;
         values.resize(old_size * copies);
         for (int c = 0; c < copies; ++c)
@@ -232,19 +277,27 @@ void repeat_supercell_properties(Atoms &atom, int old_size, int copies)
     repeat(atom.atomic_fitness);
     repeat(atom.masks);
     repeat(atom.sel_dynpos_);
-    auto repeat_scalars = [old_size, copies](auto &attributes) {
-        for (auto &[name, value] : attributes) {
-            if (value.size() == 0) continue;
+    auto repeat_scalars = [old_size, copies](auto &attributes)
+    {
+        for (auto &[name, value] : attributes)
+        {
+            if (value.size() == 0)
+                continue;
             if (value.size() != old_size)
-                throw std::invalid_argument("Supercell local attribute size must match the atom count");
+                throw std::invalid_argument(
+                    "Supercell local attribute size must match the atom count");
             value = value.replicate(copies, 1).eval();
         }
     };
-    auto repeat_vectors = [old_size, copies](auto &attributes) {
-        for (auto &[name, value] : attributes) {
-            if (value.cols() == 0) continue;
+    auto repeat_vectors = [old_size, copies](auto &attributes)
+    {
+        for (auto &[name, value] : attributes)
+        {
+            if (value.cols() == 0)
+                continue;
             if (value.cols() != old_size)
-                throw std::invalid_argument("Supercell local attribute size must match the atom count");
+                throw std::invalid_argument(
+                    "Supercell local attribute size must match the atom count");
             value = value.replicate(1, copies).eval();
         }
     };
@@ -252,20 +305,26 @@ void repeat_supercell_properties(Atoms &atom, int old_size, int copies)
     repeat_scalars(atom.local_attribs_i_);
     repeat_vectors(atom.local_attribs_v_);
     repeat_vectors(atom.local_attribs_vi_);
-    if (atom.fitting_factor.size() > 1) {
+    if (atom.fitting_factor.size() > 1)
+    {
         const auto old = atom.fitting_factor;
         if (old.size() != old_size + 1 && old.size() != old_size + 2)
             throw std::invalid_argument("Invalid supercell fitting-factor size");
         atom.fitting_factor.resize(old.size() + old_size * (copies - 1));
         for (int c = 0; c < copies; ++c)
             std::copy_n(old.begin() + 1, old_size, atom.fitting_factor.begin() + 1 + c * old_size);
-        if (old.size() == old_size + 2) atom.fitting_factor.back() = old.back();
+        if (old.size() == old_size + 2)
+            atom.fitting_factor.back() = old.back();
     }
-    if (atom.have_energy) atom.energy_ *= copies;
-    if (atom.have_fenergy) atom.fenergy_ *= copies;
-    if (atom.have_stress) atom.stress_ *= copies; // stored as an extensive virial (eV)
+    if (atom.have_energy)
+        atom.energy_ *= copies;
+    if (atom.have_fenergy)
+        atom.fenergy_ *= copies;
+    if (atom.have_stress)
+        atom.stress_ *= copies; // stored as an extensive virial (eV)
     auto total_charge = atom.global_attribs_d_.find("total_charge");
-    if (total_charge != atom.global_attribs_d_.end()) total_charge->second *= copies;
+    if (total_charge != atom.global_attribs_d_.end())
+        total_charge->second *= copies;
     // Atom identifiers, topology and inter-image second derivatives need rebuilding.
     atom.ids_.clear();
     invalidate_duplicate_atom_indexed_data(atom, old_size);
@@ -273,19 +332,25 @@ void repeat_supercell_properties(Atoms &atom, int old_size, int copies)
 
 void rotate_atom_properties(Atoms &atom, const Eigen::Matrix3d &rotation)
 {
-    for (auto &f : atom.forces_) f = rotation * f;
-    for (auto &v : atom.velocities_) v = rotation * v;
-    for (auto &m : atom.magmoms_) m = rotation * m;
+    for (auto &f : atom.forces_)
+        f = rotation * f;
+    for (auto &v : atom.velocities_)
+        v = rotation * v;
+    for (auto &m : atom.magmoms_)
+        m = rotation * m;
     const auto initial_moments = atom.local_attribs_v_.find("initial_magmoms");
-    if (initial_moments != atom.local_attribs_v_.end() &&
-        initial_moments->second.rows() == 3 && initial_moments->second.cols() == atom.size())
+    if (initial_moments != atom.local_attribs_v_.end() && initial_moments->second.rows() == 3 &&
+        initial_moments->second.cols() == atom.size())
         initial_moments->second = (rotation * initial_moments->second).eval();
-    for (auto &z : atom.born_eff_chgs_) z = (rotation * z * rotation.transpose()).eval();
+    for (auto &z : atom.born_eff_chgs_)
+        z = (rotation * z * rotation.transpose()).eval();
     if (atom.have_stress)
         atom.stress_ = (rotation * atom.stress_ * rotation.transpose()).eval();
-    if (atom.has_hessian()) {
+    if (atom.has_hessian())
+    {
         for (int i = 0; i < atom.size(); ++i)
-            for (int j = 0; j < atom.size(); ++j) {
+            for (int j = 0; j < atom.size(); ++j)
+            {
                 auto block = atom.hessian_.block<3, 3>(3 * i, 3 * j);
                 block = (rotation * block * rotation.transpose()).eval();
             }
@@ -317,7 +382,8 @@ void compact_duplicate_atoms(Atoms &atom, const std::vector<int> &keep, int old_
 
 void wrap_duplicate_atom_position(Atoms &atom, Eigen::RowVector3d &pos)
 {
-    if (std::abs(atom.cell_.determinant()) > 1.0e-14) {
+    if (std::abs(atom.cell_.determinant()) > 1.0e-14)
+    {
         atom.wrap(pos);
     }
 }
@@ -328,26 +394,33 @@ std::vector<std::vector<DuplicateAtomEdge>> build_duplicate_atom_graph(Atoms &at
     std::map<std::pair<int, int>, std::pair<double, Eigen::RowVector3d>> shortest_edges;
     NeighborhoodKD nbhskd(&atom, rtol);
 
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         auto nbh = nbhskd.query(atom.pos_[i].data(), rtol, atom.chemmap_[i], true);
-        for (int k = 0; k < nbh.nbhcount_; ++k) {
+        for (int k = 0; k < nbh.nbhcount_; ++k)
+        {
             int j = nbh.indices_[k];
-            if (j == i || j < 0 || j >= atom.size()) continue;
-            if (atom.chemmap_[i] != atom.chemmap_[j]) continue;
-            if (nbh.distances_[k] > rtol) continue;
+            if (j == i || j < 0 || j >= atom.size())
+                continue;
+            if (atom.chemmap_[i] != atom.chemmap_[j])
+                continue;
+            if (nbh.distances_[k] > rtol)
+                continue;
 
             int a = std::min(i, j);
             int b = std::max(i, j);
             Eigen::RowVector3d disp = (a == i) ? nbh.pos_[k] : -nbh.pos_[k];
             auto key = std::make_pair(a, b);
             auto it = shortest_edges.find(key);
-            if (it == shortest_edges.end() || nbh.distances_[k] < it->second.first) {
+            if (it == shortest_edges.end() || nbh.distances_[k] < it->second.first)
+            {
                 shortest_edges[key] = {nbh.distances_[k], disp};
             }
         }
     }
 
-    for (const auto &it : shortest_edges) {
+    for (const auto &it : shortest_edges)
+    {
         int a = it.first.first;
         int b = it.first.second;
         const auto &disp = it.second.second;
@@ -357,11 +430,10 @@ std::vector<std::vector<DuplicateAtomEdge>> build_duplicate_atom_graph(Atoms &at
     return graph;
 }
 
-DuplicateAtomComponent make_duplicate_atom_component(
-    const Atoms &atom,
-    const std::vector<std::vector<DuplicateAtomEdge>> &graph,
-    int start,
-    std::vector<char> &visited)
+DuplicateAtomComponent
+make_duplicate_atom_component(const Atoms &atom,
+                              const std::vector<std::vector<DuplicateAtomEdge>> &graph, int start,
+                              std::vector<char> &visited)
 {
     DuplicateAtomComponent component;
     std::queue<int> pending;
@@ -371,13 +443,16 @@ DuplicateAtomComponent make_duplicate_atom_component(
     pending.push(start);
     unwrapped_by_id[start] = atom.pos_[start];
 
-    while (!pending.empty()) {
+    while (!pending.empty())
+    {
         int current = pending.front();
         pending.pop();
         component.nodes.push_back(current);
 
-        for (const auto &edge : graph[current]) {
-            if (visited[edge.to]) continue;
+        for (const auto &edge : graph[current])
+        {
+            if (visited[edge.to])
+                continue;
             visited[edge.to] = 1;
             unwrapped_by_id[edge.to] = unwrapped_by_id[current] + edge.disp;
             pending.push(edge.to);
@@ -385,16 +460,19 @@ DuplicateAtomComponent make_duplicate_atom_component(
     }
 
     std::sort(component.nodes.begin(), component.nodes.end());
-    for (int id : component.nodes) {
+    for (int id : component.nodes)
+    {
         component.mean += unwrapped_by_id[id];
     }
     component.mean /= static_cast<double>(component.nodes.size());
 
     double best_dist2 = std::numeric_limits<double>::max();
-    for (int id : component.nodes) {
+    for (int id : component.nodes)
+    {
         double dist2 = (unwrapped_by_id[id] - component.mean).squaredNorm();
         if (dist2 < best_dist2 - 1.0e-18 ||
-            (std::abs(dist2 - best_dist2) <= 1.0e-18 && id < component.representative)) {
+            (std::abs(dist2 - best_dist2) <= 1.0e-18 && id < component.representative))
+        {
             best_dist2 = dist2;
             component.representative = id;
         }
@@ -452,7 +530,8 @@ void Atoms::mksuperL_hnf(const Eigen::Matrix3i &mat)
     /*Build positions*/
     std::vector<Eigen::RowVector3d> posold = pos_;
     if (!cartesian)
-        for (auto &position : posold) position = dir2car(position);
+        for (auto &position : posold)
+            position = dir2car(position);
     std::vector<int> chemmapold = chemmap_;
     pos_.clear();
     chemmap_.clear();
@@ -472,9 +551,11 @@ void Atoms::mksuperL_hnf(const Eigen::Matrix3i &mat)
     }
     repeat_supercell_properties(*this, csize, nexpand);
     cell_ = newcell;
-    if (!cartesian) {
+    if (!cartesian)
+    {
         const Eigen::Matrix3d inverse = cell_.inverse();
-        for (auto &position : pos_) position *= inverse;
+        for (auto &position : pos_)
+            position *= inverse;
     }
 }
 
@@ -560,8 +641,6 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
     // int csize = size();
     // int newsize = nexpand * csize;
 
-
-
     // Transformation matrix in double
     Eigen::Matrix3d transformation = mat.cast<double>();
     Eigen::Matrix3d newcell = transformation * cell_;
@@ -574,7 +653,8 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
     // backup
     std::vector<Eigen::RowVector3d> posold = pos_;
     if (!cartesian)
-        for (auto &position : posold) position = dir2car(position);
+        for (auto &position : posold)
+            position = dir2car(position);
     std::vector<int> chemmapold = chemmap_;
 
     // prepare new containers
@@ -586,18 +666,18 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
     // --- Determine robust integer ranges for p (the integer vectors we will test)
     // For all fractional corners x in {0,1}^3 compute p_corner = x * transformation.
     // Then use min/max of those p_corner components to bound integer p to enumerate.
-    Eigen::RowVector3d corners[8] = {
-        Eigen::RowVector3d(0,0,0), Eigen::RowVector3d(1,0,0),
-        Eigen::RowVector3d(0,1,0), Eigen::RowVector3d(0,0,1),
-        Eigen::RowVector3d(1,1,0), Eigen::RowVector3d(1,0,1),
-        Eigen::RowVector3d(0,1,1), Eigen::RowVector3d(1,1,1)
-    };
+    Eigen::RowVector3d corners[8] = {Eigen::RowVector3d(0, 0, 0), Eigen::RowVector3d(1, 0, 0),
+                                     Eigen::RowVector3d(0, 1, 0), Eigen::RowVector3d(0, 0, 1),
+                                     Eigen::RowVector3d(1, 1, 0), Eigen::RowVector3d(1, 0, 1),
+                                     Eigen::RowVector3d(0, 1, 1), Eigen::RowVector3d(1, 1, 1)};
 
     Eigen::Vector3d pmin = Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
     Eigen::Vector3d pmax = Eigen::Vector3d::Constant(-std::numeric_limits<double>::infinity());
-    for (int ci = 0; ci < 8; ++ci) {
+    for (int ci = 0; ci < 8; ++ci)
+    {
         Eigen::RowVector3d p_corner = corners[ci] * transformation; // row * mat -> row
-        for (int d = 0; d < 3; ++d) {
+        for (int d = 0; d < 3; ++d)
+        {
             pmin(d) = std::min(pmin(d), p_corner(d));
             pmax(d) = std::max(pmax(d), p_corner(d));
         }
@@ -605,9 +685,10 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
     // expand a bit to account for numerical tolerance, then convert to integer bounds
     const double eps = 1e-8;
     Eigen::Vector3i imin, imax;
-    for (int d = 0; d < 3; ++d) {
+    for (int d = 0; d < 3; ++d)
+    {
         imin(d) = static_cast<int>(std::floor(pmin(d) - eps));
-        imax(d) = static_cast<int>(std::ceil (pmax(d) + eps));
+        imax(d) = static_cast<int>(std::ceil(pmax(d) + eps));
     }
 
     // Collect lattice translation displacements (cartesian) corresponding to fractional coords in [0,1)
@@ -615,9 +696,12 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
     latpoints.reserve(nexpand);
 
     bool stop = false;
-    for (int i = imin(0); i <= imax(0) && !stop; ++i) {
-        for (int j = imin(1); j <= imax(1) && !stop; ++j) {
-            for (int k = imin(2); k <= imax(2) && !stop; ++k) {
+    for (int i = imin(0); i <= imax(0) && !stop; ++i)
+    {
+        for (int j = imin(1); j <= imax(1) && !stop; ++j)
+        {
+            for (int k = imin(2); k <= imax(2) && !stop; ++k)
+            {
                 Eigen::RowVector3d p(i, j, k); // integer vector
                 // fractional coordinate in new-cell basis
                 Eigen::RowVector3d fractional = p * inv_transformation; // row * inv_transformation
@@ -625,12 +709,15 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
                 // Check if within the [0,1) range (accounting for numerical precision)
                 if (fractional(0) >= -ROUND_PREC && fractional(0) < 1.0 - ROUND_PREC &&
                     fractional(1) >= -ROUND_PREC && fractional(1) < 1.0 - ROUND_PREC &&
-                    fractional(2) >= -ROUND_PREC && fractional(2) < 1.0 - ROUND_PREC) {
+                    fractional(2) >= -ROUND_PREC && fractional(2) < 1.0 - ROUND_PREC)
+                {
 
-                    Eigen::RowVector3d cartesian_displacement = fractional * newcell; // row * newcell -> cartesian
+                    Eigen::RowVector3d cartesian_displacement =
+                        fractional * newcell; // row * newcell -> cartesian
                     latpoints.push_back(cartesian_displacement);
 
-                    if (static_cast<int>(latpoints.size()) >= nexpand) {
+                    if (static_cast<int>(latpoints.size()) >= nexpand)
+                    {
                         stop = true;
                         break;
                     }
@@ -640,14 +727,17 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
     }
 
     // Safety: if we didn't find enough lattice points something is wrong — but continue to build anyway
-    if (static_cast<int>(latpoints.size()) != nexpand) {
+    if (static_cast<int>(latpoints.size()) != nexpand)
+    {
         std::cerr << "Warning: expected " << nexpand << " lattice points but found "
                   << latpoints.size() << ".\n";
     }
 
     // build supercell atoms
-    for (const auto& displacement : latpoints) {
-        for (int ii = 0; ii < csize; ++ii) {
+    for (const auto &displacement : latpoints)
+    {
+        for (int ii = 0; ii < csize; ++ii)
+        {
             pos_.emplace_back(posold[ii] + displacement);
             chemmap_.emplace_back(chemmapold[ii]);
         }
@@ -656,15 +746,18 @@ void Atoms::mksuperL(const Eigen::Matrix3i &mat)
     // update cell
     repeat_supercell_properties(*this, csize, nexpand);
     cell_ = newcell;
-    if (!cartesian) {
+    if (!cartesian)
+    {
         const Eigen::Matrix3d inverse = cell_.inverse();
-        for (auto &position : pos_) position *= inverse;
+        for (auto &position : pos_)
+            position *= inverse;
     }
 
     // final check (optional)
-    if (static_cast<int>(pos_.size()) != newsize) {
-        std::cerr << "Warning: Supercell creation may have issues. Expected "
-                  << newsize << " atoms, got " << pos_.size() << std::endl;
+    if (static_cast<int>(pos_.size()) != newsize)
+    {
+        std::cerr << "Warning: Supercell creation may have issues. Expected " << newsize
+                  << " atoms, got " << pos_.size() << std::endl;
     }
 }
 
@@ -674,7 +767,8 @@ void Atoms::mksuper(const Eigen::Vector3i &vec)
     int osize = size();
     std::vector<Eigen::RowVector3d> posold = pos_;
     if (!cartesian)
-        for (auto &position : posold) position = dir2car(position);
+        for (auto &position : posold)
+            position = dir2car(position);
     pos_.resize(osize * mul);
     chemmap_.resize(osize * mul);
     int ct = 0;
@@ -697,13 +791,17 @@ void Atoms::mksuper(const Eigen::Vector3i &vec)
     cell_.row(0) = cell_.row(0) * vec(0);
     cell_.row(1) = cell_.row(1) * vec(1);
     cell_.row(2) = cell_.row(2) * vec(2);
-    if (!cartesian) {
+    if (!cartesian)
+    {
         const Eigen::Matrix3d inverse = cell_.inverse();
-        for (auto &position : pos_) position *= inverse;
+        for (auto &position : pos_)
+            position *= inverse;
     }
 }
+
 // mat must all elements positive
-void Atoms::createSuperL(const Eigen::Matrix3d &mat) {
+void Atoms::createSuperL(const Eigen::Matrix3d &mat)
+{
     int nexpand = mat.determinant();
     int n_orig_atoms = size();
     int n_expand_atoms = n_orig_atoms * nexpand;
@@ -712,15 +810,9 @@ void Atoms::createSuperL(const Eigen::Matrix3d &mat) {
     Eigen::Matrix3d invmat = mat.inverse();
     Eigen::Matrix3d invcell = cell_.inverse();
     Eigen::Matrix<double, 8, 3> boundvecs;
-    boundvecs << 0, 0, 0,
-        0, 0, 1,
-        0, 1, 0,
-        0, 1, 1,
-        1, 0, 0,
-        1, 0, 1,
-        1, 1, 0,
-        1, 1, 1;
-    int mina = INT_MAX, maxa = -INT_MAX, minb = INT_MAX, maxb = -INT_MAX, minc = INT_MAX, maxc = -INT_MAX;
+    boundvecs << 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1;
+    int mina = INT_MAX, maxa = -INT_MAX, minb = INT_MAX, maxb = -INT_MAX, minc = INT_MAX,
+        maxc = -INT_MAX;
     for (int i = 0; i < 8; ++i)
     {
         boundvecs.row(i) = boundvecs.row(i) * mat;
@@ -732,8 +824,10 @@ void Atoms::createSuperL(const Eigen::Matrix3d &mat) {
         maxc = std::max(maxc, (int)ceil(boundvecs.row(i)(2)));
         // primitive cell must contained insied superell
         boundvecs.row(i) = boundvecs.row(i) * invmat;
-        for (int j = 0; j < 3; ++j) {
-            if (boundvecs.row(i)(j) > 1 + ROUND_PREC || boundvecs.row(i)(j) < -ROUND_PREC) {
+        for (int j = 0; j < 3; ++j)
+        {
+            if (boundvecs.row(i)(j) > 1 + ROUND_PREC || boundvecs.row(i)(j) < -ROUND_PREC)
+            {
                 throw std::runtime_error("Primitive basis changed, currently not supported");
             }
         }
@@ -742,12 +836,16 @@ void Atoms::createSuperL(const Eigen::Matrix3d &mat) {
     std::vector<Eigen::RowVector3d> latpoints(nexpand);
     latpoints.clear();
     Eigen::RowVector3d po;
-    for (int ia = mina; ia <= maxa; ++ia) {
-        for (int ib = minb; ib <= maxb; ++ib) {
-            for (int ic = minc; ic <= maxc; ++ic) {
+    for (int ia = mina; ia <= maxa; ++ia)
+    {
+        for (int ib = minb; ib <= maxb; ++ib)
+        {
+            for (int ic = minc; ic <= maxc; ++ic)
+            {
                 po << ia, ib, ic;
                 po = po * invmat;
-                if (!(po(0) <= 1 - ROUND_PREC && po(1) <= 1 - ROUND_PREC && po(2) <= 1 - ROUND_PREC))
+                if (!(po(0) <= 1 - ROUND_PREC && po(1) <= 1 - ROUND_PREC &&
+                      po(2) <= 1 - ROUND_PREC))
                     continue;
                 if (!(po(0) >= -ROUND_PREC && po(1) >= -ROUND_PREC && po(2) >= -ROUND_PREC))
                     continue;
@@ -755,13 +853,15 @@ void Atoms::createSuperL(const Eigen::Matrix3d &mat) {
             }
         }
     }
-    if (latpoints.size() != nexpand) {
+    if (latpoints.size() != nexpand)
+    {
         throw std::runtime_error("Supercell creation failed: unexpected number of lattice points");
     }
     /*Build positions*/
     std::vector<Eigen::RowVector3d> posold = pos_;
     if (!cartesian)
-        for (auto &position : posold) position = dir2car(position);
+        for (auto &position : posold)
+            position = dir2car(position);
     std::vector<int> chemmapold = chemmap_;
     pos_.clear();
     chemmap_.clear();
@@ -778,9 +878,11 @@ void Atoms::createSuperL(const Eigen::Matrix3d &mat) {
     }
     repeat_supercell_properties(*this, n_orig_atoms, nexpand);
     cell_ = newcell;
-    if (!cartesian) {
+    if (!cartesian)
+    {
         const Eigen::Matrix3d inverse = cell_.inverse();
-        for (auto &position : pos_) position *= inverse;
+        for (auto &position : pos_)
+            position *= inverse;
     }
 }
 
@@ -834,10 +936,12 @@ void Atoms::scale_by_factor(double factor)
 {
     cell_ *= factor;
     if (cartesian)
-        for (auto &it : pos_) it *= factor;
+        for (auto &it : pos_)
+            it *= factor;
 };
 
-void Atoms::scale_to_volume(const double volume) {
+void Atoms::scale_to_volume(const double volume)
+{
     double s = std::pow(volume / get_volume(), 1.0 / 3.0);
     scale_by_factor(s);
 }
@@ -886,6 +990,7 @@ void Atoms::build_bonds_mol(const double &rc, int t1, int t2)
         }
     }
 }
+
 // TODO: heavy optimize
 // BUG: ONLY TRICK HERE
 void Atoms::build_angles_mol(const double &rc, int t1, int t2, int t3)
@@ -904,7 +1009,8 @@ void Atoms::build_angles_mol(const double &rc, int t1, int t2, int t3)
             {
                 if (molid_[i] == molid_[j] && molid_[j] == molid_[k] && chemmap_[k] == t3)
                 {
-                    if ((pos_[i] - pos_[j]).squaredNorm() < rcsq && (pos_[i] - pos_[k]).squaredNorm() < rcsq)
+                    if ((pos_[i] - pos_[j]).squaredNorm() < rcsq &&
+                        (pos_[i] - pos_[k]).squaredNorm() < rcsq)
                     {
                         angles_.push_back(std::array<int, 3>{j, i, k});
                     }
@@ -1011,24 +1117,30 @@ void Atoms::clear(void)
     local_attribs_i_.clear();
     local_attribs_vi_.clear();
 }
+
 void Atoms::find_mindist(void)
 {
     double best_sq = std::numeric_limits<double>::infinity();
-    if (pos_.empty()) {
+    if (pos_.empty())
+    {
         mindist_ = 1e10;
         return;
     }
     std::vector<Eigen::RowVector3d> positions = pos_;
     if (!cartesian)
-        for (auto &position : positions) position = dir2car(position);
+        for (auto &position : positions)
+            position = dir2car(position);
 
-    const int rank = static_cast<int>(pbc_[0]) + static_cast<int>(pbc_[1])
-        + static_cast<int>(pbc_[2]);
+    const int rank =
+        static_cast<int>(pbc_[0]) + static_cast<int>(pbc_[1]) + static_cast<int>(pbc_[2]);
     Eigen::MatrixXd basis(rank, 3), dual(rank, 3);
-    if (rank > 0) {
+    if (rank > 0)
+    {
         int row = 0;
-        for (int axis = 0; axis < 3; ++axis) {
-            if (!pbc_[axis]) continue;
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            if (!pbc_[axis])
+                continue;
             basis.row(row++) = cell_.row(axis);
             best_sq = std::min(best_sq, cell_.row(axis).squaredNorm());
         }
@@ -1039,19 +1151,24 @@ void Atoms::find_mindist(void)
             throw std::runtime_error("Minimum-distance periodic metric is not finite");
         const auto decomposition = gram.fullPivLu();
         if (!decomposition.isInvertible())
-            throw std::runtime_error("Minimum distance requires independent finite periodic cell vectors");
+            throw std::runtime_error(
+                "Minimum distance requires independent finite periodic cell vectors");
         dual = decomposition.solve(basis);
         if (!dual.allFinite() || !std::isfinite(best_sq))
             throw std::runtime_error("Minimum-distance periodic dual is not finite");
-        best_sq = periodic_minimum_squared(Eigen::RowVector3d::Zero(), basis, dual,
-                                          best_sq, true);
+        best_sq = periodic_minimum_squared(Eigen::RowVector3d::Zero(), basis, dual, best_sq, true);
     }
-    for (size_t i = 0; i < positions.size(); ++i) {
-        for (size_t j = i + 1; j < positions.size(); ++j) {
+    for (size_t i = 0; i < positions.size(); ++i)
+    {
+        for (size_t j = i + 1; j < positions.size(); ++j)
+        {
             const Eigen::RowVector3d delta = positions[i] - positions[j];
-            if (rank == 0) best_sq = std::min(best_sq, delta.squaredNorm());
-            else best_sq = periodic_minimum_squared(delta, basis, dual, best_sq, false);
-            if (best_sq == 0) {
+            if (rank == 0)
+                best_sq = std::min(best_sq, delta.squaredNorm());
+            else
+                best_sq = periodic_minimum_squared(delta, basis, dual, best_sq, false);
+            if (best_sq == 0)
+            {
                 mindist_ = 0;
                 return;
             }
@@ -1160,41 +1277,57 @@ Eigen::Matrix3d Atoms::get_norm_cell(void) const
         ret.row(i) = cell_.row(i) / cell_.row(i).norm();
     return ret;
 }
+
 // Wrap periodic fractional components into [0, 1), including exact cell boundaries.
 void Atoms::wrap()
 {
-    if (is_nonperiodic()) return;
-    if (!cartesian) {
+    if (is_nonperiodic())
+        return;
+    if (!cartesian)
+    {
         for (auto &pos : pos_)
             for (int j = 0; j < 3; ++j)
-                if (pbc_[j]) pos[j] -= floor(pos[j]);
+                if (pbc_[j])
+                    pos[j] -= floor(pos[j]);
         return;
     }
-    if (wrap_singular_cell(*this)) return;
+    if (wrap_singular_cell(*this))
+        return;
     std::vector<Eigen::RowVector3d> npos;
     get_dir_pos(npos);
     for (int i = 0; i < npos.size(); ++i)
     {
         for (int j = 0; j < 3; ++j)
-            if (pbc_[j]) npos[i][j] -= floor(npos[i][j]);
+            if (pbc_[j])
+                npos[i][j] -= floor(npos[i][j]);
         pos_[i] = dir2car(npos[i]);
     }
 }
 
-void Atoms::wrap(Eigen::RowVector3d &pos) {
-    if (is_nonperiodic()) return;
-    if (wrap_singular_cell(*this, &pos)) return;
+void Atoms::wrap(Eigen::RowVector3d &pos)
+{
+    if (is_nonperiodic())
+        return;
+    if (wrap_singular_cell(*this, &pos))
+        return;
     auto t = car2dir(pos);
     for (int j = 0; j < 3; ++j)
-        if (pbc_[j]) t[j] -= floor(t[j]);
+        if (pbc_[j])
+            t[j] -= floor(t[j]);
     pos = dir2car(t);
 }
 
 void Atoms::hwrap()
 {
-    if (is_nonperiodic()) return;
-    if (!cartesian) { wrap(); return; }
-    if (wrap_singular_cell(*this)) return;
+    if (is_nonperiodic())
+        return;
+    if (!cartesian)
+    {
+        wrap();
+        return;
+    }
+    if (wrap_singular_cell(*this))
+        return;
     std::vector<Eigen::RowVector3d> npos;
     get_dir_pos(npos);
     for (int i = 0; i < npos.size(); ++i)
@@ -1202,7 +1335,8 @@ void Atoms::hwrap()
         for (int j = 0; j < 3; ++j)
         {
             // npos[i][j] -= floor(npos[i][j]);
-            if (pbc_[j]) pos_[i] -= floor(npos[i][j]) * cell_.row(j);
+            if (pbc_[j])
+                pos_[i] -= floor(npos[i][j]) * cell_.row(j);
         }
     }
 }
@@ -1210,7 +1344,7 @@ void Atoms::hwrap()
 // refuse to merge if cell_ is not equal
 Atoms merge_atoms(const Atoms &a1, const Atoms &a2)
 {
-if ((a1.cell_ - a2.cell_).norm() > 1e-4)
+    if ((a1.cell_ - a2.cell_).norm() > 1e-4)
     {
         std::cerr << "ERROR: Merging wrong size of cells" << std::endl;
     }
@@ -1227,7 +1361,8 @@ if ((a1.cell_ - a2.cell_).norm() > 1e-4)
     // ret.features_.insert(a2.features_.begin(), a2.features_.end());
 }
 
-void Atoms::resetEFS() {
+void Atoms::resetEFS()
+{
     energy_ = 0;
     stress_ = Eigen::Matrix3d::Zero();
     forces_.assign(size(), Eigen::RowVector3d::Zero());
@@ -1244,7 +1379,8 @@ void Atoms::resetE()
     have_stress = false;
 }
 
-void Atoms::clearEFS() {
+void Atoms::clearEFS()
+{
     forces_.clear();
     site_energies_.clear();
     have_energy = false;
@@ -1264,6 +1400,7 @@ void Atoms::merge_atoms(const Atoms &a1)
     chemmap_.insert(chemmap_.end(), a1.chemmap_.begin(), a1.chemmap_.end());
     // others
 }
+
 // Use another function with info extracted
 Atoms Atoms::extract_substructures_from_mask(const GPMask &mask) const
 {
@@ -1286,7 +1423,8 @@ Atoms extract_substructures_from_mask(const Atoms &a1, const GPMask &mask)
     return a1.extract_substructures_from_mask(mask);
 }
 
-void extract_substructures_from_mask(const Atoms &a1, const GPMask &mask, Atoms &masked, Atoms &nonmasked)
+void extract_substructures_from_mask(const Atoms &a1, const GPMask &mask, Atoms &masked,
+                                     Atoms &nonmasked)
 {
     int nsize = __min(mask.size(), a1.size());
     masked.reserve(0.6 * nsize);
@@ -1316,7 +1454,7 @@ std::ostream &operator<<(std::ostream &os, const Atoms &atom)
     for (int i = 0; i < atom.size(); ++i)
     {
         os << atom.pos_[i] << "   " << atom.chemmap_[i];
-        if (atom.has_site_energies()) 
+        if (atom.has_site_energies())
             os << " " << atom.site_energies_[i];
         os << std::endl;
     }
@@ -1372,6 +1510,7 @@ Eigen::Matrix3d Atoms::get_lower_cell(void) const
     cell(2, 2) = std::sqrt(c * c - cell(2, 0) * cell(2, 0) - cell(2, 1) * cell(2, 1));
     return cell;
 }
+
 // TODO: verfiy this, not checked if phicsically meaningful
 Eigen::Matrix3d Atoms::get_strain(Atoms &ref) const
 {
@@ -1401,6 +1540,7 @@ std::vector<double> Atoms::get_cell_parameters(void) const
     paras[5] = std::acos(cell_.row(0).dot(cell_.row(1)) / paras[0] / paras[1]);
     return paras;
 }
+
 // Assume right hand
 void Atoms::set_cell(double a, double b, double c, double alpha, double beta, double gamma)
 {
@@ -1417,9 +1557,11 @@ void Atoms::set_cell(double a, double b, double c, double alpha, double beta, do
     set_cell(cell);
 }
 
-void Atoms::set_cell(double a, double b, double c, double alpha, double beta, double gamma, bool sc_pos)
+void Atoms::set_cell(double a, double b, double c, double alpha, double beta, double gamma,
+                     bool sc_pos)
 {
-    if (sc_pos) {
+    if (sc_pos)
+    {
         set_cell(a, b, c, alpha, beta, gamma);
         return;
     }
@@ -1433,12 +1575,15 @@ void Atoms::set_cell(double a, double b, double c, double alpha, double beta, do
     cell(2, 0) = c * std::cos(beta);
     cell(2, 1) = c * (std::cos(alpha) - std::cos(beta) * std::cos(gamma)) / std::sin(gamma);
     cell(2, 2) = std::sqrt(c * c - cell(2, 0) * cell(2, 0) - cell(2, 1) * cell(2, 1));
-    if (!cartesian) {
+    if (!cartesian)
+    {
         const Eigen::Matrix3d change = cell_ * cell.inverse();
-        for (auto &position : pos_) position *= change;
+        for (auto &position : pos_)
+            position *= change;
     }
     cell_ = cell;
 }
+
 void Atoms::reorder(int *map)
 {
     if (!map && !pos_.empty())
@@ -1452,19 +1597,23 @@ void Atoms::reorder(std::span<const int> order)
     if (order.size() != n)
         throw std::invalid_argument("Atoms::reorder permutation length must equal the atom count");
     std::vector<bool> seen(n, false);
-    for (int index : order) {
+    for (int index : order)
+    {
         if (index < 0 || size_t(index) >= n || seen[index])
             throw std::invalid_argument("Atoms::reorder requires a permutation of [0, atom count)");
         seen[index] = true;
     }
-    if (!molid_.empty() || !molsize_.empty() || !mol_types_.empty() ||
-        !bonds_.empty() || !angles_.empty() || have_ghost || !map_ghost_.empty())
-        throw std::invalid_argument("Atoms::reorder does not support molecular topology or ghost layouts");
+    if (!molid_.empty() || !molsize_.empty() || !mol_types_.empty() || !bonds_.empty() ||
+        !angles_.empty() || have_ghost || !map_ghost_.empty())
+        throw std::invalid_argument(
+            "Atoms::reorder does not support molecular topology or ghost layouts");
     if (chemmap_.size() != n)
         throw std::invalid_argument("Atoms::reorder chemistry size must equal the atom count");
-    const auto check_vector = [n](const auto &values, const char *name) {
+    const auto check_vector = [n](const auto &values, const char *name)
+    {
         if (!values.empty() && values.size() != n)
-            throw std::invalid_argument(std::string("Atoms::reorder incomplete atom field: ") + name);
+            throw std::invalid_argument(std::string("Atoms::reorder incomplete atom field: ") +
+                                        name);
     };
     check_vector(ids_, "ids");
     check_vector(forces_, "forces");
@@ -1477,22 +1626,26 @@ void Atoms::reorder(std::span<const int> order)
     check_vector(atomic_fitness, "atomic_fitness");
     check_vector(masks, "masks");
     check_vector(sel_dynpos_, "sel_dynpos");
-    const auto check_scalars = [n](const auto &attributes) {
+    const auto check_scalars = [n](const auto &attributes)
+    {
         for (const auto &[name, values] : attributes)
             if (values.size() != 0 && size_t(values.size()) != n)
-                throw std::invalid_argument("Atoms::reorder incomplete local scalar attribute: " + name);
+                throw std::invalid_argument("Atoms::reorder incomplete local scalar attribute: " +
+                                            name);
     };
-    const auto check_columns = [n](const auto &attributes) {
+    const auto check_columns = [n](const auto &attributes)
+    {
         for (const auto &[name, values] : attributes)
             if (values.cols() != 0 && size_t(values.cols()) != n)
-                throw std::invalid_argument("Atoms::reorder incomplete local vector attribute: " + name);
+                throw std::invalid_argument("Atoms::reorder incomplete local vector attribute: " +
+                                            name);
     };
     check_scalars(local_attribs_d_);
     check_scalars(local_attribs_i_);
     check_columns(local_attribs_v_);
     check_columns(local_attribs_vi_);
-    if (!fitting_factor.empty() && fitting_factor.size() != 1 &&
-        fitting_factor.size() != n + 1 && fitting_factor.size() != n + 2)
+    if (!fitting_factor.empty() && fitting_factor.size() != 1 && fitting_factor.size() != n + 1 &&
+        fitting_factor.size() != n + 2)
         throw std::invalid_argument("Atoms::reorder invalid fitting-factor size");
     const Eigen::Index coordinates = 3 * Eigen::Index(n);
     if ((have_hessian || hessian_.rows() != 0 || hessian_.cols() != 0) &&
@@ -1502,27 +1655,37 @@ void Atoms::reorder(std::span<const int> order)
 
     // Prepare every changed field before committing any of them. In particular,
     // order may alias ids_, and unrelated Atoms scalars need not be initialized.
-    const auto permute_vector = [&order](const auto &values) {
+    const auto permute_vector = [&order](const auto &values)
+    {
         auto result = values;
         if (!values.empty())
-            for (size_t i = 0; i < order.size(); ++i) result[i] = values[order[i]];
+            for (size_t i = 0; i < order.size(); ++i)
+                result[i] = values[order[i]];
         return result;
     };
-    const auto permute_scalars = [&order](const auto &attributes) {
+    const auto permute_scalars = [&order](const auto &attributes)
+    {
         auto result = attributes;
-        for (auto &[name, values] : result) {
-            if (values.size() == 0) continue;
+        for (auto &[name, values] : result)
+        {
+            if (values.size() == 0)
+                continue;
             const auto &old = attributes.at(name);
-            for (size_t i = 0; i < order.size(); ++i) values(i) = old(order[i]);
+            for (size_t i = 0; i < order.size(); ++i)
+                values(i) = old(order[i]);
         }
         return result;
     };
-    const auto permute_columns = [&order](const auto &attributes) {
+    const auto permute_columns = [&order](const auto &attributes)
+    {
         auto result = attributes;
-        for (auto &[name, values] : result) {
-            if (values.cols() == 0) continue;
+        for (auto &[name, values] : result)
+        {
+            if (values.cols() == 0)
+                continue;
             const auto &old = attributes.at(name);
-            for (size_t i = 0; i < order.size(); ++i) values.col(i) = old.col(order[i]);
+            for (size_t i = 0; i < order.size(); ++i)
+                values.col(i) = old.col(order[i]);
         }
         return result;
     };
@@ -1545,7 +1708,8 @@ void Atoms::reorder(std::span<const int> order)
     auto local_integer_vectors = permute_columns(local_attribs_vi_);
     auto fitting = fitting_factor;
     if (fitting.size() > 1)
-        for (size_t i = 0; i < n; ++i) fitting[i + 1] = fitting_factor[order[i] + 1];
+        for (size_t i = 0; i < n; ++i)
+            fitting[i + 1] = fitting_factor[order[i] + 1];
     Eigen::MatrixXd hessian = hessian_;
     if (hessian.size() != 0)
         for (size_t i = 0; i < n; ++i)
@@ -1554,9 +1718,12 @@ void Atoms::reorder(std::span<const int> order)
                     hessian_.block<3, 3>(3 * Eigen::Index(order[i]), 3 * Eigen::Index(order[j]));
     Eigen::MatrixXd directions = hvp_directions_, targets = hvp_targets_;
     if (has_hvp())
-        for (size_t i = 0; i < n; ++i) {
-            directions.middleRows(3 * Eigen::Index(i), 3) = hvp_directions_.middleRows(3 * Eigen::Index(order[i]), 3);
-            targets.middleRows(3 * Eigen::Index(i), 3) = hvp_targets_.middleRows(3 * Eigen::Index(order[i]), 3);
+        for (size_t i = 0; i < n; ++i)
+        {
+            directions.middleRows(3 * Eigen::Index(i), 3) =
+                hvp_directions_.middleRows(3 * Eigen::Index(order[i]), 3);
+            targets.middleRows(3 * Eigen::Index(i), 3) =
+                hvp_targets_.middleRows(3 * Eigen::Index(order[i]), 3);
         }
 
     pos_.swap(positions);
@@ -1585,19 +1752,23 @@ void Atoms::reorder(std::span<const int> order)
 void Atoms::set_cell(Eigen::Matrix3d &cell)
 {
     const bool was_cartesian = cartesian;
-    if (was_cartesian) to_fractional();
+    if (was_cartesian)
+        to_fractional();
     double d0 = cell_.determinant();
     double d1 = cell.determinant();
-    if (d0 * d1 < 0) {
+    if (d0 * d1 < 0)
+    {
         Eigen::Matrix3d p = Eigen::Matrix3d::Identity();
         p(2, 2) = -1.0;
         cell_ = p * cell_;
-        for (auto &t : pos_) {
+        for (auto &t : pos_)
+        {
             t *= p;
         }
     }
     cell_ = cell;
-    if (was_cartesian) to_cartesian();
+    if (was_cartesian)
+        to_cartesian();
 }
 
 void Atoms::mkLower()
@@ -1608,8 +1779,10 @@ void Atoms::mkLower()
 void Atoms::translate(Eigen::Vector3d vec)
 {
     Eigen::RowVector3d displacement = vec.transpose();
-    if (!cartesian) displacement *= cell_.inverse();
-    for (auto &p : pos_) p += displacement;
+    if (!cartesian)
+        displacement *= cell_.inverse();
+    for (auto &p : pos_)
+        p += displacement;
 }
 
 void Atoms::to_fractional()
@@ -1620,9 +1793,9 @@ void Atoms::to_fractional()
     cartesian = false;
 }
 
-void Atoms::to_cartesian() 
+void Atoms::to_cartesian()
 {
-    for (int i = 0; i < size(); ++i) 
+    for (int i = 0; i < size(); ++i)
         pos_[i] *= cell_;
     cartesian = true;
 }
@@ -1641,7 +1814,8 @@ void Atoms::to_lower_standard()
 {
     if (!cell_.allFinite() || std::abs(cell_.determinant()) <= 1e-14)
         throw std::invalid_argument("Cell standardization requires a finite, non-singular cell");
-    if (!cartesian) to_cartesian();
+    if (!cartesian)
+        to_cartesian();
     to_righthand();
     const Eigen::Matrix3d old_cell = cell_;
     std::vector<double> lat = get_cell_parameters();
@@ -1650,11 +1824,14 @@ void Atoms::to_lower_standard()
     rotate_atom_properties(*this, rotation);
 }
 
-void Atoms::to_righthand() {
-    if (cell_.determinant() < 0) {
+void Atoms::to_righthand()
+{
+    if (cell_.determinant() < 0)
+    {
         cell_.row(2) *= -1.0;
         if (!cartesian)
-            for (auto &pos : pos_) pos[2] *= -1.0;
+            for (auto &pos : pos_)
+                pos[2] *= -1.0;
     }
 }
 
@@ -1662,14 +1839,17 @@ Eigen::Matrix3d Atoms::standard_form(bool upper)
 {
     int sign = cell_.determinant() > 0 ? 1 : -1;
     Eigen::Matrix3d Q, L;
-    if (upper) {
+    if (upper)
+    {
         Eigen::Matrix3d crev = cell_.transpose().colwise().reverse().rowwise().reverse();
         Eigen::HouseholderQR<Eigen::Matrix3d> qr(crev);
         Eigen::Matrix3d Qh = qr.householderQ();
         Eigen::Matrix3d Lh = qr.matrixQR().triangularView<Eigen::Upper>();
         Q = Qh.transpose().colwise().reverse().rowwise().reverse();
         L = Lh.transpose().colwise().reverse().rowwise().reverse();
-    } else [[likely]] {
+    }
+    else [[likely]]
+    {
         Eigen::HouseholderQR<Eigen::Matrix3d> qr(cell_.transpose());
         Eigen::Matrix3d Qh = qr.householderQ();
         Eigen::Matrix3d Lh = qr.matrixQR().triangularView<Eigen::Upper>();
@@ -1690,7 +1870,8 @@ Eigen::Matrix3d Atoms::standard_form(bool upper)
     // enforce signs = handedness
     for (int i = 0; i < 3; ++i)
     {
-        if (sgn(i) != sign) {
+        if (sgn(i) != sign)
+        {
             L.col(i) *= -1;
             Q.row(i) *= -1;
         }
@@ -1700,9 +1881,11 @@ Eigen::Matrix3d Atoms::standard_form(bool upper)
     return Q;
 }
 
-void Atoms::delete_atom(int &id) {
+void Atoms::delete_atom(int &id)
+{
     clear_hvp();
-    if (id < size()) {
+    if (id < size())
+    {
         pos_.erase(pos_.begin() + id);
         chemmap_.erase(chemmap_.begin() + id);
         // if (has_forces()) {
@@ -1736,44 +1919,54 @@ void Atoms::delete_atom(int &id) {
     }
 }
 
-void Atoms::delete_atoms(std::vector<int> &inds) {
+void Atoms::delete_atoms(std::vector<int> &inds)
+{
     clear_hvp();
     auto indt = inds;
     std::sort(indt.begin(), indt.end());
     auto it = indt.rbegin();
-    for (; it != indt.rend(); ++it) {
+    for (; it != indt.rend(); ++it)
+    {
         delete_atom(*it);
     }
 }
 
 Atoms::DuplicateAtomStats Atoms::remove_duplicate_atoms(double rtol, DuplicateAtomMode mode)
 {
-    if (rtol <= 0.0) {
+    if (rtol <= 0.0)
+    {
         throw std::invalid_argument("Atoms::remove_duplicate_atoms rtol must be positive");
     }
 
     DuplicateAtomStats stats;
     stats.initial_atoms = size();
     stats.final_atoms = size();
-    if (size() <= 1) return stats;
+    if (size() <= 1)
+        return stats;
 
     auto graph = build_duplicate_atom_graph(*this, rtol);
     std::vector<char> visited(size(), 0);
     std::vector<char> remove(size(), 0);
 
-    for (int i = 0; i < size(); ++i) {
-        if (visited[i]) continue;
+    for (int i = 0; i < size(); ++i)
+    {
+        if (visited[i])
+            continue;
         auto component = make_duplicate_atom_component(*this, graph, i, visited);
-        if (component.nodes.size() <= 1) continue;
+        if (component.nodes.size() <= 1)
+            continue;
 
         ++stats.duplicate_groups;
-        if (mode == DuplicateAtomMode::Merge) {
+        if (mode == DuplicateAtomMode::Merge)
+        {
             Eigen::RowVector3d merged_pos = component.mean;
             wrap_duplicate_atom_position(*this, merged_pos);
             pos_[component.representative] = merged_pos;
         }
-        for (int id : component.nodes) {
-            if (id != component.representative) {
+        for (int id : component.nodes)
+        {
+            if (id != component.representative)
+            {
                 remove[id] = 1;
             }
         }
@@ -1781,582 +1974,593 @@ Atoms::DuplicateAtomStats Atoms::remove_duplicate_atoms(double rtol, DuplicateAt
 
     std::vector<int> keep;
     keep.reserve(size());
-    for (int i = 0; i < size(); ++i) {
-        if (!remove[i]) keep.push_back(i);
+    for (int i = 0; i < size(); ++i)
+    {
+        if (!remove[i])
+            keep.push_back(i);
     }
 
     stats.removed_atoms = size() - static_cast<int>(keep.size());
-    if (stats.removed_atoms > 0) {
+    if (stats.removed_atoms > 0)
+    {
         compact_duplicate_atoms(*this, keep, stats.initial_atoms);
     }
     stats.final_atoms = size();
     return stats;
 }
 
-Eigen::RowVector3d Atoms::get_cm(void) const {
+Eigen::RowVector3d Atoms::get_cm(void) const
+{
     Eigen::RowVector3d cm;
-    cm << 0,0,0;
-    for (int i = 0; i < size(); ++i) {
+    cm << 0, 0, 0;
+    for (int i = 0; i < size(); ++i)
+    {
         cm += pos_[i];
     }
     cm /= size();
     return cm;
 }
 
-std::istream& Atoms::read_from_bin(std::istream& is)
+std::istream &Atoms::read_from_bin(std::istream &is)
 {
     // 读取基本的标量值
-    is.read(reinterpret_cast<char*>(&cartesian), sizeof(cartesian));
-    is.read(reinterpret_cast<char*>(&have_ghost), sizeof(have_ghost));
-    is.read(reinterpret_cast<char*>(&nlocal_), sizeof(nlocal_));
-    is.read(reinterpret_cast<char*>(&nghost_), sizeof(nghost_));
-    is.read(reinterpret_cast<char*>(&molnum_), sizeof(molnum_));
-    is.read(reinterpret_cast<char*>(&collinear_), sizeof(collinear_));
-    is.read(reinterpret_cast<char*>(&have_energy), sizeof(have_energy));
-    is.read(reinterpret_cast<char*>(&have_fenergy), sizeof(have_fenergy));
-    is.read(reinterpret_cast<char*>(&have_stress), sizeof(have_stress));
-    is.read(reinterpret_cast<char*>(&have_eff_chg), sizeof(have_eff_chg));
-    is.read(reinterpret_cast<char*>(&group_count), sizeof(group_count));
-    is.read(reinterpret_cast<char*>(&energy_), sizeof(energy_));
-    is.read(reinterpret_cast<char*>(&fenergy_), sizeof(fenergy_));
-    is.read(reinterpret_cast<char*>(&fitness), sizeof(fitness));
-    is.read(reinterpret_cast<char*>(&mvgrade_), sizeof(mvgrade_));
-    is.read(reinterpret_cast<char*>(&mindist_), sizeof(mindist_));
-    is.read(reinterpret_cast<char*>(&maxdist_), sizeof(maxdist_));
-    is.read(reinterpret_cast<char*>(&id), sizeof(id));
+    is.read(reinterpret_cast<char *>(&cartesian), sizeof(cartesian));
+    is.read(reinterpret_cast<char *>(&have_ghost), sizeof(have_ghost));
+    is.read(reinterpret_cast<char *>(&nlocal_), sizeof(nlocal_));
+    is.read(reinterpret_cast<char *>(&nghost_), sizeof(nghost_));
+    is.read(reinterpret_cast<char *>(&molnum_), sizeof(molnum_));
+    is.read(reinterpret_cast<char *>(&collinear_), sizeof(collinear_));
+    is.read(reinterpret_cast<char *>(&have_energy), sizeof(have_energy));
+    is.read(reinterpret_cast<char *>(&have_fenergy), sizeof(have_fenergy));
+    is.read(reinterpret_cast<char *>(&have_stress), sizeof(have_stress));
+    is.read(reinterpret_cast<char *>(&have_eff_chg), sizeof(have_eff_chg));
+    is.read(reinterpret_cast<char *>(&group_count), sizeof(group_count));
+    is.read(reinterpret_cast<char *>(&energy_), sizeof(energy_));
+    is.read(reinterpret_cast<char *>(&fenergy_), sizeof(fenergy_));
+    is.read(reinterpret_cast<char *>(&fitness), sizeof(fitness));
+    is.read(reinterpret_cast<char *>(&mvgrade_), sizeof(mvgrade_));
+    is.read(reinterpret_cast<char *>(&mindist_), sizeof(mindist_));
+    is.read(reinterpret_cast<char *>(&maxdist_), sizeof(maxdist_));
+    is.read(reinterpret_cast<char *>(&id), sizeof(id));
 
     // 读取Eigen矩阵
-    is.read(reinterpret_cast<char*>(cell_.data()), sizeof(double) * 9);
-    is.read(reinterpret_cast<char*>(stress_.data()), sizeof(double) * 9);
-    is.read(reinterpret_cast<char*>(sel_dyncell_.data()), sizeof(double) * 9);
+    is.read(reinterpret_cast<char *>(cell_.data()), sizeof(double) * 9);
+    is.read(reinterpret_cast<char *>(stress_.data()), sizeof(double) * 9);
+    is.read(reinterpret_cast<char *>(sel_dyncell_.data()), sizeof(double) * 9);
 
     // 读取向量
     size_t size;
-    
+
     // pos_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     pos_.resize(size);
-    for (auto& p : pos_)
-        is.read(reinterpret_cast<char*>(p.data()), sizeof(double) * 3);
-    
+    for (auto &p : pos_)
+        is.read(reinterpret_cast<char *>(p.data()), sizeof(double) * 3);
+
     // chemmap_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     chemmap_.resize(size);
-    is.read(reinterpret_cast<char*>(chemmap_.data()), sizeof(int) * size);
-    
+    is.read(reinterpret_cast<char *>(chemmap_.data()), sizeof(int) * size);
+
     // map_ghost_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     map_ghost_.resize(size);
-    is.read(reinterpret_cast<char*>(map_ghost_.data()), sizeof(int) * size);
-    
+    is.read(reinterpret_cast<char *>(map_ghost_.data()), sizeof(int) * size);
+
     // ids_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     ids_.resize(size);
-    is.read(reinterpret_cast<char*>(ids_.data()), sizeof(int) * size);
-    
+    is.read(reinterpret_cast<char *>(ids_.data()), sizeof(int) * size);
+
     // molid_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     molid_.resize(size);
-    is.read(reinterpret_cast<char*>(molid_.data()), sizeof(int) * size);
-    
+    is.read(reinterpret_cast<char *>(molid_.data()), sizeof(int) * size);
+
     // molsize_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     molsize_.resize(size);
-    is.read(reinterpret_cast<char*>(molsize_.data()), sizeof(int) * size);
-    
+    is.read(reinterpret_cast<char *>(molsize_.data()), sizeof(int) * size);
+
     // mol_types_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     mol_types_.resize(size);
-    is.read(reinterpret_cast<char*>(mol_types_.data()), sizeof(int) * size);
-    
+    is.read(reinterpret_cast<char *>(mol_types_.data()), sizeof(int) * size);
+
     // forces_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     forces_.resize(size);
-    for (auto& f : forces_)
-        is.read(reinterpret_cast<char*>(f.data()), sizeof(double) * 3);
-    
+    for (auto &f : forces_)
+        is.read(reinterpret_cast<char *>(f.data()), sizeof(double) * 3);
+
     // velocities_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     velocities_.resize(size);
-    for (auto& v : velocities_)
-        is.read(reinterpret_cast<char*>(v.data()), sizeof(double) * 3);
-    
+    for (auto &v : velocities_)
+        is.read(reinterpret_cast<char *>(v.data()), sizeof(double) * 3);
+
     // site_energies_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     site_energies_.resize(size);
-    is.read(reinterpret_cast<char*>(site_energies_.data()), sizeof(double) * size);
-    
+    is.read(reinterpret_cast<char *>(site_energies_.data()), sizeof(double) * size);
+
     // charges_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     charges_.resize(size);
-    is.read(reinterpret_cast<char*>(charges_.data()), sizeof(double) * size);
-    
+    is.read(reinterpret_cast<char *>(charges_.data()), sizeof(double) * size);
+
     // magmom_scalar_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     magmom_scalar_.resize(size);
-    is.read(reinterpret_cast<char*>(magmom_scalar_.data()), sizeof(double) * size);
-    
+    is.read(reinterpret_cast<char *>(magmom_scalar_.data()), sizeof(double) * size);
+
     // magmoms_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     magmoms_.resize(size);
-    for (auto& m : magmoms_)
-        is.read(reinterpret_cast<char*>(m.data()), sizeof(double) * 3);
-    
+    for (auto &m : magmoms_)
+        is.read(reinterpret_cast<char *>(m.data()), sizeof(double) * 3);
+
     // born_eff_chgs_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     born_eff_chgs_.resize(size);
-    for (auto& b : born_eff_chgs_)
-        is.read(reinterpret_cast<char*>(b.data()), sizeof(double) * 9);
-    
+    for (auto &b : born_eff_chgs_)
+        is.read(reinterpret_cast<char *>(b.data()), sizeof(double) * 9);
+
     // fitting_factor
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     fitting_factor.resize(size);
-    is.read(reinterpret_cast<char*>(fitting_factor.data()), sizeof(double) * size);
-    
+    is.read(reinterpret_cast<char *>(fitting_factor.data()), sizeof(double) * size);
+
     // atomic_fitness
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     atomic_fitness.resize(size);
-    is.read(reinterpret_cast<char*>(atomic_fitness.data()), sizeof(double) * size);
-    
+    is.read(reinterpret_cast<char *>(atomic_fitness.data()), sizeof(double) * size);
+
     // masks
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     masks.resize(size);
-    is.read(reinterpret_cast<char*>(masks.data()), sizeof(int) * size);
-    
+    is.read(reinterpret_cast<char *>(masks.data()), sizeof(int) * size);
+
     // sel_dynpos_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     sel_dynpos_.resize(size);
-    for (auto& s : sel_dynpos_)
-        is.read(reinterpret_cast<char*>(s.data()), sizeof(double) * 3);
-    
+    for (auto &s : sel_dynpos_)
+        is.read(reinterpret_cast<char *>(s.data()), sizeof(double) * 3);
+
     // 读取map容器
-    
+
     // global_attribs_d_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     global_attribs_d_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         double value;
-        is.read(reinterpret_cast<char*>(&value), sizeof(value));
+        is.read(reinterpret_cast<char *>(&value), sizeof(value));
         global_attribs_d_[key] = value;
     }
-    
+
     // local_attribs_d_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     local_attribs_d_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         size_t vec_size;
-        is.read(reinterpret_cast<char*>(&vec_size), sizeof(vec_size));
+        is.read(reinterpret_cast<char *>(&vec_size), sizeof(vec_size));
         Eigen::VectorXd value(vec_size);
-        is.read(reinterpret_cast<char*>(value.data()), sizeof(double) * vec_size);
+        is.read(reinterpret_cast<char *>(value.data()), sizeof(double) * vec_size);
         local_attribs_d_[key] = value;
     }
-    
+
     // global_attribs_v_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     global_attribs_v_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         size_t vec_size;
-        is.read(reinterpret_cast<char*>(&vec_size), sizeof(vec_size));
+        is.read(reinterpret_cast<char *>(&vec_size), sizeof(vec_size));
         Eigen::VectorXd value(vec_size);
-        is.read(reinterpret_cast<char*>(value.data()), sizeof(double) * vec_size);
+        is.read(reinterpret_cast<char *>(value.data()), sizeof(double) * vec_size);
         global_attribs_v_[key] = value;
     }
-    
+
     // local_attribs_v_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     local_attribs_v_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         int rows, cols;
-        is.read(reinterpret_cast<char*>(&rows), sizeof(rows));
-        is.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+        is.read(reinterpret_cast<char *>(&rows), sizeof(rows));
+        is.read(reinterpret_cast<char *>(&cols), sizeof(cols));
         Eigen::MatrixXd value(rows, cols);
-        is.read(reinterpret_cast<char*>(value.data()), sizeof(double) * rows * cols);
+        is.read(reinterpret_cast<char *>(value.data()), sizeof(double) * rows * cols);
         local_attribs_v_[key] = value;
     }
-    
+
     // global_attribs_i_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     global_attribs_i_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         int value;
-        is.read(reinterpret_cast<char*>(&value), sizeof(value));
+        is.read(reinterpret_cast<char *>(&value), sizeof(value));
         global_attribs_i_[key] = value;
     }
-    
+
     // global_attribs_vi_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     global_attribs_vi_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         size_t vec_size;
-        is.read(reinterpret_cast<char*>(&vec_size), sizeof(vec_size));
+        is.read(reinterpret_cast<char *>(&vec_size), sizeof(vec_size));
         Eigen::VectorXi value(vec_size);
-        is.read(reinterpret_cast<char*>(value.data()), sizeof(int) * vec_size);
+        is.read(reinterpret_cast<char *>(value.data()), sizeof(int) * vec_size);
         global_attribs_vi_[key] = value;
     }
-    
+
     // local_attribs_i_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     local_attribs_i_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         size_t vec_size;
-        is.read(reinterpret_cast<char*>(&vec_size), sizeof(vec_size));
+        is.read(reinterpret_cast<char *>(&vec_size), sizeof(vec_size));
         Eigen::VectorXi value(vec_size);
-        is.read(reinterpret_cast<char*>(value.data()), sizeof(int) * vec_size);
+        is.read(reinterpret_cast<char *>(value.data()), sizeof(int) * vec_size);
         local_attribs_i_[key] = value;
     }
-    
+
     // local_attribs_vi_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     local_attribs_vi_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         int rows, cols;
-        is.read(reinterpret_cast<char*>(&rows), sizeof(rows));
-        is.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+        is.read(reinterpret_cast<char *>(&rows), sizeof(rows));
+        is.read(reinterpret_cast<char *>(&cols), sizeof(cols));
         Eigen::MatrixXi value(rows, cols);
-        is.read(reinterpret_cast<char*>(value.data()), sizeof(int) * rows * cols);
+        is.read(reinterpret_cast<char *>(value.data()), sizeof(int) * rows * cols);
         local_attribs_vi_[key] = value;
     }
-    
+
     // features_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     features_.clear();
     for (size_t i = 0; i < size; ++i)
     {
         size_t key_size;
-        is.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+        is.read(reinterpret_cast<char *>(&key_size), sizeof(key_size));
         std::string key(key_size, ' ');
         is.read(&key[0], key_size);
         size_t value_size;
-        is.read(reinterpret_cast<char*>(&value_size), sizeof(value_size));
+        is.read(reinterpret_cast<char *>(&value_size), sizeof(value_size));
         std::string value(value_size, ' ');
         is.read(&value[0], value_size);
         features_[key] = value;
     }
-    
+
     // 读取bonds_和angles_
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     bonds_.resize(size);
-    is.read(reinterpret_cast<char*>(bonds_.data()), sizeof(std::array<int, 2>) * size);
-    
-    is.read(reinterpret_cast<char*>(&size), sizeof(size));
+    is.read(reinterpret_cast<char *>(bonds_.data()), sizeof(std::array<int, 2>) * size);
+
+    is.read(reinterpret_cast<char *>(&size), sizeof(size));
     angles_.resize(size);
-    is.read(reinterpret_cast<char*>(angles_.data()), sizeof(std::array<int, 3>) * size);
-    
+    is.read(reinterpret_cast<char *>(angles_.data()), sizeof(std::array<int, 3>) * size);
+
     return is;
 }
 
-std::ostream& Atoms::write_to_bin(std::ostream& os) const
+std::ostream &Atoms::write_to_bin(std::ostream &os) const
 {
     // 写入基本的标量值
-    os.write(reinterpret_cast<const char*>(&cartesian), sizeof(cartesian));
-    os.write(reinterpret_cast<const char*>(&have_ghost), sizeof(have_ghost));
-    os.write(reinterpret_cast<const char*>(&nlocal_), sizeof(nlocal_));
-    os.write(reinterpret_cast<const char*>(&nghost_), sizeof(nghost_));
-    os.write(reinterpret_cast<const char*>(&molnum_), sizeof(molnum_));
-    os.write(reinterpret_cast<const char*>(&collinear_), sizeof(collinear_));
-    os.write(reinterpret_cast<const char*>(&have_energy), sizeof(have_energy));
-    os.write(reinterpret_cast<const char*>(&have_fenergy), sizeof(have_fenergy));
-    os.write(reinterpret_cast<const char*>(&have_stress), sizeof(have_stress));
-    os.write(reinterpret_cast<const char*>(&have_eff_chg), sizeof(have_eff_chg));
-    os.write(reinterpret_cast<const char*>(&group_count), sizeof(group_count));
-    os.write(reinterpret_cast<const char*>(&energy_), sizeof(energy_));
-    os.write(reinterpret_cast<const char*>(&fenergy_), sizeof(fenergy_));
-    os.write(reinterpret_cast<const char*>(&fitness), sizeof(fitness));
-    os.write(reinterpret_cast<const char*>(&mvgrade_), sizeof(mvgrade_));
-    os.write(reinterpret_cast<const char*>(&mindist_), sizeof(mindist_));
-    os.write(reinterpret_cast<const char*>(&maxdist_), sizeof(maxdist_));
-    os.write(reinterpret_cast<const char*>(&id), sizeof(id));
+    os.write(reinterpret_cast<const char *>(&cartesian), sizeof(cartesian));
+    os.write(reinterpret_cast<const char *>(&have_ghost), sizeof(have_ghost));
+    os.write(reinterpret_cast<const char *>(&nlocal_), sizeof(nlocal_));
+    os.write(reinterpret_cast<const char *>(&nghost_), sizeof(nghost_));
+    os.write(reinterpret_cast<const char *>(&molnum_), sizeof(molnum_));
+    os.write(reinterpret_cast<const char *>(&collinear_), sizeof(collinear_));
+    os.write(reinterpret_cast<const char *>(&have_energy), sizeof(have_energy));
+    os.write(reinterpret_cast<const char *>(&have_fenergy), sizeof(have_fenergy));
+    os.write(reinterpret_cast<const char *>(&have_stress), sizeof(have_stress));
+    os.write(reinterpret_cast<const char *>(&have_eff_chg), sizeof(have_eff_chg));
+    os.write(reinterpret_cast<const char *>(&group_count), sizeof(group_count));
+    os.write(reinterpret_cast<const char *>(&energy_), sizeof(energy_));
+    os.write(reinterpret_cast<const char *>(&fenergy_), sizeof(fenergy_));
+    os.write(reinterpret_cast<const char *>(&fitness), sizeof(fitness));
+    os.write(reinterpret_cast<const char *>(&mvgrade_), sizeof(mvgrade_));
+    os.write(reinterpret_cast<const char *>(&mindist_), sizeof(mindist_));
+    os.write(reinterpret_cast<const char *>(&maxdist_), sizeof(maxdist_));
+    os.write(reinterpret_cast<const char *>(&id), sizeof(id));
 
     // 写入Eigen矩阵
-    os.write(reinterpret_cast<const char*>(cell_.data()), sizeof(double) * 9);
-    os.write(reinterpret_cast<const char*>(stress_.data()), sizeof(double) * 9);
-    os.write(reinterpret_cast<const char*>(sel_dyncell_.data()), sizeof(double) * 9);
+    os.write(reinterpret_cast<const char *>(cell_.data()), sizeof(double) * 9);
+    os.write(reinterpret_cast<const char *>(stress_.data()), sizeof(double) * 9);
+    os.write(reinterpret_cast<const char *>(sel_dyncell_.data()), sizeof(double) * 9);
 
     // 写入向量
     size_t size;
-    
+
     // pos_
     size = pos_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& p : pos_)
-        os.write(reinterpret_cast<const char*>(p.data()), sizeof(double) * 3);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &p : pos_)
+        os.write(reinterpret_cast<const char *>(p.data()), sizeof(double) * 3);
+
     // chemmap_
     size = chemmap_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(chemmap_.data()), sizeof(int) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(chemmap_.data()), sizeof(int) * size);
+
     // map_ghost_
     size = map_ghost_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(map_ghost_.data()), sizeof(int) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(map_ghost_.data()), sizeof(int) * size);
+
     // ids_
     size = ids_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(ids_.data()), sizeof(int) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(ids_.data()), sizeof(int) * size);
+
     // molid_
     size = molid_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(molid_.data()), sizeof(int) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(molid_.data()), sizeof(int) * size);
+
     // molsize_
     size = molsize_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(molsize_.data()), sizeof(int) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(molsize_.data()), sizeof(int) * size);
+
     // mol_types_
     size = mol_types_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(mol_types_.data()), sizeof(int) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(mol_types_.data()), sizeof(int) * size);
+
     // forces_
     size = forces_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& f : forces_)
-        os.write(reinterpret_cast<const char*>(f.data()), sizeof(double) * 3);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &f : forces_)
+        os.write(reinterpret_cast<const char *>(f.data()), sizeof(double) * 3);
+
     // velocities_
     size = velocities_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& v : velocities_)
-        os.write(reinterpret_cast<const char*>(v.data()), sizeof(double) * 3);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &v : velocities_)
+        os.write(reinterpret_cast<const char *>(v.data()), sizeof(double) * 3);
+
     // site_energies_
     size = site_energies_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(site_energies_.data()), sizeof(double) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(site_energies_.data()), sizeof(double) * size);
+
     // charges_
     size = charges_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(charges_.data()), sizeof(double) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(charges_.data()), sizeof(double) * size);
+
     // magmom_scalar_
     size = magmom_scalar_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(magmom_scalar_.data()), sizeof(double) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(magmom_scalar_.data()), sizeof(double) * size);
+
     // magmoms_
     size = magmoms_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& m : magmoms_)
-        os.write(reinterpret_cast<const char*>(m.data()), sizeof(double) * 3);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &m : magmoms_)
+        os.write(reinterpret_cast<const char *>(m.data()), sizeof(double) * 3);
+
     // born_eff_chgs_
     size = born_eff_chgs_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& b : born_eff_chgs_)
-        os.write(reinterpret_cast<const char*>(b.data()), sizeof(double) * 9);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &b : born_eff_chgs_)
+        os.write(reinterpret_cast<const char *>(b.data()), sizeof(double) * 9);
+
     // fitting_factor
     size = fitting_factor.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(fitting_factor.data()), sizeof(double) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(fitting_factor.data()), sizeof(double) * size);
+
     // atomic_fitness
     size = atomic_fitness.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(atomic_fitness.data()), sizeof(double) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(atomic_fitness.data()), sizeof(double) * size);
+
     // masks
     size = masks.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(masks.data()), sizeof(int) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(masks.data()), sizeof(int) * size);
+
     // sel_dynpos_
     size = sel_dynpos_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& s : sel_dynpos_)
-        os.write(reinterpret_cast<const char*>(s.data()), sizeof(double) * 3);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &s : sel_dynpos_)
+        os.write(reinterpret_cast<const char *>(s.data()), sizeof(double) * 3);
+
     // 写入map容器
-    
+
     // global_attribs_d_
     size = global_attribs_d_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : global_attribs_d_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : global_attribs_d_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
-        os.write(reinterpret_cast<const char*>(&pair.second), sizeof(pair.second));
+        os.write(reinterpret_cast<const char *>(&pair.second), sizeof(pair.second));
     }
-    
+
     // local_attribs_d_
     size = local_attribs_d_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : local_attribs_d_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : local_attribs_d_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
         size_t vec_size = pair.second.size();
-        os.write(reinterpret_cast<const char*>(&vec_size), sizeof(vec_size));
-        os.write(reinterpret_cast<const char*>(pair.second.data()), sizeof(double) * vec_size);
+        os.write(reinterpret_cast<const char *>(&vec_size), sizeof(vec_size));
+        os.write(reinterpret_cast<const char *>(pair.second.data()), sizeof(double) * vec_size);
     }
-    
+
     // global_attribs_v_
     size = global_attribs_v_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : global_attribs_v_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : global_attribs_v_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
         size_t vec_size = pair.second.size();
-        os.write(reinterpret_cast<const char*>(&vec_size), sizeof(vec_size));
-        os.write(reinterpret_cast<const char*>(pair.second.data()), sizeof(double) * vec_size);
+        os.write(reinterpret_cast<const char *>(&vec_size), sizeof(vec_size));
+        os.write(reinterpret_cast<const char *>(pair.second.data()), sizeof(double) * vec_size);
     }
-    
+
     // local_attribs_v_
     size = local_attribs_v_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : local_attribs_v_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : local_attribs_v_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
         int rows = pair.second.rows();
         int cols = pair.second.cols();
-        os.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
-        os.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
-        os.write(reinterpret_cast<const char*>(pair.second.data()), sizeof(double) * rows * cols);
+        os.write(reinterpret_cast<const char *>(&rows), sizeof(rows));
+        os.write(reinterpret_cast<const char *>(&cols), sizeof(cols));
+        os.write(reinterpret_cast<const char *>(pair.second.data()), sizeof(double) * rows * cols);
     }
-    
+
     // global_attribs_i_
     size = global_attribs_i_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : global_attribs_i_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : global_attribs_i_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
-        os.write(reinterpret_cast<const char*>(&pair.second), sizeof(pair.second));
+        os.write(reinterpret_cast<const char *>(&pair.second), sizeof(pair.second));
     }
-    
+
     // global_attribs_vi_
     size = global_attribs_vi_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : global_attribs_vi_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : global_attribs_vi_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
         size_t vec_size = pair.second.size();
-        os.write(reinterpret_cast<const char*>(&vec_size), sizeof(vec_size));
-        os.write(reinterpret_cast<const char*>(pair.second.data()), sizeof(int) * vec_size);
+        os.write(reinterpret_cast<const char *>(&vec_size), sizeof(vec_size));
+        os.write(reinterpret_cast<const char *>(pair.second.data()), sizeof(int) * vec_size);
     }
-    
+
     // local_attribs_i_
     size = local_attribs_i_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : local_attribs_i_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : local_attribs_i_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
         size_t vec_size = pair.second.size();
-        os.write(reinterpret_cast<const char*>(&vec_size), sizeof(vec_size));
-        os.write(reinterpret_cast<const char*>(pair.second.data()), sizeof(int) * vec_size);
+        os.write(reinterpret_cast<const char *>(&vec_size), sizeof(vec_size));
+        os.write(reinterpret_cast<const char *>(pair.second.data()), sizeof(int) * vec_size);
     }
-    
+
     // local_attribs_vi_
     size = local_attribs_vi_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : local_attribs_vi_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : local_attribs_vi_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
         int rows = pair.second.rows();
         int cols = pair.second.cols();
-        os.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
-        os.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
-        os.write(reinterpret_cast<const char*>(pair.second.data()), sizeof(int) * rows * cols);
+        os.write(reinterpret_cast<const char *>(&rows), sizeof(rows));
+        os.write(reinterpret_cast<const char *>(&cols), sizeof(cols));
+        os.write(reinterpret_cast<const char *>(pair.second.data()), sizeof(int) * rows * cols);
     }
-    
+
     // features_
     size = features_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    for (const auto& pair : features_)
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    for (const auto &pair : features_)
     {
         size_t key_size = pair.first.size();
-        os.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+        os.write(reinterpret_cast<const char *>(&key_size), sizeof(key_size));
         os.write(pair.first.c_str(), key_size);
         size_t value_size = pair.second.size();
-        os.write(reinterpret_cast<const char*>(&value_size), sizeof(value_size));
+        os.write(reinterpret_cast<const char *>(&value_size), sizeof(value_size));
         os.write(pair.second.c_str(), value_size);
     }
-    
+
     // 写入bonds_和angles_
     size = bonds_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(bonds_.data()), sizeof(std::array<int, 2>) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(bonds_.data()), sizeof(std::array<int, 2>) * size);
+
     size = angles_.size();
-    os.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    os.write(reinterpret_cast<const char*>(angles_.data()), sizeof(std::array<int, 3>) * size);
-    
+    os.write(reinterpret_cast<const char *>(&size), sizeof(size));
+    os.write(reinterpret_cast<const char *>(angles_.data()), sizeof(std::array<int, 3>) * size);
+
     return os;
 }
 
-double Atoms::get_distance(int a, int b) {
+double Atoms::get_distance(int a, int b)
+{
     return get_rab(a, b).norm();
 }
 
-Eigen::RowVector3d Atoms::get_rab(int a, int b) {
+Eigen::RowVector3d Atoms::get_rab(int a, int b)
+{
     Eigen::RowVector3d delta = pos_[b] - pos_[a];
-    if (!cartesian) delta = (delta * cell_).eval();
-    const int rank = static_cast<int>(pbc_[0]) + static_cast<int>(pbc_[1])
-        + static_cast<int>(pbc_[2]);
-    if (rank == 0 || a == b) return delta;
+    if (!cartesian)
+        delta = (delta * cell_).eval();
+    const int rank =
+        static_cast<int>(pbc_[0]) + static_cast<int>(pbc_[1]) + static_cast<int>(pbc_[2]);
+    if (rank == 0 || a == b)
+        return delta;
 
     Eigen::MatrixXd basis(rank, 3);
     int row = 0;
-    for (int axis = 0; axis < 3; ++axis) {
-        if (pbc_[axis]) basis.row(row++) = cell_.row(axis);
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        if (pbc_[axis])
+            basis.row(row++) = cell_.row(axis);
     }
     if (!basis.allFinite())
         throw std::runtime_error("Minimum distance requires finite periodic cell vectors");
@@ -2365,7 +2569,8 @@ Eigen::RowVector3d Atoms::get_rab(int a, int b) {
         throw std::runtime_error("Minimum-distance periodic metric is not finite");
     const auto decomposition = gram.fullPivLu();
     if (!decomposition.isInvertible())
-        throw std::runtime_error("Minimum distance requires independent finite periodic cell vectors");
+        throw std::runtime_error(
+            "Minimum distance requires independent finite periodic cell vectors");
     const Eigen::MatrixXd dual = decomposition.solve(basis);
     if (!dual.allFinite() || !std::isfinite(delta.squaredNorm()))
         throw std::runtime_error("Minimum-distance periodic dual is not finite");
@@ -2373,9 +2578,11 @@ Eigen::RowVector3d Atoms::get_rab(int a, int b) {
     periodic_minimum_squared(delta, basis, dual, delta.squaredNorm(), false, &result);
     return result;
 }
+
 // currently hosted by Neighborhood class.
 // this is a slow version
-void Atoms::build_ghost(double r) {
+void Atoms::build_ghost(double r)
+{
     double rsq = r * r;
     Eigen::Vector3d max_pos = pos_[0];
     Eigen::Vector3d min_pos = pos_[0];
@@ -2407,22 +2614,16 @@ void Atoms::build_ghost(double r) {
                         for (int ind = 0; ind < size(); ind++)
                         {
                             Eigen::RowVector3d newvec = pos_[ind];
-                            newvec += i * cell_.row(0) +
-                                      j * cell_.row(1) +
-                                      k * cell_.row(2);
+                            newvec += i * cell_.row(0) + j * cell_.row(1) + k * cell_.row(2);
 
-                            if ((newvec[0] < min_pos[0] - r) ||
-                                (newvec[1] < min_pos[1] - r) ||
-                                (newvec[2] < min_pos[2] - r) ||
-                                (newvec[0] > max_pos[0] + r) ||
-                                (newvec[1] > max_pos[1] + r) ||
-                                (newvec[2] > max_pos[2] + r))
+                            if ((newvec[0] < min_pos[0] - r) || (newvec[1] < min_pos[1] - r) ||
+                                (newvec[2] < min_pos[2] - r) || (newvec[0] > max_pos[0] + r) ||
+                                (newvec[1] > max_pos[1] + r) || (newvec[2] > max_pos[2] + r))
                                 continue;
                             //@note:by IF NONBOX, REDUCE CONSTRUCTING TIME
                             int jnd;
                             for (jnd = 0;
-                                 (jnd < size()) && (pos_[jnd] - newvec).squaredNorm() > rsq;
-                                 jnd++)
+                                 (jnd < size()) && (pos_[jnd] - newvec).squaredNorm() > rsq; jnd++)
                                 ;
                             if (jnd < size())
                             {
@@ -2440,7 +2641,8 @@ void Atoms::build_ghost(double r) {
     }
 }
 
-Atoms Atoms::create_supercell(const Eigen::Matrix3i &mat, std::map<int, int> &s2p) const {
+Atoms Atoms::create_supercell(const Eigen::Matrix3i &mat, std::map<int, int> &s2p) const
+{
     const int determinant = mat.determinant();
     if (determinant == 0)
         throw std::invalid_argument("Supercell matrix must be nonsingular");
@@ -2457,14 +2659,7 @@ Atoms Atoms::create_supercell(const Eigen::Matrix3i &mat, std::map<int, int> &s2
     /*Find lattice points in supercell*/
     std::vector<Eigen::RowVector3d> latpoints;
     Eigen::Matrix<double, 8, 3> boundvecs;
-    boundvecs << 0, 0, 0,
-        0, 0, 1,
-        0, 1, 0,
-        0, 1, 1,
-        1, 0, 0,
-        1, 0, 1,
-        1, 1, 0,
-        1, 1, 1;
+    boundvecs << 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1;
     // for (int i = 0; i < 8; ++i)
     // {
     //     boundvecs.row(i) *= mat;
@@ -2519,7 +2714,8 @@ Atoms Atoms::create_supercell(const Eigen::Matrix3i &mat, std::map<int, int> &s2
                 po << i, j, k;
                 po = po * rmatd;
                 //po = po * newcell.inverse();
-                if (!(po(0) <= 1 - ROUND_PREC && po(1) <= 1 - ROUND_PREC && po(2) <= 1 - ROUND_PREC))
+                if (!(po(0) <= 1 - ROUND_PREC && po(1) <= 1 - ROUND_PREC &&
+                      po(2) <= 1 - ROUND_PREC))
                     continue;
                 if (!(po(0) >= -ROUND_PREC && po(1) >= -ROUND_PREC && po(2) >= -ROUND_PREC))
                     continue;
@@ -2531,7 +2727,8 @@ Atoms Atoms::create_supercell(const Eigen::Matrix3i &mat, std::map<int, int> &s2
     /*Build positions*/
     std::vector<Eigen::RowVector3d> posold = pos_;
     if (!cartesian)
-        for (auto &position : posold) position = dir2car(position);
+        for (auto &position : posold)
+            position = dir2car(position);
     std::vector<int> chemmapold = chemmap_;
     supercell.pos_.clear();
     s2p.clear();
@@ -2557,21 +2754,24 @@ Atoms Atoms::create_supercell(const Eigen::Matrix3i &mat, std::map<int, int> &s2
     return supercell;
 }
 
-Eigen::VectorXd Atoms::get_voigt_stress() const{
+Eigen::VectorXd Atoms::get_voigt_stress() const
+{
     Eigen::VectorXd voigt(6);
-    voigt(0) = stress_(0,0);
-    voigt(1) = stress_(1,1);
-    voigt(2) = stress_(2,2);
-    voigt(3) = stress_(1,2);
-    voigt(4) = stress_(0,2);
-    voigt(5) = stress_(0,1);
+    voigt(0) = stress_(0, 0);
+    voigt(1) = stress_(1, 1);
+    voigt(2) = stress_(2, 2);
+    voigt(3) = stress_(1, 2);
+    voigt(4) = stress_(0, 2);
+    voigt(5) = stress_(0, 1);
     return voigt;
 }
 
-void Atoms::swap_axis(int mode, bool keephand) {
+void Atoms::swap_axis(int mode, bool keephand)
+{
     Eigen::Matrix3i mat = Eigen::Matrix3i::Zero();
     // negative value to keep handedness
-    switch (mode) {
+    switch (mode)
+    {
     case 123:
         return;
     case 132:
@@ -2606,7 +2806,8 @@ void Atoms::swap_axis(int mode, bool keephand) {
     const auto old_pbc = pbc_;
     for (int i = 0; i < 3; ++i)
         for (int j = 0; j < 3; ++j)
-            if (mat(i, j) != 0) pbc_[i] = old_pbc[j];
+            if (mat(i, j) != 0)
+                pbc_[i] = old_pbc[j];
 }
 #ifdef EXTERN_EXPCLIT_TEMPLATE
 template class std::vector<Atoms>;

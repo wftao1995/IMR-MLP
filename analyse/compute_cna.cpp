@@ -6,8 +6,7 @@
 #ifdef CNA_VARIANT_1
 namespace
 {
-int max_b_length(const std::vector<std::vector<int>> &bonds, int node,
-                 std::vector<bool> &used)
+int max_b_length(const std::vector<std::vector<int>> &bonds, int node, std::vector<bool> &used)
 {
     int longest = 0;
     const int size = bonds.size();
@@ -24,13 +23,9 @@ int max_b_length(const std::vector<std::vector<int>> &bonds, int node,
 }
 }
 #endif
-ComputeCNA::ComputeCNA(/* args */)
-{
-}
+ComputeCNA::ComputeCNA(/* args */) {}
 
-ComputeCNA::~ComputeCNA()
-{
-}
+ComputeCNA::~ComputeCNA() {}
 
 ComputeCNA::ComputeCNA(const GPSettings &_settings)
 {
@@ -38,6 +33,7 @@ ComputeCNA::ComputeCNA(const GPSettings &_settings)
     ApplySettings(_settings);
     // PrintSettings();
 }
+
 // A reference full CNA inplementation, no type info
 std::vector<cna_atom> ComputeCNA::compute(const AnyNeighborhoods &nbhs)
 {
@@ -55,7 +51,8 @@ std::vector<cna_atom> ComputeCNA::compute(const AnyNeighborhoods &nbhs)
         const CommonNeighborGeometry::Image root{i, Eigen::RowVector3d::Zero()};
         for (const auto &pair : Geometry::candidates(nbhs, i, unbond))
         {
-            if (!Geometry::owns_pair(i, pair)) continue;
+            if (!Geometry::owns_pair(i, pair))
+                continue;
             const auto common = Geometry::common(nbhs, i, pair);
             ii = unbond && !Geometry::bonded(nbhs, root, pair) ? 2 : 1;
             jj = common.size();
@@ -99,7 +96,7 @@ std::vector<cna_atom> ComputeCNA::compute(const AnyNeighborhoods &nbhs)
             maxbond.resize(jj);
             for (int k = 0; k < jj; ++k)
             {
-                for (int l = k + 1; l < jj;  ++l)
+                for (int l = k + 1; l < jj; ++l)
                 {
                     if (Geometry::bonded(nbhs, common[k], common[l]))
                     {
@@ -144,7 +141,8 @@ std::vector<cna_atom_sp> ComputeCNA::compute_sp(const AnyNeighborhoods &nbhs)
         const CommonNeighborGeometry::Image root{i, Eigen::RowVector3d::Zero()};
         for (const auto &pair : CommonNeighborGeometry::candidates(nbhs, i, unbond))
         {
-            if (!CommonNeighborGeometry::owns_pair(i, pair)) continue;
+            if (!CommonNeighborGeometry::owns_pair(i, pair))
+                continue;
             const auto &nbhj = nbhs[pair.source];
             const auto common = CommonNeighborGeometry::common(nbhs, i, pair);
             ii = unbond && !CommonNeighborGeometry::bonded(nbhs, root, pair) ? 2 : 1;

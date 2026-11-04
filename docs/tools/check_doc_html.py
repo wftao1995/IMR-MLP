@@ -2,6 +2,7 @@
 # Copyright (c) 2026 IMR-MLP contributors
 # SPDX-License-Identifier: MIT
 """Check generated HTML files, assets and section anchors without a web server."""
+
 import argparse
 from html.parser import HTMLParser
 from pathlib import Path
@@ -38,9 +39,10 @@ def check_html(directory, site_root=None):
     # The sidebar, menu and search results construct their links from JavaScript.
     for path in directory.rglob('*.js'):
         text = path.read_text()
-        links[path] = [(text.count('\n', 0, match.start()) + 1, match[2])
-                       for match in re.finditer(
-                           r'''(["'])([^"'\n]+\.html(?:#[^"'\n]*)?)\1''', text)]
+        links[path] = [
+            (text.count('\n', 0, match.start()) + 1, match[2])
+            for match in re.finditer(r'''(["'])([^"'\n]+\.html(?:#[^"'\n]*)?)\1''', text)
+        ]
     for path, targets in sorted(links.items()):
         for line, target in targets:
             parsed = urlsplit(target)
@@ -61,7 +63,9 @@ def check_html(directory, site_root=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directories', nargs='+', type=Path)
-    parser.add_argument('--site-root', type=Path, help='common publication root for bilingual links')
+    parser.add_argument(
+        '--site-root', type=Path, help='common publication root for bilingual links'
+    )
     args = parser.parse_args()
     failed = False
     for directory in args.directories:

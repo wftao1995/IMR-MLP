@@ -40,7 +40,8 @@ void NeighborhoodKD::init_npbc()
 
 void NeighborhoodKD::init()
 {
-    if (ref->is_nonperiodic()) {
+    if (ref->is_nonperiodic())
+    {
         init_npbc();
         return;
     }
@@ -60,14 +61,27 @@ void NeighborhoodKD::init()
     v7 = v3 + v4;
     v8 = v2 + v3 + v4;
     Eigen::RowVector3d min_pos;
-    min_pos(0) = __min(__min(__min(__min(__min(__min(__min(0, v2(0)), v3(0)), v4(0)), v5(0)), v6(0)), v7(0)), v8(0));
-    min_pos(1) = __min(__min(__min(__min(__min(__min(__min(0, v2(1)), v3(1)), v4(1)), v5(1)), v6(1)), v7(1)), v8(1));
-    min_pos(2) = __min(__min(__min(__min(__min(__min(__min(0, v2(2)), v3(2)), v4(2)), v5(2)), v6(2)), v7(2)), v8(2));
+    min_pos(0) =
+        __min(__min(__min(__min(__min(__min(__min(0, v2(0)), v3(0)), v4(0)), v5(0)), v6(0)), v7(0)),
+              v8(0));
+    min_pos(1) =
+        __min(__min(__min(__min(__min(__min(__min(0, v2(1)), v3(1)), v4(1)), v5(1)), v6(1)), v7(1)),
+              v8(1));
+    min_pos(2) =
+        __min(__min(__min(__min(__min(__min(__min(0, v2(2)), v3(2)), v4(2)), v5(2)), v6(2)), v7(2)),
+              v8(2));
     Eigen::RowVector3d max_pos;
-    max_pos(0) = __max(__max(__max(__max(__max(__max(__max(0, v2(0)), v3(0)), v4(0)), v5(0)), v6(0)), v7(0)), v8(0));
-    max_pos(1) = __max(__max(__max(__max(__max(__max(__max(0, v2(1)), v3(1)), v4(1)), v5(1)), v6(1)), v7(1)), v8(1));
-    max_pos(2) = __max(__max(__max(__max(__max(__max(__max(0, v2(2)), v3(2)), v4(2)), v5(2)), v6(2)), v7(2)), v8(2));
-    for (const auto &p : ref->pos_) {
+    max_pos(0) =
+        __max(__max(__max(__max(__max(__max(__max(0, v2(0)), v3(0)), v4(0)), v5(0)), v6(0)), v7(0)),
+              v8(0));
+    max_pos(1) =
+        __max(__max(__max(__max(__max(__max(__max(0, v2(1)), v3(1)), v4(1)), v5(1)), v6(1)), v7(1)),
+              v8(1));
+    max_pos(2) =
+        __max(__max(__max(__max(__max(__max(__max(0, v2(2)), v3(2)), v4(2)), v5(2)), v6(2)), v7(2)),
+              v8(2));
+    for (const auto &p : ref->pos_)
+    {
         min_pos = min_pos.cwiseMin(p);
         max_pos = max_pos.cwiseMax(p);
     }
@@ -83,16 +97,15 @@ void NeighborhoodKD::init()
             {
                 for (int k = -l; k <= l; ++k)
                 {
-                    if ((!ref->pbc_[0] && i != 0) ||
-                        (!ref->pbc_[1] && j != 0) ||
-                        (!ref->pbc_[2] && k != 0)) continue;
+                    if ((!ref->pbc_[0] && i != 0) || (!ref->pbc_[1] && j != 0) ||
+                        (!ref->pbc_[2] && k != 0))
+                        continue;
                     if (__max(__max(abs(i), abs(j)), abs(k)) == l)
                     {
                         for (int ind = 0; ind < size; ind++)
                         {
                             Eigen::RowVector3d newvec = pos[ind];
-                            newvec += i * ref->cell_.row(0) +
-                                      j * ref->cell_.row(1) +
+                            newvec += i * ref->cell_.row(0) + j * ref->cell_.row(1) +
                                       k * ref->cell_.row(2);
 
                             if ((newvec[0] < min_pos[0] - r_extent) ||
@@ -141,14 +154,17 @@ void NeighborhoodKD::reinit(Atoms *atom, double r)
     init();
 }
 
-Neighborhood NeighborhoodKD::queryts(double *r, const double &rcut, const int &type, tslocalbuffer &buf, bool self) {
+Neighborhood NeighborhoodKD::queryts(double *r, const double &rcut, const int &type,
+                                     tslocalbuffer &buf, bool self)
+{
     alglib::real_1d_array pos;
     pos.setcontent(3, r);
     int nfind = alglib::kdtreetsqueryrnn(kdt, buf.buf, pos, rcut, self);
     Neighborhood nbh;
     nbh.centertype = type;
     nbh.nbhcount_ = nfind;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreetsqueryresultstags(kdt, buf.buf, buf.tags_query_buffer);
@@ -164,21 +180,24 @@ Neighborhood NeighborhoodKD::queryts(double *r, const double &rcut, const int &t
         nbh.indices_[i] = buf.tags_query_buffer[i];
         nbh.chemmap_[i] = ref->chemmap_[buf.tags_query_buffer[i]];
         nbh.pos_[i][0] = buf.x_query_buffer[i][0] - *r;
-        nbh.pos_[i][1] = buf.x_query_buffer[i][1] - *(r+1);
-        nbh.pos_[i][2] = buf.x_query_buffer[i][2] - *(r+2);
+        nbh.pos_[i][1] = buf.x_query_buffer[i][1] - *(r + 1);
+        nbh.pos_[i][2] = buf.x_query_buffer[i][2] - *(r + 2);
         nbh.distances_[i] = buf.r_query_buffer[i];
     }
     return nbh;
 }
 
-Neighborhood NeighborhoodKD::queryuts(double *r, const double &rcut, const int &type, tslocalbuffer &buf, bool self) {
+Neighborhood NeighborhoodKD::queryuts(double *r, const double &rcut, const int &type,
+                                      tslocalbuffer &buf, bool self)
+{
     alglib::real_1d_array pos;
     pos.setcontent(3, r);
     int nfind = alglib::kdtreetsqueryrnnu(kdt, buf.buf, pos, rcut, self);
     Neighborhood nbh;
     nbh.centertype = type;
     nbh.nbhcount_ = nfind;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreetsqueryresultstags(kdt, buf.buf, buf.tags_query_buffer);
@@ -194,8 +213,8 @@ Neighborhood NeighborhoodKD::queryuts(double *r, const double &rcut, const int &
         nbh.indices_[i] = buf.tags_query_buffer[i];
         nbh.chemmap_[i] = ref->chemmap_[buf.tags_query_buffer[i]];
         nbh.pos_[i][0] = buf.x_query_buffer[i][0] - *r;
-        nbh.pos_[i][1] = buf.x_query_buffer[i][1] - *(r+1);
-        nbh.pos_[i][2] = buf.x_query_buffer[i][2] - *(r+2);
+        nbh.pos_[i][1] = buf.x_query_buffer[i][1] - *(r + 1);
+        nbh.pos_[i][2] = buf.x_query_buffer[i][2] - *(r + 2);
         nbh.distances_[i] = buf.r_query_buffer[i];
     }
     return nbh;
@@ -211,18 +230,21 @@ Neighborhood NeighborhoodKD::queryu(int index, const double &rcut)
     return queryu(ref->pos_[index].data(), rcut, ref->chemmap_[index]);
 }
 
-Neighborhood NeighborhoodKD::query(int index, const double &rcut, int knn) {
+Neighborhood NeighborhoodKD::query(int index, const double &rcut, int knn)
+{
     alglib::real_1d_array pos;
     pos.setcontent(3, ref->pos_[index].data());
     int nfind = alglib::kdtreequeryrnn(kdt, pos, rcut, false);
     int nres = nfind;
-    if (nfind > knn) {
+    if (nfind > knn)
+    {
         nres = knn;
     }
     Neighborhood nbh;
     nbh.centertype = ref->chemmap_[index];
     nbh.nbhcount_ = nres;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreequeryresultstags(kdt, tags_query_buffer);
@@ -245,14 +267,16 @@ Neighborhood NeighborhoodKD::query(int index, const double &rcut, int knn) {
     return nbh;
 }
 
-Neighborhood NeighborhoodKD::query(double *r, const double &rcut, const int &type, bool self) {
+Neighborhood NeighborhoodKD::query(double *r, const double &rcut, const int &type, bool self)
+{
     alglib::real_1d_array pos;
     pos.setcontent(3, r);
     int nfind = alglib::kdtreequeryrnn(kdt, pos, rcut, self);
     Neighborhood nbh;
     nbh.centertype = type;
     nbh.nbhcount_ = nfind;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreequeryresultstags(kdt, tags_query_buffer);
@@ -268,21 +292,23 @@ Neighborhood NeighborhoodKD::query(double *r, const double &rcut, const int &typ
         nbh.indices_[i] = tags_query_buffer[i];
         nbh.chemmap_[i] = ref->chemmap_[tags_query_buffer[i]];
         nbh.pos_[i][0] = x_query_buffer[i][0] - *r;
-        nbh.pos_[i][1] = x_query_buffer[i][1] - *(r+1);
-        nbh.pos_[i][2] = x_query_buffer[i][2] - *(r+2);
+        nbh.pos_[i][1] = x_query_buffer[i][1] - *(r + 1);
+        nbh.pos_[i][2] = x_query_buffer[i][2] - *(r + 2);
         nbh.distances_[i] = r_query_buffer[i];
     }
     return nbh;
 }
 
-Neighborhood NeighborhoodKD::queryu(double *r, const double &rcut, const int &type, bool self) {
+Neighborhood NeighborhoodKD::queryu(double *r, const double &rcut, const int &type, bool self)
+{
     alglib::real_1d_array pos;
     pos.setcontent(3, r);
     int nfind = alglib::kdtreequeryrnnu(kdt, pos, rcut, self);
     Neighborhood nbh;
     nbh.centertype = type;
     nbh.nbhcount_ = nfind;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreequeryresultstags(kdt, tags_query_buffer);
@@ -298,25 +324,28 @@ Neighborhood NeighborhoodKD::queryu(double *r, const double &rcut, const int &ty
         nbh.indices_[i] = tags_query_buffer[i];
         nbh.chemmap_[i] = ref->chemmap_[tags_query_buffer[i]];
         nbh.pos_[i][0] = x_query_buffer[i][0] - *r;
-        nbh.pos_[i][1] = x_query_buffer[i][1] - *(r+1);
-        nbh.pos_[i][2] = x_query_buffer[i][2] - *(r+2);
+        nbh.pos_[i][1] = x_query_buffer[i][1] - *(r + 1);
+        nbh.pos_[i][2] = x_query_buffer[i][2] - *(r + 2);
         nbh.distances_[i] = r_query_buffer[i];
     }
     return nbh;
 }
 
-Neighborhood NeighborhoodKD::query(int index, int knn) {
+Neighborhood NeighborhoodKD::query(int index, int knn)
+{
     return query(ref->pos_[index].data(), knn, ref->chemmap_[index]);
 }
 
-Neighborhood NeighborhoodKD::query(int index, int knn, const double &rcut) {
+Neighborhood NeighborhoodKD::query(int index, int knn, const double &rcut)
+{
     alglib::real_1d_array pos;
     pos.setcontent(3, ref->pos_[index].data());
     int nfind = alglib::kdtreequeryknn(kdt, pos, knn, false);
     Neighborhood nbh;
     nbh.centertype = ref->chemmap_[index];
     nbh.nbhcount_ = 0;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreequeryresultstags(kdt, tags_query_buffer);
@@ -327,9 +356,11 @@ Neighborhood NeighborhoodKD::query(int index, int knn, const double &rcut) {
     nbh.distances_.reserve(nfind);
     nbh.pos_.reserve(nfind);
     Eigen::RowVector3d tmprow;
-    for (int i = 0; i < nfind; ++i) {
+    for (int i = 0; i < nfind; ++i)
+    {
         double dist = r_query_buffer[i];
-        if (dist < rcut) {
+        if (dist < rcut)
+        {
             tmprow[0] = x_query_buffer[i][0] - pos[0];
             tmprow[1] = x_query_buffer[i][1] - pos[1];
             tmprow[2] = x_query_buffer[i][2] - pos[2];
@@ -343,14 +374,16 @@ Neighborhood NeighborhoodKD::query(int index, int knn, const double &rcut) {
     return nbh;
 }
 
-Neighborhood NeighborhoodKD::query_type(int index, const double &rcut, int jtype) {
+Neighborhood NeighborhoodKD::query_type(int index, const double &rcut, int jtype)
+{
     alglib::real_1d_array pos;
     pos.setcontent(3, ref->pos_[index].data());
     int nfind = alglib::kdtreequeryrnn(kdt, pos, rcut, false);
     Neighborhood nbh;
     nbh.centertype = ref->chemmap_[index];
     nbh.nbhcount_ = 0;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreequeryresultstags(kdt, tags_query_buffer);
@@ -361,8 +394,10 @@ Neighborhood NeighborhoodKD::query_type(int index, const double &rcut, int jtype
     nbh.distances_.reserve(nfind);
     nbh.pos_.reserve(nfind);
     Eigen::RowVector3d tmprow;
-    for (int i = 0; i < nfind; ++i) {
-        if (ref->chemmap_[tags_query_buffer[i]] == jtype) {
+    for (int i = 0; i < nfind; ++i)
+    {
+        if (ref->chemmap_[tags_query_buffer[i]] == jtype)
+        {
             double dist = r_query_buffer[i];
             tmprow[0] = x_query_buffer[i][0] - pos[0];
             tmprow[1] = x_query_buffer[i][1] - pos[1];
@@ -376,7 +411,8 @@ Neighborhood NeighborhoodKD::query_type(int index, const double &rcut, int jtype
     }
     return nbh;
 }
-// 
+
+//
 Neighborhood NeighborhoodKD::query(double *r, const int &knn, const int &type, bool self)
 {
     alglib::real_1d_array pos;
@@ -402,8 +438,8 @@ Neighborhood NeighborhoodKD::query(double *r, const int &knn, const int &type, b
         nbh.indices_[i] = tags_query_buffer[i];
         nbh.chemmap_[i] = ref->chemmap_[tags_query_buffer[i]];
         nbh.pos_[i][0] = x_query_buffer[i][0] - *r;
-        nbh.pos_[i][1] = x_query_buffer[i][1] - *(r+1);
-        nbh.pos_[i][2] = x_query_buffer[i][2] - *(r+2);
+        nbh.pos_[i][1] = x_query_buffer[i][1] - *(r + 1);
+        nbh.pos_[i][2] = x_query_buffer[i][2] - *(r + 2);
         nbh.distances_[i] = r_query_buffer[i];
     }
     return nbh;
@@ -419,7 +455,8 @@ Neighborhood NeighborhoodKD::queryu(int index, const double &rcut_inn, const dou
     return queryu(ref->pos_[index].data(), rcut_inn, rcut, ref->chemmap_[index]);
 }
 
-Neighborhood NeighborhoodKD::query(double *r, const double &rcut_inn, const double &rcut, const int &type, bool self)
+Neighborhood NeighborhoodKD::query(double *r, const double &rcut_inn, const double &rcut,
+                                   const int &type, bool self)
 {
     Neighborhood nbh;
     alglib::real_1d_array pos;
@@ -447,16 +484,16 @@ Neighborhood NeighborhoodKD::query(double *r, const double &rcut_inn, const doub
             nbh.nbhcount_++;
             nbh.indices_.push_back(tags_query_buffer[i]);
             nbh.chemmap_.push_back(ref->chemmap_[tags_query_buffer[i]]);
-            nbh.pos_.emplace_back(x_query_buffer[i][0] - *r,
-                                  x_query_buffer[i][1] - *(r+1),
-                                  x_query_buffer[i][2] - *(r+2));
+            nbh.pos_.emplace_back(x_query_buffer[i][0] - *r, x_query_buffer[i][1] - *(r + 1),
+                                  x_query_buffer[i][2] - *(r + 2));
             nbh.distances_.push_back(r_query_buffer[i]);
         }
     }
     return nbh;
 }
 
-Neighborhood NeighborhoodKD::queryu(double *r, const double &rcut_inn, const double &rcut, const int &type, bool self)
+Neighborhood NeighborhoodKD::queryu(double *r, const double &rcut_inn, const double &rcut,
+                                    const int &type, bool self)
 {
     Neighborhood nbh;
     alglib::real_1d_array pos;
@@ -484,16 +521,16 @@ Neighborhood NeighborhoodKD::queryu(double *r, const double &rcut_inn, const dou
             nbh.nbhcount_++;
             nbh.indices_.push_back(tags_query_buffer[i]);
             nbh.chemmap_.push_back(ref->chemmap_[tags_query_buffer[i]]);
-            nbh.pos_.emplace_back(x_query_buffer[i][0] - *r,
-                                  x_query_buffer[i][1] - *(r+1),
-                                  x_query_buffer[i][2] - *(r+2));
+            nbh.pos_.emplace_back(x_query_buffer[i][0] - *r, x_query_buffer[i][1] - *(r + 1),
+                                  x_query_buffer[i][2] - *(r + 2));
             nbh.distances_.push_back(r_query_buffer[i]);
         }
     }
     return nbh;
 }
 
-Neighborhood NeighborhoodKD::querybox(double *rlo, double *rhi) {
+Neighborhood NeighborhoodKD::querybox(double *rlo, double *rhi)
+{
     alglib::real_1d_array lo, hi;
     lo.setcontent(3, rlo);
     hi.setcontent(3, rhi);
@@ -501,7 +538,8 @@ Neighborhood NeighborhoodKD::querybox(double *rlo, double *rhi) {
     Neighborhood nbh;
     nbh.centertype = 0;
     nbh.nbhcount_ = nfind;
-    if (nfind == 0) {
+    if (nfind == 0)
+    {
         return nbh;
     }
     alglib::kdtreequeryresultstags(kdt, tags_query_buffer);
@@ -523,12 +561,13 @@ Neighborhood NeighborhoodKD::querybox(double *rlo, double *rhi) {
     return nbh;
 }
 
-int NeighborhoodKD::find_atom(double* r, const double tol)
+int NeighborhoodKD::find_atom(double *r, const double tol)
 {
     alglib::real_1d_array pos;
     pos.setcontent(3, r);
     int nfind = alglib::kdtreequeryrnnu(kdt, pos, tol, true);
-    if (nfind == 0) return -1;
+    if (nfind == 0)
+        return -1;
     alglib::kdtreequeryresultstags(kdt, tags_query_buffer);
     return tags_query_buffer[0];
 }

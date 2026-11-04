@@ -12,7 +12,8 @@
 #include <limits>
 #include <ostream>
 
-namespace {
+namespace
+{
 
 constexpr std::uint32_t kOnlineMagic = 0x4f4d5653; // OMVS
 constexpr std::uint32_t kOnlineVersion = 1;
@@ -72,13 +73,11 @@ void OnlineMaxVolState::reset_identity(int ncols, double init_value)
     refactorize();
 }
 
-bool OnlineMaxVolState::initialize_from_rows(
-    const Eigen::Ref<const OnlineRowMatrix> &C,
-    const std::vector<BRowRef> &refs)
+bool OnlineMaxVolState::initialize_from_rows(const Eigen::Ref<const OnlineRowMatrix> &C,
+                                             const std::vector<BRowRef> &refs)
 {
     clear();
-    if (C.rows() <= 0 || C.cols() <= 0 || C.rows() > C.cols() ||
-        !C.allFinite())
+    if (C.rows() <= 0 || C.cols() <= 0 || C.rows() > C.cols() || !C.allFinite())
         return false;
     if (!refs.empty() && refs.size() != static_cast<size_t>(C.rows()))
         return false;
@@ -93,7 +92,8 @@ bool OnlineMaxVolState::refactorize()
 {
     const int rows = static_cast<int>(C_.rows());
     const int cols = static_cast<int>(C_.cols());
-    if (rows <= 0 || cols <= 0) {
+    if (rows <= 0 || cols <= 0)
+    {
         valid_ = false;
         return false;
     }
@@ -111,8 +111,7 @@ bool OnlineMaxVolState::refactorize_square(const Eigen::MatrixXd &dense)
 {
     Eigen::PartialPivLU<Eigen::MatrixXd> lu(dense);
     const double rcond = lu.rcond();
-    const double tol = std::numeric_limits<double>::epsilon()
-                     * static_cast<double>(dense.rows());
+    const double tol = std::numeric_limits<double>::epsilon() * static_cast<double>(dense.rows());
     if (!std::isfinite(rcond) || rcond <= tol)
         return false;
 
@@ -122,7 +121,8 @@ bool OnlineMaxVolState::refactorize_square(const Eigen::MatrixXd &dense)
 
     log_det_ = 0.0;
     const auto diag = lu.matrixLU().diagonal();
-    for (int i = 0; i < diag.size(); ++i) {
+    for (int i = 0; i < diag.size(); ++i)
+    {
         const double pivot = std::abs(diag[i]);
         if (!std::isfinite(pivot) || pivot <= 0.0)
             return false;
@@ -139,30 +139,28 @@ bool OnlineMaxVolState::refactorize_gram(const Eigen::MatrixXd &dense)
 {
     const int rows = static_cast<int>(dense.rows());
     const int cols = static_cast<int>(dense.cols());
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(
-        dense, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(dense, Eigen::ComputeThinU | Eigen::ComputeThinV);
     const Eigen::VectorXd &s = svd.singularValues();
-    const double smax = s.size() > 0 && std::isfinite(s[0])
-                      ? std::max(0.0, s[0]) : 0.0;
-    const double sv_tol = std::numeric_limits<double>::epsilon()
-                        * static_cast<double>(std::max(rows, cols)) * smax;
+    const double smax = s.size() > 0 && std::isfinite(s[0]) ? std::max(0.0, s[0]) : 0.0;
+    const double sv_tol =
+        std::numeric_limits<double>::epsilon() * static_cast<double>(std::max(rows, cols)) * smax;
     bool exact = s.size() == rows && smax > 0.0;
     for (int i = 0; i < s.size(); ++i)
         exact = exact && std::isfinite(s[i]) && s[i] > sv_tol;
 
     regularization_ = 0.0;
-    if (!exact) {
+    if (!exact)
+    {
         const double scale2 = smax > 0.0 ? smax * smax : 1.0;
-        const double relative = std::max(
-            1e-12, std::numeric_limits<double>::epsilon()
-                 * static_cast<double>(std::max(rows, cols)));
-        regularization_ = std::max(std::numeric_limits<double>::min(),
-                                   relative * scale2);
+        const double relative = std::max(1e-12, std::numeric_limits<double>::epsilon() *
+                                                    static_cast<double>(std::max(rows, cols)));
+        regularization_ = std::max(std::numeric_limits<double>::min(), relative * scale2);
     }
 
     Eigen::VectorXd inv_eigs(rows);
     log_det_ = 0.0;
-    for (int i = 0; i < rows; ++i) {
+    for (int i = 0; i < rows; ++i)
+    {
         const double si = i < s.size() && std::isfinite(s[i]) ? s[i] : 0.0;
         const double eig = si * si + regularization_;
         if (!std::isfinite(eig) || eig <= 0.0)
@@ -174,26 +172,27 @@ bool OnlineMaxVolState::refactorize_gram(const Eigen::MatrixXd &dense)
     inverse_ = 0.5 * (inverse_ + inverse_.transpose()).eval();
     if (!inverse_.allFinite())
         return false;
-    factor_mode_ = exact ? FactorMode::GramInverse
-                         : FactorMode::RegularizedGramInverse;
+    factor_mode_ = exact ? FactorMode::GramInverse : FactorMode::RegularizedGramInverse;
     valid_ = true;
     updates_since_factorization_ = 0;
     return true;
 }
 
-int OnlineMaxVolState::append_candidates(
-    const Eigen::Ref<const OnlineRowMatrix> &candidates,
-    const std::vector<BRowRef> &candidate_refs,
-    int append_limit)
+int OnlineMaxVolState::append_candidates(const Eigen::Ref<const OnlineRowMatrix> &candidates,
+                                         const std::vector<BRowRef> &candidate_refs,
+                                         int append_limit)
 {
     const int room = static_cast<int>(C_.cols() - C_.rows());
     int count = std::min(room, static_cast<int>(candidates.rows()));
-    if (append_limit > 0) count = std::min(count, append_limit);
-    if (count <= 0) return 0;
+    if (append_limit > 0)
+        count = std::min(count, append_limit);
+    if (count <= 0)
+        return 0;
 
     std::vector<Eigen::RowVectorXd> basis;
     basis.reserve(static_cast<size_t>(C_.cols()));
-    auto residual_against_basis = [&](const Eigen::RowVectorXd &row) {
+    auto residual_against_basis = [&](const Eigen::RowVectorXd &row)
+    {
         Eigen::RowVectorXd residual = row;
         // Two passes control loss of orthogonality for nearly dependent rows.
         for (int pass = 0; pass < 2; ++pass)
@@ -201,12 +200,12 @@ int OnlineMaxVolState::append_candidates(
                 residual.noalias() -= residual.dot(q) * q;
         return residual;
     };
-    auto extend_basis = [&](const Eigen::RowVectorXd &row) {
+    auto extend_basis = [&](const Eigen::RowVectorXd &row)
+    {
         Eigen::RowVectorXd residual = residual_against_basis(row);
         const double norm = residual.norm();
-        const double tol = std::numeric_limits<double>::epsilon()
-                         * static_cast<double>(std::max(C_.rows(), C_.cols()))
-                         * row.norm();
+        const double tol = std::numeric_limits<double>::epsilon() *
+                           static_cast<double>(std::max(C_.rows(), C_.cols())) * row.norm();
         if (std::isfinite(norm) && norm > tol)
             basis.push_back(residual / norm);
     };
@@ -216,29 +215,33 @@ int OnlineMaxVolState::append_candidates(
     std::vector<char> used(static_cast<size_t>(candidates.rows()), 0);
     std::vector<int> chosen;
     chosen.reserve(static_cast<size_t>(count));
-    for (int step = 0; step < count; ++step) {
+    for (int step = 0; step < count; ++step)
+    {
         int best = -1;
         double best_residual = -1.0;
         double best_norm = -1.0;
         Eigen::RowVectorXd best_vector;
-        for (int row = 0; row < candidates.rows(); ++row) {
-            if (used[static_cast<size_t>(row)]) continue;
+        for (int row = 0; row < candidates.rows(); ++row)
+        {
+            if (used[static_cast<size_t>(row)])
+                continue;
             Eigen::RowVectorXd residual = residual_against_basis(candidates.row(row));
             const double residual2 = residual.squaredNorm();
             const double norm2 = candidates.row(row).squaredNorm();
-            if (residual2 > best_residual ||
-                (residual2 == best_residual && norm2 > best_norm)) {
+            if (residual2 > best_residual || (residual2 == best_residual && norm2 > best_norm))
+            {
                 best = row;
                 best_residual = residual2;
                 best_norm = norm2;
                 best_vector = std::move(residual);
             }
         }
-        if (best < 0) break;
+        if (best < 0)
+            break;
         const double best_length = std::sqrt(std::max(0.0, best_residual));
-        const double independence_tol = std::numeric_limits<double>::epsilon()
-            * static_cast<double>(std::max(C_.rows(), C_.cols()))
-            * std::sqrt(std::max(0.0, best_norm));
+        const double independence_tol = std::numeric_limits<double>::epsilon() *
+                                        static_cast<double>(std::max(C_.rows(), C_.cols())) *
+                                        std::sqrt(std::max(0.0, best_norm));
         if (!std::isfinite(best_length) || best_length <= independence_tol)
             break;
         used[static_cast<size_t>(best)] = 1;
@@ -249,19 +252,20 @@ int OnlineMaxVolState::append_candidates(
     const int old_rows = static_cast<int>(C_.rows());
     C_.conservativeResize(old_rows + static_cast<int>(chosen.size()), C_.cols());
     selected_refs_.reserve(static_cast<size_t>(C_.rows()));
-    for (int i = 0; i < static_cast<int>(chosen.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(chosen.size()); ++i)
+    {
         const int candidate = chosen[static_cast<size_t>(i)];
         C_.row(old_rows + i) = candidates.row(candidate);
-        selected_refs_.push_back(candidate_refs.empty()
-                               ? BRowRef{} : candidate_refs[static_cast<size_t>(candidate)]);
+        selected_refs_.push_back(
+            candidate_refs.empty() ? BRowRef{} : candidate_refs[static_cast<size_t>(candidate)]);
     }
     if (chosen.empty() || !refactorize())
         return 0;
     return static_cast<int>(chosen.size());
 }
 
-Eigen::VectorXd OnlineMaxVolState::score_rows(
-    const Eigen::Ref<const OnlineRowMatrix> &candidates) const
+Eigen::VectorXd
+OnlineMaxVolState::score_rows(const Eigen::Ref<const OnlineRowMatrix> &candidates) const
 {
     ScoreWorkspace workspace;
     return score_rows(candidates, workspace);
@@ -275,9 +279,9 @@ int OnlineMaxVolState::score_block_rows() const
     return static_cast<int>(std::clamp<std::size_t>(matrix_budget / row_bytes, 1, 4096));
 }
 
-OnlineMaxVolState::ScoreView OnlineMaxVolState::score_rows(
-    const Eigen::Ref<const OnlineRowMatrix> &candidates,
-    ScoreWorkspace &workspace) const
+OnlineMaxVolState::ScoreView
+OnlineMaxVolState::score_rows(const Eigen::Ref<const OnlineRowMatrix> &candidates,
+                              ScoreWorkspace &workspace) const
 {
     workspace.rows = 0;
     if (!valid_ || candidates.cols() != C_.cols())
@@ -287,8 +291,8 @@ OnlineMaxVolState::ScoreView OnlineMaxVolState::score_rows(
         return workspace.scores.head(0);
 
     const int block_rows = std::min(rows, score_block_rows());
-    const auto ensure_matrix_capacity = [block_rows](
-        Eigen::MatrixXd &matrix, int cols) {
+    const auto ensure_matrix_capacity = [block_rows](Eigen::MatrixXd &matrix, int cols)
+    {
         if (matrix.cols() != cols || matrix.rows() < block_rows)
             matrix.resize(block_rows, cols);
     };
@@ -297,9 +301,11 @@ OnlineMaxVolState::ScoreView OnlineMaxVolState::score_rows(
     workspace.rows = rows;
     auto scores = workspace.scores.head(rows);
 
-    if (factor_mode_ == FactorMode::SquareInverse) {
+    if (factor_mode_ == FactorMode::SquareInverse)
+    {
         ensure_matrix_capacity(workspace.coeff, inverse_.cols());
-        for (int first = 0; first < rows; first += block_rows) {
+        for (int first = 0; first < rows; first += block_rows)
+        {
             const int count = std::min(block_rows, rows - first);
             auto coeff = workspace.coeff.topRows(count);
             coeff.noalias() = candidates.middleRows(first, count) * inverse_;
@@ -312,37 +318,36 @@ OnlineMaxVolState::ScoreView OnlineMaxVolState::score_rows(
     ensure_matrix_capacity(workspace.z, C_.rows());
     ensure_matrix_capacity(workspace.coeff, inverse_.cols());
     const Eigen::VectorXd inv_diag = inverse_.diagonal().cwiseMax(0.0);
-    for (int first = 0; first < rows; first += block_rows) {
+    for (int first = 0; first < rows; first += block_rows)
+    {
         const int count = std::min(block_rows, rows - first);
         const auto block = candidates.middleRows(first, count);
         auto z = workspace.z.topRows(count);
         auto coeff = workspace.coeff.topRows(count);
         z.noalias() = block * C_.transpose();
         coeff.noalias() = z * inverse_;
-        for (int row = 0; row < count; ++row) {
-            const double residual2 = std::max(
-                0.0, block.row(row).squaredNorm() -
-                     coeff.row(row).dot(z.row(row)));
+        for (int row = 0; row < count; ++row)
+        {
+            const double residual2 =
+                std::max(0.0, block.row(row).squaredNorm() - coeff.row(row).dot(z.row(row)));
             double gain2 = 0.0;
             for (int slot = 0; slot < coeff.cols(); ++slot)
-                gain2 = std::max(gain2, coeff(row, slot) * coeff(row, slot) +
-                                        residual2 * inv_diag[slot]);
+                gain2 = std::max(gain2,
+                                 coeff(row, slot) * coeff(row, slot) + residual2 * inv_diag[slot]);
             scores[first + row] = std::sqrt(std::max(0.0, gain2));
         }
     }
     return scores;
 }
 
-int OnlineMaxVolState::maximize_with_candidates(
-    const Eigen::Ref<const OnlineRowMatrix> &candidates,
-    const std::vector<BRowRef> &candidate_refs,
-    double threshold, int swap_limit)
+int OnlineMaxVolState::maximize_with_candidates(const Eigen::Ref<const OnlineRowMatrix> &candidates,
+                                                const std::vector<BRowRef> &candidate_refs,
+                                                double threshold, int swap_limit)
 {
     last_swaps_.clear();
     if (!valid_ || candidates.rows() <= 0 || candidates.cols() != C_.cols())
         return 0;
-    if (!candidate_refs.empty() &&
-        candidate_refs.size() != static_cast<size_t>(candidates.rows()))
+    if (!candidate_refs.empty() && candidate_refs.size() != static_cast<size_t>(candidates.rows()))
         return 0;
     if (!candidates.allFinite() || !std::isfinite(threshold))
         return 0;
@@ -350,11 +355,13 @@ int OnlineMaxVolState::maximize_with_candidates(
     // A persistent state may have been initialized before enough independent
     // rows were available. Fill vacant slots before doing replacement swaps.
     int swaps = 0;
-    if (C_.rows() < C_.cols()) {
+    if (C_.rows() < C_.cols())
+    {
         const int append_limit = swap_limit > 0 ? swap_limit : 0;
         swaps = append_candidates(candidates, candidate_refs, append_limit);
     }
-    if (!valid_) return 0;
+    if (!valid_)
+        return 0;
 
     // MLIP-style A/B exchange: when a candidate enters C, the outgoing active
     // row remains in the local pool and may re-enter during a later swap.
@@ -366,32 +373,38 @@ int OnlineMaxVolState::maximize_with_candidates(
     const double stop = std::max(1.0, threshold);
     Eigen::MatrixXd square_coeff;
     bool square_coeff_valid = false;
-    while (swap_limit <= 0 || swaps < swap_limit) {
+    while (swap_limit <= 0 || swaps < swap_limit)
+    {
         Eigen::Index best_row = -1, best_slot = -1;
         double best = 0.0;
         Eigen::MatrixXd coeff;
         Eigen::RowVectorXd replacement_coeff;
-        if (factor_mode_ == FactorMode::SquareInverse) {
-            if (!square_coeff_valid) {
+        if (factor_mode_ == FactorMode::SquareInverse)
+        {
+            if (!square_coeff_valid)
+            {
                 square_coeff = pool * inverse_;
                 square_coeff_valid = true;
             }
             best = square_coeff.cwiseAbs().maxCoeff(&best_row, &best_slot);
             if (best_row >= 0)
                 replacement_coeff = square_coeff.row(best_row);
-        } else {
+        }
+        else
+        {
             const Eigen::MatrixXd z = pool * C_.transpose();
             coeff = z * inverse_;
             const Eigen::VectorXd inv_diag = inverse_.diagonal().cwiseMax(0.0);
-            for (int row = 0; row < pool.rows(); ++row) {
-                const double residual2 = std::max(
-                    0.0, pool.row(row).squaredNorm() -
-                         coeff.row(row).dot(z.row(row)));
-                for (int slot = 0; slot < C_.rows(); ++slot) {
+            for (int row = 0; row < pool.rows(); ++row)
+            {
+                const double residual2 =
+                    std::max(0.0, pool.row(row).squaredNorm() - coeff.row(row).dot(z.row(row)));
+                for (int slot = 0; slot < C_.rows(); ++slot)
+                {
                     const double gain = std::sqrt(std::max(
-                        0.0, coeff(row, slot) * coeff(row, slot) +
-                             residual2 * inv_diag[slot]));
-                    if (gain > best) {
+                        0.0, coeff(row, slot) * coeff(row, slot) + residual2 * inv_diag[slot]));
+                    if (gain > best)
+                    {
                         best = gain;
                         best_row = row;
                         best_slot = slot;
@@ -410,20 +423,25 @@ int OnlineMaxVolState::maximize_with_candidates(
         const BRowRef outgoing_ref = selected_refs_[static_cast<size_t>(best_slot)];
         const FactorMode old_mode = factor_mode_;
         bool updated = old_mode == FactorMode::SquareInverse
-                     ? update_square(replacement_coeff, best_slot, replacement)
-                     : update_gram(best_slot, replacement);
+                           ? update_square(replacement_coeff, best_slot, replacement)
+                           : update_gram(best_slot, replacement);
 
-        if (!updated) {
+        if (!updated)
+        {
             C_.row(best_slot) = replacement;
-            if (!refactorize()) {
+            if (!refactorize())
+            {
                 C_.row(best_slot) = outgoing;
                 refactorize();
                 break;
             }
-        } else if (old_mode == FactorMode::RegularizedGramInverse) {
+        }
+        else if (old_mode == FactorMode::RegularizedGramInverse)
+        {
             // A missing direction may have been restored. Prefer the exact
             // square/Gram factorization as soon as it becomes available.
-            if (!refactorize()) {
+            if (!refactorize())
+            {
                 C_.row(best_slot) = outgoing;
                 refactorize();
                 break;
@@ -434,21 +452,27 @@ int OnlineMaxVolState::maximize_with_candidates(
         pool.row(best_row) = outgoing;
         pool_refs[static_cast<size_t>(best_row)] = outgoing_ref;
 
-        if (factor_mode_ == FactorMode::SquareInverse) {
+        if (factor_mode_ == FactorMode::SquareInverse)
+        {
             if (old_mode == FactorMode::SquareInverse && updated &&
-                updates_since_factorization_ > 0) {
+                updates_since_factorization_ > 0)
+            {
                 const double denom = replacement_coeff[best_slot];
-                const Eigen::RowVectorXd delta = replacement_coeff
-                    - Eigen::RowVectorXd::Unit(C_.rows(), best_slot);
+                const Eigen::RowVectorXd delta =
+                    replacement_coeff - Eigen::RowVectorXd::Unit(C_.rows(), best_slot);
                 const Eigen::VectorXd column = square_coeff.col(best_slot);
                 square_coeff.noalias() -= (column * delta) / denom;
                 square_coeff.row(best_row) =
                     Eigen::RowVectorXd::Unit(C_.rows(), best_slot) - delta / denom;
                 square_coeff_valid = square_coeff.allFinite();
-            } else {
+            }
+            else
+            {
                 square_coeff_valid = false;
             }
-        } else {
+        }
+        else
+        {
             square_coeff_valid = false;
         }
         ++swaps;
@@ -457,15 +481,13 @@ int OnlineMaxVolState::maximize_with_candidates(
     return swaps;
 }
 
-bool OnlineMaxVolState::update_square(
-    const Eigen::RowVectorXd &coeff, int slot,
-    const Eigen::RowVectorXd &replacement)
+bool OnlineMaxVolState::update_square(const Eigen::RowVectorXd &coeff, int slot,
+                                      const Eigen::RowVectorXd &replacement)
 {
     const double denom = coeff[slot];
     if (!std::isfinite(denom) || std::abs(denom) <= 1e-12)
         return false;
-    const Eigen::RowVectorXd delta = coeff -
-        Eigen::RowVectorXd::Unit(C_.rows(), slot);
+    const Eigen::RowVectorXd delta = coeff - Eigen::RowVectorXd::Unit(C_.rows(), slot);
     const Eigen::VectorXd column = inverse_.col(slot);
     inverse_.noalias() -= (column * delta) / denom;
     C_.row(slot) = replacement;
@@ -480,8 +502,7 @@ bool OnlineMaxVolState::update_square(
     return true;
 }
 
-bool OnlineMaxVolState::update_gram(
-    int slot, const Eigen::RowVectorXd &replacement)
+bool OnlineMaxVolState::update_gram(int slot, const Eigen::RowVectorXd &replacement)
 {
     const int rows = static_cast<int>(C_.rows());
     const Eigen::RowVectorXd difference = replacement - C_.row(slot);
@@ -497,11 +518,9 @@ bool OnlineMaxVolState::update_gram(
     V(slot, 1) = 1.0;
 
     const Eigen::MatrixXd inv_u = inverse_ * U;
-    const Eigen::Matrix2d middle =
-        Eigen::Matrix2d::Identity() + V.transpose() * inv_u;
+    const Eigen::Matrix2d middle = Eigen::Matrix2d::Identity() + V.transpose() * inv_u;
     const double determinant = middle.determinant();
-    if (!middle.allFinite() || !std::isfinite(determinant) ||
-        std::abs(determinant) <= 1e-14)
+    if (!middle.allFinite() || !std::isfinite(determinant) || std::abs(determinant) <= 1e-14)
         return false;
 
     const Eigen::MatrixXd right = V.transpose() * inverse_;
@@ -526,13 +545,16 @@ double OnlineMaxVolState::factorization_error() const
         return std::numeric_limits<double>::infinity();
     const int samples[] = {0, rows / 2, rows - 1};
     double error = 0.0;
-    for (int sample : samples) {
+    for (int sample : samples)
+    {
         Eigen::VectorXd product;
-        if (factor_mode_ == FactorMode::SquareInverse) {
+        if (factor_mode_ == FactorMode::SquareInverse)
+        {
             product = C_ * inverse_.col(sample);
-        } else {
-            const Eigen::VectorXd projected =
-                C_.transpose() * inverse_.col(sample);
+        }
+        else
+        {
+            const Eigen::VectorXd projected = C_.transpose() * inverse_.col(sample);
             product = C_ * projected + regularization_ * inverse_.col(sample);
         }
         product[sample] -= 1.0;
@@ -568,17 +590,25 @@ bool OnlineMaxVolState::load(std::istream &is)
     is.read(reinterpret_cast<char *>(&rows), sizeof(rows));
     is.read(reinterpret_cast<char *>(&cols), sizeof(cols));
     is.read(reinterpret_cast<char *>(&stored_log_det), sizeof(stored_log_det));
-    if (!is || magic != kOnlineMagic || version != kOnlineVersion ||
-        rows <= 0 || cols <= 0 || rows > cols || rows > 1000000 || cols > 1000000)
+    if (!is || magic != kOnlineMagic || version != kOnlineVersion || rows <= 0 || cols <= 0 ||
+        rows > cols || rows > 1000000 || cols > 1000000)
         return false;
 
     selected_refs_.resize(static_cast<size_t>(rows));
     for (auto &ref : selected_refs_)
-        if (!read_ref(is, ref)) { clear(); return false; }
+        if (!read_ref(is, ref))
+        {
+            clear();
+            return false;
+        }
     C_.resize(rows, cols);
     for (int i = 0; i < rows; ++i)
         for (int j = 0; j < cols; ++j)
             is.read(reinterpret_cast<char *>(&C_(i, j)), sizeof(double));
-    if (!is || !C_.allFinite()) { clear(); return false; }
+    if (!is || !C_.allFinite())
+    {
+        clear();
+        return false;
+    }
     return refactorize();
 }

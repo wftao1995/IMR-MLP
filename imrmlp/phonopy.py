@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Evaluate Phonopy displacement forces with an ASE calculator (optional deps)."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -32,9 +33,14 @@ def calculate_forces(phonon: Phonopy, calculator: Calculator) -> np.ndarray:
 
     forces = []
     for cell in supercells:
-        atoms = Atoms(symbols=cell.symbols, cell=cell.cell,
-                      scaled_positions=cell.scaled_positions,
-                      masses=cell.masses, pbc=True, calculator=calculator)
+        atoms = Atoms(
+            symbols=cell.symbols,
+            cell=cell.cell,
+            scaled_positions=cell.scaled_positions,
+            masses=cell.masses,
+            pbc=True,
+            calculator=calculator,
+        )
         values = np.asarray(atoms.get_forces(), dtype=float)
         if values.shape != (len(cell), 3) or not np.isfinite(values).all():
             raise ValueError("Calculator forces must be finite with shape (N, 3)")

@@ -15,7 +15,8 @@
 #include "tools/chem.h"
 
 #ifdef BOXED_NEBH
-void NeighborhoodsShell::construct(Atoms &atom, const double cutoff_inner, const double cutoff_outer)
+void NeighborhoodsShell::construct(Atoms &atom, const double cutoff_inner,
+                                   const double cutoff_outer)
 {
     const int size = atom.size();
     const double cutoff_isq = cutoff_inner * cutoff_inner;
@@ -49,8 +50,10 @@ void NeighborhoodsShell::construct(Atoms &atom, const double cutoff_inner, const
                                 {
                                     int indj = boxes[i + l1][j + l2][k + l3][t];
                                     Eigen::RowVector3d rij = pos[indj] - pos[indi];
-                                    const double dijsq = rij(0) * rij(0) + rij(1) * rij(1) + rij(2) * rij(2);
-                                    if ((dijsq < cutoff_osq) && (dijsq > cutoff_isq) && (indi != indj) && (indi <= indices_orig[indj]))
+                                    const double dijsq =
+                                        rij(0) * rij(0) + rij(1) * rij(1) + rij(2) * rij(2);
+                                    if ((dijsq < cutoff_osq) && (dijsq > cutoff_isq) &&
+                                        (indi != indj) && (indi <= indices_orig[indj]))
                                     {
                                         Neighborhood &nebi = nbhs[indi];
                                         const double dij = sqrt(dijsq);
@@ -59,7 +62,8 @@ void NeighborhoodsShell::construct(Atoms &atom, const double cutoff_inner, const
                                         nebi.indices_.emplace_back(indices_orig[indj]);
                                         nebi.pos_.emplace_back(rij);
                                         nebi.distances_.emplace_back(dij);
-                                        nebi.chemmap_.emplace_back(atom.chemmap_[indices_orig[indj]]);
+                                        nebi.chemmap_.emplace_back(
+                                            atom.chemmap_[indices_orig[indj]]);
                                         if (indi != indices_orig[indj])
                                         {
                                             Neighborhood &nebj = nbhs[indices_orig[indj]];
@@ -82,8 +86,9 @@ void NeighborhoodsShell::construct(Atoms &atom, const double cutoff_inner, const
         }
     }
 }
-#else  // BOXED_NEBH
-void NeighborhoodsShell::construct(Atoms &atom, const double cutoff_inner, const double cutoff_outer)
+#else // BOXED_NEBH
+void NeighborhoodsShell::construct(Atoms &atom, const double cutoff_inner,
+                                   const double cutoff_outer)
 {
     const int size = atom.size();
     const double cutoff_isq = cutoff_inner * cutoff_inner;

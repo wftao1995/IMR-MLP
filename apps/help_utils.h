@@ -15,7 +15,8 @@
 #include "../utils/cmdopts.h"
 #include "../utils/gputils.h"
 
-namespace HelpUtils {
+namespace HelpUtils
+{
 
 /**
  * @brief Register a single ConnectSettings subclass as a help group.
@@ -29,9 +30,12 @@ namespace HelpUtils {
  *   REGISTER_SETTINGS_HELP(cmdopts, "ha_index:", "HA indices", ComputeHA);
  * @endcode
  */
-#define REGISTER_SETTINGS_HELP(cmdopts, ns, title, Type) \
-    (cmdopts).attach_settings(ns, title, \
-        [](std::ostream &os) { Type().ListSettings(os, ns); })
+#define REGISTER_SETTINGS_HELP(cmdopts, ns, title, Type)                                           \
+    (cmdopts).attach_settings(ns, title,                                                           \
+                              [](std::ostream &os)                                                 \
+                              {                                                                    \
+                                  Type().ListSettings(os, ns);                                     \
+                              })
 
 /**
  * @brief Unified --help handler.
@@ -39,7 +43,8 @@ namespace HelpUtils {
  * Call this after phrase_options() when you only need to show
  * standard help + registered settings groups and exit.
  */
-inline void show_command_help(CMDOption::CommandLineOptions &cmdopts) {
+inline void show_command_help(CMDOption::CommandLineOptions &cmdopts)
+{
     cmdopts.showhelp(std::cout);
     std::exit(0);
 }

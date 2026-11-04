@@ -8,8 +8,11 @@
 #include <memory>
 
 using Catch::Approx;
-namespace {
-Atoms fire_atoms() {
+
+namespace
+{
+Atoms fire_atoms()
+{
     Atoms a;
     a.cell_ = 10 * Eigen::Matrix3d::Identity();
     a.pbc_ = {false, false, false};
@@ -17,38 +20,58 @@ Atoms fire_atoms() {
     a.chemmap_ = {0};
     return a;
 }
-struct FirePotential : Potentials::AnyPotential {
+
+struct FirePotential : Potentials::AnyPotential
+{
     int calls = 0, throw_after = -1;
     double stiffness = 10;
     bool cell = false, vector = false;
     double energy_offset = 0;
     Eigen::RowVector3d curvature{1, 4, 2};
     std::vector<double> samples;
-    void evaluate(Atoms &a) {
-        if (calls == throw_after) throw std::runtime_error("FIRE injected potential error");
+
+    void evaluate(Atoms &a)
+    {
+        if (calls == throw_after)
+            throw std::runtime_error("FIRE injected potential error");
         ++calls;
         const double q = cell ? a.cell_(0, 0) / 10 - 0.8 : a.pos_[0][0];
         samples.push_back(q);
         a.energy_ = energy_offset + 0.5 * stiffness * q * q;
         a.forces_.assign(a.size(), Eigen::RowVector3d::Zero());
         a.stress_.setZero();
-        if (cell) {
+        if (cell)
+        {
             a.stress_.diagonal().setConstant(-stiffness * q * (q + 0.8) / 3);
-            if (vector) {
+            if (vector)
+            {
                 a.energy_ += 0.5 * a.pos_[0].cwiseProduct(curvature).dot(a.pos_[0]);
                 a.forces_[0] = -a.pos_[0].cwiseProduct(curvature);
             }
         }
-        else if (vector) {
+        else if (vector)
+        {
             a.energy_ = energy_offset + 0.5 * a.pos_[0].cwiseProduct(curvature).dot(a.pos_[0]);
             a.forces_[0] = -a.pos_[0].cwiseProduct(curvature);
-        } else a.forces_[0][0] = -stiffness * q;
+        }
+        else
+            a.forces_[0][0] = -stiffness * q;
     }
-    void getEFSOMP(Atoms &a) override { evaluate(a); }
-    void getEFS(Atoms &a, AnyNeighborhoods &) override { evaluate(a); }
+
+    void getEFSOMP(Atoms &a) override
+    {
+        evaluate(a);
+    }
+
+    void getEFS(Atoms &a, AnyNeighborhoods &) override
+    {
+        evaluate(a);
+    }
 };
+
 std::unique_ptr<RelaxationDrvV2> fire_driver(FirePotential &p, int budget, bool downhill = true,
-                                            bool cell = false, std::vector<regulator> regs = {}) {
+                                             bool cell = false, std::vector<regulator> regs = {})
+{
     GPSettings s;
     s.Modify("driver", "fire");
     s.Modify("write_traj", "false");
@@ -72,18 +95,30 @@ std::unique_ptr<RelaxationDrvV2> fire_driver(FirePotential &p, int budget, bool 
     d->accept_checkpoint(false);
     return d;
 }
-regulator fire_constraint() {
+
+regulator fire_constraint()
+{
     regulator r;
-    r.type = 10; r.g0 = 2; r.weight_init = 100; r.lambda_init = 3;
-    r.inputs = {0}; r.outputs = {0}; r.x.resize(1); r.g.resize(1);
-    r.compute = [](double *x, int, double *g, int, double *f, double target, Atoms *, int *, void *) {
-        *f = x[0] - target; g[0] = 1;
+    r.type = 10;
+    r.g0 = 2;
+    r.weight_init = 100;
+    r.lambda_init = 3;
+    r.inputs = {0};
+    r.outputs = {0};
+    r.x.resize(1);
+    r.g.resize(1);
+    r.compute = [](double *x, int, double *g, int, double *f, double target, Atoms *, int *, void *)
+    {
+        *f = x[0] - target;
+        g[0] = 1;
     };
     return r;
 }
 }
 
-TEST_CASE("V2 FIRE downhill restores rejected trials and retries with one timestep reduction", "[relax_fire]") {
+TEST_CASE("V2 FIRE downhill restores rejected trials and retries with one timestep reduction",
+          "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 4);
     d->run_fire();
@@ -103,7 +138,8 @@ TEST_CASE("V2 FIRE downhill restores rejected trials and retries with one timest
     REQUIRE(d->f_prev == Approx(5));
 }
 
-TEST_CASE("V2 FIRE trial budgets include rejections and false mode accepts uphill", "[relax_fire]") {
+TEST_CASE("V2 FIRE trial budgets include rejections and false mode accepts uphill", "[relax_fire]")
+{
     const int budget = GENERATE(0, 1, 2);
     const bool downhill = GENERATE(false, true);
     FirePotential p;
@@ -111,16 +147,21 @@ TEST_CASE("V2 FIRE trial budgets include rejections and false mode accepts uphil
     d->run_fire();
     REQUIRE(d->state_vars.curr_iter == budget);
     REQUIRE(p.calls == budget + 1 + (!downhill && budget == 2 ? 1 : 0));
-    if (!downhill && budget == 2) REQUIRE(p.samples[2] == Approx(-29));
-    if (downhill || budget == 0) {
+    if (!downhill && budget == 2)
+        REQUIRE(p.samples[2] == Approx(-29));
+    if (downhill || budget == 0)
+    {
         REQUIRE(d->x[0] == Approx(1));
         REQUIRE(d->f == Approx(5));
         REQUIRE(d->g[0] == Approx(10));
         REQUIRE(d->atom.pos_[0][0] == Approx(1));
-    } else REQUIRE(d->f > 5);
+    }
+    else
+        REQUIRE(d->f > 5);
 }
 
-TEST_CASE("V2 FIRE tries the minimum timestep before reporting failure", "[relax_fire]") {
+TEST_CASE("V2 FIRE tries the minimum timestep before reporting failure", "[relax_fire]")
+{
     const int budget = GENERATE(1, 10);
     FirePotential p;
     auto d = fire_driver(p, budget);
@@ -136,7 +177,9 @@ TEST_CASE("V2 FIRE tries the minimum timestep before reporting failure", "[relax
     REQUIRE((d->stop_reason == "minimum_step") == (budget >= 2));
 }
 
-TEST_CASE("V2 FIRE keeps the unpreconditioned gradient for stopping and checkpoints", "[relax_fire]") {
+TEST_CASE("V2 FIRE keeps the unpreconditioned gradient for stopping and checkpoints",
+          "[relax_fire]")
+{
     const bool downhill = GENERATE(false, true);
     FirePotential p;
     auto d = fire_driver(p, 1, downhill);
@@ -150,9 +193,11 @@ TEST_CASE("V2 FIRE keeps the unpreconditioned gradient for stopping and checkpoi
     REQUIRE(d->checkpoint_g.isApprox(d->g));
 }
 
-TEST_CASE("V2 FIRE accepts equal objectives and gates the complete AUL objective", "[relax_fire]") {
+TEST_CASE("V2 FIRE accepts equal objectives and gates the complete AUL objective", "[relax_fire]")
+{
     FirePotential p;
-    SECTION("equal objective is accepted") {
+    SECTION("equal objective is accepted")
+    {
         p.stiffness = 2;
         auto d = fire_driver(p, 1);
         // Zero initial velocity and one kick give exactly dx=-2 at dt=1.
@@ -162,7 +207,8 @@ TEST_CASE("V2 FIRE accepts equal objectives and gates the complete AUL objective
         REQUIRE(d->x[0] == Approx(-1));
         REQUIRE(d->checkpoint_x[0] == Approx(-1));
     }
-    SECTION("physical energy can rise while the penalized objective falls") {
+    SECTION("physical energy can rise while the penalized objective falls")
+    {
         auto d = fire_driver(p, 1, true, false, {fire_constraint()});
         const double baseline = d->f;
         d->buffer_fire.ts_init = 0.02;
@@ -172,7 +218,8 @@ TEST_CASE("V2 FIRE accepts equal objectives and gates the complete AUL objective
         REQUIRE(d->x[0] > 1);
         REQUIRE(d->constraints[0].f == Approx(d->x[0] - 2));
     }
-    SECTION("rejection restores regulator buffers and multiplier state") {
+    SECTION("rejection restores regulator buffers and multiplier state")
+    {
         auto d = fire_driver(p, 1, true, false, {fire_constraint()});
         const auto before = d->constraints[0];
         d->run_fire();
@@ -187,16 +234,21 @@ TEST_CASE("V2 FIRE accepts equal objectives and gates the complete AUL objective
     }
 }
 
-TEST_CASE("V2 FIRE restores fixed shape scaling at rejected and exceptional exits", "[relax_fire]") {
+TEST_CASE("V2 FIRE restores fixed shape scaling at rejected and exceptional exits", "[relax_fire]")
+{
     const bool failure = GENERATE(false, true);
-    FirePotential p; p.cell = true;
+    FirePotential p;
+    p.cell = true;
     auto d = fire_driver(p, 1, true, true);
     const auto cell = d->atom.cell_;
-    if (failure) {
+    if (failure)
+    {
         p.throw_after = p.calls + 1; // run() evaluates its accepted baseline first.
         REQUIRE_THROWS_AS(d->run(), std::runtime_error);
         REQUIRE(d->stop_reason == "error");
-    } else d->run_fire();
+    }
+    else
+        d->run_fire();
     REQUIRE(d->scaling == Approx(1));
     REQUIRE(d->checkpoint_scaling == Approx(1));
     REQUIRE(d->x[0] == Approx(1));
@@ -204,25 +256,57 @@ TEST_CASE("V2 FIRE restores fixed shape scaling at rejected and exceptional exit
     REQUIRE(d->f == Approx(0.2));
 }
 
-TEST_CASE("V2 FIRE rejects invalid dynamics and preconditioning at direct entry", "[relax_fire]") {
+TEST_CASE("V2 FIRE rejects invalid dynamics and preconditioning at direct entry", "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 0);
-    SECTION("initial timestep exceeds maximum") { d->buffer_fire.ts_init = 11; }
-    SECTION("nonpositive minimum timestep") { d->buffer_fire.ts_min = 0; }
-    SECTION("invalid timestep reduction") { d->buffer_fire.ts_reduce = 1; }
-    SECTION("invalid mixing") { d->buffer_fire.alpha_start = 1.1; }
-    SECTION("unsupported integration") { d->buffer_fire.mdint = 1; }
-    SECTION("nonfinite timestep") { d->buffer_fire.ts_init = std::numeric_limits<double>::infinity(); }
-    SECTION("negative delay") { d->buffer_fire.ndelay = -1; }
-    SECTION("zero preconditioning") { d->prec_scaling[0] = 0; }
-    SECTION("nonfinite preconditioning") { d->prec_scaling[0] = std::numeric_limits<double>::quiet_NaN(); }
-    SECTION("wrong preconditioner dimensions") { d->prec_scaling.resize(0); }
+    SECTION("initial timestep exceeds maximum")
+    {
+        d->buffer_fire.ts_init = 11;
+    }
+    SECTION("nonpositive minimum timestep")
+    {
+        d->buffer_fire.ts_min = 0;
+    }
+    SECTION("invalid timestep reduction")
+    {
+        d->buffer_fire.ts_reduce = 1;
+    }
+    SECTION("invalid mixing")
+    {
+        d->buffer_fire.alpha_start = 1.1;
+    }
+    SECTION("unsupported integration")
+    {
+        d->buffer_fire.mdint = 1;
+    }
+    SECTION("nonfinite timestep")
+    {
+        d->buffer_fire.ts_init = std::numeric_limits<double>::infinity();
+    }
+    SECTION("negative delay")
+    {
+        d->buffer_fire.ndelay = -1;
+    }
+    SECTION("zero preconditioning")
+    {
+        d->prec_scaling[0] = 0;
+    }
+    SECTION("nonfinite preconditioning")
+    {
+        d->prec_scaling[0] = std::numeric_limits<double>::quiet_NaN();
+    }
+    SECTION("wrong preconditioner dimensions")
+    {
+        d->prec_scaling.resize(0);
+    }
     REQUIRE_THROWS_AS(d->run_fire(), std::invalid_argument);
     REQUIRE(p.calls == 1);
     REQUIRE(d->state_vars.curr_iter == 0);
 }
 
-TEST_CASE("V2 FIRE trajectory output contains accepted trials only", "[relax_fire]") {
+TEST_CASE("V2 FIRE trajectory output contains accepted trials only", "[relax_fire]")
+{
     const int budget = GENERATE(1, 4);
     FirePotential p;
     auto d = fire_driver(p, budget);
@@ -230,7 +314,17 @@ TEST_CASE("V2 FIRE trajectory output contains accepted trials only", "[relax_fir
     const int fd = mkstemp(name);
     REQUIRE(fd >= 0);
     close(fd);
-    struct Cleanup { const char *path; ~Cleanup() { std::filesystem::remove(path); } } cleanup{name};
+
+    struct Cleanup
+    {
+        const char *path;
+
+        ~Cleanup()
+        {
+            std::filesystem::remove(path);
+        }
+    } cleanup{name};
+
     d->flags.write_traj = true;
     d->control.nblock = 1;
     d->ofs.open(name);
@@ -239,14 +333,18 @@ TEST_CASE("V2 FIRE trajectory output contains accepted trials only", "[relax_fir
     d->ofs.close();
     std::ifstream in(name);
     const std::string output{std::istreambuf_iterator<char>(in), {}};
-    if (budget == 1) REQUIRE(output.empty());
-    else {
+    if (budget == 1)
+        REQUIRE(output.empty());
+    else
+    {
         REQUIRE(output.find("BEGIN_CFG") != std::string::npos);
         REQUIRE(output.find("BEGIN_CFG", output.find("BEGIN_CFG") + 1) == std::string::npos);
     }
 }
 
-TEST_CASE("V2 FIRE AUL inner loops share the trial budget and refresh dual baselines", "[relax_fire]") {
+TEST_CASE("V2 FIRE AUL inner loops share the trial budget and refresh dual baselines",
+          "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 4, true, false, {fire_constraint()});
     d->buffer_fire.ts_init = 0.02;
@@ -262,7 +360,8 @@ TEST_CASE("V2 FIRE AUL inner loops share the trial budget and refresh dual basel
     REQUIRE(d->f == d->checkpoint_f);
 }
 
-TEST_CASE("V2 FIRE retries correctly after restoring reduced position coordinates", "[relax_fire]") {
+TEST_CASE("V2 FIRE retries correctly after restoring reduced position coordinates", "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 4);
     auto a = fire_atoms();
@@ -282,24 +381,30 @@ TEST_CASE("V2 FIRE retries correctly after restoring reduced position coordinate
     REQUIRE(d->g[0] == Approx(3.75));
 }
 
-TEST_CASE("V2 FIRE public run reports minimum-step and iteration exits at the accepted state", "[relax_fire]") {
+TEST_CASE("V2 FIRE public run reports minimum-step and iteration exits at the accepted state",
+          "[relax_fire]")
+{
     const int budget = GENERATE(0, 1, 10);
     const bool stationary = GENERATE(false, true);
     FirePotential p;
     auto d = fire_driver(p, budget);
-    if (stationary) p.stiffness = 0;
+    if (stationary)
+        p.stiffness = 0;
     p.calls = 0;
     d->buffer_fire.ts_min = 1;
     const int result = d->run();
     REQUIRE(d->x[0] == Approx(1));
     REQUIRE(d->atom.pos_[0][0] == Approx(1));
     REQUIRE(d->scaling == Approx(d->checkpoint_scaling));
-    if (stationary) {
+    if (stationary)
+    {
         REQUIRE(result == 0);
         REQUIRE(p.calls == 1);
         REQUIRE(d->state_vars.curr_iter == 0);
         REQUIRE(d->stop_reason == "gradient_tolerance");
-    } else {
+    }
+    else
+    {
         REQUIRE(result == -1);
         REQUIRE(p.calls == std::min(budget, 2) + 1);
         REQUIRE(d->state_vars.curr_iter == std::min(budget, 2));
@@ -308,7 +413,8 @@ TEST_CASE("V2 FIRE public run reports minimum-step and iteration exits at the ac
     }
 }
 
-TEST_CASE("V2 FIRE permits explicit small timesteps below the default minimum", "[relax_fire]") {
+TEST_CASE("V2 FIRE permits explicit small timesteps below the default minimum", "[relax_fire]")
+{
     const bool downhill = GENERATE(false, true);
     const bool rejection = GENERATE(false, true);
     FirePotential p;
@@ -317,26 +423,34 @@ TEST_CASE("V2 FIRE permits explicit small timesteps below the default minimum", 
     d->buffer_fire.ts_max = 5e-4;
     REQUIRE(d->buffer_fire.ts_min == Approx(0.001));
     REQUIRE_NOTHROW(d->validate_options());
-    if (rejection) d->prec_scaling[0] = 1e-12;
+    if (rejection)
+        d->prec_scaling[0] = 1e-12;
     d->run_fire();
     // Neither a rejection nor P<=0 may raise the effective floor above ts_init.
     REQUIRE(d->buffer_fire.ts == Approx(1e-5));
     REQUIRE(d->buffer_fire.ts <= d->buffer_fire.ts_max);
-    if (rejection && downhill) {
+    if (rejection && downhill)
+    {
         REQUIRE(d->stop_reason == "minimum_step");
         REQUIRE(d->state_vars.curr_iter == 1);
         REQUIRE(d->x[0] == Approx(1));
         REQUIRE(d->g[0] == Approx(10));
-    } else {
+    }
+    else
+    {
         REQUIRE(d->state_vars.curr_iter == (rejection ? 2 : 1));
-        if (!rejection) REQUIRE(d->f < 5);
+        if (!rejection)
+            REQUIRE(d->f < 5);
     }
 }
 
-TEST_CASE("V2 FIRE mixes the same two-dimensional velocity before one Euler kick", "[relax_fire]") {
-    FirePotential p; p.vector = true;
+TEST_CASE("V2 FIRE mixes the same two-dimensional velocity before one Euler kick", "[relax_fire]")
+{
+    FirePotential p;
+    p.vector = true;
     auto d = fire_driver(p, 1);
-    auto a = fire_atoms(); a.pos_[0] = {1, 0.5, 0};
+    auto a = fire_atoms();
+    a.pos_[0] = {1, 0.5, 0};
     d->init(&p, a);
     d->buffer_fire.ts_init = 0.1;
     d->run();
@@ -345,29 +459,37 @@ TEST_CASE("V2 FIRE mixes the same two-dimensional velocity before one Euler kick
     REQUIRE(d->buffer_fire.ts == Approx(0.1));
     // Two steps from the same initial point: v1=(-.1,-.2), then mix v1
     // with the new force (-.99,-1.92) and apply just one dt*F kick.
-    d->init(&p, a); d->control.max_iter = 2;
+    d->init(&p, a);
+    d->control.max_iter = 2;
     d->run();
     REQUIRE(d->atom.pos_[0][0] == Approx(0.9700380858620663));
     REQUIRE(d->atom.pos_[0][1] == Approx(0.4408314392476437));
 }
 
-TEST_CASE("V2 FIRE bounds a three-dimensional displacement without enlarging it", "[relax_fire]") {
-    FirePotential p; p.vector = true; p.curvature.setOnes();
+TEST_CASE("V2 FIRE bounds a three-dimensional displacement without enlarging it", "[relax_fire]")
+{
+    FirePotential p;
+    p.vector = true;
+    p.curvature.setOnes();
     auto d = fire_driver(p, 1);
-    auto a = fire_atoms(); a.pos_[0].setOnes();
-    d->init(&p, a); d->control.max_move = 1;
+    auto a = fire_atoms();
+    a.pos_[0].setOnes();
+    d->init(&p, a);
+    d->control.max_move = 1;
     d->buffer_fire.ts_init = 1;
     d->run();
     REQUIRE((d->atom.pos_[0] - a.pos_[0]).norm() == Approx(1));
     REQUIRE(d->atom.pos_[0][0] == Approx(1 - 1 / std::sqrt(3.0)));
     REQUIRE(d->atom.pos_[0][1] == Approx(d->atom.pos_[0][0]));
     REQUIRE(d->atom.pos_[0][2] == Approx(d->atom.pos_[0][0]));
-    d->init(&p, a); d->buffer_fire.ts_init = 0.5;
+    d->init(&p, a);
+    d->buffer_fire.ts_init = 0.5;
     d->run();
     REQUIRE(d->atom.pos_[0].isApprox(Eigen::RowVector3d::Constant(0.75)));
 }
 
-TEST_CASE("V2 FIRE alpha one restarts with a full acceleration after rejection", "[relax_fire]") {
+TEST_CASE("V2 FIRE alpha one restarts with a full acceleration after rejection", "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 4);
     d->buffer_fire.alpha_start = 1;
@@ -378,7 +500,9 @@ TEST_CASE("V2 FIRE alpha one restarts with a full acceleration after rejection",
     REQUIRE(d->g[0] == Approx(3.75));
 }
 
-TEST_CASE("V2 FIRE derives automatic initial limits for each run and caps explicit limits", "[relax_fire]") {
+TEST_CASE("V2 FIRE derives automatic initial limits for each run and caps explicit limits",
+          "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 1);
     d->first_step_delay = 1;
@@ -399,7 +523,9 @@ TEST_CASE("V2 FIRE derives automatic initial limits for each run and caps explic
     REQUIRE((d->atom.pos_[0] - start).norm() == Approx(d->control.max_move));
 }
 
-TEST_CASE("V2 FIRE clears uphill velocity even when position backtracking is disabled", "[relax_fire]") {
+TEST_CASE("V2 FIRE clears uphill velocity even when position backtracking is disabled",
+          "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 2, false);
     d->buffer_fire.halvstepback = false;
@@ -412,18 +538,34 @@ TEST_CASE("V2 FIRE clears uphill velocity even when position backtracking is dis
     REQUIRE(d->f < 0.5 * p.stiffness * 0.6 * 0.6);
 }
 
-TEST_CASE("V2 FIRE leaves a frozen scale and the first reduced position intact", "[relax_fire]") {
-    FirePotential p; p.cell = true; p.vector = true;
+TEST_CASE("V2 FIRE leaves a frozen scale and the first reduced position intact", "[relax_fire]")
+{
+    FirePotential p;
+    p.cell = true;
+    p.vector = true;
     auto d = fire_driver(p, 1, true, true);
     char name[] = "/tmp/imrmlp_fire_scale_mask_XXXXXX";
-    const int fd = mkstemp(name); REQUIRE(fd >= 0); close(fd);
-    struct Cleanup { const char *path; ~Cleanup() { std::filesystem::remove(path); } } cleanup{name};
+    const int fd = mkstemp(name);
+    REQUIRE(fd >= 0);
+    close(fd);
+
+    struct Cleanup
+    {
+        const char *path;
+
+        ~Cleanup()
+        {
+            std::filesystem::remove(path);
+        }
+    } cleanup{name};
+
     std::ofstream(name) << "4 0 1 0 0\n";
     d->flags.relax_atom = true;
     d->flags.selective_dynamics = true;
     d->control.seldyn_file = name;
     d->buffer_fire.ts_init = 0.1;
-    auto a = fire_atoms(); a.pos_[0][0] = 2;
+    auto a = fire_atoms();
+    a.pos_[0][0] = 2;
     d->init(&p, a);
     d->run();
     REQUIRE(d->x.size() == 1);
@@ -434,7 +576,9 @@ TEST_CASE("V2 FIRE leaves a frozen scale and the first reduced position intact",
     REQUIRE(d->checkpoint_scaling == Approx(1));
 }
 
-TEST_CASE("V2 FIRE AUL iterations are unchanged by a constant physical energy shift", "[relax_fire]") {
+TEST_CASE("V2 FIRE AUL iterations are unchanged by a constant physical energy shift",
+          "[relax_fire]")
+{
     FirePotential p;
     auto d = fire_driver(p, 8, true, false, {fire_constraint()});
     d->buffer_fire.ts_init = 0.001;
@@ -445,7 +589,8 @@ TEST_CASE("V2 FIRE AUL iterations are unchanged by a constant physical energy sh
     const double objective = d->f;
     REQUIRE(d->state_vars.curr_iter == 8);
     REQUIRE(d->f > 10 * std::abs(d->energy0));
-    FirePotential shifted; shifted.energy_offset = 10000;
+    FirePotential shifted;
+    shifted.energy_offset = 10000;
     auto translated = fire_driver(shifted, 8, true, false, {fire_constraint()});
     translated->buffer_fire.ts_init = d->buffer_fire.ts_init;
     translated->control.constraint_iter_limit = 3;

@@ -10,11 +10,13 @@
 
 using namespace Potentials;
 
-PotMDIST::PotMDIST(GPSettings &settings) {
+PotMDIST::PotMDIST(GPSettings &settings)
+{
     initialize(settings);
 }
 
-void PotMDIST::initialize(GPSettings &settings) {
+void PotMDIST::initialize(GPSettings &settings)
+{
     cutoff = 5.0;
     power = 2.0;
     factor = 1.0;
@@ -30,24 +32,32 @@ void PotMDIST::initialize(GPSettings &settings) {
     nl_inited = true;
 }
 
-void PotMDIST::InitSettings() {
+void PotMDIST::InitSettings()
+{
     Connect(cutoff, "cutoff", "Minimum-distance cutoff radius");
     Connect(factor, "factor", "Energy prefactor");
-    Connect(power,  "power",  "Energy exponent (default 2)");
+    Connect(power, "power", "Energy exponent (default 2)");
 }
 
-void PotMDIST::getEFS(Atoms &atom, AnyNeighborhoods &nbhs) {
-    if (!add_efs) atom.resetEFS(); else atom.setEFSflag();
+void PotMDIST::getEFS(Atoms &atom, AnyNeighborhoods &nbhs)
+{
+    if (!add_efs)
+        atom.resetEFS();
+    else
+        atom.setEFSflag();
 
-    for (int ii = 0; ii < nbhs.size(); ++ii) {
+    for (int ii = 0; ii < nbhs.size(); ++ii)
+    {
         auto &nbh = nbhs[ii];
-        for (int jj = 0; jj < nbh.nbhcount_; ++jj) {
-            double r  = nbh.distances_[jj];
-            if (r >= cutoff) continue;
+        for (int jj = 0; jj < nbh.nbhcount_; ++jj)
+        {
+            double r = nbh.distances_[jj];
+            if (r >= cutoff)
+                continue;
 
-            double dr = r - cutoff;  // negative
-            double E_raw   = factor * std::pow(dr, power);
-            double dE_dr   = factor * power * std::pow(dr, power - 1.0);
+            double dr = r - cutoff; // negative
+            double E_raw = factor * std::pow(dr, power);
+            double dE_dr = factor * power * std::pow(dr, power - 1.0);
 
             // 0.5: each pair is visited twice in symmetric neighbour lists
             atom.energy_ += 0.5 * E_raw;
@@ -67,12 +77,14 @@ void PotMDIST::getEFS(Atoms &atom, AnyNeighborhoods &nbhs) {
     }
 }
 
-void PotMDIST::Load(std::istream &is) {
+void PotMDIST::Load(std::istream &is)
+{
     auto settings = read_potential_settings(is);
     initialize(settings);
 }
 
-void PotMDIST::Save(std::ostream &os) {
+void PotMDIST::Save(std::ostream &os)
+{
     os << std::setprecision(std::numeric_limits<double>::max_digits10);
     os << "pot:pottype mindist\n";
     os << "pot:power " << power << "\n";

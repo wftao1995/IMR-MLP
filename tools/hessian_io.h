@@ -6,7 +6,8 @@
 #include <Eigen/Dense>
 #include <string>
 
-namespace HessianIO {
+namespace HessianIO
+{
 
 Eigen::MatrixXd read_force_constants(const std::string &filename, int natoms);
 Eigen::MatrixXd read_vasprun_hessian(const std::string &filename, int natoms,

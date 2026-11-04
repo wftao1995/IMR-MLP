@@ -4,19 +4,23 @@
 
 using namespace Potentials;
 
-namespace {
-Neighborhood environment() {
+namespace
+{
+Neighborhood environment()
+{
     Neighborhood n;
     n.centertype = 0;
     n.nbhcount_ = 4;
     n.chemmap_ = {0, 1, 0, 1};
     n.indices_ = {1, 2, 1, 0};
     n.pos_ = {{2.2, .3, .4}, {-.6, 2.5, .2}, {.5, -.4, 2.8}, {5.7, .1, .2}};
-    for (const auto &r : n.pos_) n.distances_.push_back(r.norm());
+    for (const auto &r : n.pos_)
+        n.distances_.push_back(r.norm());
     return n;
 }
 
-void compare_site(PotMTP &p, Neighborhood &n) {
+void compare_site(PotMTP &p, Neighborhood &n)
+{
     p.radial_local_cache = false;
     double reference = 0.;
     SiteCoordinateMatrix reference_gradient;
@@ -49,7 +53,8 @@ void compare_site(PotMTP &p, Neighborhood &n) {
 }
 
 TEST_CASE("MTP radial normalization cache is local to geometry and parameters",
-          "[mtp][radial-cache]") {
+          "[mtp][radial-cache]")
+{
     PotMTP p("unitest/test-data/portable-mtp/les.mtp");
     REQUIRE_FALSE(p.radial_local_cache);
     auto n = environment();
@@ -71,8 +76,8 @@ TEST_CASE("MTP radial normalization cache is local to geometry and parameters",
     compare_site(copy, n);
 }
 
-TEST_CASE("MTP radial normalization cache has separate OMP workspaces",
-          "[mtp][radial-cache]") {
+TEST_CASE("MTP radial normalization cache has separate OMP workspaces", "[mtp][radial-cache]")
+{
     PotMTP p("unitest/test-data/portable-mtp/les.mtp");
     p.radial_local_cache = true;
     p.omp_init();

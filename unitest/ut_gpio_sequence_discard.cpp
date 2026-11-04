@@ -2,9 +2,12 @@
 #include "io/gpio.h"
 #include <sstream>
 
-namespace {
-std::string ordinary_input(const std::string &format) {
-    if (format == "outcar") {
+namespace
+{
+std::string ordinary_input(const std::string &format)
+{
+    if (format == "outcar")
+    {
         std::ostringstream out;
         out << " vasp.6.3.2\n INCAR: SYSTEM = discard\n POTCAR: PAW_PBE H 2000\n"
                " VRHFIN =H: s1\n ions per type = 1\n NELM = 60\n EDIFF = .00001\n"
@@ -28,7 +31,8 @@ std::string ordinary_input(const std::string &format) {
     GPIO writer;
     writer.lossless = true;
     std::vector<Atoms> atoms;
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 2; ++i)
+    {
         Atoms atom;
         atom.cell_ = 3. * Eigen::Matrix3d::Identity();
         atom.pos_ = {Eigen::RowVector3d(1 + i, 2 + i, 3 + i)};
@@ -50,36 +54,51 @@ std::string ordinary_input(const std::string &format) {
     REQUIRE(writer.write(atoms, output, format));
     return output.str();
 }
-void check_selected(const Atoms &actual, const Atoms &before, const std::string &key) {
+
+void check_selected(const Atoms &actual, const Atoms &before, const std::string &key)
+{
     REQUIRE(actual.id == before.id);
     REQUIRE(actual.pos_ == before.pos_);
     REQUIRE(actual.cell_.isApprox(before.cell_));
     REQUIRE(actual.pbc_ == before.pbc_);
     REQUIRE(actual.chemmap_ == before.chemmap_);
     REQUIRE(actual.have_energy == (before.have_energy && key != "energy"));
-    REQUIRE(actual.have_fenergy == (before.have_fenergy && key != "fenergy" && key != "free_energy"));
+    REQUIRE(actual.have_fenergy ==
+            (before.have_fenergy && key != "fenergy" && key != "free_energy"));
     REQUIRE(actual.have_stress == (before.have_stress && key != "virial"));
-    if (actual.have_energy) REQUIRE(actual.energy_ == before.energy_);
-    if (actual.have_fenergy) REQUIRE(actual.fenergy_ == before.fenergy_);
-    if (actual.have_stress) REQUIRE(actual.stress_.isApprox(before.stress_));
-    if (key == "forces") REQUIRE(actual.forces_.empty());
-    else REQUIRE(actual.forces_ == before.forces_);
-    if (key == "site_en") REQUIRE(actual.site_energies_.empty());
-    else REQUIRE(actual.site_energies_ == before.site_energies_);
+    if (actual.have_energy)
+        REQUIRE(actual.energy_ == before.energy_);
+    if (actual.have_fenergy)
+        REQUIRE(actual.fenergy_ == before.fenergy_);
+    if (actual.have_stress)
+        REQUIRE(actual.stress_.isApprox(before.stress_));
+    if (key == "forces")
+        REQUIRE(actual.forces_.empty());
+    else
+        REQUIRE(actual.forces_ == before.forces_);
+    if (key == "site_en")
+        REQUIRE(actual.site_energies_.empty());
+    else
+        REQUIRE(actual.site_energies_ == before.site_energies_);
     REQUIRE(actual.charges_ == before.charges_);
     REQUIRE(actual.global_attribs_i_ == before.global_attribs_i_);
     auto metadata = before.global_attribs_d_;
-    if (key == "temperature") metadata.erase("temperature");
+    if (key == "temperature")
+        metadata.erase("temperature");
     REQUIRE(actual.global_attribs_d_ == metadata);
 }
 }
 
-TEST_CASE("Ordinary sequential codecs apply the same requested discards as bulk", "[gpio][sequence][discard]") {
+TEST_CASE("Ordinary sequential codecs apply the same requested discards as bulk",
+          "[gpio][sequence][discard]")
+{
     const std::string format = GENERATE("extxyz", "mlpcfg", "bin", "outcar", "n2p2");
-    const std::string key = GENERATE("", "energy", "fenergy", "free_energy", "forces", "virial", "site_en", "temperature");
+    const std::string key = GENERATE("", "energy", "fenergy", "free_energy", "forces", "virial",
+                                     "site_en", "temperature");
     const auto text = ordinary_input(format);
     GPIO control, bulk, sequential;
-    if (!key.empty()) bulk.discard_props = sequential.discard_props = {key};
+    if (!key.empty())
+        bulk.discard_props = sequential.discard_props = {key};
     std::vector<Atoms> before, filtered;
     std::istringstream control_input(text, std::ios::in | std::ios::binary);
     std::istringstream bulk_input(text, std::ios::in | std::ios::binary);
@@ -92,7 +111,8 @@ TEST_CASE("Ordinary sequential codecs apply the same requested discards as bulk"
     Atoms first, second;
     REQUIRE(sequential.seq_read(stream, first));
     REQUIRE(sequential.seq_read(stream, second));
-    for (int i = 0; i < 2; ++i) check_selected(filtered[i], before[i], key);
+    for (int i = 0; i < 2; ++i)
+        check_selected(filtered[i], before[i], key);
     check_selected(first, before[0], key);
     check_selected(second, before[1], key);
     second.pos_[0].setConstant(99);
@@ -101,7 +121,9 @@ TEST_CASE("Ordinary sequential codecs apply the same requested discards as bulk"
     REQUIRE_FALSE(sequential.seq_read(stream, end));
 }
 
-TEST_CASE("Discarding forces never bypasses sequential EXTXYZ frame validation", "[gpio][sequence][discard]") {
+TEST_CASE("Discarding forces never bypasses sequential EXTXYZ frame validation",
+          "[gpio][sequence][discard]")
+{
     GPIO io;
     io.discard_props = {"forces"};
     std::istringstream input("1\nProperties=species:S:1:pos:R:3:forces:R:3\nH 1 2 3 .1 .2\n");

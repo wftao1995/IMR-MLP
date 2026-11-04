@@ -16,25 +16,34 @@
 using Catch::Approx;
 using namespace Potentials;
 
-class QuadraticPotential : public AnyPotential {
-public:
+class QuadraticPotential : public AnyPotential
+{
+  public:
     double stiffness = 3.25;
 
-    QuadraticPotential() { cutoff = 8.0; }
+    QuadraticPotential()
+    {
+        cutoff = 8.0;
+    }
 
-    void getEFS(Atoms &atom, AnyNeighborhoods &) override {
+    void getEFS(Atoms &atom, AnyNeighborhoods &) override
+    {
         atom.energy_ = 0.0;
         atom.forces_.assign(atom.size(), Eigen::Vector3d::Zero());
-        for (int i = 0; i < atom.size(); ++i) {
+        for (int i = 0; i < atom.size(); ++i)
+        {
             atom.energy_ += 0.5 * stiffness * atom.pos_[i].squaredNorm();
             atom.forces_[i] = -stiffness * atom.pos_[i].transpose();
         }
     }
 
-    bool supports_analytical_hessian() const override { return true; }
+    bool supports_analytical_hessian() const override
+    {
+        return true;
+    }
 
-    void getEFSHessianSymmOMP(Atoms &atom, HessianMatrix &hessian,
-                              double) override {
+    void getEFSHessianSymmOMP(Atoms &atom, HessianMatrix &hessian, double) override
+    {
         hessian.resize(atom.size());
         for (int i = 0; i < atom.size(); ++i)
             hessian(i, i) = stiffness * Eigen::Matrix3d::Identity();
@@ -42,7 +51,8 @@ public:
 };
 
 // ── Test helpers ───────────────────────────────────────────────────────
-static LJ612 make_pot(double eps = 1.0, double sig = 2.5, double cutoff = 6.0) {
+static LJ612 make_pot(double eps = 1.0, double sig = 2.5, double cutoff = 6.0)
+{
     GPSettings s;
     s.Modify("ntypes", "1");
     s.Modify("0-0", fmt::format("{} {}", eps, sig));
@@ -50,7 +60,8 @@ static LJ612 make_pot(double eps = 1.0, double sig = 2.5, double cutoff = 6.0) {
     return LJ612(s);
 }
 
-static Atoms make_dimer(double a = 12.0, double d = 2.0) {
+static Atoms make_dimer(double a = 12.0, double d = 2.0)
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * a;
     atom.pos_ = {{0, 0, 0}, {d, 0, 0}};
@@ -58,15 +69,17 @@ static Atoms make_dimer(double a = 12.0, double d = 2.0) {
     return atom;
 }
 
-static Atoms make_trimer_chain(double a = 15.0, double d = 2.0) {
+static Atoms make_trimer_chain(double a = 15.0, double d = 2.0)
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * a;
-    atom.pos_ = {{0, 0, 0}, {d, 0, 0}, {2*d, 0, 0}};
+    atom.pos_ = {{0, 0, 0}, {d, 0, 0}, {2 * d, 0, 0}};
     atom.chemmap_ = {0, 0, 0};
     return atom;
 }
 
-static Atoms make_triangle(double a = 15.0) {
+static Atoms make_triangle(double a = 15.0)
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * a;
     atom.pos_ = {{0.0, 0.0, 0.0}, {2.3, 0.0, 0.0}, {0.7, 1.8, 0.0}};
@@ -74,7 +87,8 @@ static Atoms make_triangle(double a = 15.0) {
     return atom;
 }
 
-static ComputeHessian make_hess(double nudge = 0.005, double cutoff = 1e-6) {
+static ComputeHessian make_hess(double nudge = 0.005, double cutoff = 1e-6)
+{
     GPSettings s;
     s.Modify("nudge_pos", std::to_string(nudge));
     s.Modify("nudge_cell", std::to_string(nudge));
@@ -88,7 +102,8 @@ static ComputeHessian make_hess(double nudge = 0.005, double cutoff = 1e-6) {
 // Energy-based force constants
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Hessian: energy-based FC is symmetric", "[hessian]") {
+TEST_CASE("Hessian: energy-based FC is symmetric", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess();
@@ -104,7 +119,8 @@ TEST_CASE("Hessian: energy-based FC is symmetric", "[hessian]") {
             REQUIRE(H(i, j) == Approx(H(j, i)).epsilon(1e-8));
 }
 
-TEST_CASE("Hessian: energy-based FC near equilibrium is positive definite", "[hessian]") {
+TEST_CASE("Hessian: energy-based FC near equilibrium is positive definite", "[hessian]")
+{
     double sig = 2.5;
     double req = std::pow(2.0, 1.0 / 6.0) * sig;
     auto pot = make_pot(1.0, sig, 8.0);
@@ -118,7 +134,8 @@ TEST_CASE("Hessian: energy-based FC near equilibrium is positive definite", "[he
         REQUIRE(H(i, i) > 0);
 }
 
-TEST_CASE("Hessian: energy-based FC all elements finite", "[hessian]") {
+TEST_CASE("Hessian: energy-based FC all elements finite", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess();
@@ -135,7 +152,8 @@ TEST_CASE("Hessian: energy-based FC all elements finite", "[hessian]") {
 // Trimer chain — multi-atom FC
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Hessian: trimer chain FC symmetry (energy)", "[hessian]") {
+TEST_CASE("Hessian: trimer chain FC symmetry (energy)", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_trimer_chain(15.0, 2.5);
     auto hess = make_hess();
@@ -154,7 +172,8 @@ TEST_CASE("Hessian: trimer chain FC symmetry (energy)", "[hessian]") {
 // Full Hessian compute() with cell terms
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Hessian: full compute with FC only", "[hessian]") {
+TEST_CASE("Hessian: full compute with FC only", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess();
@@ -180,7 +199,8 @@ TEST_CASE("Hessian: full compute with FC only", "[hessian]") {
 // Edge cases
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Hessian: empty atoms returns empty FC", "[hessian]") {
+TEST_CASE("Hessian: empty atoms returns empty FC", "[hessian]")
+{
     auto pot = make_pot();
     Atoms atom;
     auto hess = make_hess();
@@ -192,7 +212,8 @@ TEST_CASE("Hessian: empty atoms returns empty FC", "[hessian]") {
     REQUIRE(H.cols() == 0);
 }
 
-TEST_CASE("Hessian: nudgepos affects numerical result", "[hessian]") {
+TEST_CASE("Hessian: nudgepos affects numerical result", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
 
@@ -223,7 +244,8 @@ TEST_CASE("Hessian: nudgepos affects numerical result", "[hessian]") {
 // FC consistency with finite-difference forces
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Hessian: FC matches force finite-difference", "[hessian]") {
+TEST_CASE("Hessian: FC matches force finite-difference", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess(0.001); // small nudge for accuracy
@@ -240,10 +262,16 @@ TEST_CASE("Hessian: FC matches force finite-difference", "[hessian]") {
     // Rebuild nbhs at each step for correct force
     // Diagonal check via force FD on atom 0, x-direction
     atnew.pos_[0][0] += dx;
-    { Neighborhoods nbh(atnew, 8.0); pot.getEFS(atnew, nbh); }
+    {
+        Neighborhoods nbh(atnew, 8.0);
+        pot.getEFS(atnew, nbh);
+    }
     double fp = atnew.forces_[0][0];
     atnew.pos_[0][0] -= 2 * dx;
-    { Neighborhoods nbh(atnew, 8.0); pot.getEFS(atnew, nbh); }
+    {
+        Neighborhoods nbh(atnew, 8.0);
+        pot.getEFS(atnew, nbh);
+    }
     double fm = atnew.forces_[0][0];
     atnew.pos_[0][0] = atom.pos_[0][0];
     double H00_fd = -(fp - fm) * inv2d;
@@ -256,7 +284,8 @@ TEST_CASE("Hessian: FC matches force finite-difference", "[hessian]") {
 // Regression coverage for the generalized implementation
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Hessian: explicit force FD is complete and agrees with energy FD", "[hessian]") {
+TEST_CASE("Hessian: explicit force FD is complete and agrees with energy FD", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_triangle();
 
@@ -276,7 +305,8 @@ TEST_CASE("Hessian: explicit force FD is complete and agrees with energy FD", "[
     REQUIRE(std::abs(hf(0, 1)) > 1e-8);
 }
 
-TEST_CASE("Hessian: auto selects an analytical atomic Hessian when available", "[hessian]") {
+TEST_CASE("Hessian: auto selects an analytical atomic Hessian when available", "[hessian]")
+{
     QuadraticPotential pot;
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess();
@@ -293,13 +323,15 @@ TEST_CASE("Hessian: auto selects an analytical atomic Hessian when available", "
     REQUIRE(Hfd.isApprox(H, 1e-8));
 }
 
-TEST_CASE("Hessian: block API shares analytical and finite-difference backends", "[hessian]") {
+TEST_CASE("Hessian: block API shares analytical and finite-difference backends", "[hessian]")
+{
     QuadraticPotential pot;
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess(0.001);
-    for (const std::string method : {"analytic", "auto", "force_fd",
-                                     "energy_fd", "hybrid"}) {
-        DYNAMIC_SECTION(method) {
+    for (const std::string method : {"analytic", "auto", "force_fd", "energy_fd", "hybrid"})
+    {
+        DYNAMIC_SECTION(method)
+        {
             hess.set_method(method);
             Eigen::MatrixXd dense;
             Potentials::HessianMatrix blocks;
@@ -310,7 +342,8 @@ TEST_CASE("Hessian: block API shares analytical and finite-difference backends",
     }
 }
 
-TEST_CASE("Hessian: compute layout honors independent requests", "[hessian]") {
+TEST_CASE("Hessian: compute layout honors independent requests", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess(0.002);
@@ -342,7 +375,8 @@ TEST_CASE("Hessian: compute layout honors independent requests", "[hessian]") {
     REQUIRE(hblock.block(9, 0, 6, 9).isZero(1e-12));
 }
 
-TEST_CASE("Hessian: strain and fractional coordinates use the requested dimensions", "[hessian]") {
+TEST_CASE("Hessian: strain and fractional coordinates use the requested dimensions", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
     auto hess = make_hess(0.002);
@@ -378,7 +412,8 @@ TEST_CASE("Hessian: strain and fractional coordinates use the requested dimensio
     REQUIRE(atom.pos_ == original_pos);
 }
 
-TEST_CASE("Hessian: enthalpy objective contributes the pV curvature", "[hessian]") {
+TEST_CASE("Hessian: enthalpy objective contributes the pV curvature", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_dimer(15.0, 2.3);
 
@@ -398,7 +433,8 @@ TEST_CASE("Hessian: enthalpy objective contributes the pV curvature", "[hessian]
     REQUIRE(hh(0, 4) != Approx(he(0, 4)).margin(1e-8));
 }
 
-TEST_CASE("Hessian: hybrid keeps force diagonal and energy off-diagonal", "[hessian]") {
+TEST_CASE("Hessian: hybrid keeps force diagonal and energy off-diagonal", "[hessian]")
+{
     auto pot = make_pot(1.0, 2.5, 8.0);
     auto atom = make_triangle();
     auto force = make_hess(0.001);
@@ -412,14 +448,16 @@ TEST_CASE("Hessian: hybrid keeps force diagonal and energy off-diagonal", "[hess
     force.compute_fc(atom, hf, &pot);
     energy.compute_fc(atom, he, &pot);
     hybrid.compute_fc(atom, hh, &pot);
-    for (int i = 0; i < hh.rows(); ++i) {
+    for (int i = 0; i < hh.rows(); ++i)
+    {
         REQUIRE(hh(i, i) == Approx(hf(i, i)).epsilon(1e-8));
         for (int j = i + 1; j < hh.cols(); ++j)
             REQUIRE(hh(i, j) == Approx(he(i, j)).epsilon(1e-8));
     }
 }
 
-TEST_CASE("Hessian: LJ auto and analytic reach exact pair curvature", "[hessian][lj]") {
+TEST_CASE("Hessian: LJ auto and analytic reach exact pair curvature", "[hessian][lj]")
+{
     auto pot = make_pot(1, 1, 3);
     auto atom = make_dimer(20, 2);
     atom.pbc_ = {false, false, false};
@@ -430,8 +468,9 @@ TEST_CASE("Hessian: LJ auto and analytic reach exact pair curvature", "[hessian]
     expected << pair, -pair, -pair, pair;
     // A deliberately large FD displacement makes accidental Auto->FD routing visible.
     auto hess = make_hess(0.1, 0);
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic}) {
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic})
+    {
         hess.method = method;
         Eigen::MatrixXd result;
         hess.compute_fc(atom, result, &pot);
@@ -442,7 +481,8 @@ TEST_CASE("Hessian: LJ auto and analytic reach exact pair curvature", "[hessian]
             for (int j = 0; j < 2; ++j)
                 REQUIRE(blocks(i, j).isApprox(expected.block<3, 3>(3 * i, 3 * j), 1e-13));
     }
-    for (double step : {2e-5, 1e-5}) {
+    for (double step : {2e-5, 1e-5})
+    {
         auto force = make_hess(step, 0);
         force.method = ComputeHessian::HessianMethod::ForceFD;
         Eigen::MatrixXd result;
@@ -459,23 +499,30 @@ TEST_CASE("Hessian: LJ auto and analytic reach exact pair curvature", "[hessian]
         REQUIRE(atom.pos_[i].isApprox(source.pos_[i], 0));
 }
 
-TEST_CASE("Directional HVP fallback uses two fresh force evaluations and preserves inputs", "[hessian][hvp][query]") {
-    struct AdditiveQuadratic : AnyPotential {
+TEST_CASE("Directional HVP fallback uses two fresh force evaluations and preserves inputs",
+          "[hessian][hvp][query]")
+{
+    struct AdditiveQuadratic : AnyPotential
+    {
         int calls = 0;
         double maximum_displacement = 0.;
         Atoms center;
-        void getEFS(Atoms &atom, AnyNeighborhoods &) override {
+
+        void getEFS(Atoms &atom, AnyNeighborhoods &) override
+        {
             ++calls;
             REQUIRE(atom.energy_ == 0.);
             REQUIRE(atom.stress_.isZero());
-            for (int i = 0; i < atom.size(); ++i) {
+            for (int i = 0; i < atom.size(); ++i)
+            {
                 REQUIRE(atom.forces_[i].isZero());
-                maximum_displacement = std::max(maximum_displacement,
-                    (atom.pos_[i] - center.pos_[i]).norm());
+                maximum_displacement =
+                    std::max(maximum_displacement, (atom.pos_[i] - center.pos_[i]).norm());
                 atom.forces_[i] += -3.25 * atom.pos_[i];
             }
         }
     } pot;
+
     auto atom = make_dimer(20., 1.3);
     atom.pbc_ = {false, false, false};
     pot.center = atom;
@@ -507,7 +554,9 @@ TEST_CASE("Directional HVP fallback uses two fresh force evaluations and preserv
     REQUIRE(pot.calls == 2);
 }
 
-TEST_CASE("LJ directional HVP queries match independent pair curvature", "[hessian][hvp][query][lj]") {
+TEST_CASE("LJ directional HVP queries match independent pair curvature",
+          "[hessian][hvp][query][lj]")
+{
     auto pot = make_pot(1., 1., 3.);
     auto atom = make_dimer(20., 1.3);
     atom.pbc_ = {false, false, false};
@@ -521,9 +570,10 @@ TEST_CASE("LJ directional HVP queries match independent pair curvature", "[hessi
     GPSettings settings;
     settings.Modify("nudge_pos", "0.00001");
     ComputeHessian compute(settings);
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic,
-                        ComputeHessian::HessianMethod::ForceFD}) {
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic,
+          ComputeHessian::HessianMethod::ForceFD})
+    {
         compute.method = method;
         Eigen::VectorXd product;
         compute.compute_hvp(atom, direction, product, &pot);
@@ -534,25 +584,40 @@ TEST_CASE("LJ directional HVP queries match independent pair curvature", "[hessi
     }
 }
 
-namespace {
-struct CellHessianThreadScope {
+namespace
+{
+struct CellHessianThreadScope
+{
     int previous = omp_num_threads;
-    CellHessianThreadScope() { omp_num_threads = 1; global_omp_init(); }
-    ~CellHessianThreadScope() { omp_num_threads = previous; global_omp_init(); }
+
+    CellHessianThreadScope()
+    {
+        omp_num_threads = 1;
+        global_omp_init();
+    }
+
+    ~CellHessianThreadScope()
+    {
+        omp_num_threads = previous;
+        global_omp_init();
+    }
 };
 
 // Independent energy oracle: perturb the actual requested cell and atomic
 // coordinates, without using the analytical backend's coordinate transform.
-Eigen::MatrixXd mtp_cell_energy_fd(AnyPotential &pot, const Atoms &reference,
-                                 double step, bool strain, bool fractional,
-                                 double pressure = 0.0, double cutoff = 0.0) {
+Eigen::MatrixXd mtp_cell_energy_fd(AnyPotential &pot, const Atoms &reference, double step,
+                                   bool strain, bool fractional, double pressure = 0.0,
+                                   double cutoff = 0.0)
+{
     const int cell_dof = strain ? 6 : 9;
     const int n = cell_dof + 3 * reference.size();
     auto q = Eigen::VectorXd::Zero(n).eval();
     const Eigen::Matrix3d invcell = reference.cell_.inverse();
-    auto energy = [&](const Eigen::VectorXd &displacement) {
+    auto energy = [&](const Eigen::VectorXd &displacement)
+    {
         Atoms work = reference;
-        if (strain) {
+        if (strain)
+        {
             Eigen::Matrix3d deformation = Eigen::Matrix3d::Identity();
             deformation.diagonal() += displacement.head<3>();
             // Engineering shear: gamma_yz, gamma_xz, gamma_xy.
@@ -560,39 +625,53 @@ Eigen::MatrixXd mtp_cell_energy_fd(AnyPotential &pot, const Atoms &reference,
             deformation(0, 2) = deformation(2, 0) = displacement(4) / 2;
             deformation(0, 1) = deformation(1, 0) = displacement(5) / 2;
             work.cell_ = reference.cell_ * deformation;
-        } else {
+        }
+        else
+        {
             for (int a = 0; a < 3; ++a)
                 for (int b = 0; b < 3; ++b)
                     work.cell_(a, b) += displacement(3 * a + b);
         }
-        for (int i = 0; i < reference.size(); ++i) {
-            const Eigen::RowVector3d delta =
-                displacement.segment<3>(cell_dof + 3 * i).transpose();
+        for (int i = 0; i < reference.size(); ++i)
+        {
+            const Eigen::RowVector3d delta = displacement.segment<3>(cell_dof + 3 * i).transpose();
             if (fractional)
                 work.pos_[i] = (reference.pos_[i] * invcell + delta) * work.cell_;
             else
                 work.pos_[i] = reference.pos_[i] + delta;
         }
-        if (cutoff > 1e-5) {
+        if (cutoff > 1e-5)
+        {
             Neighborhoods nbhs(work, cutoff);
             pot.getEFS(work, nbhs);
-        } else {
+        }
+        else
+        {
             pot.getEFS(work);
         }
         return work.energy_ + pressure * work.get_volume();
     };
     const double center = energy(q);
     Eigen::MatrixXd result(n, n);
-    for (int i = 0; i < n; ++i) {
-        q(i) = step; const double plus = energy(q);
-        q(i) = -step; const double minus = energy(q);
+    for (int i = 0; i < n; ++i)
+    {
+        q(i) = step;
+        const double plus = energy(q);
+        q(i) = -step;
+        const double minus = energy(q);
         q(i) = 0;
         result(i, i) = (plus - 2 * center + minus) / (step * step);
-        for (int j = 0; j < i; ++j) {
-            q(i) = step; q(j) = step; const double pp = energy(q);
-            q(j) = -step; const double pm = energy(q);
-            q(i) = -step; const double mm = energy(q);
-            q(j) = step; const double mp = energy(q);
+        for (int j = 0; j < i; ++j)
+        {
+            q(i) = step;
+            q(j) = step;
+            const double pp = energy(q);
+            q(j) = -step;
+            const double pm = energy(q);
+            q(i) = -step;
+            const double mm = energy(q);
+            q(j) = step;
+            const double mp = energy(q);
             q(i) = q(j) = 0;
             result(i, j) = result(j, i) = (pp - pm + mm - mp) / (4 * step * step);
         }
@@ -602,7 +681,8 @@ Eigen::MatrixXd mtp_cell_energy_fd(AnyPotential &pot, const Atoms &reference,
 }
 
 TEST_CASE("Hessian: native MTP cell derivatives honor fixed Cartesian coordinates",
-          "[hessian][mtp][cell-coordinates]") {
+          "[hessian][mtp][cell-coordinates]")
+{
     CellHessianThreadScope threads;
     PotMTP pot;
     load_many_body_mtp_fixture(pot, 2);
@@ -612,8 +692,10 @@ TEST_CASE("Hessian: native MTP cell derivatives honor fixed Cartesian coordinate
     const double step = GENERATE(.001, .0005);
     CAPTURE(images, strain, step);
     Atoms atom;
-    if (images) atom.cell_ << 5.2, .6, .2, .1, 5.6, .3, .2, .1, 5.8;
-    else atom.cell_ << 12, 1.2, .4, .1, 13, .7, .2, .3, 14;
+    if (images)
+        atom.cell_ << 5.2, .6, .2, .1, 5.6, .3, .2, .1, 5.8;
+    else
+        atom.cell_ << 12, 1.2, .4, .1, 13, .7, .2, .3, 14;
     atom.pbc_ = {true, true, true};
     atom.pos_ = {{.4, .6, .5}, {1.9, .9, .7}, {2.3, 3.4, 1.1}};
     atom.chemmap_ = {0, 1, 0};
@@ -621,7 +703,8 @@ TEST_CASE("Hessian: native MTP cell derivatives honor fixed Cartesian coordinate
     const Atoms source = atom;
     const int cell_dof = strain ? 6 : 9;
     const auto oracle = mtp_cell_energy_fd(pot, atom, step, strain, false);
-    if (images) {
+    if (images)
+    {
         REQUIRE(oracle.topLeftCorner(cell_dof, cell_dof).norm() > .01);
         REQUIRE(oracle.block(0, cell_dof, cell_dof, 9).norm() > .01);
     }
@@ -634,23 +717,26 @@ TEST_CASE("Hessian: native MTP cell derivatives honor fixed Cartesian coordinate
     calculator.cell_strain = strain;
     calculator.engineering_shear = true;
     calculator.use_symmetry = false;
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic}) {
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic})
+    {
         calculator.method = method;
         calculator.request_fc = true;
         calculator.request_response_pos_cell = true;
         Eigen::MatrixXd result;
         calculator.compute(atom, result, &pot);
-        REQUIRE((result.topLeftCorner(cell_dof, cell_dof)
-                 - oracle.topLeftCorner(cell_dof, cell_dof)).norm() < 2e-6);
-        REQUIRE((result.block(0, cell_dof, cell_dof, 9)
-                 - oracle.block(0, cell_dof, cell_dof, 9)).norm() < 2e-6);
+        REQUIRE(
+            (result.topLeftCorner(cell_dof, cell_dof) - oracle.topLeftCorner(cell_dof, cell_dof))
+                .norm() < 2e-6);
+        REQUIRE((result.block(0, cell_dof, cell_dof, 9) - oracle.block(0, cell_dof, cell_dof, 9))
+                    .norm() < 2e-6);
         REQUIRE((result - oracle).norm() < 3e-6);
         calculator.request_response_pos_cell = false;
         calculator.compute(atom, result, &pot);
         REQUIRE(result.block(0, cell_dof, cell_dof, 9).isZero(1e-14));
-        REQUIRE((result.topLeftCorner(cell_dof, cell_dof)
-                 - oracle.topLeftCorner(cell_dof, cell_dof)).norm() < 2e-6);
+        REQUIRE(
+            (result.topLeftCorner(cell_dof, cell_dof) - oracle.topLeftCorner(cell_dof, cell_dof))
+                .norm() < 2e-6);
         calculator.request_fc = false;
         calculator.compute(atom, result, &pot);
         REQUIRE(result.rows() == cell_dof);
@@ -666,12 +752,12 @@ TEST_CASE("Hessian: native MTP cell derivatives honor fixed Cartesian coordinate
     REQUIRE((fractional_result - fractional_oracle).norm() < 3e-6);
     calculator.method = ComputeHessian::HessianMethod::Analytic;
     REQUIRE_THROWS_WITH(calculator.compute(atom, fractional_result, &pot),
-        Catch::Matchers::ContainsSubstring("unavailable"));
+                        Catch::Matchers::ContainsSubstring("unavailable"));
     calculator.fractional_pos = false;
     calculator.objective = ComputeHessian::HessianObjective::Enthalpy;
     calculator.pressure = .002;
     REQUIRE_THROWS_WITH(calculator.compute(atom, fractional_result, &pot),
-        Catch::Matchers::ContainsSubstring("unavailable"));
+                        Catch::Matchers::ContainsSubstring("unavailable"));
     calculator.method = ComputeHessian::HessianMethod::Auto;
     calculator.compute(atom, fractional_result, &pot);
     const auto enthalpy_oracle = mtp_cell_energy_fd(pot, atom, step, strain, false, .002);
@@ -692,7 +778,8 @@ TEST_CASE("Hessian: native MTP cell derivatives honor fixed Cartesian coordinate
 }
 
 TEST_CASE("Hessian: analytical methods respect an explicit neighborhood cutoff",
-          "[hessian][mtp][cutoff]") {
+          "[hessian][mtp][cutoff]")
+{
     CellHessianThreadScope threads;
     PotMTP pot;
     load_many_body_mtp_fixture(pot, 2);
@@ -707,13 +794,15 @@ TEST_CASE("Hessian: analytical methods respect an explicit neighborhood cutoff",
     atom.pos_ = {{.4, .6, .5}, {1.9, .9, .7}, {2.3, 3.4, 1.1}};
     atom.chemmap_ = {0, 1, 0};
     const int cell_dof = strain ? 6 : 9;
-    const Eigen::MatrixXd oracle = mtp_cell_energy_fd(
-        pot, atom, step, strain, false, 0.0, cutoff);
+    const Eigen::MatrixXd oracle = mtp_cell_energy_fd(pot, atom, step, strain, false, 0.0, cutoff);
     const Eigen::MatrixXd atomic = oracle.bottomRightCorner(9, 9);
-    if (cutoff == 1.0) REQUIRE(oracle.norm() < 1e-8);
-    else REQUIRE(atomic.norm() > .01);
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic}) {
+    if (cutoff == 1.0)
+        REQUIRE(oracle.norm() < 1e-8);
+    else
+        REQUIRE(atomic.norm() > .01);
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic})
+    {
         ComputeHessian calculator;
         calculator.set_cutoff(cutoff);
         calculator.use_symmetry = false;
@@ -739,12 +828,13 @@ TEST_CASE("Hessian: analytical methods respect an explicit neighborhood cutoff",
     }
 }
 
-TEST_CASE("Hessian: serial analytical providers accept a cutoff override",
-          "[hessian][lj][cutoff]") {
+TEST_CASE("Hessian: serial analytical providers accept a cutoff override", "[hessian][lj][cutoff]")
+{
     auto pot = make_pot(1, 1, 3);
     auto atom = make_dimer(20, 2);
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic}) {
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic})
+    {
         ComputeHessian calculator;
         calculator.set_cutoff(1.0);
         calculator.method = method;
@@ -757,18 +847,28 @@ TEST_CASE("Hessian: serial analytical providers accept a cutoff override",
     }
 }
 
-namespace {
-struct MCellFixtureFiles {
+namespace
+{
+struct MCellFixtureFiles
+{
     std::filesystem::path directory;
-    MCellFixtureFiles() {
+
+    MCellFixtureFiles()
+    {
         char pattern[] = "/tmp/imrmlp_m_cell_XXXXXX";
         const char *path = mkdtemp(pattern);
-        if (!path) throw std::runtime_error("Cannot create M cell fixture directory");
+        if (!path)
+            throw std::runtime_error("Cannot create M cell fixture directory");
         directory = path;
     }
-    ~MCellFixtureFiles() { std::filesystem::remove_all(directory); }
-    template<class Model>
-    std::unique_ptr<AnyPotential> make(bool linear) {
+
+    ~MCellFixtureFiles()
+    {
+        std::filesystem::remove_all(directory);
+    }
+
+    template <class Model> std::unique_ptr<AnyPotential> make(bool linear)
+    {
         PotMTP original;
         load_many_body_mtp_fixture(original, 2);
         std::ostringstream serialized;
@@ -777,13 +877,15 @@ struct MCellFixtureFiles {
         const auto path = directory / "model.mtp";
         std::ofstream out(path);
         std::string line;
-        while (std::getline(input, line)) {
-            if (line.starts_with("species_coeffs")) break;
+        while (std::getline(input, line))
+        {
+            if (line.starts_with("species_coeffs"))
+                break;
             out << line << '\n';
         }
         out << "species_coeffs = {0,0,0,0" << (linear ? "" : ",0,0") << "}\n"
-            << "moment_coeffs = {-0.15,0.004,0.005"
-            << (linear ? "" : ",0.075,-0.002,-0.0025") << "}\n"
+            << "moment_coeffs = {-0.15,0.004,0.005" << (linear ? "" : ",0.075,-0.002,-0.0025")
+            << "}\n"
             << "model_coeffs = {" << (linear ? "" : "1.0,0.3,0.2,-0.1,0.15") << "}\n";
         out.close();
         GPSettings settings;
@@ -797,7 +899,8 @@ struct MCellFixtureFiles {
 }
 
 TEST_CASE("Hessian: MTP-M OMP APIs retain the nonlinear model and additive EFS",
-          "[hessian][mtp_m][model-dispatch]") {
+          "[hessian][mtp_m][model-dispatch]")
+{
     CellHessianThreadScope threads;
     MCellFixtureFiles files;
     const bool linear = GENERATE(false, true);
@@ -805,8 +908,10 @@ TEST_CASE("Hessian: MTP-M OMP APIs retain the nonlinear model and additive EFS",
     const double step = GENERATE(.001, .0005);
     CAPTURE(linear, cutoff, step);
     std::unique_ptr<AnyPotential> owner;
-    if (linear) owner = files.make<m_model_mtpli>(true);
-    else owner = files.make<m_model_mtpq2>(false);
+    if (linear)
+        owner = files.make<m_model_mtpli>(true);
+    else
+        owner = files.make<m_model_mtpq2>(false);
     AnyPotential &api = *owner;
     Atoms atom;
     atom.cell_ << 5.2, .6, .2, .1, 5.6, .3, .2, .1, 5.8;
@@ -817,7 +922,8 @@ TEST_CASE("Hessian: MTP-M OMP APIs retain the nonlinear model and additive EFS",
     const auto source = atom;
     const auto oracle = mtp_cell_energy_fd(api, atom, step, false, false, 0.0, cutoff);
     REQUIRE(oracle.bottomRightCorner(9, 9).norm() > .01);
-    if (cutoff != 2.0) {
+    if (cutoff != 2.0)
+    {
         REQUIRE(oracle.topLeftCorner(9, 9).norm() > .001);
         REQUIRE(oracle.block(0, 9, 9, 9).norm() > .001);
     }
@@ -827,8 +933,9 @@ TEST_CASE("Hessian: MTP-M OMP APIs retain the nonlinear model and additive EFS",
     calculator.set_cutoff(cutoff);
     calculator.request_cell = true;
     calculator.use_symmetry = false;
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic}) {
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic})
+    {
         calculator.method = method;
         Eigen::MatrixXd result;
         calculator.compute(atom, result, &api);
@@ -854,13 +961,16 @@ TEST_CASE("Hessian: MTP-M OMP APIs retain the nonlinear model and additive EFS",
     Neighborhoods nbhs(atom, rcut);
     auto fresh = atom;
     api.getEFS(fresh, nbhs);
-    for (int entry = 0; entry < 4; ++entry) {
+    for (int entry = 0; entry < 4; ++entry)
+    {
         // Symmetry APIs use the complete native neighborhood.
-        if ((entry == 1 || entry == 3) && cutoff > 0.0) continue;
+        if ((entry == 1 || entry == 3) && cutoff > 0.0)
+            continue;
         CAPTURE(entry);
         auto seeded = atom;
         seeded.energy_ = .7;
-        for (int i = 0; i < seeded.size(); ++i) {
+        for (int i = 0; i < seeded.size(); ++i)
+        {
             seeded.site_energies_[i] = .1 * (i + 1);
             seeded.forces_[i].setConstant(.2);
         }
@@ -868,36 +978,56 @@ TEST_CASE("Hessian: MTP-M OMP APIs retain the nonlinear model and additive EFS",
         const auto seed = seeded;
         HessianMatrix blocks;
         Eigen::MatrixXd cell, mixed;
-        auto evaluate = [&] {
-            blocks.resize(1); blocks(0, 0).setConstant(77.0);
-            if (entry == 0) api.getEFSHessianOMP(seeded, nbhs, blocks);
-            if (entry == 1) api.getEFSHessianSymmOMP(seeded, blocks);
-            if (entry == 2) api.getEFSHessianCellOMP(seeded, nbhs, blocks, cell, mixed);
-            if (entry == 3) api.getEFSHessianCellSymmOMP(seeded, blocks, cell, mixed);
+        auto evaluate = [&]
+        {
+            blocks.resize(1);
+            blocks(0, 0).setConstant(77.0);
+            if (entry == 0)
+                api.getEFSHessianOMP(seeded, nbhs, blocks);
+            if (entry == 1)
+                api.getEFSHessianSymmOMP(seeded, blocks);
+            if (entry == 2)
+                api.getEFSHessianCellOMP(seeded, nbhs, blocks, cell, mixed);
+            if (entry == 3)
+                api.getEFSHessianCellSymmOMP(seeded, blocks, cell, mixed);
         };
-        auto check = [&](double seed_scale, double count) {
-            REQUIRE(seeded.energy_ == Approx(seed_scale * seed.energy_ + count * fresh.energy_).margin(1e-10));
-            REQUIRE((seeded.stress_ - seed_scale * seed.stress_ - count * fresh.stress_).norm() < 1e-10);
-            for (int i = 0; i < seeded.size(); ++i) {
-                REQUIRE(seeded.site_energies_[i] == Approx(seed_scale * seed.site_energies_[i] + count * fresh.site_energies_[i]).margin(1e-10));
-                REQUIRE((seeded.forces_[i] - seed_scale * seed.forces_[i] - count * fresh.forces_[i]).norm() < 1e-10);
+        auto check = [&](double seed_scale, double count)
+        {
+            REQUIRE(seeded.energy_ ==
+                    Approx(seed_scale * seed.energy_ + count * fresh.energy_).margin(1e-10));
+            REQUIRE((seeded.stress_ - seed_scale * seed.stress_ - count * fresh.stress_).norm() <
+                    1e-10);
+            for (int i = 0; i < seeded.size(); ++i)
+            {
+                REQUIRE(seeded.site_energies_[i] == Approx(seed_scale * seed.site_energies_[i] +
+                                                           count * fresh.site_energies_[i])
+                                                        .margin(1e-10));
+                REQUIRE(
+                    (seeded.forces_[i] - seed_scale * seed.forces_[i] - count * fresh.forces_[i])
+                        .norm() < 1e-10);
             }
-            REQUIRE((HessianUtils::to_dense(blocks) - oracle.bottomRightCorner(9, 9)).norm() < 3e-6);
+            REQUIRE((HessianUtils::to_dense(blocks) - oracle.bottomRightCorner(9, 9)).norm() <
+                    3e-6);
             REQUIRE(seeded.pos_ == seed.pos_);
             REQUIRE(seeded.cell_ == seed.cell_);
         };
         api.add_efs = false;
-        evaluate(); check(0.0, 1.0);
+        evaluate();
+        check(0.0, 1.0);
         seeded = seed;
         api.add_efs = true;
-        evaluate(); check(1.0, 1.0);
-        evaluate(); check(1.0, 2.0);
+        evaluate();
+        check(1.0, 1.0);
+        evaluate();
+        check(1.0, 2.0);
     }
     api.add_efs = false;
     auto *mtp = dynamic_cast<PotMTP *>(&api);
     REQUIRE(mtp != nullptr);
-    if (linear) dynamic_cast<PotMTP_M<m_model_mtpli> &>(api).lr_les = true;
-    else dynamic_cast<PotMTP_M<m_model_mtpq2> &>(api).lr_les = true;
+    if (linear)
+        dynamic_cast<PotMTP_M<m_model_mtpli> &>(api).lr_les = true;
+    else
+        dynamic_cast<PotMTP_M<m_model_mtpq2> &>(api).lr_les = true;
     HessianMatrix rejected;
     Eigen::MatrixXd cell, mixed;
     REQUIRE_THROWS_AS(api.getEFSHessianOMP(atom, nbhs, rejected), GPException);
@@ -907,13 +1037,17 @@ TEST_CASE("Hessian: MTP-M OMP APIs retain the nonlinear model and additive EFS",
     std::vector<double> after(coefficients.size());
     api.nl_get_coeffs(after.data());
     REQUIRE(after == coefficients);
-    REQUIRE(atom.pos_ == source.pos_); REQUIRE(atom.cell_ == source.cell_);
-    REQUIRE(atom.energy_ == source.energy_); REQUIRE(atom.forces_ == source.forces_);
-    REQUIRE(atom.stress_ == source.stress_); REQUIRE(atom.site_energies_ == source.site_energies_);
+    REQUIRE(atom.pos_ == source.pos_);
+    REQUIRE(atom.cell_ == source.cell_);
+    REQUIRE(atom.energy_ == source.energy_);
+    REQUIRE(atom.forces_ == source.forces_);
+    REQUIRE(atom.stress_ == source.stress_);
+    REQUIRE(atom.site_energies_ == source.site_energies_);
 }
 
 TEST_CASE("Hessian: native analytical queries support molecules and slabs",
-          "[hessian][partial-pbc]") {
+          "[hessian][partial-pbc]")
+{
     CellHessianThreadScope threads;
     MCellFixtureFiles files;
     const bool nonlinear = GENERATE(false, true);
@@ -922,8 +1056,10 @@ TEST_CASE("Hessian: native analytical queries support molecules and slabs",
     const double step = GENERATE(.001, .0005);
     CAPTURE(nonlinear, periodic, symmetry, step);
     std::unique_ptr<AnyPotential> owner;
-    if (nonlinear) owner = files.make<m_model_mtpq2>(false);
-    else {
+    if (nonlinear)
+        owner = files.make<m_model_mtpq2>(false);
+    else
+    {
         auto mtp = std::make_unique<PotMTP>();
         load_many_body_mtp_fixture(*mtp, 2);
         mtp->omp_init();
@@ -939,7 +1075,8 @@ TEST_CASE("Hessian: native analytical queries support molecules and slabs",
     const auto source = atom;
     const Eigen::MatrixXd oracle = mtp_cell_energy_fd(api, atom, step, false, false);
     Eigen::MatrixXd force_fd(9, 9);
-    for (int column = 0; column < 9; ++column) {
+    for (int column = 0; column < 9; ++column)
+    {
         auto plus = atom, minus = atom;
         plus.pos_[column / 3](column % 3) += step;
         minus.pos_[column / 3](column % 3) -= step;
@@ -953,8 +1090,9 @@ TEST_CASE("Hessian: native analytical queries support molecules and slabs",
     REQUIRE((force_fd - oracle.bottomRightCorner(9, 9)).norm() < 3e-6);
     ComputeHessian calculator;
     calculator.use_symmetry = symmetry;
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic}) {
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic})
+    {
         calculator.method = method;
         Eigen::MatrixXd dense;
         calculator.compute_fc(atom, dense, &api);
@@ -980,9 +1118,14 @@ TEST_CASE("Hessian: native analytical queries support molecules and slabs",
         calculator.request_response_pos_cell = true;
         calculator.request_cell = false;
     }
-    REQUIRE(atom.pos_ == source.pos_); REQUIRE(atom.cell_ == source.cell_);
-    REQUIRE(atom.pbc_ == source.pbc_); REQUIRE(atom.cartesian == source.cartesian);
-    REQUIRE(atom.energy_ == source.energy_); REQUIRE(atom.forces_ == source.forces_);
-    REQUIRE(atom.stress_ == source.stress_); REQUIRE(atom.site_energies_ == source.site_energies_);
-    REQUIRE(atom.have_energy == source.have_energy); REQUIRE(atom.have_stress == source.have_stress);
+    REQUIRE(atom.pos_ == source.pos_);
+    REQUIRE(atom.cell_ == source.cell_);
+    REQUIRE(atom.pbc_ == source.pbc_);
+    REQUIRE(atom.cartesian == source.cartesian);
+    REQUIRE(atom.energy_ == source.energy_);
+    REQUIRE(atom.forces_ == source.forces_);
+    REQUIRE(atom.stress_ == source.stress_);
+    REQUIRE(atom.site_energies_ == source.site_energies_);
+    REQUIRE(atom.have_energy == source.have_energy);
+    REQUIRE(atom.have_stress == source.have_stress);
 }

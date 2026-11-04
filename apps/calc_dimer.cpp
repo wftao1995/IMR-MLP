@@ -14,31 +14,34 @@
 
 using namespace std;
 
-class DimerAPPParam : public ConnectSettings {
-public:
+class DimerAPPParam : public ConnectSettings
+{
+  public:
     string inputstrfile;
     string informat = "";
     string indexfile = "index.map";
     string output_structure = "dimer_final.vasp";
 
-    void InitSettings() {
+    void InitSettings()
+    {
         CMDOption::CommandLineOptions &cmdopts = CMDOption::global_cmdopts;
         ConnectWithConsole(cmdopts, inputstrfile, "structure", "in",
                            "Input structure file (initial guess for transition state)", true);
-        ConnectWithConsole(cmdopts, informat, "input-format", "if",
-                           "Input structure format");
+        ConnectWithConsole(cmdopts, informat, "input-format", "if", "Input structure format");
         ConnectWithConsole(cmdopts, indexfile, "index", "id",
                            "Index file mapping atom types to indices");
         ConnectWithConsole(cmdopts, output_structure, "output", "out",
                            "Output structure file for converged saddle point");
     }
 
-    DimerAPPParam() {
+    DimerAPPParam()
+    {
         InitSettings();
     }
 };
 
-int calc_dimer(int argc, char *argv[]) {
+int calc_dimer(int argc, char *argv[])
+{
     CMDOption::CommandLineOptions &cmdopts = CMDOption::global_cmdopts;
     GPSettings settings;
     string settingfile;
@@ -49,12 +52,16 @@ int calc_dimer(int argc, char *argv[]) {
     omp_num_threads = 1;
 
     cmdopts.addop(settingfile, "settings", "", "Input setting file.", true)
-           .add_request("settings")
-           .attach_settings("dimer:", "DIMER driver settings",
-               [](std::ostream &os) { DimerDriver().ListSettings(os, "dimer:"); });
+        .add_request("settings")
+        .attach_settings("dimer:", "DIMER driver settings",
+                         [](std::ostream &os)
+                         {
+                             DimerDriver().ListSettings(os, "dimer:");
+                         });
     cmdopts.phrase_options(argc, argv);
 
-    if (GPIO::file_exist(settingfile)) {
+    if (GPIO::file_exist(settingfile))
+    {
         Message("Loading settings from " + settingfile);
         settings.Load(settingfile);
     }
@@ -70,22 +77,22 @@ int calc_dimer(int argc, char *argv[]) {
     // if (GPIO::file_exist(params.indexfile)) {
     //     iobj.readmap(params.indexfile);
     // }
-    const bool index_explicit =
-        cmdopts.was_provided("index") || settings.count("index");
+    const bool index_explicit = cmdopts.was_provided("index") || settings.count("index");
     iobj.install_species_map(params.indexfile, index_explicit,
-                             Potentials::probe_model_elements(
-                                 make_potential_settings(settings)),
+                             Potentials::probe_model_elements(make_potential_settings(settings)),
                              /*require_if_absent=*/false);
 
     // Read input structure
     Atoms atom;
     {
         vector<Atoms> atoms;
-        if (!iobj.read(atoms, params.inputstrfile, params.informat)) {
+        if (!iobj.read(atoms, params.inputstrfile, params.informat))
+        {
             std::cerr << "Failed to read DIMER input structure: " << params.inputstrfile << '\n';
             return 1;
         }
-        if (atoms.empty()) {
+        if (atoms.empty())
+        {
             throw runtime_error("No atoms read from input file: " + params.inputstrfile);
         }
         atom = atoms[0];
@@ -107,14 +114,18 @@ int calc_dimer(int argc, char *argv[]) {
     Message("Starting DIMER saddle point search...");
     int status = dimerobj.run();
 
-    if (status == 0) {
+    if (status == 0)
+    {
         Message("DIMER converged successfully!");
-    } else {
+    }
+    else
+    {
         Message("DIMER reached maximum iterations without convergence.");
     }
 
     // Write summary
-    if (!dimerobj.summary.empty()) dimerobj.write_summary(dimerobj.summary);
+    if (!dimerobj.summary.empty())
+        dimerobj.write_summary(dimerobj.summary);
 
     // Write final structure
     atom = dimerobj.atom_center;

@@ -17,24 +17,28 @@
 using Catch::Approx;
 using namespace Potentials;
 
-namespace {
+namespace
+{
 
-void add_setting(GPSettings &settings, const std::string &key,
-                 const std::string &value) {
+void add_setting(GPSettings &settings, const std::string &key, const std::string &value)
+{
     settings.settings.emplace(key, value);
 }
 
-Atoms make_structure(const std::vector<int> &types) {
+Atoms make_structure(const std::vector<int> &types)
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 30.0;
-    for (int i = 0; i < static_cast<int>(types.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(types.size()); ++i)
+    {
         atom.pos_.push_back({2.0 * i, 0.0, 0.0});
     }
     atom.chemmap_ = types;
     return atom;
 }
 
-GPSettings make_zbl_hybrid_settings(const std::string &type) {
+GPSettings make_zbl_hybrid_settings(const std::string &type)
+{
     GPSettings settings;
     add_setting(settings, "pottype", type);
     add_setting(settings, "npot", "1");
@@ -46,14 +50,18 @@ GPSettings make_zbl_hybrid_settings(const std::string &type) {
     return settings;
 }
 
-struct HVPWorkspace {
+struct HVPWorkspace
+{
     CMDOption::CommandLineOptions options = CMDOption::global_cmdopts;
     std::filesystem::path original = std::filesystem::current_path(), path;
     int threads = omp_num_threads;
-    HVPWorkspace() {
+
+    HVPWorkspace()
+    {
         char name[] = "/tmp/imrmlp_hybrid_hvp_XXXXXX";
         const auto directory = mkdtemp(name);
-        if (!directory) throw std::runtime_error("Cannot create hybrid HVP test directory");
+        if (!directory)
+            throw std::runtime_error("Cannot create hybrid HVP test directory");
         path = directory;
         std::filesystem::current_path(path);
         omp_num_threads = 1;
@@ -62,7 +70,9 @@ struct HVPWorkspace {
         load_many_body_mtp_fixture(mtp, 2);
         mtp.Save("model.mtp");
     }
-    ~HVPWorkspace() {
+
+    ~HVPWorkspace()
+    {
         CMDOption::global_cmdopts = options;
         omp_num_threads = threads;
         global_omp_init();
@@ -71,7 +81,8 @@ struct HVPWorkspace {
     }
 };
 
-GPSettings mixed_hvp_settings() {
+GPSettings mixed_hvp_settings()
+{
     GPSettings settings;
     settings.Modify("npot", "2");
     settings.Modify("spcount", "2");
@@ -84,7 +95,8 @@ GPSettings mixed_hvp_settings() {
     return settings;
 }
 
-Atoms mixed_hvp_atoms() {
+Atoms mixed_hvp_atoms()
+{
     Atoms atom;
     atom.cell_ = 20 * Eigen::Matrix3d::Identity();
     atom.pbc_ = {false, false, false};
@@ -93,10 +105,12 @@ Atoms mixed_hvp_atoms() {
     return atom;
 }
 
-Eigen::MatrixXd hybrid_force_hessian(PotentialHybrid &pot, const Atoms &source, double step) {
+Eigen::MatrixXd hybrid_force_hessian(PotentialHybrid &pot, const Atoms &source, double step)
+{
     const int dimension = 3 * source.size();
     Eigen::MatrixXd result(dimension, dimension);
-    for (int column = 0; column < dimension; ++column) {
+    for (int column = 0; column < dimension; ++column)
+    {
         auto plus = source, minus = source;
         plus.pos_[column / 3][column % 3] += step;
         minus.pos_[column / 3][column % 3] -= step;
@@ -111,7 +125,8 @@ Eigen::MatrixXd hybrid_force_hessian(PotentialHybrid &pot, const Atoms &source, 
 
 } // namespace
 
-TEST_CASE("Hybrid exposes its species count through the potential interface", "[hybrid][species]") {
+TEST_CASE("Hybrid exposes its species count through the potential interface", "[hybrid][species]")
+{
     const bool mixed = GENERATE(false, true);
     HVPWorkspace workspace;
     PotentialHybrid pot(mixed ? mixed_hvp_settings() : make_zbl_hybrid_settings("hybrid"));
@@ -123,7 +138,8 @@ TEST_CASE("Hybrid exposes its species count through the potential interface", "[
         REQUIRE(child->species_count == api.species_count);
 }
 
-TEST_CASE("hybrid serial OMP and thread entry points agree", "[hybrid]") {
+TEST_CASE("hybrid serial OMP and thread entry points agree", "[hybrid]")
+{
     PotentialHybrid pot(make_zbl_hybrid_settings("hybrid"));
     auto serial = make_structure({0, 1});
     auto omp = serial;
@@ -137,13 +153,15 @@ TEST_CASE("hybrid serial OMP and thread entry points agree", "[hybrid]") {
     REQUIRE(thread.energy_ == Approx(serial.energy_).epsilon(1e-13));
     REQUIRE(omp.stress_.isApprox(serial.stress_, 1e-13));
     REQUIRE(thread.stress_.isApprox(serial.stress_, 1e-13));
-    for (int i = 0; i < serial.size(); ++i) {
+    for (int i = 0; i < serial.size(); ++i)
+    {
         REQUIRE(omp.forces_[i].isApprox(serial.forces_[i], 1e-13));
         REQUIRE(thread.forces_[i].isApprox(serial.forces_[i], 1e-13));
     }
 }
 
-TEST_CASE("hybrid energy-only evaluation preserves EFS arrays", "[hybrid]") {
+TEST_CASE("hybrid energy-only evaluation preserves EFS arrays", "[hybrid]")
+{
     PotentialHybrid pot(make_zbl_hybrid_settings("hybrid"));
     auto atom = make_structure({0, 1});
     atom.forces_.assign(atom.size(), Eigen::RowVector3d(1.0, 2.0, 3.0));
@@ -159,7 +177,8 @@ TEST_CASE("hybrid energy-only evaluation preserves EFS arrays", "[hybrid]") {
     REQUIRE_FALSE(atom.have_stress);
 }
 
-TEST_CASE("hybrid shared species gradient counts atoms by type", "[hybrid]") {
+TEST_CASE("hybrid shared species gradient counts atoms by type", "[hybrid]")
+{
     GPSettings settings;
     add_setting(settings, "pottype", "hybrid");
     add_setting(settings, "npot", "1");
@@ -176,8 +195,7 @@ TEST_CASE("hybrid shared species gradient counts atoms by type", "[hybrid]") {
     std::vector<double> gradient(pot.nreg_coeffs, 0.0);
     constexpr double dLdE = 0.75;
 
-    pot.AccumulateEFSCombinationGard(atom, nbhs, dLdE, dLdF, dLdS,
-                                     gradient.data());
+    pot.AccumulateEFSCombinationGard(atom, nbhs, dLdE, dLdF, dLdS, gradient.data());
 
     REQUIRE(gradient[pot.nrad_coeffs] == Approx(2.0 * dLdE).margin(1e-12));
     REQUIRE(gradient[pot.nrad_coeffs + 1] == Approx(dLdE).margin(1e-12));
@@ -193,21 +211,24 @@ TEST_CASE("hybrid shared species gradient counts atoms by type", "[hybrid]") {
     AnyPotential *base = &pot;
     Eigen::Matrix<double, -1, 3, Eigen::RowMajor> buffer;
     std::vector<double> polymorphic_gradient(pot.nreg_coeffs, 0.0);
-    base->AccumulateEFSCombinationGard(atom, nbhs, dLdE, dLdF, dLdS,
-                                       buffer, polymorphic_gradient.data());
-    for (int i = 0; i < pot.nreg_coeffs; ++i) {
+    base->AccumulateEFSCombinationGard(atom, nbhs, dLdE, dLdF, dLdS, buffer,
+                                       polymorphic_gradient.data());
+    for (int i = 0; i < pot.nreg_coeffs; ++i)
+    {
         REQUIRE(polymorphic_gradient[i] == Approx(gradient[i]).margin(1e-12));
     }
 
     std::vector<double> energy_gradient(pot.nreg_coeffs, 0.0);
-    base->AccumulateEFSCombinationGard(atom, nbhs, dLdE,
-                                       energy_gradient.data());
-    for (int i = 0; i < pot.nreg_coeffs; ++i) {
+    base->AccumulateEFSCombinationGard(atom, nbhs, dLdE, energy_gradient.data());
+    for (int i = 0; i < pot.nreg_coeffs; ++i)
+    {
         REQUIRE(energy_gradient[i] == Approx(gradient[i]).margin(1e-12));
     }
 }
 
-TEST_CASE("Hybrid analytic HVP sums mixed-cutoff MTP and ZBL without changing source EFS", "[hybrid][hvp]") {
+TEST_CASE("Hybrid analytic HVP sums mixed-cutoff MTP and ZBL without changing source EFS",
+          "[hybrid][hvp]")
+{
     HVPWorkspace work;
     PotentialHybrid pot(mixed_hvp_settings());
     auto atom = mixed_hvp_atoms();
@@ -222,7 +243,8 @@ TEST_CASE("Hybrid analytic HVP sums mixed-cutoff MTP and ZBL without changing so
     REQUIRE(pot.supports_analytical_hessian_vector_product());
     REQUIRE(pot.supports_analytical_hessian());
     Eigen::VectorXd u(3 * atom.size()), v(u.size());
-    for (int i = 0; i < u.size(); ++i) {
+    for (int i = 0; i < u.size(); ++i)
+    {
         u[i] = std::sin(.3 + .7 * i);
         v[i] = std::cos(.6 + .4 * i);
     }
@@ -230,13 +252,15 @@ TEST_CASE("Hybrid analytic HVP sums mixed-cutoff MTP and ZBL without changing so
     pot.applyHessianVectorProduct(atom, nbhs, u, hu);
     AnyPotential &api = pot;
     api.applyHessianVectorProduct(atom, v, hv);
-    for (double step : {1e-5, 5e-6}) {
+    for (double step : {1e-5, 5e-6})
+    {
         const auto fd = hybrid_force_hessian(pot, atom, step);
         REQUIRE((hu - fd * u).norm() < 3e-6);
         REQUIRE((hv - fd * v).norm() < 3e-6);
     }
     Eigen::VectorXd sum = Eigen::VectorXd::Zero(u.size());
-    for (auto &child : pot.ppots) {
+    for (auto &child : pot.ppots)
+    {
         auto child_nbhs = nbhs.sub_neighborhoods(child->cutoff);
         Eigen::VectorXd child_product;
         child->applyHessianVectorProduct(atom, child_nbhs, u, child_product);
@@ -253,28 +277,41 @@ TEST_CASE("Hybrid analytic HVP sums mixed-cutoff MTP and ZBL without changing so
     REQUIRE((combined - (2 * hu - .3 * hv)).norm() < 1e-10);
     REQUIRE(u.dot(hv) == Approx(v.dot(hu)).margin(1e-10));
     Eigen::VectorXd translation = Eigen::VectorXd::Zero(u.size()), zero;
-    for (int i = 0; i < atom.size(); ++i) translation.segment<3>(3 * i) << .2, -.4, .7;
+    for (int i = 0; i < atom.size(); ++i)
+        translation.segment<3>(3 * i) << .2, -.4, .7;
     pot.applyHessianVectorProduct(atom, translation, zero);
     REQUIRE(zero.norm() < 1e-12);
-    REQUIRE(atom.pos_ == source.pos_); REQUIRE(atom.cell_ == source.cell_);
-    REQUIRE(atom.pbc_ == source.pbc_); REQUIRE(atom.chemmap_ == source.chemmap_);
+    REQUIRE(atom.pos_ == source.pos_);
+    REQUIRE(atom.cell_ == source.cell_);
+    REQUIRE(atom.pbc_ == source.pbc_);
+    REQUIRE(atom.chemmap_ == source.chemmap_);
     REQUIRE(atom.cartesian == source.cartesian);
-    REQUIRE(atom.energy_ == source.energy_); REQUIRE(atom.forces_ == source.forces_);
-    REQUIRE(atom.stress_ == source.stress_); REQUIRE(atom.site_energies_ == source.site_energies_);
-    REQUIRE(atom.have_energy == source.have_energy); REQUIRE(atom.have_stress == source.have_stress);
-    std::vector<double> after(coefficients.size()); pot.nl_get_coeffs(after.data());
+    REQUIRE(atom.energy_ == source.energy_);
+    REQUIRE(atom.forces_ == source.forces_);
+    REQUIRE(atom.stress_ == source.stress_);
+    REQUIRE(atom.site_energies_ == source.site_energies_);
+    REQUIRE(atom.have_energy == source.have_energy);
+    REQUIRE(atom.have_stress == source.have_stress);
+    std::vector<double> after(coefficients.size());
+    pot.nl_get_coeffs(after.data());
     REQUIRE(after == coefficients);
 }
 
-TEST_CASE("Hybrid HVP capability follows every child and rejects unsupported combinations", "[hybrid][hvp]") {
+TEST_CASE("Hybrid HVP capability follows every child and rejects unsupported combinations",
+          "[hybrid][hvp]")
+{
     HVPWorkspace work;
     PotentialHybrid pot(mixed_hvp_settings());
     REQUIRE(pot.supports_analytical_hessian_vector_product());
-    struct Unsupported : AnyPotential {
-        void getEFS(Atoms &, AnyNeighborhoods &) override {
+
+    struct Unsupported : AnyPotential
+    {
+        void getEFS(Atoms &, AnyNeighborhoods &) override
+        {
             GPERROR("Unsupported HVP test child must not be evaluated");
         }
     };
+
     auto supported = std::move(pot.ppots[1]);
     pot.ppots[1] = std::make_unique<Unsupported>();
     REQUIRE_FALSE(pot.supports_analytical_hessian_vector_product());
@@ -284,23 +321,28 @@ TEST_CASE("Hybrid HVP capability follows every child and rejects unsupported com
     const Eigen::VectorXd direction = Eigen::VectorXd::Ones(3 * atom.size());
     Eigen::VectorXd product = Eigen::VectorXd::Constant(2, 17.);
     REQUIRE_THROWS_WITH(pot.applyHessianVectorProduct(atom, nbhs, direction, product),
-        Catch::Matchers::ContainsSubstring("every sub-potential"));
+                        Catch::Matchers::ContainsSubstring("every sub-potential"));
     REQUIRE(product == Eigen::VectorXd::Constant(2, 17.));
-    REQUIRE(atom.pos_ == source.pos_); REQUIRE(atom.cell_ == source.cell_);
+    REQUIRE(atom.pos_ == source.pos_);
+    REQUIRE(atom.cell_ == source.cell_);
     pot.ppots[1] = std::move(supported);
     REQUIRE(pot.supports_analytical_hessian_vector_product());
 }
 
 TEST_CASE("Hybrid dense atomic Hessians sum mixed-cutoff children and preserve additive EFS",
-          "[hybrid][hessian]") {
+          "[hybrid][hessian]")
+{
     HVPWorkspace work;
     const bool reverse = GENERATE(false, true);
     CAPTURE(reverse);
     GPSettings settings;
-    for (const auto &[key, value] : mixed_hvp_settings().settings) {
+    for (const auto &[key, value] : mixed_hvp_settings().settings)
+    {
         std::string target = key;
-        if (reverse && key.starts_with("pot1:")) target = "pot2:" + key.substr(5);
-        if (reverse && key.starts_with("pot2:")) target = "pot1:" + key.substr(5);
+        if (reverse && key.starts_with("pot1:"))
+            target = "pot2:" + key.substr(5);
+        if (reverse && key.starts_with("pot2:"))
+            target = "pot1:" + key.substr(5);
         settings.Modify(target, value);
     }
     PotentialHybrid pot(settings);
@@ -314,7 +356,8 @@ TEST_CASE("Hybrid dense atomic Hessians sum mixed-cutoff children and preserve a
     REQUIRE(short_nbhs[0].nbhcount_ < nbhs[0].nbhcount_);
     HessianMatrix expected;
     expected.resize(reference.size());
-    for (auto &child : pot.ppots) {
+    for (auto &child : pot.ppots)
+    {
         auto child_atom = mixed_hvp_atoms();
         child_atom.resetEFS();
         auto child_nbhs = nbhs.sub_neighborhoods(child->cutoff);
@@ -334,36 +377,51 @@ TEST_CASE("Hybrid dense atomic Hessians sum mixed-cutoff children and preserve a
 
     auto seed = mixed_hvp_atoms();
     seed.resetEFS();
-    for (int i = 0; i < seed.size(); ++i) {
+    for (int i = 0; i < seed.size(); ++i)
+    {
         seed.site_energies_[i] = .17 * (i + 1);
         seed.energy_ += seed.site_energies_[i];
         seed.forces_[i] << .2, -.3, .4;
     }
     seed.stress_.setConstant(.43);
     AnyPotential &api = pot;
-    for (int entry = 0; entry < 5; ++entry) {
+    for (int entry = 0; entry < 5; ++entry)
+    {
         CAPTURE(entry);
         auto atom = seed;
         HessianMatrix result;
         result.resize(1);
         result(0, 0).setConstant(71.);
-        auto evaluate = [&] {
-            if (entry == 0) api.getEFSHessian(atom, nbhs, result);
-            if (entry == 1) api.getEFSHessian(atom, result);
-            if (entry == 2) api.getEFSHessianOMP(atom, nbhs, result);
-            if (entry == 3) api.getEFSHessianSymm(atom, result);
-            if (entry == 4) api.getEFSHessianSymmOMP(atom, result);
+        auto evaluate = [&]
+        {
+            if (entry == 0)
+                api.getEFSHessian(atom, nbhs, result);
+            if (entry == 1)
+                api.getEFSHessian(atom, result);
+            if (entry == 2)
+                api.getEFSHessianOMP(atom, nbhs, result);
+            if (entry == 3)
+                api.getEFSHessianSymm(atom, result);
+            if (entry == 4)
+                api.getEFSHessianSymmOMP(atom, result);
         };
-        auto check = [&](double seed_factor, double contribution_factor) {
-            REQUIRE(atom.energy_ == Approx(seed_factor * seed.energy_
-                + contribution_factor * reference.energy_).margin(1e-9));
-            REQUIRE((atom.stress_ - seed_factor * seed.stress_
-                - contribution_factor * reference.stress_).norm() < 1e-9);
-            for (int i = 0; i < atom.size(); ++i) {
-                REQUIRE(atom.site_energies_[i] == Approx(seed_factor * seed.site_energies_[i]
-                    + contribution_factor * reference.site_energies_[i]).margin(1e-9));
-                REQUIRE((atom.forces_[i] - seed_factor * seed.forces_[i]
-                    - contribution_factor * reference.forces_[i]).norm() < 1e-9);
+        auto check = [&](double seed_factor, double contribution_factor)
+        {
+            REQUIRE(atom.energy_ ==
+                    Approx(seed_factor * seed.energy_ + contribution_factor * reference.energy_)
+                        .margin(1e-9));
+            REQUIRE((atom.stress_ - seed_factor * seed.stress_ -
+                     contribution_factor * reference.stress_)
+                        .norm() < 1e-9);
+            for (int i = 0; i < atom.size(); ++i)
+            {
+                REQUIRE(atom.site_energies_[i] ==
+                        Approx(seed_factor * seed.site_energies_[i] +
+                               contribution_factor * reference.site_energies_[i])
+                            .margin(1e-9));
+                REQUIRE((atom.forces_[i] - seed_factor * seed.forces_[i] -
+                         contribution_factor * reference.forces_[i])
+                            .norm() < 1e-9);
             }
             REQUIRE((HessianUtils::to_dense(result) - dense).norm() < 1e-9);
             REQUIRE(atom.pos_ == seed.pos_);
@@ -380,8 +438,9 @@ TEST_CASE("Hybrid dense atomic Hessians sum mixed-cutoff children and preserve a
         check(1., 2.);
     }
     pot.add_efs = false;
-    for (auto method : {ComputeHessian::HessianMethod::Auto,
-                        ComputeHessian::HessianMethod::Analytic}) {
+    for (auto method :
+         {ComputeHessian::HessianMethod::Auto, ComputeHessian::HessianMethod::Analytic})
+    {
         ComputeHessian compute;
         compute.method = method;
         auto atom = seed;
@@ -397,14 +456,19 @@ TEST_CASE("Hybrid dense atomic Hessians sum mixed-cutoff children and preserve a
 }
 
 TEST_CASE("Hybrid dense Hessians reject unsupported children before changing outputs",
-          "[hybrid][hessian]") {
+          "[hybrid][hessian]")
+{
     HVPWorkspace work;
     PotentialHybrid pot(mixed_hvp_settings());
-    struct Unsupported : AnyPotential {
-        void getEFS(Atoms &, AnyNeighborhoods &) override {
+
+    struct Unsupported : AnyPotential
+    {
+        void getEFS(Atoms &, AnyNeighborhoods &) override
+        {
             FAIL("Unsupported dense test child must not be evaluated");
         }
     };
+
     auto supported = std::move(pot.ppots[1]);
     pot.ppots[1] = std::make_unique<Unsupported>();
     REQUIRE_FALSE(pot.supports_analytical_hessian());
@@ -418,14 +482,21 @@ TEST_CASE("Hybrid dense Hessians reject unsupported children before changing out
     HessianMatrix result;
     result.resize(1);
     result(0, 0).setConstant(29.);
-    for (int entry = 0; entry < 5; ++entry) {
+    for (int entry = 0; entry < 5; ++entry)
+    {
         CAPTURE(entry);
-        auto evaluate = [&] {
-            if (entry == 0) api.getEFSHessian(atom, nbhs, result);
-            if (entry == 1) api.getEFSHessian(atom, result);
-            if (entry == 2) api.getEFSHessianOMP(atom, nbhs, result);
-            if (entry == 3) api.getEFSHessianSymm(atom, result);
-            if (entry == 4) api.getEFSHessianSymmOMP(atom, result);
+        auto evaluate = [&]
+        {
+            if (entry == 0)
+                api.getEFSHessian(atom, nbhs, result);
+            if (entry == 1)
+                api.getEFSHessian(atom, result);
+            if (entry == 2)
+                api.getEFSHessianOMP(atom, nbhs, result);
+            if (entry == 3)
+                api.getEFSHessianSymm(atom, result);
+            if (entry == 4)
+                api.getEFSHessianSymmOMP(atom, result);
         };
         REQUIRE_THROWS_WITH(evaluate(), Catch::Matchers::ContainsSubstring("every sub-potential"));
         REQUIRE(atom.energy_ == source.energy_);
@@ -439,7 +510,8 @@ TEST_CASE("Hybrid dense Hessians reject unsupported children before changing out
     REQUIRE(pot.supports_analytical_hessian());
 }
 
-TEST_CASE("Hybrid MTP ZBL HVP drives calc_fc lowest modes", "[hybrid][hvp][cli]") {
+TEST_CASE("Hybrid MTP ZBL HVP drives calc_fc lowest modes", "[hybrid][hvp][cli]")
+{
     HVPWorkspace work;
     PotentialHybrid pot(mixed_hvp_settings());
     auto atom = mixed_hvp_atoms();
@@ -449,36 +521,52 @@ TEST_CASE("Hybrid MTP ZBL HVP drives calc_fc lowest modes", "[hybrid][hvp][cli]"
     const int dimension = 3 * atom.size();
     Eigen::VectorXd roots(dimension);
     Eigen::MatrixXd translations = Eigen::MatrixXd::Zero(dimension, 3);
-    for (int i = 0; i < atom.size(); ++i) {
+    for (int i = 0; i < atom.size(); ++i)
+    {
         const double root = std::sqrt(atom.chemmap_[i] == 0 ? 2. : 5.);
         roots.segment<3>(3 * i).setConstant(root);
-        for (int axis = 0; axis < 3; ++axis) translations(3 * i + axis, axis) = root;
+        for (int axis = 0; axis < 3; ++axis)
+            translations(3 * i + axis, axis) = root;
     }
     Eigen::HouseholderQR<Eigen::MatrixXd> qr(translations);
     const Eigen::MatrixXd q = qr.householderQ() * Eigen::MatrixXd::Identity(dimension, dimension);
     const Eigen::MatrixXd internal = q.rightCols(dimension - 3);
-    const Eigen::MatrixXd dynamical = roots.cwiseInverse().asDiagonal() * fd * roots.cwiseInverse().asDiagonal();
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(internal.transpose() * dynamical * internal);
+    const Eigen::MatrixXd dynamical =
+        roots.cwiseInverse().asDiagonal() * fd * roots.cwiseInverse().asDiagonal();
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(internal.transpose() * dynamical *
+                                                          internal);
     REQUIRE(solver.info() == Eigen::Success);
     std::ofstream("index.map") << "Al 1.0 2\nNi 1.0 5\n";
-    GPIO io; REQUIRE(io.readmap("index.map"));
+    GPIO io;
+    REQUIRE(io.readmap("index.map"));
     REQUIRE(io.write_one(atom, "input.xyz", "extxyz"));
     const auto settings = mixed_hvp_settings();
     {
         std::ofstream out("hybrid.ini");
-        for (const auto &[key, value] : settings.settings) out << "pot:" << key << ' ' << value << '\n';
+        for (const auto &[key, value] : settings.settings)
+            out << "pot:" << key << ' ' << value << '\n';
     }
     CMDOption::global_cmdopts = CMDOption::CommandLineOptions{};
-    std::vector<std::string> args{"calc_fc", "--settings=hybrid.ini", "--potential-type=hybrid",
-        "--potfile=model.mtp", "--input=input.xyz", "--input-format=extxyz", "--index=index.map",
-        "--hessian-method=analytic", "--lowest-modes=2", "--lowest-mode-tol=1e-9"};
+    std::vector<std::string> args{"calc_fc",
+                                  "--settings=hybrid.ini",
+                                  "--potential-type=hybrid",
+                                  "--potfile=model.mtp",
+                                  "--input=input.xyz",
+                                  "--input-format=extxyz",
+                                  "--index=index.map",
+                                  "--hessian-method=analytic",
+                                  "--lowest-modes=2",
+                                  "--lowest-mode-tol=1e-9"};
     std::vector<char *> argv;
-    for (auto &arg : args) argv.push_back(arg.data());
+    for (auto &arg : args)
+        argv.push_back(arg.data());
     REQUIRE(calc_fc(argv.size(), argv.data()) == 0);
     REQUIRE_FALSE(std::filesystem::exists("FORCE_CONSTANTS"));
-    std::ifstream output("EIGENVALS"); std::string header;
+    std::ifstream output("EIGENVALS");
+    std::string header;
     REQUIRE(std::getline(output, header));
-    for (int mode = 0; mode < 2; ++mode) {
+    for (int mode = 0; mode < 2; ++mode)
+    {
         double eigenvalue, frequency, energy, wavenumber;
         REQUIRE(output >> eigenvalue >> frequency >> energy >> wavenumber);
         REQUIRE(eigenvalue == Approx(solver.eigenvalues()[mode]).margin(3e-6));
@@ -486,38 +574,52 @@ TEST_CASE("Hybrid MTP ZBL HVP drives calc_fc lowest modes", "[hybrid][hvp][cli]"
 }
 
 TEST_CASE("Hybrid explicit children take priority over legacy top-level native potfile",
-          "[hybrid][manifest][hvp]") {
+          "[hybrid][manifest][hvp]")
+{
     HVPWorkspace work;
-    const bool fixed=GENERATE(false,true);
-    auto settings=mixed_hvp_settings();settings.Modify("pot1:train",fixed ? "false" : "true");
+    const bool fixed = GENERATE(false, true);
+    auto settings = mixed_hvp_settings();
+    settings.Modify("pot1:train", fixed ? "false" : "true");
     PotentialHybrid reference(settings);
-    settings.Modify("potfile","model.mtp");
+    settings.Modify("potfile", "model.mtp");
     PotentialHybrid explicit_model(settings);
-    REQUIRE(explicit_model.npot==2);REQUIRE(explicit_model.ntrains==(fixed ? 0 : 1));
-    auto expected=mixed_hvp_atoms(),actual=expected;
-    reference.getEFS(expected);explicit_model.getEFS(actual);
-    REQUIRE(actual.energy_==Approx(expected.energy_).margin(1e-12));
-    REQUIRE((actual.stress_-expected.stress_).norm()<1e-11);
-    for(int i=0;i<actual.size();++i)REQUIRE((actual.forces_[i]-expected.forces_[i]).norm()<1e-11);
-    const Eigen::VectorXd direction=Eigen::VectorXd::LinSpaced(3*actual.size(),-.2,.3);
-    Eigen::VectorXd expected_hvp,actual_hvp;
-    reference.applyHessianVectorProduct(expected,direction,expected_hvp);
-    explicit_model.applyHessianVectorProduct(actual,direction,actual_hvp);
-    REQUIRE((actual_hvp-expected_hvp).norm()<1e-11);
+    REQUIRE(explicit_model.npot == 2);
+    REQUIRE(explicit_model.ntrains == (fixed ? 0 : 1));
+    auto expected = mixed_hvp_atoms(), actual = expected;
+    reference.getEFS(expected);
+    explicit_model.getEFS(actual);
+    REQUIRE(actual.energy_ == Approx(expected.energy_).margin(1e-12));
+    REQUIRE((actual.stress_ - expected.stress_).norm() < 1e-11);
+    for (int i = 0; i < actual.size(); ++i)
+        REQUIRE((actual.forces_[i] - expected.forces_[i]).norm() < 1e-11);
+    const Eigen::VectorXd direction = Eigen::VectorXd::LinSpaced(3 * actual.size(), -.2, .3);
+    Eigen::VectorXd expected_hvp, actual_hvp;
+    reference.applyHessianVectorProduct(expected, direction, expected_hvp);
+    explicit_model.applyHessianVectorProduct(actual, direction, actual_hvp);
+    REQUIRE((actual_hvp - expected_hvp).norm() < 1e-11);
     // A manifest with partial overrides still takes the native manifest path.
     {
-        std::ofstream out("definition.hybrid");out<<"pottype hybrid\n";
-        for(const auto &[key,value]:mixed_hvp_settings().settings)out<<key<<' '<<value<<'\n';
+        std::ofstream out("definition.hybrid");
+        out << "pottype hybrid\n";
+        for (const auto &[key, value] : mixed_hvp_settings().settings)
+            out << key << ' ' << value << '\n';
     }
-    GPSettings manifest;manifest.Modify("potfile","definition.hybrid");manifest.Modify("npot","2");
-    manifest.Modify("pot1:train",fixed ? "false" : "true");
-    PotentialHybrid restored(manifest);actual=mixed_hvp_atoms();restored.getEFS(actual);
-    REQUIRE(restored.ntrains==(fixed ? 0 : 1));
-    REQUIRE(actual.energy_==Approx(expected.energy_).margin(1e-12));
-    for(int i=0;i<actual.size();++i)REQUIRE((actual.forces_[i]-expected.forces_[i]).norm()<1e-11);
+    GPSettings manifest;
+    manifest.Modify("potfile", "definition.hybrid");
+    manifest.Modify("npot", "2");
+    manifest.Modify("pot1:train", fixed ? "false" : "true");
+    PotentialHybrid restored(manifest);
+    actual = mixed_hvp_atoms();
+    restored.getEFS(actual);
+    REQUIRE(restored.ntrains == (fixed ? 0 : 1));
+    REQUIRE(actual.energy_ == Approx(expected.energy_).margin(1e-12));
+    for (int i = 0; i < actual.size(); ++i)
+        REQUIRE((actual.forces_[i] - expected.forces_[i]).norm() < 1e-11);
 }
 
-TEST_CASE("Hybrid exposes its initialized species count through the base potential", "[hybrid][species]") {
+TEST_CASE("Hybrid exposes its initialized species count through the base potential",
+          "[hybrid][species]")
+{
     PotentialHybrid potential(make_zbl_hybrid_settings("hybrid"));
     const AnyPotential &base = potential;
     REQUIRE(base.species_count == 2);

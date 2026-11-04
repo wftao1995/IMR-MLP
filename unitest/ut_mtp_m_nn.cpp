@@ -14,9 +14,10 @@
 
 using Catch::Approx;
 
-namespace {
+namespace
+{
 
-void init_nn2_model(Potentials::m_model_nn2& model, std::vector<double>& coeffs)
+void init_nn2_model(Potentials::m_model_nn2 &model, std::vector<double> &coeffs)
 {
     GPSettings settings;
     settings.Modify("n_input", "3");
@@ -33,7 +34,7 @@ void init_nn2_model(Potentials::m_model_nn2& model, std::vector<double>& coeffs)
     model.postinit();
 }
 
-double model_energy(Potentials::m_model_nn2& model, const Eigen::VectorXd& qs)
+double model_energy(Potentials::m_model_nn2 &model, const Eigen::VectorXd &qs)
 {
     double energy = 0.0;
     int tag = 0;
@@ -46,12 +47,13 @@ std::string make_mtp_m_template_file()
 {
     const std::string path = "/tmp/ut_mtp_m_template.mtp";
     std::ifstream in;
-    for (const std::string& candidate : {
+    for (const std::string &candidate : {
              "unitest/test-data/test-nnmtp/_Trained_Potential_.mtp",
              "unitest/test-data/potential.mtp",
              "../../unitest/test-data/potential.mtp",
              "../../../unitest/test-data/potential.mtp",
-         }) {
+         })
+    {
         in.open(candidate);
         if (in.good())
             break;
@@ -62,7 +64,8 @@ std::string make_mtp_m_template_file()
     REQUIRE(out.good());
 
     std::string line;
-    while (std::getline(in, line)) {
+    while (std::getline(in, line))
+    {
         if (line.rfind("species_coeffs", 0) == 0)
             break;
         out << line << '\n';
@@ -91,7 +94,8 @@ TEST_CASE("PotMTP_M two-layer NN model derivatives match finite differences", "[
     model.backpropagate(qs, energy, dUdQ, dUdt, d2UdQdt, d2UdQdQ, tag, ithread);
 
     const double q_eps = 1e-6;
-    for (int iq = 0; iq < qs.size(); ++iq) {
+    for (int iq = 0; iq < qs.size(); ++iq)
+    {
         Eigen::VectorXd qp = qs;
         Eigen::VectorXd qm = qs;
         qp(iq) += q_eps;
@@ -101,7 +105,8 @@ TEST_CASE("PotMTP_M two-layer NN model derivatives match finite differences", "[
     }
 
     const double c_eps = 1e-6;
-    for (int ip = 0; ip < model.get_ncoeffs(); ip += 3) {
+    for (int ip = 0; ip < model.get_ncoeffs(); ip += 3)
+    {
         const double orig = coeffs[ip];
         coeffs[ip] = orig + c_eps;
         const double ep = model_energy(model, qs);
@@ -115,7 +120,8 @@ TEST_CASE("PotMTP_M two-layer NN model derivatives match finite differences", "[
 
     Eigen::VectorXd dUdt_plus(model.get_ncoeffs());
     Eigen::VectorXd dUdt_minus(model.get_ncoeffs());
-    for (int iq = 0; iq < qs.size(); ++iq) {
+    for (int iq = 0; iq < qs.size(); ++iq)
+    {
         Eigen::VectorXd qp = qs;
         Eigen::VectorXd qm = qs;
         qp(iq) += q_eps;
@@ -126,14 +132,16 @@ TEST_CASE("PotMTP_M two-layer NN model derivatives match finite differences", "[
         model.backpropagate(qp, ep, dUdt_plus, tag, ithread);
         model.backpropagate(qm, em, dUdt_minus, tag, ithread);
 
-        for (int ip = iq; ip < model.get_ncoeffs(); ip += 5) {
+        for (int ip = iq; ip < model.get_ncoeffs(); ip += 5)
+        {
             const double finite = (dUdt_plus(ip) - dUdt_minus(ip)) / (2.0 * q_eps);
             REQUIRE(d2UdQdt(iq, ip) == Approx(finite).margin(2e-6));
         }
     }
 }
 
-TEST_CASE("PotMTP_M two-layer NN model supports scalar regularization", "[mtp_m][nn2][regularization]")
+TEST_CASE("PotMTP_M two-layer NN model supports scalar regularization",
+          "[mtp_m][nn2][regularization]")
 {
     Potentials::m_model_nn2 model;
     std::vector<double> coeffs;
@@ -156,7 +164,8 @@ TEST_CASE("PotMTP_M two-layer NN model supports scalar regularization", "[mtp_m]
     model.add_loss_gard(loss, grad.data(), offset);
 
     double expected_loss = 0.0;
-    for (int i = 0; i < model.get_ncoeffs(); ++i) {
+    for (int i = 0; i < model.get_ncoeffs(); ++i)
+    {
         expected_loss += 0.5 * std::abs(coeffs[i]) + 0.25 * coeffs[i] * coeffs[i];
         REQUIRE(grad[offset + i] == Approx((coeffs[i] > 0.0 ? 0.5 : -0.5) + 0.5 * coeffs[i]));
     }
@@ -185,8 +194,7 @@ TEST_CASE("PotMTP_M saves LAMMPS GPU model metadata", "[mtp_m][nn2][io]")
     settings.Modify("n_neuron", "4");
     settings.Modify("n_neuron2", "2");
     settings.Modify("activation_function", "SIGMOID");
-    Potentials::PotMTP_M<Potentials::m_model_nn2> potential(
-        make_mtp_m_template_file(), settings);
+    Potentials::PotMTP_M<Potentials::m_model_nn2> potential(make_mtp_m_template_file(), settings);
 
     std::ostringstream output;
     potential.Save(output);
@@ -198,12 +206,12 @@ TEST_CASE("PotMTP_M saves LAMMPS GPU model metadata", "[mtp_m][nn2][io]")
     REQUIRE(text.find("# mtp_hidden1 = 4\n") != std::string::npos);
     REQUIRE(text.find("# mtp_hidden2 = 2\n") != std::string::npos);
 
-    REQUIRE(std::string(Potentials::PotMTP_M<
-                Potentials::m_model_mtpq2>::serialized_model_name()) == "mtp_m_q2");
-    REQUIRE(std::string(Potentials::PotMTP_M<
-                Potentials::m_model_mtpfs>::serialized_model_name()) == "mtp_m_fs");
-    REQUIRE(std::string(Potentials::PotMTP_M<
-                Potentials::m_model_nn1>::serialized_model_name()) == "mtp_m_n1");
+    REQUIRE(std::string(Potentials::PotMTP_M<Potentials::m_model_mtpq2>::serialized_model_name()) ==
+            "mtp_m_q2");
+    REQUIRE(std::string(Potentials::PotMTP_M<Potentials::m_model_mtpfs>::serialized_model_name()) ==
+            "mtp_m_fs");
+    REQUIRE(std::string(Potentials::PotMTP_M<Potentials::m_model_nn1>::serialized_model_name()) ==
+            "mtp_m_n1");
 }
 
 TEST_CASE("PotMTP_M NN models reject use before coefficient mapping", "[mtp_m][nn]")

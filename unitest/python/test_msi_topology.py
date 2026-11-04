@@ -14,14 +14,12 @@ RECORDS = [(41, '6 C'), (7, '1 H'), (29, '8 O'), (13, '7 N')]
 def model(records, bonds, with_charges=True):
     lines = ['(1 Model']
     for index, (atom_id, acl) in enumerate(records):
-        lines += [f'  ({atom_id} Atom', f'    (A C ACL "{acl}")',
-                  f'    (A D XYZ ({index} 0 0))']
+        lines += [f'  ({atom_id} Atom', f'    (A C ACL "{acl}")', f'    (A D XYZ ({index} 0 0))']
         if with_charges:
-            lines.append(f'    (A D Charge {index + .25})')
+            lines.append(f'    (A D Charge {index + 0.25})')
         lines.append('  )')
     for index, (a, b) in enumerate(bonds):
-        lines += [f'  ({index + 1} Bond', f'    (A I Atom1 {a})',
-                  f'    (A I Atom2 {b})', '  )']
+        lines += [f'  ({index + 1} Bond', f'    (A I Atom1 {a})', f'    (A I Atom2 {b})', '  )']
     return '\n'.join(lines + [')', ''])
 
 
@@ -56,8 +54,7 @@ def test_filtered_atom_at_every_position(tmp_path, capfd, skipped, reader, fmt):
 @pytest.mark.parametrize('reader_name', ['read', 'read_one'])
 def test_custom_map_removes_unknown_elements_and_their_bonds(tmp_path, reader_name):
     path = tmp_path / 'custom.msi'
-    path.write_text(model(RECORDS, [(41, 29), (29, 41), (7, 29),
-                                   (13, 41), (7, 13), (41, 999)]))
+    path.write_text(model(RECORDS, [(41, 29), (29, 41), (7, 29), (13, 41), (7, 13), (41, 999)]))
     io = _GPIO()
     io.set_elements(['O', 'C'])
     result = getattr(io, reader_name)(str(path), 'msi')
@@ -79,14 +76,15 @@ def test_filtered_and_complete_models_do_not_share_indices_or_charges(tmp_path):
         check_topology(frames[index]._impl, [[0, 1]])
         assert frames[index]._impl.charges == []
     check_topology(frames[1]._impl, [[2, 0], [0, 1]])
-    assert frames[1]._impl.charges == [.25, 1.25, 2.25]
+    assert frames[1]._impl.charges == [0.25, 1.25, 2.25]
 
 
 @pytest.mark.parametrize('reader', [imrmlp.read, imrmlp.read_one])
 def test_all_bonds_can_be_dropped_with_a_retained_atom(tmp_path, reader):
     path = tmp_path / 'dangling.msi'
-    path.write_text(model([(41, '0 Zz'), (7, '6 C')],
-                          [(41, 7), (7, 41), (999, 7)], with_charges=False))
+    path.write_text(
+        model([(41, '0 Zz'), (7, '6 C')], [(41, 7), (7, 41), (999, 7)], with_charges=False)
+    )
     result = reader(path)
     atom = result[0] if reader is imrmlp.read else result
     assert atom.natoms == 1

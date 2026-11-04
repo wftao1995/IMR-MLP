@@ -29,12 +29,7 @@ static Neighborhood make_square_nbh(double side = 2.0, double cutoff = 6.0)
     Neighborhood nbh;
     nbh.nbhcount_ = 4;
     nbh.distances_ = {side, side, side * std::sqrt(2.0), side * std::sqrt(2.0)};
-    nbh.pos_ = {
-        { side,  0.0,   0.0},
-        { 0.0,   side,  0.0},
-        { side,  side,  0.0},
-        {-side,  side,  0.0}
-    };
+    nbh.pos_ = {{side, 0.0, 0.0}, {0.0, side, 0.0}, {side, side, 0.0}, {-side, side, 0.0}};
     nbh.chemmap_ = {0, 0, 0, 0};
     nbh.centertype = 0;
     return nbh;
@@ -140,9 +135,10 @@ TEST_CASE("DescriptorBehler all G types together", "[descriptors][behler]")
     d.compute(nbh, out);
 
     REQUIRE(out.size() == 5);
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i)
+    {
         REQUIRE(std::isfinite(out[i]));
-        REQUIRE(out[i] >= 0.0);  // all G with lambda=1 are non-negative
+        REQUIRE(out[i] >= 0.0); // all G with lambda=1 are non-negative
     }
 }
 
@@ -158,7 +154,7 @@ TEST_CASE("DescriptorBehler virtual interface", "[descriptors][behler]")
 
     auto nbh = make_dimer_nbh(2.5, 5.0);
     Eigen::VectorXd out;
-    d.compute(nbh, out);  // single-nbh override
+    d.compute(nbh, out); // single-nbh override
     REQUIRE(out.size() == 3);
 }
 
@@ -166,21 +162,27 @@ TEST_CASE("Behler validates symmetry function selections", "[descriptors][behler
 {
     GPSettings s;
     s.Modify("cutoff", "5");
-    SECTION("missing selection only supports G1 through G5") {
+    SECTION("missing selection only supports G1 through G5")
+    {
         s.Modify("dispcount", GENERATE("-1", "0", "6"));
         REQUIRE_THROWS_WITH(DescriptorBehler(s), Catch::Matchers::ContainsSubstring("dispcount"));
     }
-    SECTION("selection length must match count") {
+    SECTION("selection length must match count")
+    {
         s.Modify("dispcount", "2");
         s.Modify("dispselect", GENERATE("1", "1 2 3"));
-        REQUIRE_THROWS_WITH(DescriptorBehler(s), Catch::Matchers::ContainsSubstring("dispselect length"));
+        REQUIRE_THROWS_WITH(DescriptorBehler(s),
+                            Catch::Matchers::ContainsSubstring("dispselect length"));
     }
-    SECTION("each selection must be a supported Gi") {
+    SECTION("each selection must be a supported Gi")
+    {
         s.Modify("dispcount", "1");
         s.Modify("dispselect", GENERATE("0", "6", "-1"));
-        REQUIRE_THROWS_WITH(DescriptorBehler(s), Catch::Matchers::ContainsSubstring("between 1 and 5"));
+        REQUIRE_THROWS_WITH(DescriptorBehler(s),
+                            Catch::Matchers::ContainsSubstring("between 1 and 5"));
     }
-    SECTION("repeated valid selections may exceed five features") {
+    SECTION("repeated valid selections may exceed five features")
+    {
         s.Modify("dispcount", "6");
         s.Modify("dispselect", "1 2 3 4 5 1");
         DescriptorBehler desc(s);
@@ -190,12 +192,13 @@ TEST_CASE("Behler validates symmetry function selections", "[descriptors][behler
         REQUIRE(out.size() == 6);
         REQUIRE(out[0] == out[5]);
     }
-    SECTION("array setter rejects unsupported Gi") {
+    SECTION("array setter rejects unsupported Gi")
+    {
         DescriptorBehler desc;
         int selection[] = {6};
         double parameters[] = {5, 0, 0, 0, 1, 1};
         REQUIRE_THROWS_WITH(desc.set_parameters(1, selection, parameters),
-                           Catch::Matchers::ContainsSubstring("between 1 and 5"));
+                            Catch::Matchers::ContainsSubstring("between 1 and 5"));
     }
 }
 
@@ -205,7 +208,7 @@ TEST_CASE("Behler validates symmetry function selections", "[descriptors][behler
 
 TEST_CASE("DescriptorBondOrder compute", "[descriptors][bondorder]")
 {
-    DescriptorBondOrder bo(4);  // maxl = 4 → output: Q_2,Q_4,W_2,W_4 = 4
+    DescriptorBondOrder bo(4); // maxl = 4 → output: Q_2,Q_4,W_2,W_4 = 4
     REQUIRE(bo.feature_size() == 4);
 
     auto nbh = make_square_nbh(2.0);
@@ -221,7 +224,7 @@ TEST_CASE("DescriptorBondOrder compute", "[descriptors][bondorder]")
 
 TEST_CASE("DescriptorBondOrder dimer analytical", "[descriptors][bondorder]")
 {
-    DescriptorBondOrder bo(4);  // maxl=4 → Q2,Q4,W2,W4
+    DescriptorBondOrder bo(4); // maxl=4 → Q2,Q4,W2,W4
     auto nbh = make_square_nbh(2.0);
 
     // Raw compute gives Ql and Wl vectors
@@ -230,8 +233,8 @@ TEST_CASE("DescriptorBondOrder dimer analytical", "[descriptors][bondorder]")
 
     // maxl=4 → internal Ql includes l=0,2,4 → 3 values
     // feature_size() strips l=0 → 2 Q + 2 W = 4
-    REQUIRE(Ql.size() == 3);  // includes Q0
-    REQUIRE(Wl.size() == 3);  // includes W0
+    REQUIRE(Ql.size() == 3); // includes Q0
+    REQUIRE(Wl.size() == 3); // includes W0
 
     // Q0 = 1 (trivial invariant), Q2,Q4 should be valid
     REQUIRE(Ql[0] == Approx(1.0).margin(1e-10));
@@ -253,7 +256,7 @@ TEST_CASE("DescriptorBondOrder dimer analytical", "[descriptors][bondorder]")
 
 TEST_CASE("DescriptorBondOrder virtual interface", "[descriptors][bondorder]")
 {
-    DescriptorBondOrder bo(6);  // maxl = 6 → output: Q_2,Q_4,Q_6,W_2,W_4,W_6 = 6
+    DescriptorBondOrder bo(6); // maxl = 6 → output: Q_2,Q_4,Q_6,W_2,W_4,W_6 = 6
     REQUIRE(bo.feature_size() == 6);
 
     // Test polymorphic call through base class pointer
@@ -266,7 +269,8 @@ TEST_CASE("DescriptorBondOrder virtual interface", "[descriptors][bondorder]")
     REQUIRE(out.size() == 6);
 }
 
-TEST_CASE("Bond order handles empty and single-neighbor environments consistently", "[descriptors][bondorder]")
+TEST_CASE("Bond order handles empty and single-neighbor environments consistently",
+          "[descriptors][bondorder]")
 {
     const int count = GENERATE(0, 1);
     const bool outer = GENERATE(false, true);
@@ -299,21 +303,26 @@ TEST_CASE("Bond order handles empty and single-neighbor environments consistentl
     desc.compute_ref(nbh, q, w);
     REQUIRE(q[1] == Approx(count));
     REQUIRE(q[2] == Approx(count));
-    for (double value : w) REQUIRE(std::isfinite(value));
+    for (double value : w)
+        REQUIRE(std::isfinite(value));
     desc.compute_ref_pairs(nbh, 5, q, w);
     REQUIRE(q[1] == Approx(count));
     REQUIRE(q[2] == Approx(count));
-    for (double value : w) REQUIRE(std::isfinite(value));
+    for (double value : w)
+        REQUIRE(std::isfinite(value));
 }
 
-TEST_CASE("Bond order rejects termwise normalization that breaks rotational invariance", "[descriptors][bondorder]")
+TEST_CASE("Bond order rejects termwise normalization that breaks rotational invariance",
+          "[descriptors][bondorder]")
 {
     GPSettings s;
     s.Modify("normalize_w_inner", "true");
-    REQUIRE_THROWS_WITH(DescriptorBondOrder(s), Catch::Matchers::ContainsSubstring("not rotationally invariant"));
+    REQUIRE_THROWS_WITH(DescriptorBondOrder(s),
+                        Catch::Matchers::ContainsSubstring("not rotationally invariant"));
 }
 
-TEST_CASE("Bond order validates angular order before allocating buffers", "[descriptors][bondorder]")
+TEST_CASE("Bond order validates angular order before allocating buffers",
+          "[descriptors][bondorder]")
 {
     const int maxl = GENERATE(-2, -1, 0, 1, 3, 5);
     const auto message = Catch::Matchers::ContainsSubstring("maxl must be even and at least 2");
@@ -379,7 +388,8 @@ TEST_CASE("Bond order pair normalization counts only included bonds", "[descript
     desc.compute_ref(nbh, expected_q, expected_w);
     // The neighbor-neighbor bond has length 4; all bonds are collinear.
     desc.compute_ref_pairs(nbh, GENERATE(3.0, 4.0, 5.0), q, w);
-    for (int i = 0; i < q.size(); ++i) {
+    for (int i = 0; i < q.size(); ++i)
+    {
         REQUIRE(q[i] == Approx(1).margin(1e-12));
         REQUIRE(q[i] == Approx(expected_q[i]).margin(1e-12));
         REQUIRE(w[i] == Approx(expected_w[i]).margin(1e-12));

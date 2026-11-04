@@ -13,7 +13,8 @@
 
 using namespace std;
 
-int train_linear(int argc, char *argv[]) {
+int train_linear(int argc, char *argv[])
+{
     auto &cmdopts = CMDOption::global_cmdopts;
 
     GPIO iobj;
@@ -23,16 +24,27 @@ int train_linear(int argc, char *argv[]) {
     string infilev = "";
     string informat = "mlpcfg";
     string poutfile = "_Trained_Potential_.gpm";
-    bool save_maxvol_state=false;
+    bool save_maxvol_state = false;
     PersistenceMode persistence;
     persistence.RegisterConsole(cmdopts);
     string settingfile = "";
     GPSettings settings;
     bool debug = false;
 
-    cmdopts.attach_settings("builder:","Final GPM MaxVol builder",[](std::ostream &out){BMatrixBuilderSettings b;b.dtype="pot_efs";b.ListSettings(out,"builder:");});
-    cmdopts.attach_settings("selector:","Final GPM MaxVol selector",[](std::ostream &out){ActiveSelector().ListSettings(out,"selector:");});
-    cmdopts.addop(save_maxvol_state,"save-maxvol-state","","Rebuild MaxVol on the training set and embed it in the final GPM",false,0);
+    cmdopts.attach_settings("builder:", "Final GPM MaxVol builder",
+                            [](std::ostream &out)
+                            {
+                                BMatrixBuilderSettings b;
+                                b.dtype = "pot_efs";
+                                b.ListSettings(out, "builder:");
+                            });
+    cmdopts.attach_settings("selector:", "Final GPM MaxVol selector",
+                            [](std::ostream &out)
+                            {
+                                ActiveSelector().ListSettings(out, "selector:");
+                            });
+    cmdopts.addop(save_maxvol_state, "save-maxvol-state", "",
+                  "Rebuild MaxVol on the training set and embed it in the final GPM", false, 0);
     cmdopts.addop(debug, "debug", "", "Enable debug output stream", false, 0, 10)
         .addop(indexfile, "index", "id", "Index file mapping atom types to indices")
         .addop(infile, "trainset", "in", "Input training dataset file")
@@ -41,28 +53,36 @@ int train_linear(int argc, char *argv[]) {
         .addop(poutfile, "output", "o", "Output potential parameter file")
         .addop(settingfile, "settings", "", "Main configuration settings file", true)
         .attach_settings("fit:", "Linear training settings",
-            [](std::ostream &os) { TrainerLinearPotential().ListSettings(os, "fit:"); })
+                         [](std::ostream &os)
+                         {
+                             TrainerLinearPotential().ListSettings(os, "fit:");
+                         })
         .set_helponexit(false)
         .phrase_options(argc, argv);
 
-    if (cmdopts.displayhelp) {
+    if (cmdopts.displayhelp)
+    {
         if (mpi.rank == 0)
             cmdopts.showhelp(std::cout);
         return 0;
     }
-    if (GPIO::file_exist(settingfile)) {
+    if (GPIO::file_exist(settingfile))
+    {
         Message("Loading settings");
         settings.Load(settingfile);
         settings.Print();
     }
     apply_settings_to_cmdopts(cmdopts, settings);
-    persistence.training_defaults(settings,poutfile,"_Trained_Potential_","potential_fitted","potential_fitted.gpm",save_maxvol_state);
-    Training::validate_training_output(poutfile,save_maxvol_state);
+    persistence.training_defaults(settings, poutfile, "_Trained_Potential_", "potential_fitted",
+                                  "potential_fitted.gpm", save_maxvol_state);
+    Training::validate_training_output(poutfile, save_maxvol_state);
     std::unique_ptr<ScopedStreamRedirect> debug_guard;
-    if (debug) {
+    if (debug)
+    {
         auto debugfs = std::make_unique<std::ofstream>("DEBUG" + mpi.fnm_ending);
         if (*debugfs)
-            debug_guard = std::make_unique<ScopedStreamRedirect>(global_debugstream, debugfs.release());
+            debug_guard =
+                std::make_unique<ScopedStreamRedirect>(global_debugstream, debugfs.release());
         else
             Warning("Failed to open debug output file: DEBUG" + mpi.fnm_ending);
     }
@@ -72,30 +92,32 @@ int train_linear(int argc, char *argv[]) {
     // } else {
     //     Warning("ERROR: indexfile not found\n");
     // }
-    const bool index_explicit =
-        cmdopts.was_provided("index") || settings.count("index");
+    const bool index_explicit = cmdopts.was_provided("index") || settings.count("index");
     iobj.install_species_map(indexfile, index_explicit,
-                             Potentials::probe_model_elements(
-                                 make_potential_settings(settings)),
+                             Potentials::probe_model_elements(make_potential_settings(settings)),
                              /*require_if_absent=*/false);
     Message("Reading trajectory file " + infile);
     if (!iobj.read(atoms, infile, informat))
         GPERROR("Failed to read complete training set: " + infile);
-    if (!infilev.empty()) {
+    if (!infilev.empty())
+    {
         if (!iobj.read(atoms_valid, infilev, informat))
             GPERROR("Failed to read complete validation set: " + infilev);
     }
     Message("Finish loading trajectory");
 
-    for (int i = 0; i < atoms.size(); ++i) {
-        if (atoms[i].local_attribs_d_.count("atomic_fitness")) {
+    for (int i = 0; i < atoms.size(); ++i)
+    {
+        if (atoms[i].local_attribs_d_.count("atomic_fitness"))
+        {
             atoms[i].atomic_fitness.resize(atoms[i].size());
             memcpy(atoms[i].atomic_fitness.data(),
                    atoms[i].local_attribs_d_["atomic_fitness"].data(),
                    atoms[i].size() * sizeof(double));
         }
     }
-    for (int i = 0; i < atoms.size(); ++i) {
+    for (int i = 0; i < atoms.size(); ++i)
+    {
         if (atoms[i].global_attribs_d_.count("fitness"))
             atoms[i].fitness = atoms[i].global_attribs_d_["fitness"];
         else
@@ -106,17 +128,28 @@ int train_linear(int argc, char *argv[]) {
     Message("Balancing");
     {
         sort(atoms.begin(), atoms.end(),
-             [](const Atoms &a, const Atoms &b) { return a.size() < b.size(); });
-        auto itrm = remove_if(atoms.begin(), atoms.end(), [](Atoms &at) {
-            return at.id % mpi.size == mpi.rank ? false : true;
-        });
+             [](const Atoms &a, const Atoms &b)
+             {
+                 return a.size() < b.size();
+             });
+        auto itrm = remove_if(atoms.begin(), atoms.end(),
+                              [](Atoms &at)
+                              {
+                                  return at.id % mpi.size == mpi.rank ? false : true;
+                              });
         atoms.erase(itrm, atoms.end());
-        if (atoms_valid.size() > 0) {
+        if (atoms_valid.size() > 0)
+        {
             sort(atoms_valid.begin(), atoms_valid.end(),
-                 [](const Atoms &a, const Atoms &b) { return a.size() < b.size(); });
-            auto itrm2 = remove_if(atoms_valid.begin(), atoms_valid.end(), [](Atoms &at) {
-                return at.id % mpi.size == mpi.rank ? false : true;
-            });
+                 [](const Atoms &a, const Atoms &b)
+                 {
+                     return a.size() < b.size();
+                 });
+            auto itrm2 = remove_if(atoms_valid.begin(), atoms_valid.end(),
+                                   [](Atoms &at)
+                                   {
+                                       return at.id % mpi.size == mpi.rank ? false : true;
+                                   });
             atoms_valid.erase(itrm2, atoms_valid.end());
         }
     }
@@ -137,15 +170,18 @@ int train_linear(int argc, char *argv[]) {
     Message("Preparing neighborhoods");
     std::vector<Neighborhoods> nbhs, nbhs_valid;
     nbhs.resize(atoms.size());
-    for (int i = 0; i < atoms.size(); ++i) {
+    for (int i = 0; i < atoms.size(); ++i)
+    {
         atoms[i].wrap();
         nbhs[i] = Neighborhoods(atoms[i], p_pot->cutoff);
     }
     Message("Init trainer");
     trainer.init(atoms, nbhs, p_pot);
-    if (atoms_valid.size() > 0) {
+    if (atoms_valid.size() > 0)
+    {
         nbhs_valid.resize(atoms_valid.size());
-        for (int i = 0; i < atoms_valid.size(); ++i) {
+        for (int i = 0; i < atoms_valid.size(); ++i)
+        {
             atoms_valid[i].wrap();
             nbhs_valid[i] = Neighborhoods(atoms_valid[i], p_pot->cutoff);
         }
@@ -155,9 +191,18 @@ int train_linear(int argc, char *argv[]) {
     Message("Training run");
     trainer.Train();
 
-    Training::publish_training_result(poutfile,save_maxvol_state,[&](const std::string &output){
-        Training::collective_try([&]{if(mpi.rank==0)Training::save_trained_model(*p_pot,output);});
-    },settings,iobj,infile,informat);
+    Training::publish_training_result(
+        poutfile, save_maxvol_state,
+        [&](const std::string &output)
+        {
+            Training::collective_try(
+                [&]
+                {
+                    if (mpi.rank == 0)
+                        Training::save_trained_model(*p_pot, output);
+                });
+        },
+        settings, iobj, infile, informat);
 
     Message("Finished");
     return 0;

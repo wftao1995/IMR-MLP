@@ -7,11 +7,13 @@
 #include <string>
 #include "gpu_cache.h"
 
-namespace MLIPCore::GpuDirect {
+namespace MLIPCore::GpuDirect
+{
 
 // Host views. Gaussian arrays are channel-major. Grid multiplicities already
 // encode the CPU half-sphere convention, including the singly counted zero.
-struct SOGGpuModelView {
+struct SOGGpuModelView
+{
     int channels = 0;
     int terms = 0;
     const double *weights = nullptr;
@@ -19,7 +21,8 @@ struct SOGGpuModelView {
     bool onsite = true;
 };
 
-struct SOGGpuGridView {
+struct SOGGpuGridView
+{
     int atoms = 0;
     int structures = 0;
     int waves = 0;
@@ -38,21 +41,20 @@ struct SOGGpuGridView {
 // are DEVICE pointers. Owns O(N*C + K*C) storage, never an N*K phase matrix.
 // Prepare copies the host views; their lifetime ends when prepare returns.
 // Additive E/F/virial outputs use the MTP core's atom-major six-tensor layout.
-class SOGGpu {
-public:
+class SOGGpu
+{
+  public:
     SOGGpu();
     ~SOGGpu();
     SOGGpu(const SOGGpu &) = delete;
     SOGGpu &operator=(const SOGGpu &) = delete;
-    bool prepare(const SOGGpuModelView &, const SOGGpuGridView &,
-                 std::string *error = nullptr);
+    bool prepare(const SOGGpuModelView &, const SOGGpuGridView &, std::string *error = nullptr);
     double *latents();
     double *response();
     const double *phi() const;
-    const double *charge_vjp() const; // fixed-q F/W VJP + H*response
+    const double *charge_vjp() const;      // fixed-q F/W VJP + H*response
     const double *kernel_gradient() const; // physical w followed by u
-    bool forward(const double *positions, double *site_energy,
-                 double *force, double *site_virial,
+    bool forward(const double *positions, double *site_energy, double *force, double *site_virial,
                  std::string *error = nullptr);
     bool backward(const double *positions, const double *energy_adjoint,
                   const double *force_adjoint, const double *virial_adjoint,
@@ -60,7 +62,8 @@ public:
     std::size_t memory_bytes() const;
     std::uint64_t grid_upload_bytes() const;
     std::uint64_t grid_reuses() const;
-private:
+
+  private:
     struct State;
     State *state_;
 };

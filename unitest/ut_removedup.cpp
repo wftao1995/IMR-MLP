@@ -7,14 +7,16 @@
 
 using Catch::Approx;
 
-namespace {
+namespace
+{
 
 Atoms make_line_atoms(const std::vector<double> &xs, int type = 0)
 {
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 10.0;
     atom.chemmap_.assign(xs.size(), type);
-    for (double x : xs) {
+    for (double x : xs)
+    {
         atom.pos_.push_back({x, 0.0, 0.0});
     }
     return atom;
@@ -91,8 +93,7 @@ TEST_CASE("remove_duplicate_atoms compacts per-atom properties", "[removedup]")
     atom.local_attribs_d_["weight"].resize(3);
     atom.local_attribs_d_["weight"] << 1.0, 2.0, 3.0;
     atom.local_attribs_v_["desc"].resize(2, 3);
-    atom.local_attribs_v_["desc"] << 1.0, 2.0, 3.0,
-                                      4.0, 5.0, 6.0;
+    atom.local_attribs_v_["desc"] << 1.0, 2.0, 3.0, 4.0, 5.0, 6.0;
 
     auto stats = atom.remove_duplicate_atoms(0.2, Atoms::DuplicateAtomMode::Delete);
 

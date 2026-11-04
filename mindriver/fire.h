@@ -6,7 +6,6 @@
 #include "utils/gputils.h"
 #include <fmt/format.h>
 
-
 /**
  * @brief FIRE (Fast Inertial Relaxation Engine) optimizer.
  * @ingroup mindriver
@@ -15,13 +14,14 @@
  * velocity damping and power-based restarts. The force-only entry point
  * does not require the reported value to decrease (e.g. NEB effective forces).
  */
-class SimpleFireF : public ConnectSettings {
-public:
+class SimpleFireF : public ConnectSettings
+{
+  public:
     // init by user
     // one can modify this to weight different type of atoms
     double ts_max = 10.0; // choice: 1.0
     double ts_min = 0.001;
-    double ts_init = 2; // choice: 1.0
+    double ts_init = 2;        // choice: 1.0
     double alpha_start = 0.25; // or 0.1
     double alpha_reduce = 0.99;
     double ts_grow = 1.1;
@@ -60,7 +60,8 @@ public:
     double num_it_pnegative = 0;
     bool is_uphill = false;
 
-    void InitSettings() {
+    void InitSettings()
+    {
         Connect(gtol, "gtol", "force tolerance");
         Connect(max_step, "max_move");
         Connect(max_iter, "maxiteration");
@@ -82,28 +83,38 @@ public:
         Connect(first_delay, "first_delay");
         Connect(freeze_small_gd, "freeze_small_gd");
         Connect(freeze_gd_tol, "freeze_gd_tol");
-        if (first_step > max_step) first_step = max_step;
+        if (first_step > max_step)
+            first_step = max_step;
     }
 
-    SimpleFireF() { InitSettings(); }
-    SimpleFireF(GPSettings settings) {
+    SimpleFireF()
+    {
+        InitSettings();
+    }
+
+    SimpleFireF(GPSettings settings)
+    {
         InitSettings();
         ApplySettings(settings);
-// PrintSettings();
+        // PrintSettings();
     }
 
     // with energy
     // todo: check and remove one functor call.
-    template<class T>
-    int minimizef(T &functor, Eigen::VectorXd &x, double &f) {
+    template <class T> int minimizef(T &functor, Eigen::VectorXd &x, double &f)
+    {
         // init mass
         Eigen::VectorXd ivmass;
-        if (mass.size() != x.size()) {
+        if (mass.size() != x.size())
+        {
             ivmass.resize(x.size());
             ivmass.setOnes();
-        } else {
+        }
+        else
+        {
             ivmass.resize(x.size());
-            for (int i = 0; i < mass.size(); ++i) {
+            for (int i = 0; i < mass.size(); ++i)
+            {
                 ivmass[i] = 1.0 / mass[i];
             }
         }
@@ -127,9 +138,11 @@ public:
         double drnorm = 0;
         int Nsteps = 0;
         // f_prev = functor(x, g);
-        for (int currit = 0; currit < max_iter; ++currit) {
+        for (int currit = 0; currit < max_iter; ++currit)
+        {
             // if (fabs(g.maxCoeff()) < gtol && fabs(g.minCoeff()) < gtol) return currit;
-            if (v.size() == 0) {
+            if (v.size() == 0)
+            {
                 f_prev = functor(x, g);
                 v.resize(x.size());
                 v.setZero();
@@ -137,12 +150,18 @@ public:
                 x_prev = x;
                 g_prev = g;
                 v_prev = v;
-            } else {
+            }
+            else
+            {
                 is_uphill = false;
-                if (downhillcheck) {
+                if (downhillcheck)
+                {
                     f = functor(x, g);
-                    if ((fabs(g.maxCoeff()) < gtol && fabs(g.minCoeff()) < gtol) || (converged_callback && converged_callback())) return currit;
-                    if (f > f_prev) {
+                    if ((fabs(g.maxCoeff()) < gtol && fabs(g.minCoeff()) < gtol) ||
+                        (converged_callback && converged_callback()))
+                        return currit;
+                    if (f > f_prev)
+                    {
                         x = x_prev;
                         g = g_prev;
                         f = f_prev;
@@ -154,19 +173,24 @@ public:
                 }
 
                 workP = -g.dot(v);
-                if (workP > 0.0 && !is_uphill) {
+                if (workP > 0.0 && !is_uphill)
+                {
                     double vv = v.norm();
                     v *= (1.0 - alpha);
                     double gnorm = g.norm();
-                    if (gnorm > 0.0) {
+                    if (gnorm > 0.0)
+                    {
                         v -= alpha * g * vv / gnorm;
                     }
-                    if (!initaildeyal || Nsteps > ndelay) {
+                    if (!initaildeyal || Nsteps > ndelay)
+                    {
                         ts = std::min(ts_max, ts_grow * ts);
                         alpha = alpha * alpha_reduce;
-                    } 
+                    }
                     ++Nsteps;
-                } else {
+                }
+                else
+                {
                     v.setZero();
                     alpha = alpha_start;
                     ts *= ts_reduce;
@@ -176,7 +200,8 @@ public:
             v += -ts * g;
             dr = ts * v;
             drnorm = dr.norm();
-            if (drnorm > max_step) {
+            if (drnorm > max_step)
+            {
                 dr *= max_step / drnorm;
             }
             x_prev = x;
@@ -187,14 +212,16 @@ public:
     }
 
     // without energy
-    template<class T>
-    int minimize(T &functor, Eigen::VectorXd &x, double &f) {
+    template <class T> int minimize(T &functor, Eigen::VectorXd &x, double &f)
+    {
         // init mass
         Eigen::VectorXd ivmass;
         ivmass.resize(x.size());
         ivmass.setOnes();
-        if (assignmass) {
-            for (int i = 0; i < ivmass.size(); ++i) {
+        if (assignmass)
+        {
+            for (int i = 0; i < ivmass.size(); ++i)
+            {
                 ivmass[i] = 1.0 / mass[i];
             }
         }
@@ -220,58 +247,80 @@ public:
         // double f_prev;
         double drnorm = 0;
         int Nsteps = 0;
-        for (int currit = 0; currit < max_iter; ++currit) {
+        for (int currit = 0; currit < max_iter; ++currit)
+        {
             f = functor(x, g);
-            if (freeze_small_gd) {
-                for (int i = 0; i < g.size(); ++i) {
-                    if (fabs(g[i]) < freeze_gd_tol) {
+            if (freeze_small_gd)
+            {
+                for (int i = 0; i < g.size(); ++i)
+                {
+                    if (fabs(g[i]) < freeze_gd_tol)
+                    {
                         g[i] = 0;
                     }
                 }
             }
-            if ((fabs(g.maxCoeff()) < gtol && fabs(g.minCoeff()) < gtol) || (converged_callback && converged_callback())) return currit;
-            if (assignmass && massactall) {
-                for (int i = 0; i < g.size(); ++i) {
+            if ((fabs(g.maxCoeff()) < gtol && fabs(g.minCoeff()) < gtol) ||
+                (converged_callback && converged_callback()))
+                return currit;
+            if (assignmass && massactall)
+            {
+                for (int i = 0; i < g.size(); ++i)
+                {
                     g(i) *= ivmass(i);
                 }
             }
-            if (v.size() == 0) {
+            if (v.size() == 0)
+            {
                 v.resize(x.size());
                 v.setZero();
-            } else {
+            }
+            else
+            {
                 workP = -g.dot(v);
-                if (workP > 0.0) {
+                if (workP > 0.0)
+                {
                     double vv = v.norm();
                     v *= (1.0 - alpha);
                     double gnorm = g.norm();
-                    if (gnorm > 0.0) {
+                    if (gnorm > 0.0)
+                    {
                         v -= alpha * g * vv / gnorm;
                     }
-                    if (!initaildeyal || Nsteps > ndelay) {
+                    if (!initaildeyal || Nsteps > ndelay)
+                    {
                         ts = std::min(ts_max, ts_grow * ts);
                         alpha = alpha * alpha_reduce;
-                    } 
+                    }
                     ++Nsteps;
-                } else {
+                }
+                else
+                {
                     Message("Uphill - P = " + std::to_string(workP));
                     v.setZero();
                     alpha = alpha_start;
                     ts = std::max(effective_ts_min, ts * ts_reduce);
-                    Nsteps = 0; 
-                    if (half_step_back) {
+                    Nsteps = 0;
+                    if (half_step_back)
+                    {
                         // Roll back a fraction of the actual preceding move,
                         // before using the new timestep for the next trial.
                         x -= backward_ratio * dr;
                         f = functor(x, g);
-                        if (freeze_small_gd) {
-                            for (int i = 0; i < g.size(); ++i) {
-                                if (fabs(g[i]) < freeze_gd_tol) {
+                        if (freeze_small_gd)
+                        {
+                            for (int i = 0; i < g.size(); ++i)
+                            {
+                                if (fabs(g[i]) < freeze_gd_tol)
+                                {
                                     g[i] = 0;
                                 }
                             }
                         }
-                        if (assignmass && massactall) {
-                            for (int i = 0; i < g.size(); ++i) {
+                        if (assignmass && massactall)
+                        {
+                            for (int i = 0; i < g.size(); ++i)
+                            {
                                 g(i) *= ivmass(i);
                             }
                         }
@@ -279,21 +328,30 @@ public:
                     }
                 }
             }
-            if (massactall || !assignmass) {
+            if (massactall || !assignmass)
+            {
                 v += -ts * g;
-            } else {
-                for (int i = 0; i < v.size(); ++i) {
+            }
+            else
+            {
+                for (int i = 0; i < v.size(); ++i)
+                {
                     v(i) += -ts * g(i) * ivmass(i);
                 }
             }
             dr = ts * v;
             drnorm = dr.norm();
-            if (currit < first_delay) {
-                if (drnorm > first_move) {
+            if (currit < first_delay)
+            {
+                if (drnorm > first_move)
+                {
                     dr *= first_move / drnorm;
                 }
-            } else {
-                if (drnorm > max_step) {
+            }
+            else
+            {
+                if (drnorm > max_step)
+                {
                     dr *= max_step / drnorm;
                 }
             }

@@ -11,8 +11,8 @@
  * Notes about surf_tol and edge_tol:
  *  Surf_tol will remove small faces, which makes ie. 0 1 1 2 4 -> 0 0 0 2 4
  *  Edge_tol will remove small edges, which will reduce artifacts, makes cells
- *      i.e nearly equavelent to 0 0 12 0 0 to 0 0 12 0 0 
- * 
+ *      i.e nearly equavelent to 0 0 12 0 0 to 0 0 12 0 0
+ *
  * **/
 
 /**
@@ -24,12 +24,13 @@
  */
 class ComputeVoro : public ConnectSettings
 {
-private:
+  private:
     enum voromode
     {
         DIR,
         RAD
-    } mode = RAD;      // dir or rad
+    } mode = RAD; // dir or rad
+
     int num_edges = 9; // 0-0-0-12-0-0-0
     double strip_surf_tol = -0.02;
     double strip_edge_tol = -0.02;
@@ -39,15 +40,18 @@ private:
     // bool sample_one = false;
     // bool sample_all = false;
 
-public:
-    ComputeVoro(){};
+  public:
+    ComputeVoro() {};
     ComputeVoro(const GPSettings &_settings, const std::map<int, double> &atradii);
-    ~ComputeVoro(){};
+    ~ComputeVoro() {};
 
-    int get_num_edges() const { return num_edges; };
+    int get_num_edges() const
+    {
+        return num_edges;
+    };
 
     VoroInfo compute(Atoms &);
-    VoroInfo compute(const NeighborhoodsVoro &);                      // just a wrapper
+    VoroInfo compute(const NeighborhoodsVoro &);        // just a wrapper
     VoroInfo compute(Atoms &str, NeighborhoodsVoro **); // build neighbors
 
     void InitSettings()

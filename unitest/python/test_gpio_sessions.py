@@ -1,4 +1,5 @@
 """Owned parser/stream state for current Python structure I/O."""
+
 from concurrent.futures import ThreadPoolExecutor
 import gzip
 import numpy as np
@@ -8,7 +9,11 @@ from imrmlp._imrmlp import _GPIO
 
 
 def frames(path, n=12, symbol="H"):
-    path.write_text("".join(f'1\nProperties=species:S:1:pos:R:3 energy={i}\n{symbol} {i} 0 0\n' for i in range(n)))
+    path.write_text(
+        "".join(
+            f'1\nProperties=species:S:1:pos:R:3 energy={i}\n{symbol} {i} 0 0\n' for i in range(n)
+        )
+    )
     return path
 
 
@@ -47,8 +52,9 @@ def test_one_reader_serializes_concurrent_next(tmp_path):
 
 
 def test_concurrent_bulk_reads_share_only_configuration(tmp_path):
-    paths = [frames(tmp_path / f"{i}.xyz", n=i + 2, symbol="He" if i % 2 else "H")
-             for i in range(8)]
+    paths = [
+        frames(tmp_path / f"{i}.xyz", n=i + 2, symbol="He" if i % 2 else "H") for i in range(8)
+    ]
     io = _GPIO()
     with ThreadPoolExecutor(max_workers=4) as workers:
         got = list(workers.map(lambda p: io.read(str(p), "extxyz"), paths))
@@ -66,7 +72,7 @@ def test_writer_map_snapshot_and_compressed_finalization(tmp_path):
     io.set_elements(["He"])
     second_path = tmp_path / "second.xyz.gz"
     second = io.open_writer(str(second_path), "extxyz")
-    atom = imrmlp.Atoms(numbers=[1], positions=[[.2, .3, .4]], cell=np.eye(3), elements=["H"])
+    atom = imrmlp.Atoms(numbers=[1], positions=[[0.2, 0.3, 0.4]], cell=np.eye(3), elements=["H"])
     atom._impl.to_fractional()
     before = atom.positions.copy()
     with ThreadPoolExecutor(max_workers=2) as workers:
@@ -139,9 +145,11 @@ def test_highlevel_unit_copy_preserves_explicit_mapping():
 @pytest.mark.parametrize("reader", [imrmlp.read, imrmlp.read_one, imrmlp.iread, imrmlp.open_reader])
 def test_extxyz_declared_units_stress_uses_source_volume(tmp_path, reader):
     source = tmp_path / "source.xyz"
-    source.write_text('1\nLattice="2 0 0 0 2 0 0 0 2" pbc="T T T" '
-                      'energy=4 free_energy=3 stress="2 0 0 0 2 0 0 0 2" '
-                      'Properties=species:S:1:pos:R:3:forces:R:3\nH 1 0 0 2 0 0\n')
+    source.write_text(
+        '1\nLattice="2 0 0 0 2 0 0 0 2" pbc="T T T" '
+        'energy=4 free_energy=3 stress="2 0 0 0 2 0 0 0 2" '
+        'Properties=species:S:1:pos:R:3:forces:R:3\nH 1 0 0 2 0 0\n'
+    )
     result = reader(source, input_units={"length": "nm", "energy": "Hartree"})
     if reader is imrmlp.read:
         result = result[0]
@@ -152,10 +160,10 @@ def test_extxyz_declared_units_stress_uses_source_volume(tmp_path, reader):
         finally:
             iterator.close()
     energy = imrmlp.unit_conversion_factor("energy", "Hartree", "eV")
-    np.testing.assert_allclose(result.cell, np.eye(3) * 20.)
+    np.testing.assert_allclose(result.cell, np.eye(3) * 20.0)
     np.testing.assert_allclose(result.positions, [[10, 0, 0]])
-    np.testing.assert_allclose(result.forces, [[.2 * energy, 0, 0]])
-    np.testing.assert_allclose(result.stress, np.eye(3) * -16. * energy)
+    np.testing.assert_allclose(result.forces, [[0.2 * energy, 0, 0]])
+    np.testing.assert_allclose(result.stress, np.eye(3) * -16.0 * energy)
     assert result.energy == pytest.approx(4 * energy)
     assert result.free_energy == pytest.approx(3 * energy)
 

@@ -11,45 +11,61 @@
 #include <utility>
 #include <vector>
 
-namespace Potentials {
+namespace Potentials
+{
 
-namespace {
+namespace
+{
 
-std::vector<std::string> probe_gpm(const std::string &path) {
+std::vector<std::string> probe_gpm(const std::string &path)
+{
     GPM::Reader reader(path);
     const auto &species = GPM::array(GPM::at(reader.manifest, "species"));
     std::vector<std::string> names(species.size());
     std::vector<bool> seen(species.size(), false);
-    for (const auto &entry : species) {
+    for (const auto &entry : species)
+    {
         const auto &object = GPM::object(entry);
         const int id = GPM::integer(GPM::at(object, "id"));
-        if (id < 0 || id >= static_cast<int>(names.size()) || seen[id]) return {};
+        if (id < 0 || id >= static_cast<int>(names.size()) || seen[id])
+            return {};
         const auto symbol = object.find("symbol");
-        if (symbol == object.end() || !symbol->second.is<std::string>()) return {};
+        if (symbol == object.end() || !symbol->second.is<std::string>())
+            return {};
         names[id] = GPM::string(symbol->second);
         seen[id] = true;
     }
-    if (std::find(seen.begin(), seen.end(), false) != seen.end()) return {};
+    if (std::find(seen.begin(), seen.end(), false) != seen.end())
+        return {};
     return names;
 }
 
-std::vector<std::string> probe_mtp(const std::string &path) {
+std::vector<std::string> probe_mtp(const std::string &path)
+{
     auto stream = open_ifile(path);
-    if (!stream) return {};
+    if (!stream)
+        return {};
     const auto header = MTPMetadata::read_header(*stream);
     return header.tag.elements();
 }
 
-std::vector<std::string> probe_hybrid(const GPSettings &pot_settings) {
+std::vector<std::string> probe_hybrid(const GPSettings &pot_settings)
+{
     std::vector<std::string> result;
-    for (int index = 1;; ++index) {
+    for (int index = 1;; ++index)
+    {
         const auto child = pot_settings.ExtractSubSettings("pot" + std::to_string(index));
-        if (child["pottype"].empty()) break;
+        if (child["pottype"].empty())
+            break;
         auto names = probe_model_elements(child);
-        if (names.empty()) continue;
-        if (result.empty()) {
+        if (names.empty())
+            continue;
+        if (result.empty())
+        {
             result = std::move(names);
-        } else if (result != names) {
+        }
+        else if (result != names)
+        {
             return {};
         }
     }
@@ -58,20 +74,25 @@ std::vector<std::string> probe_hybrid(const GPSettings &pot_settings) {
 
 } // namespace
 
-std::vector<std::string> probe_model_elements(const GPSettings &pot_settings) {
-    try {
+std::vector<std::string> probe_model_elements(const GPSettings &pot_settings)
+{
+    try
+    {
         const std::string pottype = pot_settings["pottype"];
         if (pottype == "hybrid" || pottype == "hybrid_scale")
             return probe_hybrid(pot_settings);
 
         const std::string potfile = pot_settings["potfile"];
-        if (potfile.empty()) return {};
+        if (potfile.empty())
+            return {};
         if (GPM::is_file(potfile) || GPM::extension(potfile))
             return probe_gpm(potfile);
-        if (pottype.empty() || pottype == "auto" || pottype == "mtp" ||
-            pottype == "mtp_m" || pottype == "mtp_les" || pottype == "mtpnn1")
+        if (pottype.empty() || pottype == "auto" || pottype == "mtp" || pottype == "mtp_m" ||
+            pottype == "mtp_les" || pottype == "mtpnn1")
             return probe_mtp(potfile);
-    } catch (const std::exception &) {
+    }
+    catch (const std::exception &)
+    {
         // The authoritative model load reports malformed files. Probing is
         // best-effort so an absent or unusual format keeps the old map path.
         return {};

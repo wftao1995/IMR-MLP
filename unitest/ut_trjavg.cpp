@@ -9,31 +9,49 @@
 #include <fstream>
 
 using Catch::Approx;
-namespace {
-struct Workspace {
+
+namespace
+{
+struct Workspace
+{
     std::filesystem::path path;
-    Workspace() {
+
+    Workspace()
+    {
         char name[] = "/tmp/imrmlp_trjavg_XXXXXX";
         const char *dir = mkdtemp(name);
-        if (!dir) throw std::runtime_error("Cannot create trajectory average test directory");
+        if (!dir)
+            throw std::runtime_error("Cannot create trajectory average test directory");
         path = dir;
         std::ofstream(path / "index.map") << "Al\n";
     }
-    ~Workspace() {
+
+    ~Workspace()
+    {
         CMDOption::global_cmdopts.reset();
         std::filesystem::remove_all(path);
     }
-    int run() {
+
+    int run()
+    {
         CMDOption::global_cmdopts.reset();
-        std::vector<std::string> args = {"calc_trjavg", "--input-file=" + (path / "in.xyz").string(),
-            "--output-file=" + (path / "out.bin").string(), "--input-format=extxyz", "--output-format=bin",
-            "--index=" + (path / "index.map").string(), "--overwrite", "--wrap=false"};
+        std::vector<std::string> args = {"calc_trjavg",
+                                         "--input-file=" + (path / "in.xyz").string(),
+                                         "--output-file=" + (path / "out.bin").string(),
+                                         "--input-format=extxyz",
+                                         "--output-format=bin",
+                                         "--index=" + (path / "index.map").string(),
+                                         "--overwrite",
+                                         "--wrap=false"};
         std::vector<char *> argv;
-        for (auto &s : args) argv.push_back(s.data());
+        for (auto &s : args)
+            argv.push_back(s.data());
         return calc_trjavg(argv.size(), argv.data());
     }
 };
-Atoms labeled_frame() {
+
+Atoms labeled_frame()
+{
     Atoms a;
     a.cell_ = 20 * Eigen::Matrix3d::Identity();
     a.pos_ = {{1, 2, 3}, {3, 2, 3}};
@@ -41,17 +59,23 @@ Atoms labeled_frame() {
     a.pbc_ = {false, false, false};
     a.forces_ = {{1, 2, 3}, {4, 5, 6}};
     a.velocities_ = a.forces_;
-    a.energy_ = 7; a.have_energy = true;
-    a.fenergy_ = 6; a.have_fenergy = true;
+    a.energy_ = 7;
+    a.have_energy = true;
+    a.fenergy_ = 6;
+    a.have_fenergy = true;
     a.site_energies_ = {3, 4};
-    a.stress_.setConstant(13); a.have_stress = true;
-    a.hessian_ = Eigen::MatrixXd::Identity(6, 6); a.have_hessian = true;
+    a.stress_.setConstant(13);
+    a.have_stress = true;
+    a.hessian_ = Eigen::MatrixXd::Identity(6, 6);
+    a.have_hessian = true;
     a.hvp_directions_ = Eigen::MatrixXd::Ones(6, 1);
     a.hvp_targets_ = a.hvp_directions_;
     a.features_["origin"] = "first_frame";
     return a;
 }
-void require_geometry_only(const Atoms &a) {
+
+void require_geometry_only(const Atoms &a)
+{
     REQUIRE_FALSE(a.has_energy());
     REQUIRE_FALSE(a.has_fenergy());
     REQUIRE_FALSE(a.has_stresses());
@@ -66,7 +90,8 @@ void require_geometry_only(const Atoms &a) {
 }
 }
 
-TEST_CASE("Fixed-cell centroid returns geometry without frame labels", "[trajectory][centroid]") {
+TEST_CASE("Fixed-cell centroid returns geometry without frame labels", "[trajectory][centroid]")
+{
     auto a = labeled_frame(), b = a;
     b.pos_[0][0] += .2;
     b.pos_[1][0] += .8;
@@ -79,11 +104,14 @@ TEST_CASE("Fixed-cell centroid returns geometry without frame labels", "[traject
     require_geometry_only(centroid);
 }
 
-TEST_CASE("Trajectory average outputs only geometry for fixed and variable cells", "[trajectory][command]") {
+TEST_CASE("Trajectory average outputs only geometry for fixed and variable cells",
+          "[trajectory][command]")
+{
     const bool variable_cell = GENERATE(false, true);
     Workspace work;
     auto a = labeled_frame(), b = a;
-    if (variable_cell) b.cell_ *= 1.1;
+    if (variable_cell)
+        b.cell_ *= 1.1;
     b.pos_[0][0] += .2;
     b.pos_[1][0] += .8;
     GPIO io;
@@ -104,11 +132,14 @@ TEST_CASE("Trajectory average outputs only geometry for fixed and variable cells
     require_geometry_only(average);
 }
 
-TEST_CASE("Variable-cell trajectory averaging preserves nonperiodic displacements", "[trajectory][command]") {
+TEST_CASE("Variable-cell trajectory averaging preserves nonperiodic displacements",
+          "[trajectory][command]")
+{
     Workspace work;
     auto a = labeled_frame(), b = a;
     b.cell_ *= 1.1;
-    for (auto &p : b.pos_) p[0] += 15.2;
+    for (auto &p : b.pos_)
+        p[0] += 15.2;
     GPIO io;
     REQUIRE(io.readmap((work.path / "index.map").string()));
     std::vector<Atoms> frames{a, b};
@@ -119,14 +150,18 @@ TEST_CASE("Variable-cell trajectory averaging preserves nonperiodic displacement
     REQUIRE(average.pos_[0][0] == Approx((1.0 / 20 + 16.2 / 22) * .5 * 21));
 }
 
-TEST_CASE("Trajectory average returns failure when the output cannot be written", "[trajectory][command]") {
+TEST_CASE("Trajectory average returns failure when the output cannot be written",
+          "[trajectory][command]")
+{
     const bool full = GENERATE(false, true);
     Workspace work;
     GPIO io;
     REQUIRE(io.readmap((work.path / "index.map").string()));
     std::vector<Atoms> frames{labeled_frame()};
     REQUIRE(io.write(frames, (work.path / "in.xyz").string(), "extxyz"));
-    if (full) std::filesystem::create_symlink("/dev/full", work.path / "out.bin");
-    else std::filesystem::create_directory(work.path / "out.bin");
+    if (full)
+        std::filesystem::create_symlink("/dev/full", work.path / "out.bin");
+    else
+        std::filesystem::create_directory(work.path / "out.bin");
     REQUIRE(work.run() != 0);
 }

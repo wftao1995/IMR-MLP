@@ -7,6 +7,7 @@
 支持势类型：mtp, eamalloy, eamfs, eampoly,
             lj612, sw, tersoff, zbl, openkim 等
 """
+
 import numpy as np
 import imrmlp
 from imrmlp import Potential

@@ -1,4 +1,5 @@
 """Malformed XML reaches the normal reader failure path through convstr."""
+
 import pytest
 from test_cli_error_paths import run_command
 from test_vasprun_consumers import xml_trajectory
@@ -18,8 +19,21 @@ def test_convstr_rejects_incomplete_xml_without_publishing_output(tmp_path, dama
     (tmp_path / 'vasprun.xml').write_text(text)
     output = tmp_path / 'frames.xyz'
     output.write_text('previous successful output')
-    result = run_command('convstr', ['--inputfiles', 'vasprun.xml', '--input-format', 'xml',
-                                    '--outputfile', output, '--output-format', 'extxyz', '--overwrite'], tmp_path)
+    result = run_command(
+        'convstr',
+        [
+            '--inputfiles',
+            'vasprun.xml',
+            '--input-format',
+            'xml',
+            '--outputfile',
+            output,
+            '--output-format',
+            'extxyz',
+            '--overwrite',
+        ],
+        tmp_path,
+    )
     assert result.returncode == 1, result.stdout + result.stderr
     assert 'Error reading vasprun.xml:' in result.stdout + result.stderr
     assert output.read_text() == 'previous successful output'

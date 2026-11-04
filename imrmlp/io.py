@@ -23,7 +23,12 @@ from __future__ import annotations
 from typing import Iterable, Iterator, List, Union, Optional
 from pathlib import Path
 
-from ._imrmlp import _GPIO, _GPIOStreamReader, _detect_format, canonicalize_atoms as _canonicalize_raw
+from ._imrmlp import (
+    _GPIO,
+    _GPIOStreamReader,
+    _detect_format,
+    canonicalize_atoms as _canonicalize_raw,
+)
 from .atoms import Atoms
 from .units import _source_units
 
@@ -53,16 +58,30 @@ CAR = "car"
 
 
 _FORMAT_ALIASES = {
-    "mlpbin": MLIPBIN, "lmpyaml": LMPYAML, "grodata": GRODATA,
-    "n2p2dat": N2P2DAT, "dlpoly4": DLPOLY4,
+    "mlpbin": MLIPBIN,
+    "lmpyaml": LMPYAML,
+    "grodata": GRODATA,
+    "n2p2dat": N2P2DAT,
+    "dlpoly4": DLPOLY4,
 }
 # Include native aliases so explicit names and auto-detection reject the same
 # unsupported directions before opening or truncating a file. Tests compare
 # these sets against GPIO's registration and dispatch tables.
-_READ_ONLY_FORMATS = frozenset({
-    "outcar", "OUTCAR", "xml", "vasprun", "vasprun.xml", "yaml", "gro",
-    "msi", "xsd", "car", "poscars",
-})
+_READ_ONLY_FORMATS = frozenset(
+    {
+        "outcar",
+        "OUTCAR",
+        "xml",
+        "vasprun",
+        "vasprun.xml",
+        "yaml",
+        "gro",
+        "msi",
+        "xsd",
+        "car",
+        "poscars",
+    }
+)
 _WRITE_ONLY_FORMATS = frozenset({"vtk", "dlpoly", "DLPOLY"})
 _READ_ALL_ONLY_FORMATS = frozenset({"xml", "vasprun", "vasprun.xml"})
 
@@ -106,10 +125,24 @@ def _input_units(format, input_units):
     return _source_units(input_units)
 
 
-_SESSION_READ_FORMATS = frozenset({
-    "extxyz", "xyz", "cfg", "mlpcfg", "bin", "mlpbin", "n2p2", "n2p2dat",
-    "xsf", "axsf", "outcar", "OUTCAR", "xdatcar", "xdatcar6",
-})
+_SESSION_READ_FORMATS = frozenset(
+    {
+        "extxyz",
+        "xyz",
+        "cfg",
+        "mlpcfg",
+        "bin",
+        "mlpbin",
+        "n2p2",
+        "n2p2dat",
+        "xsf",
+        "axsf",
+        "outcar",
+        "OUTCAR",
+        "xdatcar",
+        "xdatcar6",
+    }
+)
 
 
 class _ReaderSession:
@@ -135,8 +168,9 @@ class _ReaderSession:
         self.close()
 
 
-def open_reader(filename: Union[str, Path], format: str = "", *,
-                detect_content: bool = False, input_units=None):
+def open_reader(
+    filename: Union[str, Path], format: str = "", *, detect_content: bool = False, input_units=None
+):
     """Open an independent bounded reader; use as an iterator or context manager.
 
     Supports EXTXYZ, CFG, BIN, N2P2, XSF, OUTCAR and XDATCAR/6. Each session
@@ -170,8 +204,9 @@ class _WriterSession:
         self.close()
 
 
-def open_writer(filename: Union[str, Path], format: str = "", *,
-                elements=None, append: bool = False):
+def open_writer(
+    filename: Union[str, Path], format: str = "", *, elements=None, append: bool = False
+):
     """Open an independent lazy writer with checked close/finalization.
 
     Supports EXTXYZ, CFG, BIN, N2P2 and XDATCAR/6. ``elements`` specifies the
@@ -187,8 +222,9 @@ def open_writer(filename: Union[str, Path], format: str = "", *,
     return _WriterSession(io.open_writer(str(filename), format), mapping)
 
 
-def read(filename: Union[str, Path], format: str = "", *,
-         detect_content: bool = False, input_units=None) -> List[Atoms]:
+def read(
+    filename: Union[str, Path], format: str = "", *, detect_content: bool = False, input_units=None
+) -> List[Atoms]:
     """Read all structures from a file.
 
     GRO bulk reading retains only the first frame; use ``iread`` for a GRO
@@ -221,8 +257,9 @@ def read(filename: Union[str, Path], format: str = "", *,
     return [Atoms(_impl=a) for a in raw_atoms]
 
 
-def read_one(filename: Union[str, Path], format: str = "", *,
-             detect_content: bool = False, input_units=None) -> Atoms:
+def read_one(
+    filename: Union[str, Path], format: str = "", *, detect_content: bool = False, input_units=None
+) -> Atoms:
     """Read a single structure from a file.
 
     trajectory decodes only the first physical record through its filename backend;
@@ -255,8 +292,9 @@ def read_one(filename: Union[str, Path], format: str = "", *,
     return Atoms(_impl=raw)
 
 
-def iread(filename: Union[str, Path], format: str = "", *,
-          detect_content: bool = False, input_units=None) -> Iterator[Atoms]:
+def iread(
+    filename: Union[str, Path], format: str = "", *, detect_content: bool = False, input_units=None
+) -> Iterator[Atoms]:
     """Yield independent frames without loading the whole trajectory.
 
     Supported formats are ``extxyz``/``xyz``, ``cfg``/``mlpcfg``,
@@ -348,9 +386,13 @@ def iread(filename: Union[str, Path], format: str = "", *,
         reader.close()
 
 
-def write(filename: Union[str, Path],
-          atoms: Union[Atoms, List[Atoms]],
-          format: str = "", *, append: bool = False):
+def write(
+    filename: Union[str, Path],
+    atoms: Union[Atoms, List[Atoms]],
+    format: str = "",
+    *,
+    append: bool = False,
+):
     """Write structure(s) to a file.
 
     A list written with format ``axsf`` or an ``.axsf`` filename produces one
@@ -392,9 +434,13 @@ def write(filename: Union[str, Path],
         io.write([a._impl for a in atoms], str(filename), format)
 
 
-def write_iter(filename: Union[str, Path],
-               structures: Iterable[Atoms],
-               format: str = "", *, append: bool = False):
+def write_iter(
+    filename: Union[str, Path],
+    structures: Iterable[Atoms],
+    format: str = "",
+    *,
+    append: bool = False,
+):
     """Write EXTXYZ, CFG, BIN, XDATCAR, XDATCAR6, CP2KXYZ, N2P2 or trajectory from an iterable.
 
     Format detection, aliases and optional gzip compression follow
@@ -465,9 +511,7 @@ def write_iter(filename: Union[str, Path],
     io.write_iter(raw_frames(), str(filename), format)
 
 
-def write_one(filename: Union[str, Path],
-              atoms: Atoms,
-              format: str = ""):
+def write_one(filename: Union[str, Path], atoms: Atoms, format: str = ""):
     """Write a single structure to a file.
 
     Args:

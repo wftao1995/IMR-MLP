@@ -15,27 +15,26 @@
 
 /*****
  * Build voronoi neighbors
- * 
+ *
  * need atom radiis
- * 
+ *
  * Note: positions should be wrapped before calling this code.
- * 
+ *
  * atom: Atoms object
  * radii: radii of each atoms
- * surftol: refine surface, =0 for count all, <0 to remove min, > 0 to set 
+ * surftol: refine surface, =0 for count all, <0 to remove min, > 0 to set
  *  threoldsd
  * edgetol: refine edge, less than 0 means count all
  * numneigh: minium number of neighbors, 0 means no restriction
- * 
+ *
  * ***/
-void NeighborhoodsVoroDir::construct(Atoms &atom,
-                                     const double surftol,
-                                     const double edgetol,
+void NeighborhoodsVoroDir::construct(Atoms &atom, const double surftol, const double edgetol,
                                      const int numneigh)
 {
     //test if orth
     const Eigen::Matrix3d diagonal = atom.cell_.diagonal().asDiagonal();
-    const bool orthcell = atom.cell_.isApprox(diagonal, 1e-12) && atom.cell_.diagonal().minCoeff() > 0;
+    const bool orthcell =
+        atom.cell_.isApprox(diagonal, 1e-12) && atom.cell_.diagonal().minCoeff() > 0;
     bool warned_refinement = false;
 
     // variables used in loop
@@ -84,7 +83,8 @@ void NeighborhoodsVoroDir::construct(Atoms &atom,
                     id = cl.pid();
                     const auto faces = voro_geometry::faces(ca, atom, id, nullptr);
                     std::vector<int> selected;
-                    cell = voro_geometry::refine(ca, cb, faces, surftol, numneigh, selected, warned_refinement);
+                    cell = voro_geometry::refine(ca, cb, faces, surftol, numneigh, selected,
+                                                 warned_refinement);
                     cell->face_areas(fs);
                     vol = cell->volume();
                     voro_volume_each_[id] = vol;
@@ -102,7 +102,8 @@ void NeighborhoodsVoroDir::construct(Atoms &atom,
                     }
 
                     // store neighborhoods and voro index
-                    Neighborhood nbh = voro_geometry::neighborhood(faces, selected, atom, id, Eigen::Matrix3d::Identity());
+                    Neighborhood nbh = voro_geometry::neighborhood(faces, selected, atom, id,
+                                                                   Eigen::Matrix3d::Identity());
                     nbhs[id] = nbh;
                     // count voro index
                     voro_index_type indname(index);
@@ -128,7 +129,8 @@ void NeighborhoodsVoroDir::construct(Atoms &atom,
         }
         else
         {
-            std::cout << "Warning: isolate particle, atom radius setting might incorrect." << std::endl;
+            std::cout << "Warning: isolate particle, atom radius setting might incorrect."
+                      << std::endl;
         }
     }
     else
@@ -141,7 +143,8 @@ void NeighborhoodsVoroDir::construct(Atoms &atom,
         Atoms atomc(atom);
         atomc.to_lower_standard();
         Eigen::Matrix3d original_cell = atom.cell_;
-        if (original_cell.determinant() < 0) original_cell.row(2) *= -1;
+        if (original_cell.determinant() < 0)
+            original_cell.row(2) *= -1;
         const Eigen::Matrix3d rotation = atomc.cell_.inverse() * original_cell;
         double lx = atomc.cell_(0, 0);
         double ly = atomc.cell_(1, 1);
@@ -179,7 +182,8 @@ void NeighborhoodsVoroDir::construct(Atoms &atom,
                     id = cl.pid();
                     const auto faces = voro_geometry::faces(ca, atomc, id, nullptr);
                     std::vector<int> selected;
-                    cell = voro_geometry::refine(ca, cb, faces, surftol, numneigh, selected, warned_refinement);
+                    cell = voro_geometry::refine(ca, cb, faces, surftol, numneigh, selected,
+                                                 warned_refinement);
                     cell->face_areas(fs);
                     vol = cell->volume();
                     voro_volume_each_[id] = vol;
@@ -196,7 +200,8 @@ void NeighborhoodsVoroDir::construct(Atoms &atom,
                     }
 
                     // store neighborhoods and voro index
-                    Neighborhood nbh = voro_geometry::neighborhood(faces, selected, atom, id, rotation);
+                    Neighborhood nbh =
+                        voro_geometry::neighborhood(faces, selected, atom, id, rotation);
                     nbhs[id] = nbh;
                     // count voro index
                     voro_index_type indname(index);
@@ -227,10 +232,8 @@ void NeighborhoodsVoroDir::construct(Atoms &atom,
     }
 }
 
-NeighborhoodsVoroDir::NeighborhoodsVoroDir(Atoms &atom,
-                                           const int voro_edge_upto,
-                                           const double surftol,
-                                           const double edgetol,
+NeighborhoodsVoroDir::NeighborhoodsVoroDir(Atoms &atom, const int voro_edge_upto,
+                                           const double surftol, const double edgetol,
                                            const int numneigh)
 {
     voro_edge_upto_ = voro_edge_upto;

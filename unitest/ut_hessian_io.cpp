@@ -49,7 +49,8 @@ TEST_CASE("HessianIO reads vasprun hessian varray", "[hessian_io]")
         std::ofstream out(path);
         out << "<modeling>\n";
         out << "<varray name=\"hessian\">\n";
-        for (int i = 0; i < 6; ++i) {
+        for (int i = 0; i < 6; ++i)
+        {
             out << "<v>";
             for (int j = 0; j < 6; ++j)
                 out << ' ' << (10 * i + j);
@@ -73,7 +74,8 @@ TEST_CASE("HessianIO rejects duplicate dense FORCE_CONSTANTS blocks", "[hessian_
     {
         std::ofstream out(path);
         out << "2\n";
-        for (int block = 0; block < 4; ++block) {
+        for (int block = 0; block < 4; ++block)
+        {
             out << "1 1\n";
             out << "1 0 0\n0 1 0\n0 0 1\n";
         }

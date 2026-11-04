@@ -1,4 +1,5 @@
 """Bounded output snapshots owned element mappings rather than caller lists."""
+
 import numpy as np
 import pytest
 
@@ -8,8 +9,7 @@ import imrmlp
 
 def test_write_iter_ignores_changes_to_the_constructor_elements_list(tmp_path):
     elements = ['H', 'He']
-    atom = imrmlp.Atoms(numbers=[1], elements=elements, positions=[[0, 0, 0]],
-                      cell=np.eye(3)*10)
+    atom = imrmlp.Atoms(numbers=[1], elements=elements, positions=[[0, 0, 0]], cell=np.eye(3) * 10)
     output = tmp_path / 'mapping.xyz'
 
     def changed_input_list():
@@ -26,8 +26,7 @@ def test_write_iter_ignores_changes_to_the_constructor_elements_list(tmp_path):
 
 def test_write_iter_snapshots_the_mapping_and_rejects_later_changes(tmp_path):
     elements = ['H', 'He']
-    atom = imrmlp.Atoms(numbers=[1], elements=elements, positions=[[0, 0, 0]],
-                      cell=np.eye(3)*10)
+    atom = imrmlp.Atoms(numbers=[1], elements=elements, positions=[[0, 0, 0]], cell=np.eye(3) * 10)
     output = tmp_path / 'mapping.xyz'
 
     def changed_mapping():

@@ -1,4 +1,5 @@
 """Explicit trainmtp actions and diagnostic-only output through real processes."""
+
 import os
 from pathlib import Path
 import shutil
@@ -13,23 +14,39 @@ from training_cli_fixture import prepare_fixture
 
 def write_settings(path, extra=None):
     settings = {
-        'potfile': 'base.mtp', 'trainset': 'train.cfg',
-        'trainset-format': 'mlpcfg', 'index': 'index.map',
-        'fit:save_to': 'fitted.mtp', 'fit:skip_preinit': 'true',
-        'fit:bfgs_maxiteration': '1', 'fit:bfgs_m': '2',
-        'fit:bfgs_grad_tol': '0', 'fit:bfgs_conv_tol': '0',
-        'fit:bfgs_step_tol': '0', 'fit:save_every': '100',
-        'fit:rescale_mode': 'fixed', 'fit:epoch_limit': '1',
-        'fit:batch_size': '6', 'fit:learning_rate': '0.001',
-        'fit:energy_weight': '1', 'fit:force_weight': '0.5',
-        'fit:stress_weight': '0.1', 'fit:penalty_weight': '0',
+        'potfile': 'base.mtp',
+        'trainset': 'train.cfg',
+        'trainset-format': 'mlpcfg',
+        'index': 'index.map',
+        'fit:save_to': 'fitted.mtp',
+        'fit:skip_preinit': 'true',
+        'fit:bfgs_maxiteration': '1',
+        'fit:bfgs_m': '2',
+        'fit:bfgs_grad_tol': '0',
+        'fit:bfgs_conv_tol': '0',
+        'fit:bfgs_step_tol': '0',
+        'fit:save_every': '100',
+        'fit:rescale_mode': 'fixed',
+        'fit:epoch_limit': '1',
+        'fit:batch_size': '6',
+        'fit:learning_rate': '0.001',
+        'fit:energy_weight': '1',
+        'fit:force_weight': '0.5',
+        'fit:stress_weight': '0.1',
+        'fit:penalty_weight': '0',
     }
     settings.update(extra or {})
-    (path / 'settings.ini').write_text(''.join(f'{key} {value}\n' for key, value in settings.items()))
+    (path / 'settings.ini').write_text(
+        ''.join(f'{key} {value}\n' for key, value in settings.items())
+    )
 
 
 def run(path, *flags, command='trainmtp'):
-    return run_command('imrmlp', [command, 'settings.ini', '--num_threads', '1', '--output=_Trained_Potential_.mtp', *flags], path)
+    return run_command(
+        'imrmlp',
+        [command, 'settings.ini', '--num_threads', '1', '--output=_Trained_Potential_.mtp', *flags],
+        path,
+    )
 
 
 INVALID_ACTIONS = [
@@ -38,26 +55,41 @@ INVALID_ACTIONS = [
     ({'fit:force_randomlinear': 'true'}, [], 'select a training or diagnostic action'),
     ({'linear-fit': 'true'}, ['--linear-fit=false'], 'select a training or diagnostic action'),
     ({'do-lbfgs': 'true'}, ['--do-lbfgs=false'], 'select a training or diagnostic action'),
-    ({'do-matrix-ata': 'true'}, ['--do-matrix-ata=false'], 'select a training or diagnostic action'),
+    (
+        {'do-matrix-ata': 'true'},
+        ['--do-matrix-ata=false'],
+        'select a training or diagnostic action',
+    ),
     ({}, ['--do-rescale'], '--do-rescale requires --linear-fit'),
     ({'do-rescale': 'true'}, [], '--do-rescale requires --linear-fit'),
     ({}, ['--do-lbfgs', '--do-rescale'], '--do-rescale requires --linear-fit'),
     ({}, ['--do-matrix-ata', '--do-rescale'], '--do-rescale requires --linear-fit'),
-    ({'linear-fit': 'true', 'do-rescale': 'true'}, ['--linear-fit=false'],
-     '--do-rescale requires --linear-fit'),
+    (
+        {'linear-fit': 'true', 'do-rescale': 'true'},
+        ['--linear-fit=false'],
+        '--do-rescale requires --linear-fit',
+    ),
 ]
 
 
 @pytest.mark.parametrize('existing_outputs', [False, True])
 @pytest.mark.parametrize('extra,flags,message', INVALID_ACTIONS)
-def test_invalid_actions_precede_input_and_preserve_outputs(tmp_path, existing_outputs,
-                                                          extra, flags, message):
+def test_invalid_actions_precede_input_and_preserve_outputs(
+    tmp_path, existing_outputs, extra, flags, message
+):
     # These inputs deliberately cannot be parsed; action validation must win.
     for name in ('base.mtp', 'train.cfg', 'index.map'):
         (tmp_path / name).write_text(f'invalid input sentinel {name}\n')
     if existing_outputs:
-        for name in ('_Trained_Potential_.mtp', 'fitted.mtp', 'DEBUG', 'DEBUG_0',
-                     'MATATA.info', 'output_grad_info', '_RANDOM_IT_0.mtp'):
+        for name in (
+            '_Trained_Potential_.mtp',
+            'fitted.mtp',
+            'DEBUG',
+            'DEBUG_0',
+            'MATATA.info',
+            'output_grad_info',
+            '_RANDOM_IT_0.mtp',
+        ):
             (tmp_path / name).write_text(f'keep previous output {name}\n')
     write_settings(tmp_path, {'debug': 'true', 'fit:debug': 'true', **extra})
     before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
@@ -76,8 +108,14 @@ def test_help_needs_no_action_or_input(tmp_path):
     assert not list(tmp_path.iterdir())
 
 
-DIAGNOSTICS = ['--do-matrix-a', '--do-matrix-ata', '--calc-grad',
-               '--check-grad', '--check-grad-all', '--test-curv']
+DIAGNOSTICS = [
+    '--do-matrix-a',
+    '--do-matrix-ata',
+    '--calc-grad',
+    '--check-grad',
+    '--check-grad-all',
+    '--test-curv',
+]
 
 
 @pytest.mark.parametrize('action', DIAGNOSTICS)
@@ -114,8 +152,7 @@ def test_diagnostic_actions_preserve_models(tmp_path, action):
         assert (' HE = ' if action == '--test-curv' else ' N_CURV = ') in result.stdout
 
 
-@pytest.mark.parametrize('action', ['--linear-fit', '--do-lbfgs', '--do-cg',
-                                    '--do-sgd', '--do-df'])
+@pytest.mark.parametrize('action', ['--linear-fit', '--do-lbfgs', '--do-cg', '--do-sgd', '--do-df'])
 def test_training_actions_really_publish_models(tmp_path, action):
     prepare_fixture(tmp_path)
     write_settings(tmp_path)
@@ -159,7 +196,9 @@ def test_existing_optimizer_sequence_is_preserved(tmp_path):
     result = run(tmp_path, '--do-lbfgs', '--do-cg', '--do-matrix-ata')
     assert result.returncode == 0, result.stdout + result.stderr
     assert (tmp_path / 'fitted.mtp').is_file()
-    assert (tmp_path / '_Trained_Potential_.mtp').read_bytes() == (tmp_path / 'fitted.mtp').read_bytes()
+    assert (tmp_path / '_Trained_Potential_.mtp').read_bytes() == (
+        tmp_path / 'fitted.mtp'
+    ).read_bytes()
     assert (tmp_path / 'MATATA.info').is_file()
 
 
@@ -173,9 +212,10 @@ def test_cli_action_overrides_false_settings_and_rescale_can_be_disabled(tmp_pat
 
 
 @pytest.mark.parametrize('ranks', [1, 2])
-@pytest.mark.parametrize('flags,success', [(['--help'], True), ([], False),
-                                         (['--do-rescale'], False),
-                                         (['--do-lbfgs=false'], False)])
+@pytest.mark.parametrize(
+    'flags,success',
+    [(['--help'], True), ([], False), (['--do-rescale'], False), (['--do-lbfgs=false'], False)],
+)
 @pytest.mark.extended
 def test_mpi_early_exit_is_collective_and_preserves_outputs(tmp_path, ranks, flags, success):
     executable = Path(os.environ.get('IMRMLP_MPI_EXECUTABLE', ROOT / 'build/mpi/imrmlp-mpi'))
@@ -186,13 +226,37 @@ def test_mpi_early_exit_is_collective_and_preserves_outputs(tmp_path, ranks, fla
     (tmp_path / '_Trained_Potential_.mtp').write_text('preserve MPI output\n')
     before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
     env = os.environ.copy()
-    env.update({'OMPI_ALLOW_RUN_AS_ROOT': '1', 'OMPI_ALLOW_RUN_AS_ROOT_CONFIRM': '1',
-                'OMPI_MCA_rmaps_base_oversubscribe': '1', 'OMP_NUM_THREADS': '1'})
+    env.update(
+        {
+            'OMPI_ALLOW_RUN_AS_ROOT': '1',
+            'OMPI_ALLOW_RUN_AS_ROOT_CONFIRM': '1',
+            'OMPI_MCA_rmaps_base_oversubscribe': '1',
+            'OMP_NUM_THREADS': '1',
+        }
+    )
     env['LD_LIBRARY_PATH'] = str(executable.parent) + ':' + env.get('LD_LIBRARY_PATH', '')
-    result = subprocess.run([launcher, '-n', str(ranks), str(executable), 'trainmtp',
-                             'settings.ini', '--num_threads', '1', *flags], cwd=tmp_path,
-                            env=env, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(
+        [
+            launcher,
+            '-n',
+            str(ranks),
+            str(executable),
+            'trainmtp',
+            'settings.ini',
+            '--num_threads',
+            '1',
+            *flags,
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
     assert (result.returncode == 0) == success, result.stdout + result.stderr
     if not success:
-        assert 'requires --linear-fit' in result.stderr or 'select a training or diagnostic action' in result.stderr
+        assert (
+            'requires --linear-fit' in result.stderr
+            or 'select a training or diagnostic action' in result.stderr
+        )
     assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before

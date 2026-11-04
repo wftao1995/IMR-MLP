@@ -1,4 +1,5 @@
 """Explicit species clones preserve old predictions and survive native saves."""
+
 import json
 import numpy as np
 import pytest
@@ -9,18 +10,23 @@ from training_cli_fixture import MODEL
 
 
 def structure(z, elements):
-    return imrmlp.Atoms(numbers=[z, z], elements=elements, pbc=False,
-                      positions=[[1., 1., 1.], [2.2, 1.3, 1.1]], cell=np.eye(3)*12)
+    return imrmlp.Atoms(
+        numbers=[z, z],
+        elements=elements,
+        pbc=False,
+        positions=[[1.0, 1.0, 1.0], [2.2, 1.3, 1.1]],
+        cell=np.eye(3) * 12,
+    )
 
 
 def load_model(tmp_path, tagged=True):
     text = MODEL
     if tagged:
-        metadata = dict(schema='gpml.mtp.metadata', version=1,
-                        type='MTP', model='linear', elements=['H'])
-        text = text.replace('potential_tag = test-only',
-                            'potential_tag = ' + json.dumps(metadata))
-    path = tmp_path/'original.mtp'
+        metadata = dict(
+            schema='gpml.mtp.metadata', version=1, type='MTP', model='linear', elements=['H']
+        )
+        text = text.replace('potential_tag = test-only', 'potential_tag = ' + json.dumps(metadata))
+    path = tmp_path / 'original.mtp'
     path.write_text(text)
     return imrmlp.Potential(path)
 
@@ -39,7 +45,7 @@ def test_append_species_clones_old_ids_and_saves_metadata(tmp_path):
         potential.calculate(clone)
         assert clone.energy == pytest.approx(a.energy, abs=1e-12)
         np.testing.assert_allclose(clone.forces, a.forces, atol=1e-12)
-    path = tmp_path/'expanded.mtp'
+    path = tmp_path / 'expanded.mtp'
     potential.save(path)
     saved = path.read_text()
     assert all(f'"{name}"' in saved for name in ['H', 'He', 'Li'])
@@ -55,8 +61,14 @@ def test_append_species_clones_old_ids_and_saves_metadata(tmp_path):
 def test_append_species_errors_preserve_parameters(tmp_path):
     potential = load_model(tmp_path)
     before = potential.coefficients.copy()
-    for sources, names in [([1], ['He']), ([-1], ['He']), ([0], None),
-                           ([0], ['H']), ([0], ['invalid']), ([0, 0], ['He'])]:
+    for sources, names in [
+        ([1], ['He']),
+        ([-1], ['He']),
+        ([0], None),
+        ([0], ['H']),
+        ([0], ['invalid']),
+        ([0, 0], ['He']),
+    ]:
         with pytest.raises(RuntimeError):
             potential.append_species(sources, names)
         assert potential.species_count == 1
@@ -74,5 +86,5 @@ def test_untagged_append_uses_explicit_internal_clone_ids(tmp_path):
     mapping = potential.append_species([0])
     assert potential.species_count == 2
     np.testing.assert_array_equal(potential.coefficients[np.asarray(mapping)], old)
-    potential.save(tmp_path/'indices.mtp')
-    assert imrmlp.Potential(tmp_path/'indices.mtp').species_count == 2
+    potential.save(tmp_path / 'indices.mtp')
+    assert imrmlp.Potential(tmp_path / 'indices.mtp').species_count == 2

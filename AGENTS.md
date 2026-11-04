@@ -17,7 +17,9 @@ When running a test executable directly, or invoking `make run_tests`, prepend t
 
 ## Coding Style & Naming Conventions
 
-Follow the existing C++ style in the touched module. Use C++23-compatible code, keep includes local and minimal, and prefer existing utilities in `utils`, `base`, and nearby module directories over new helpers. Test files use the `unitest/ut_<feature>.cpp` naming pattern. Build outputs belong under `build/<mode>` and should not be committed. No project-wide formatter configuration is present, so avoid broad whitespace-only rewrites.
+Use `.clang-format` for C++/CUDA (clang-format 23) and `ruff.toml` for Python (Ruff 0.16.4). The format uses four spaces, a 100-column target, and expanded control statements. Preserve include order, comments, and string contents. Respect `.clang-format-ignore` and Ruff exclusions for dependencies, generated build outputs, archived code, and fixtures. Keep format-only changes separate from behavioral changes.
+
+Use C++23-compatible code, keep includes local and minimal, and prefer existing utilities in `utils`, `base`, and nearby module directories over new helpers. Test files use the `unitest/ut_<feature>.cpp` naming pattern. Build outputs belong under `build/<mode>` and should not be committed.
 
 ## Testing Guidelines
 

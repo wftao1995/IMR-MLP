@@ -2,6 +2,7 @@
 # Copyright (c) 2026 IMR-MLP contributors
 # SPDX-License-Identifier: MIT
 """Build complete, fresh Doxygen output and validate it before replacing old HTML."""
+
 import argparse
 from hashlib import sha256
 from html import escape
@@ -23,7 +24,9 @@ from publish_docs import publish_directory
 def copy_mathjax(html):
     source = Path(os.environ.get('MATHJAX_DIR', ROOT / 'build/docs-deps/node_modules/mathjax/es5'))
     if not (source / 'tex-svg.js').is_file():
-        raise RuntimeError('Local MathJax 3 assets are missing; set MATHJAX_DIR to its es5 directory')
+        raise RuntimeError(
+            'Local MathJax 3 assets are missing; set MATHJAX_DIR to its es5 directory'
+        )
     shutil.copytree(source, html / 'assets/mathjax/es5')
     license_file = source.parent / 'LICENSE'
     if not license_file.is_file():
@@ -41,13 +44,17 @@ def version_assets(html):
         digest.update(path.read_bytes())
     version = digest.hexdigest()[:16]
     for filename, assignment in (
-            ('navtree.js', "script.src = scriptName+'.js';"),
-            ('search/search.js', 'scriptTag.src = url;')):
+        ('navtree.js', "script.src = scriptName+'.js';"),
+        ('search/search.js', 'scriptTag.src = url;'),
+    ):
         path = html / filename
         if path.is_file():
             text = path.read_text()
-            replacement = (f"script.src = scriptName+'.js?v={version}';" if filename == 'navtree.js'
-                           else f"scriptTag.src = url + '?v={version}';")
+            replacement = (
+                f"script.src = scriptName+'.js?v={version}';"
+                if filename == 'navtree.js'
+                else f"scriptTag.src = url + '?v={version}';"
+            )
             path.write_text(text.replace(assignment, replacement))
 
     def reference(match):
@@ -61,8 +68,9 @@ def version_assets(html):
 
     for path in html.rglob('*.html'):
         text = path.read_text()
-        path.write_text(re.sub(r'(<(?:script|link)\b[^>]*\b(?:src|href)=")([^"]+)(")',
-                               reference, text))
+        path.write_text(
+            re.sub(r'(<(?:script|link)\b[^>]*\b(?:src|href)=")([^"]+)(")', reference, text)
+        )
     (html / 'asset-version.txt').write_text(version + '\n')
     return version
 
@@ -83,12 +91,17 @@ def collect_inputs(config, language):
     pages = set()
     if config.resolve().parent == ROOT / 'docs':
         from doc_catalog import sources
+
         pages.update(sources(language))
         pages.add(ROOT / 'docs' / ('00_mainpage_zh.md' if language == 'zh' else '00_mainpage.md'))
     for name in values['INPUT']:
         path = (config.parent / name).resolve()
         candidates = path.glob('*.md') if path.is_dir() else [path]
-        pages.update(preferred_page(p, language) for p in candidates if p.suffix == '.md' and p not in excluded)
+        pages.update(
+            preferred_page(p, language)
+            for p in candidates
+            if p.suffix == '.md' and p not in excluded
+        )
     assets, visited = set(), set()
     while pages - visited:
         source = min(pages - visited)
@@ -116,10 +129,13 @@ def build(config, doxygen, output=None, validate=True):
         for name in values['INPUT']:
             path = (config.parent / name).resolve()
             candidates = path.glob('*.md') if path.is_dir() else [path]
-            unselected.update(p for p in candidates
-                              if p.suffix == '.md' and preferred_page(p, language) != p)
+            unselected.update(
+                p for p in candidates if p.suffix == '.md' and preferred_page(p, language) != p
+            )
         if unselected:
-            extra += '\nEXCLUDE += ' + ' '.join('"' + p.as_posix() + '"' for p in sorted(unselected))
+            extra += '\nEXCLUDE += ' + ' '.join(
+                '"' + p.as_posix() + '"' for p in sorted(unselected)
+            )
         extra += f'\nOUTPUT_DIRECTORY = "{staging}"\n'
         extra += 'WARN_LOGFILE = "' + (staging / 'warnings.log').as_posix() + '"\n'
         subprocess.run([doxygen, '-'], input=text + extra, text=True, cwd=config.parent, check=True)
@@ -128,7 +144,9 @@ def build(config, doxygen, output=None, validate=True):
             destination = html / 'assets' / asset.relative_to(ROOT)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(asset, destination)
-        if values.get('USE_MATHJAX') == ['YES'] and values.get('MATHJAX_RELPATH') == ['assets/mathjax']:
+        if values.get('USE_MATHJAX') == ['YES'] and values.get('MATHJAX_RELPATH') == [
+            'assets/mathjax'
+        ]:
             copy_mathjax(html)
         warnings = (staging / 'warnings.log').read_text()
         if warnings:
@@ -148,7 +166,10 @@ def build(config, doxygen, output=None, validate=True):
                 publish_directory(generated, destination)
             else:
                 os.replace(generated, destination)
-    print(f'{config.name}: {count} HTML pages and {len(assets)} attachments generated' + (' and validated' if validate else ''))
+    print(
+        f'{config.name}: {count} HTML pages and {len(assets)} attachments generated'
+        + (' and validated' if validate else '')
+    )
 
 
 def build_bilingual(doxygen):
@@ -162,7 +183,9 @@ def build_bilingual(doxygen):
             version_assets(html)
             errors, count = check_html(html, staging)
             if errors:
-                raise RuntimeError('\n'.join(errors[:30]) + f'\n{len(errors)} broken bilingual links')
+                raise RuntimeError(
+                    '\n'.join(errors[:30]) + f'\n{len(errors)} broken bilingual links'
+                )
             print(f'{name}: {count} HTML pages and bilingual links validated')
         for name in ('build', 'build_zh'):
             publish_directory(staging / name, ROOT / 'docs' / name)
@@ -171,7 +194,9 @@ def build_bilingual(doxygen):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('config', type=Path, nargs='?')
-    parser.add_argument('--all', action='store_true', help='build and check both languages as one site')
+    parser.add_argument(
+        '--all', action='store_true', help='build and check both languages as one site'
+    )
     parser.add_argument('--doxygen', default='doxygen')
     args = parser.parse_args()
     try:

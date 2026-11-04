@@ -9,7 +9,7 @@ import imrmlp
 
 
 def structure():
-    atoms = imrmlp.Atoms(positions=[[1., 2., 3.]], cell=np.eye(3) * 10)
+    atoms = imrmlp.Atoms(positions=[[1.0, 2.0, 3.0]], cell=np.eye(3) * 10)
     atoms.chemmap = [0]
     return atoms
 

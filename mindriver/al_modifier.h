@@ -6,7 +6,10 @@
 #include "mindriver/relax_new.h"
 #include <string>
 
-namespace AL { class ALPotential; }  // fwd
+namespace AL
+{
+class ALPotential;
+} // fwd
 
 /// @brief Active-learning adapter for RelaxationDrvV2.
 ///
@@ -25,15 +28,22 @@ namespace AL { class ALPotential; }  // fwd
 ///   relaxdrv.init(pot, at, &constraints);
 ///   relaxdrv.run();
 ///   al->finalize();
-class ALModifier : public AnyModifier {
-public:
-    explicit ALModifier(AL::ALPotential *al_pot = nullptr)
-        : al_pot_(al_pot) { name = "ALModifier"; type = FILTER; }
+class ALModifier : public AnyModifier
+{
+  public:
+    explicit ALModifier(AL::ALPotential *al_pot = nullptr) : al_pot_(al_pot)
+    {
+        name = "ALModifier";
+        type = FILTER;
+    }
 
-    void set_al_pot(AL::ALPotential *p) { al_pot_ = p; }
+    void set_al_pot(AL::ALPotential *p)
+    {
+        al_pot_ = p;
+    }
 
     void forward(RelaxationDrvV2 *drv) override;
 
-private:
+  private:
     AL::ALPotential *al_pot_ = nullptr;
 };

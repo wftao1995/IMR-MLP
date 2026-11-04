@@ -7,6 +7,7 @@
 支持格式：poscar, outcar, extxyz, mlpcfg, cif, lmptrj, lmpdat,
            vasprun, xsf, vtk, xdatcar, lmpyaml 等
 """
+
 import imrmlp
 
 # ── 读取单个结构 ──────────────────────────────────────────────────────
@@ -25,8 +26,8 @@ for i, f in enumerate(frames[:3]):
 # atoms = imrmlp.read("dump.lammpstrj", format="lmptrj")
 
 # ── 写入文件 ──────────────────────────────────────────────────────────
-imrmlp.write("output.cfg", atoms)                    # 单结构
-imrmlp.write("output.extxyz", frames[:10])           # 多帧
+imrmlp.write("output.cfg", atoms)  # 单结构
+imrmlp.write("output.extxyz", frames[:10])  # 多帧
 
 # ── 格式探测 ──────────────────────────────────────────────────────────
 fmt = imrmlp.io.guess_format("structure.POSCAR")

@@ -16,34 +16,47 @@ ComputeStyle(mlip/heat/current,ComputeMLIPHeatCurrent)
 #include "compute.h"
 #include "mlip_transport_provider.h"
 
-namespace LAMMPS_NS {
+namespace LAMMPS_NS
+{
 
-class ComputeMLIPHeatCurrent : public Compute, public MLIPTransportCurrentRequest {
- public:
-  ComputeMLIPHeatCurrent(class LAMMPS *, int, char **);
-  ~ComputeMLIPHeatCurrent() override;
-  void init() override;
-  double compute_scalar() override;
-  void compute_peratom() override;
-  double memory_usage() override;
+class ComputeMLIPHeatCurrent : public Compute, public MLIPTransportCurrentRequest
+{
+  public:
+    ComputeMLIPHeatCurrent(class LAMMPS *, int, char **);
+    ~ComputeMLIPHeatCurrent() override;
+    void init() override;
+    double compute_scalar() override;
+    void compute_peratom() override;
+    double memory_usage() override;
 
-  int transport_left_groupbit() const override { return groupbit; }
-  int transport_right_groupbit() const override { return right_groupbit_; }
-  void set_transport_channel(int channel) override { channel_ = channel; }
+    int transport_left_groupbit() const override
+    {
+        return groupbit;
+    }
 
- private:
-  char *right_group_name_ = nullptr;
-  int right_group_ = -1;
-  int right_groupbit_ = 0;
-  int channel_ = -1;
-  int nmax_ = 0;
-  double **interface_force_ = nullptr;
-  MLIPTransportProvider *provider_ = nullptr;
+    int transport_right_groupbit() const override
+    {
+        return right_groupbit_;
+    }
 
-  void validate_groups();
+    void set_transport_channel(int channel) override
+    {
+        channel_ = channel;
+    }
+
+  private:
+    char *right_group_name_ = nullptr;
+    int right_group_ = -1;
+    int right_groupbit_ = 0;
+    int channel_ = -1;
+    int nmax_ = 0;
+    double **interface_force_ = nullptr;
+    MLIPTransportProvider *provider_ = nullptr;
+
+    void validate_groups();
 };
 
-}    // namespace LAMMPS_NS
+} // namespace LAMMPS_NS
 
 #endif
 #endif

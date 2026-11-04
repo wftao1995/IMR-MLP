@@ -32,9 +32,7 @@ def perturb_mlpcfg(source: Path, destination: Path) -> None:
             if "fx" not in fields:
                 raise ValueError("input mlpcfg does not contain force columns")
             scaled_atom_columns = [
-                fields.index(name)
-                for name in ("site_en", "fx", "fy", "fz")
-                if name in fields
+                fields.index(name) for name in ("site_en", "fx", "fy", "fz") if name in fields
             ]
             if atom_count is None:
                 raise ValueError("AtomData appears before Size")

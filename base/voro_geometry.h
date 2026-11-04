@@ -23,8 +23,8 @@ struct Face
 
 // Keep the face plane and its periodic image together: a neighbor ID alone
 // cannot distinguish opposite images of the same atom in a small cell.
-inline std::vector<Face> faces(voro::voronoicell_neighbor &cell, const Atoms &atoms,
-                               int center, const std::map<int, double> *radii)
+inline std::vector<Face> faces(voro::voronoicell_neighbor &cell, const Atoms &atoms, int center,
+                               const std::map<int, double> *radii)
 {
     std::vector<int> neighbors, face_vertices;
     std::vector<double> normals, vertices, areas;
@@ -64,9 +64,11 @@ inline std::vector<Face> faces(voro::voronoicell_neighbor &cell, const Atoms &at
             if (ri != rj)
             {
                 const double discriminant = std::fma(face.offset, face.offset, -radius_difference);
-                const double roundoff = 8 * std::numeric_limits<double>::epsilon()
-                    * std::max(face.offset * face.offset, std::abs(radius_difference));
-                if (!std::isfinite(discriminant) || discriminant < -roundoff) continue;
+                const double roundoff =
+                    8 * std::numeric_limits<double>::epsilon() *
+                    std::max(face.offset * face.offset, std::abs(radius_difference));
+                if (!std::isfinite(discriminant) || discriminant < -roundoff)
+                    continue;
                 const double root = std::sqrt(std::max(0., discriminant));
                 // Avoid cancellation in the smaller root; either positive root
                 // may describe the actual neighbor, including for offset < 0.
@@ -75,20 +77,26 @@ inline std::vector<Face> faces(voro::voronoicell_neighbor &cell, const Atoms &at
             }
             for (double distance : distances)
             {
-                if (!std::isfinite(distance) || distance <= 0) continue;
+                if (!std::isfinite(distance) || distance <= 0)
+                    continue;
                 const Eigen::RowVector3d expected = distance * face.normal;
                 const Eigen::RowVector3d delta = atoms.pos_[neighbor] - atoms.pos_[center];
                 const Eigen::RowVector3d image = ((expected - delta) * inverse).array().round();
                 // The center in the zero lattice image cannot generate a face.
                 // Keep all nonzero self images, which are essential in small cells.
-                if (neighbor == center && image.isZero(0)) continue;
+                if (neighbor == center && image.isZero(0))
+                    continue;
                 const Eigen::RowVector3d displacement = delta + image * atoms.cell_;
                 const double image_distance = displacement.norm();
-                if (!std::isfinite(image_distance) || image_distance <= 0) continue;
+                if (!std::isfinite(image_distance) || image_distance <= 0)
+                    continue;
                 // Validate the original plane after lattice rounding; proximity
                 // to a quadratic root alone does not establish a valid face.
-                const double offset_error = .5 * (image_distance + radius_difference / image_distance) - face.offset;
-                if (!std::isfinite(offset_error) || offset_error * offset_error > geometry_tolerance_squared) continue;
+                const double offset_error =
+                    .5 * (image_distance + radius_difference / image_distance) - face.offset;
+                if (!std::isfinite(offset_error) ||
+                    offset_error * offset_error > geometry_tolerance_squared)
+                    continue;
                 const double error = (displacement - expected).squaredNorm();
                 if (error < best_error)
                 {
@@ -106,25 +114,29 @@ inline std::vector<Face> faces(voro::voronoicell_neighbor &cell, const Atoms &at
 }
 
 inline voro::voronoicell_neighbor *refine(voro::voronoicell_neighbor &original,
-                                         voro::voronoicell_neighbor &refined,
-                                         const std::vector<Face> &faces,
-                                         double surftol, int numneigh,
-                                         std::vector<int> &selected, bool &warned)
+                                          voro::voronoicell_neighbor &refined,
+                                          const std::vector<Face> &faces, double surftol,
+                                          int numneigh, std::vector<int> &selected, bool &warned)
 {
     selected.resize(faces.size());
     std::iota(selected.begin(), selected.end(), 0);
-    if (std::abs(surftol) <= TOL) return &original;
+    if (std::abs(surftol) <= TOL)
+        return &original;
 
     std::vector<int> ordered = selected;
     if (numneigh > 0)
         std::stable_sort(ordered.begin(), ordered.end(),
-                         [&](int a, int b) { return faces[a].area > faces[b].area; });
+                         [&](int a, int b)
+                         {
+                             return faces[a].area > faces[b].area;
+                         });
     const double scale = surftol < 0 ? 1. / original.surface_area() : 1.;
     std::vector<int> retained;
     for (int i = 0; i < ordered.size(); ++i)
         if (i < numneigh || faces[ordered[i]].area * scale > std::abs(surftol))
             retained.push_back(ordered[i]);
-    if (retained.size() == faces.size()) return &original;
+    if (retained.size() == faces.size())
+        return &original;
 
     // Use the original planes, including radical offsets, without applying
     // another minimum-image wrap or radius rescaling.
@@ -137,7 +149,11 @@ inline voro::voronoicell_neighbor *refine(voro::voronoicell_neighbor &original,
     }
     std::vector<int> refined_faces;
     refined.neighbors(refined_faces);
-    if (std::any_of(refined_faces.begin(), refined_faces.end(), [](int i) { return i < 0; }))
+    if (std::any_of(refined_faces.begin(), refined_faces.end(),
+                    [](int i)
+                    {
+                        return i < 0;
+                    }))
     {
         if (!warned)
             std::cerr << "Warning: Voronoi surface filtering left bounding-box faces; "
@@ -150,7 +166,7 @@ inline voro::voronoicell_neighbor *refine(voro::voronoicell_neighbor &original,
 }
 
 inline Neighborhood neighborhood(const std::vector<Face> &faces, const std::vector<int> &selected,
-                                  const Atoms &atoms, int center, const Eigen::Matrix3d &rotation)
+                                 const Atoms &atoms, int center, const Eigen::Matrix3d &rotation)
 {
     Neighborhood result;
     result.centertype = atoms.chemmap_[center];

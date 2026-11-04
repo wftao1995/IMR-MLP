@@ -26,13 +26,13 @@ static std::vector<int> complement(int m, const std::vector<int> &sel)
     std::set<int> s(sel.begin(), sel.end());
     std::vector<int> r;
     for (int i = 0; i < m; ++i)
-        if (!s.count(i)) r.push_back(i);
+        if (!s.count(i))
+            r.push_back(i);
     return r;
 }
 
 /// Build submatrix C = A[selected, :]
-static Eigen::MatrixXd submatrix(const Eigen::MatrixXd &A,
-                                 const std::vector<int> &sel)
+static Eigen::MatrixXd submatrix(const Eigen::MatrixXd &A, const std::vector<int> &sel)
 {
     Eigen::MatrixXd C(sel.size(), A.cols());
     for (std::size_t i = 0; i < sel.size(); ++i)
@@ -58,10 +58,10 @@ TEST_CASE("MaxVol select_rows on identity-plus-noise matrix", "[maxvol]")
     Eigen::MatrixXd A(m, n);
     A.setZero();
     for (int i = 0; i < n; ++i)
-        A(i, i) = 1.0;                 // identity block
+        A(i, i) = 1.0; // identity block
     for (int i = n; i < m; ++i)
         for (int j = 0; j < n; ++j)
-            A(i, j) = 1e-6 * (i + j);  // noise rows
+            A(i, j) = 1e-6 * (i + j); // noise rows
 
     MaxVol mv;
     std::vector<int> selected = mv.select_rows(A, n);
@@ -90,11 +90,11 @@ TEST_CASE("MaxVol determinant monotonicity", "[maxvol]")
     double vol_sel = abs_det(C);
 
     // Compare with a random selection
-    std::vector<int> random_sel = {0,1,2,3,4,5,6,7};
+    std::vector<int> random_sel = {0, 1, 2, 3, 4, 5, 6, 7};
     double vol_random = abs_det(submatrix(A, random_sel));
 
     // MaxVol should do at least as well as random
-    REQUIRE(vol_sel >= vol_random * 0.99);  // allow small numerical margin
+    REQUIRE(vol_sel >= vol_random * 0.99); // allow small numerical margin
 }
 
 TEST_CASE("MaxVol convergence criterion", "[maxvol]")
@@ -113,9 +113,12 @@ TEST_CASE("MaxVol convergence criterion", "[maxvol]")
 
     // For non-selected rows, ALL entries of B should be <= 1+tol
     std::set<int> sel_set(selected.begin(), selected.end());
-    for (int l = 0; l < m; ++l) {
-        if (sel_set.count(l)) continue;
-        for (int i = 0; i < n; ++i) {
+    for (int l = 0; l < m; ++l)
+    {
+        if (sel_set.count(l))
+            continue;
+        for (int i = 0; i < n; ++i)
+        {
             REQUIRE(std::abs(B(l, i)) <= 1.0 + mv.tolerance + 1e-10);
         }
     }
@@ -156,7 +159,8 @@ TEST_CASE("MaxVol k < n rank-deficient warning", "[maxvol]")
     auto sel = mv.select_rows(A, 4);
     REQUIRE(static_cast<int>(sel.size()) == 4);
     // Verify all indices are valid
-    for (int idx : sel) {
+    for (int idx : sel)
+    {
         REQUIRE(idx >= 0);
         REQUIRE(idx < m);
     }
@@ -167,16 +171,17 @@ TEST_CASE("MaxVol k < n rank-deficient warning", "[maxvol]")
 
 TEST_CASE("MaxVol rectangular selection optimizes row volume", "[maxvol]")
 {
-    SECTION("k less than n") {
+    SECTION("k less than n")
+    {
         Eigen::MatrixXd A(2, 2);
-        A << 1.0, 1.0,
-             1.2, 0.0;
+        A << 1.0, 1.0, 1.2, 0.0;
         MaxVol mv;
         const auto selected = mv.select_rows(A, 1);
         REQUIRE(selected == std::vector<int>{0});
     }
 
-    SECTION("k greater than n") {
+    SECTION("k greater than n")
+    {
         Eigen::MatrixXd A(3, 1);
         A << 100.0, 99.0, -1.0;
         MaxVol mv;
@@ -191,15 +196,13 @@ TEST_CASE("MaxVol rectangular selection optimizes row volume", "[maxvol]")
 
 TEST_CASE("MaxVol rectangular selection reaches one-swap dominance", "[maxvol]")
 {
-    SECTION("wide active matrix") {
+    SECTION("wide active matrix")
+    {
         Eigen::MatrixXd A(7, 4);
-        A <<  1.471909,  0.283608, -0.237301, -1.947283,
-             -1.392884,  0.767586,  0.567825, -0.025434,
-             -0.721711, -0.524758,  0.546759, -0.752067,
-              1.168597, -0.739976,  0.827506, -1.400822,
-              0.401858, -1.100306,  0.737231, -1.336970,
-             -1.711412,  0.812356,  0.125804,  1.206945,
-              0.324570,  1.621873,  0.370350, -1.533726;
+        A << 1.471909, 0.283608, -0.237301, -1.947283, -1.392884, 0.767586, 0.567825, -0.025434,
+            -0.721711, -0.524758, 0.546759, -0.752067, 1.168597, -0.739976, 0.827506, -1.400822,
+            0.401858, -1.100306, 0.737231, -1.336970, -1.711412, 0.812356, 0.125804, 1.206945,
+            0.324570, 1.621873, 0.370350, -1.533726;
         MaxVol mv;
         const auto selected = mv.select_rows(A, 2);
         const Eigen::VectorXd scores = mv.compute_scores(A, selected);
@@ -207,15 +210,12 @@ TEST_CASE("MaxVol rectangular selection reaches one-swap dominance", "[maxvol]")
         REQUIRE(generalized_volume(submatrix(A, selected)) > 5.03);
     }
 
-    SECTION("tall active matrix") {
+    SECTION("tall active matrix")
+    {
         Eigen::MatrixXd A(7, 3);
-        A << -1.421582, -0.217116,  0.652146,
-             -1.107844, -1.091885,  0.671908,
-             -1.405839,  0.469552, -1.058507,
-             -0.503327,  0.491563, -2.061949,
-              0.407650,  0.769123,  0.500971,
-             -1.088233, -0.847103, -0.630612,
-             -0.481076,  0.901375, -0.661250;
+        A << -1.421582, -0.217116, 0.652146, -1.107844, -1.091885, 0.671908, -1.405839, 0.469552,
+            -1.058507, -0.503327, 0.491563, -2.061949, 0.407650, 0.769123, 0.500971, -1.088233,
+            -0.847103, -0.630612, -0.481076, 0.901375, -0.661250;
         MaxVol mv;
         const auto selected = mv.select_rows(A, 5);
         const Eigen::VectorXd scores = mv.compute_scores(A, selected);
@@ -257,12 +257,14 @@ TEST_CASE("MaxVol compute_scores basic", "[maxvol]")
     REQUIRE(scores.size() == m);
 
     // Scores of selected rows should be exactly 1.0
-    for (int idx : selected) {
+    for (int idx : selected)
+    {
         REQUIRE(scores[idx] == Approx(1.0).margin(1e-12));
     }
 
     // All scores should be ≤ 1 + tol (convergence guarantee)
-    for (int i = 0; i < m; ++i) {
+    for (int i = 0; i < m; ++i)
+    {
         REQUIRE(scores[i] <= 1.0 + mv.tolerance + 1e-10);
     }
 }
@@ -283,10 +285,7 @@ TEST_CASE("MaxVol wide score includes orthogonal residual", "[maxvol]")
 TEST_CASE("MaxVol tall score uses generalized replacement volume", "[maxvol]")
 {
     Eigen::MatrixXd active(4, 2), candidate(1, 2);
-    active << 1.0, 0.0,
-              1.0, 0.0,
-              0.0, 1.0,
-              0.0, 1.0;
+    active << 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0;
     candidate << 1.0, 1.0;
     MaxVol mv;
     const std::vector<int> selected{0, 1, 2, 3};
@@ -316,16 +315,16 @@ TEST_CASE("MaxVol add_rows extends selection", "[maxvol]")
     Eigen::MatrixXd A = Eigen::MatrixXd::Random(m, n);
 
     MaxVol mv;
-    auto initial = mv.select_rows(A, n);    // select n rows
-    int add_k = n;                           // add at least n more
+    auto initial = mv.select_rows(A, n); // select n rows
+    int add_k = n;                       // add at least n more
     auto extended = mv.add_rows(A, initial, add_k);
 
     REQUIRE(static_cast<int>(extended.size()) == n + add_k);
 
     // All original indices must be preserved
-    for (int idx : initial) {
-        REQUIRE(std::find(extended.begin(), extended.end(), idx)
-                != extended.end());
+    for (int idx : initial)
+    {
+        REQUIRE(std::find(extended.begin(), extended.end(), idx) != extended.end());
     }
 
     // All extended indices must be unique
@@ -348,10 +347,7 @@ TEST_CASE("MaxVol add_rows to full set returns all", "[maxvol]")
 TEST_CASE("MaxVol add_rows conditions on the current active set", "[maxvol]")
 {
     Eigen::MatrixXd A(4, 2);
-    A << 100.0, 0.0,
-         0.0, 1.0,
-         1000.0, 0.0,
-         0.0, 100.0;
+    A << 100.0, 0.0, 0.0, 1.0, 1000.0, 0.0, 0.0, 100.0;
     MaxVol mv;
     const auto extended = mv.add_rows(A, {0, 1}, 1);
     const std::vector<int> expected{0, 1, 3};
@@ -373,19 +369,21 @@ TEST_CASE("MaxVol swap history is recorded", "[maxvol]")
     const auto &history = mv.swap_history();
 
     // After convergence, all selected rows should be valid indices
-    for (int idx : sel) {
+    for (int idx : sel)
+    {
         REQUIRE(idx >= 0);
         REQUIRE(idx < m);
     }
     // After selection we should have swap history or selected rows (or both)
     REQUIRE((!history.empty() || !sel.empty()));
     // If there were swaps, each has valid indices
-    for (const auto &s : history) {
-        REQUIRE(s.ind_in  >= 0);
-        REQUIRE(s.ind_in  < m);
+    for (const auto &s : history)
+    {
+        REQUIRE(s.ind_in >= 0);
+        REQUIRE(s.ind_in < m);
         REQUIRE(s.ind_out >= 0);
         REQUIRE(s.ind_out < m);
-        REQUIRE(s.gain > 1.0 + mv.tolerance);  // swaps only happen when gain > 1+tol
+        REQUIRE(s.gain > 1.0 + mv.tolerance); // swaps only happen when gain > 1+tol
     }
 }
 
@@ -463,11 +461,9 @@ TEST_CASE("MaxVol square factorization preserves the truncated SVD fallback", "[
 TEST_CASE("MaxVol warm_cache refreshes when active row values change", "[maxvol]")
 {
     Eigen::MatrixXd A1(2, 2);
-    A1 << 1.0, 0.0,
-          0.0, 1.0;
+    A1 << 1.0, 0.0, 0.0, 1.0;
     Eigen::MatrixXd A2(2, 2);
-    A2 << 2.0, 0.0,
-          0.0, 2.0;
+    A2 << 2.0, 0.0, 0.0, 2.0;
     Eigen::MatrixXd candidate(1, 2);
     candidate << 1.0, 0.0;
 
@@ -490,7 +486,7 @@ TEST_CASE("MaxVol swap_limit caps number of swaps", "[maxvol]")
     Eigen::MatrixXd A = Eigen::MatrixXd::Random(m, n);
 
     MaxVol mv;
-    mv.max_swaps = 3;  // only allow 3 swaps
+    mv.max_swaps = 3; // only allow 3 swaps
 
     mv.select_rows(A, n);
     // swap history should have at most 3 entries
@@ -557,9 +553,10 @@ TEST_CASE("MaxVol subset scores", "[maxvol]")
 
     Eigen::VectorXd full_scores = mv.compute_scores(A, sel);
     // Each subset grade should be >= max score within that range
-    for (int r = 0; r < 4; ++r) {
+    for (int r = 0; r < 4; ++r)
+    {
         double max_in_range = 0;
-        for (int i = ranges[r]; i < ranges[r+1]; ++i)
+        for (int i = ranges[r]; i < ranges[r + 1]; ++i)
             max_in_range = std::max(max_in_range, full_scores[i]);
         REQUIRE(grades[r] == Approx(max_in_range).margin(1e-12));
     }

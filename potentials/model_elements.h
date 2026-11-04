@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-namespace Potentials {
+namespace Potentials
+{
 
 /// Read the element order a model declares, without constructing the potential.
 ///

@@ -12,12 +12,15 @@
 #include <string_view>
 #include <vector>
 
-namespace MLIPCore {
+namespace MLIPCore
+{
 struct mlip;
 
-namespace GpuDirect {
+namespace GpuDirect
+{
 
-enum class MTPGpuPrecision {
+enum class MTPGpuPrecision
+{
     FP64 = 0,
     Mixed = 1,
     MixedAggressive = 2,
@@ -25,7 +28,8 @@ enum class MTPGpuPrecision {
     FP32 = 4,
 };
 
-enum class MTPGpuForceKernel {
+enum class MTPGpuForceKernel
+{
     Auto = 0,
     BasicTile = 1,
     CenterNeighbors = 2,
@@ -33,7 +37,8 @@ enum class MTPGpuForceKernel {
 
 inline constexpr const char *force_kernel_name(MTPGpuForceKernel kernel)
 {
-    switch (kernel) {
+    switch (kernel)
+    {
     case MTPGpuForceKernel::Auto:
         return "auto";
     case MTPGpuForceKernel::BasicTile:
@@ -44,19 +49,22 @@ inline constexpr const char *force_kernel_name(MTPGpuForceKernel kernel)
     return "unknown";
 }
 
-inline bool parse_force_kernel(std::string_view value,
-                               MTPGpuForceKernel *kernel)
+inline bool parse_force_kernel(std::string_view value, MTPGpuForceKernel *kernel)
 {
-    if (kernel == nullptr) return false;
-    if (value == "auto") {
+    if (kernel == nullptr)
+        return false;
+    if (value == "auto")
+    {
         *kernel = MTPGpuForceKernel::Auto;
         return true;
     }
-    if (value == "basic-tile") {
+    if (value == "basic-tile")
+    {
         *kernel = MTPGpuForceKernel::BasicTile;
         return true;
     }
-    if (value == "center-neighbors") {
+    if (value == "center-neighbors")
+    {
         *kernel = MTPGpuForceKernel::CenterNeighbors;
         return true;
     }
@@ -65,49 +73,64 @@ inline bool parse_force_kernel(std::string_view value,
 
 inline constexpr const char *precision_name(MTPGpuPrecision precision)
 {
-    switch (precision) {
+    switch (precision)
+    {
     case MTPGpuPrecision::FP64:
         return "fp64";
     case MTPGpuPrecision::Mixed:
         return "mixed";
     case MTPGpuPrecision::MixedAggressive:
         return "mixed-aggressive";
-    case MTPGpuPrecision::MixedCompute: return "mixed-compute";
-    case MTPGpuPrecision::FP32: return "fp32";
+    case MTPGpuPrecision::MixedCompute:
+        return "mixed-compute";
+    case MTPGpuPrecision::FP32:
+        return "fp32";
     }
     return "unknown";
 }
 
 inline bool parse_precision(std::string_view value, MTPGpuPrecision *precision)
 {
-    if (precision == nullptr) return false;
-    if (value == "fp64") {
+    if (precision == nullptr)
+        return false;
+    if (value == "fp64")
+    {
         *precision = MTPGpuPrecision::FP64;
         return true;
     }
-    if (value == "mixed") {
+    if (value == "mixed")
+    {
         *precision = MTPGpuPrecision::Mixed;
         return true;
     }
-    if (value == "mixed-aggressive") {
+    if (value == "mixed-aggressive")
+    {
         *precision = MTPGpuPrecision::MixedAggressive;
         return true;
     }
     return false;
 }
 
-inline bool fp32_compute(MTPGpuPrecision p) {
+inline bool fp32_compute(MTPGpuPrecision p)
+{
     return p == MTPGpuPrecision::MixedCompute || p == MTPGpuPrecision::FP32;
 }
-inline const char *precision_description(MTPGpuPrecision p) {
-    if (p == MTPGpuPrecision::FP32) return "geometry=fp32 compute=fp32 moment=fp32 adjoint=fp32 accumulate=fp32 long_range=fp64 experimental";
-    if (p == MTPGpuPrecision::MixedCompute) return "geometry=fp64 compute=fp32 moment=fp32 adjoint=fp32 accumulate=fp64 long_range=fp64 experimental";
-    if (p == MTPGpuPrecision::Mixed) return "geometry=fp64 compute=fp64 moment=fp32 adjoint=fp64 accumulate=fp64 long_range=fp64";
-    if (p == MTPGpuPrecision::MixedAggressive) return "geometry=fp64 compute=fp64 moment=fp32 adjoint=fp32 accumulate=fp64 long_range=fp64 experimental";
+
+inline const char *precision_description(MTPGpuPrecision p)
+{
+    if (p == MTPGpuPrecision::FP32)
+        return "geometry=fp32 compute=fp32 moment=fp32 adjoint=fp32 accumulate=fp32 long_range=fp64 experimental";
+    if (p == MTPGpuPrecision::MixedCompute)
+        return "geometry=fp64 compute=fp32 moment=fp32 adjoint=fp32 accumulate=fp64 long_range=fp64 experimental";
+    if (p == MTPGpuPrecision::Mixed)
+        return "geometry=fp64 compute=fp64 moment=fp32 adjoint=fp64 accumulate=fp64 long_range=fp64";
+    if (p == MTPGpuPrecision::MixedAggressive)
+        return "geometry=fp64 compute=fp64 moment=fp32 adjoint=fp32 accumulate=fp64 long_range=fp64 experimental";
     return "geometry=fp64 compute=fp64 moment=fp64 adjoint=fp64 accumulate=fp64 long_range=fp64";
 }
 
-struct MTPGpuInitializationOptions {
+struct MTPGpuInitializationOptions
+{
     MTPGpuPrecision precision = MTPGpuPrecision::FP64;
     // Validate model upload before allocation; compute requests carry the
     // corresponding total resident-memory budget for dynamic workspaces.
@@ -118,14 +141,16 @@ struct MTPGpuInitializationOptions {
     std::size_t training_memory_budget_bytes = 0;
 };
 
-struct MTPGpuSOGView {
+struct MTPGpuSOGView
+{
     SOGGpuModelView model;
     const double *species_coeffs = nullptr;
     const double *moment_coeffs = nullptr;
     const double *bandwidth_jacobian = nullptr; // du/dz, one per Gaussian
 };
 
-enum class RadialBasis {
+enum class RadialBasis
+{
     Chebyshev = 0,
     ChebyCos = 1,
     ChebyshevPoly5 = 2,
@@ -135,7 +160,8 @@ enum class RadialBasis {
     PolyBCos = 6,
 };
 
-enum class RadialCutoff {
+enum class RadialCutoff
+{
     Quadratic = 0,
     Cosine = 1,
     Poly5 = 2,
@@ -150,7 +176,8 @@ enum class RadialCutoff {
     Smoothstep7 = 11,
 };
 
-enum class RadialTransform {
+enum class RadialTransform
+{
     Linear = 0,
     Exponential = 1,
     ExponentialLeft = 2,
@@ -162,7 +189,8 @@ enum class RadialTransform {
 // Linear is the classic MTP layout. The remaining values use the native
 // MTP-M descriptor and model-parameter layout transported by the IMRMLP
 // adapter. LES remains outside this view.
-enum class MTPGpuModel {
+enum class MTPGpuModel
+{
     Linear = 0,
     MTPMQuadratic = 1,
     MTPMAsinh = 2,
@@ -171,7 +199,8 @@ enum class MTPGpuModel {
     MTPMLinear = 5,
 };
 
-enum class MTPGpuActivation {
+enum class MTPGpuActivation
+{
     Tanh = 0,
     ReLU = 1,
     Sigmoid = 2,
@@ -183,7 +212,8 @@ enum class MTPGpuActivation {
 // species_count^2 entries in (center species, neighbor species) order. The
 // IMRMLP adapter and standalone LAMMPS reader both normalize those cases;
 // legacy single-basis callers use the scalar fields in MTPGpuPotentialView.
-struct MTPGpuRadialBasisView {
+struct MTPGpuRadialBasisView
+{
     RadialBasis radial_basis = RadialBasis::Chebyshev;
     double min_dist = 0.0;
     double max_dist = 0.0;
@@ -206,7 +236,8 @@ struct MTPGpuRadialBasisView {
     const double *polynomial_normalizations = nullptr;
 };
 
-struct MTPGpuPotentialView {
+struct MTPGpuPotentialView
+{
     int species_count = 0;
     int max_type = 0;
     const int *spmap = nullptr;
@@ -258,27 +289,12 @@ struct MTPGpuPotentialView {
 };
 
 inline MTPGpuPotentialView make_lammps_pair_view(
-    int species_count,
-    int max_type,
-    const int *spmap,
-    int alpha_moments_count,
-    int alpha_index_basic_count,
-    const int *alpha_index_basic,
-    int alpha_index_times_count,
-    const int *alpha_index_times,
-    int alpha_scalar_moments,
-    const int *alpha_moment_mapping,
-    int radial_func_count,
-    int rb_size,
-    int max_mu,
-    int max_alpha_index_basic,
-    double min_dist,
-    double max_dist,
-    double cutoff,
-    double scaling,
-    const double *radial_coeffs,
-    const double *linear_coeffs,
-    const int *nu_arr_list = nullptr,
+    int species_count, int max_type, const int *spmap, int alpha_moments_count,
+    int alpha_index_basic_count, const int *alpha_index_basic, int alpha_index_times_count,
+    const int *alpha_index_times, int alpha_scalar_moments, const int *alpha_moment_mapping,
+    int radial_func_count, int rb_size, int max_mu, int max_alpha_index_basic, double min_dist,
+    double max_dist, double cutoff, double scaling, const double *radial_coeffs,
+    const double *linear_coeffs, const int *nu_arr_list = nullptr,
     RadialBasis radial_basis = RadialBasis::Chebyshev)
 {
     MTPGpuPotentialView view;
@@ -311,40 +327,51 @@ inline MTPGpuPotentialView make_lammps_pair_view(
 
 // Borrowed device geometry is shared by all heads in a family execution plan.
 // The owner keeps these arrays alive until all default-stream work completes.
-struct MTPGpuDeviceInput {
-    const int *centers=nullptr,*offsets=nullptr,*neighbors=nullptr,*type=nullptr;
-    const double *positions=nullptr,*neighbor_vectors=nullptr;
-    int centers_count=0,total=0,edges=0;
-    bool explicit_neighbor_vectors=false;
+struct MTPGpuDeviceInput
+{
+    const int *centers = nullptr, *offsets = nullptr, *neighbors = nullptr, *type = nullptr;
+    const double *positions = nullptr, *neighbor_vectors = nullptr;
+    int centers_count = 0, total = 0, edges = 0;
+    bool explicit_neighbor_vectors = false;
 };
-struct MTPGpuMomentView {
+
+struct MTPGpuMomentView
+{
     // Center-major, compacted FP64 moments, valid until the owner's next call.
     // The caller must use the same graph, scalar mapping and center ordering.
-    const double *values=nullptr;
-    int centers=0,stride=0;
-    const float *values_fp32=nullptr;
-    MTPGpuPrecision precision=MTPGpuPrecision::FP64;
-    bool present() const {return values || values_fp32;}
+    const double *values = nullptr;
+    int centers = 0, stride = 0;
+    const float *values_fp32 = nullptr;
+    MTPGpuPrecision precision = MTPGpuPrecision::FP64;
+
+    bool present() const
+    {
+        return values || values_fp32;
+    }
 };
-struct MTPGpuDeviceOutput {
-    double *force=nullptr,*site_energy=nullptr,*site_virial=nullptr,*energy=nullptr,*virial=nullptr;
+
+struct MTPGpuDeviceOutput
+{
+    double *force = nullptr, *site_energy = nullptr, *site_virial = nullptr, *energy = nullptr,
+           *virial = nullptr;
     MTPGpuMomentView moments;
 };
 
-struct MTPGpuComputeRequest {
-    const MTPGpuDeviceInput *device_input=nullptr;
+struct MTPGpuComputeRequest
+{
+    const MTPGpuDeviceInput *device_input = nullptr;
     MTPGpuMomentView device_moments;
-    const double *device_center_energy_weights=nullptr;
+    const double *device_center_energy_weights = nullptr;
     // Optional borrowed ntotal buffer for unweighted linear site energies.
     // Requires FP64 inference and compute_site_energy; owned centers are written.
-    double *device_unweighted_site_energy=nullptr;
+    double *device_unweighted_site_energy = nullptr;
     // Atom-major response and channel-major scalar coefficients; device arrays.
-    const double *device_response=nullptr,*device_response_coefficients=nullptr;
-    int response_channels=0;
+    const double *device_response = nullptr, *device_response_coefficients = nullptr;
+    int response_channels = 0;
     // Optional atom-major projection emitted before each center chunk is reused.
-    double *device_projection=nullptr;
-    const double *device_projection_species=nullptr,*device_projection_coefficients=nullptr;
-    int projection_channels=0;
+    double *device_projection = nullptr;
+    const double *device_projection_species = nullptr, *device_projection_coefficients = nullptr;
+    int projection_channels = 0;
 
     const SOGGpuGridView *sog_grid = nullptr; // complete structures only
     const int *ilist = nullptr;
@@ -376,7 +403,7 @@ struct MTPGpuComputeRequest {
     // Explicit inference contract; gradient/loss calls are invalid afterwards.
     // Keeps batch/training requests on their original full cache layout.
     bool inference_only = false;
-    int centers_per_chunk = 0; // zero selects all centers (or budget-derived size)
+    int centers_per_chunk = 0;           // zero selects all centers (or budget-derived size)
     std::size_t memory_budget_bytes = 0; // zero disables the tracked-device cap
 
     // Optional mask applied to every neighbor-list entry before it is used as
@@ -425,19 +452,20 @@ struct MTPGpuComputeRequest {
 // training.  `offsets` has center_count + 1 entries and indexes `neighbors`.
 // Coordinates, forces, and virials use row-major AoS layouts (xyz and 6-vector
 // respectively).
-struct MTPGpuBatchRequest {
-    const MTPGpuDeviceInput *device_input=nullptr;
+struct MTPGpuBatchRequest
+{
+    const MTPGpuDeviceInput *device_input = nullptr;
     MTPGpuMomentView device_moments;
-    const double *device_center_energy_weights=nullptr;
+    const double *device_center_energy_weights = nullptr;
     // Same optional linear-head output contract as MTPGpuComputeRequest.
-    double *device_unweighted_site_energy=nullptr;
+    double *device_unweighted_site_energy = nullptr;
     // Atom-major response and channel-major scalar coefficients; device arrays.
-    const double *device_response=nullptr,*device_response_coefficients=nullptr;
-    int response_channels=0;
+    const double *device_response = nullptr, *device_response_coefficients = nullptr;
+    int response_channels = 0;
     // Optional atom-major projection emitted before each center chunk is reused.
-    double *device_projection=nullptr;
-    const double *device_projection_species=nullptr,*device_projection_coefficients=nullptr;
-    int projection_channels=0;
+    double *device_projection = nullptr;
+    const double *device_projection_species = nullptr, *device_projection_coefficients = nullptr;
+    int projection_channels = 0;
 
     const SOGGpuGridView *sog_grid = nullptr;
     const int *centers = nullptr;
@@ -492,7 +520,8 @@ struct MTPGpuBatchRequest {
 // preceding compute_batch() call must have used the same flattened topology.
 // Parameter order is the native PotMTP order:
 // radial coefficients, species coefficients, scalar-moment coefficients.
-struct MTPGpuGradientRequest {
+struct MTPGpuGradientRequest
+{
     int structure_count = 0;
     const int *center_structure = nullptr;
     const double *dloss_denergy = nullptr;
@@ -529,7 +558,8 @@ struct MTPGpuGradientRequest {
 // from the resident forward outputs. Metrics are returned in this order:
 // total loss, energy loss, force loss, stress loss, squared per-atom energy
 // error, squared force error, squared stress error.
-struct MTPGpuLossRequest {
+struct MTPGpuLossRequest
+{
     static constexpr int metric_count = 7;
 
     int structure_count = 0;
@@ -550,7 +580,8 @@ struct MTPGpuLossRequest {
 
 // Two complete ordered structures: plus then minus. The host target contains
 // 3*N components; q=-(Fplus-Fminus)/(2*epsilon), loss=weight*sum((q-target)^2).
-struct MTPGpuHVPForcePairLossRequest {
+struct MTPGpuHVPForcePairLossRequest
+{
     int atoms_per_structure = 0;
     const int *structure_offsets = nullptr;
     const int *center_structure = nullptr;
@@ -562,14 +593,16 @@ struct MTPGpuHVPForcePairLossRequest {
     GpuCacheToken input_token, labels_token;
 };
 
-struct MTPGpuHVPPairMetrics {
+struct MTPGpuHVPPairMetrics
+{
     double loss = 0.;
     double squared_error = 0.;
 };
 
 // One fixed-cell Cartesian direction. The host product is caller-owned scratch:
 // a failed download may partially write it. Public adapters publish by swap.
-struct MTPGpuAnalyticHvpRequest {
+struct MTPGpuAnalyticHvpRequest
+{
     const double *direction = nullptr;
     std::size_t direction_count = 0;
     double *product = nullptr;
@@ -582,7 +615,8 @@ struct MTPGpuAnalyticHvpRequest {
 // Rows select [first_row, first_row + row_count) from the flattened Cartesian
 // 3N product. Column order and duplicates are preserved. Output is unweighted
 // row-major row_count x column_count, and is caller-owned scratch on failure.
-struct MTPGpuLinearHvpRequest {
+struct MTPGpuLinearHvpRequest
+{
     const double *direction = nullptr;
     std::size_t direction_count = 0;
     int first_row = 0, row_count = 0;
@@ -592,7 +626,8 @@ struct MTPGpuLinearHvpRequest {
     std::size_t output_count = 0;
 };
 
-struct MTPGpuRuntimeStats {
+struct MTPGpuRuntimeStats
+{
     std::uint64_t linear_hvp_calls = 0;
     std::uint64_t linear_hvp_direction_upload_bytes = 0;
     std::uint64_t linear_hvp_output_download_bytes = 0;
@@ -648,7 +683,8 @@ struct MTPGpuRuntimeStats {
     std::uint64_t training_force_adjoint_upload_bytes = 0;
 };
 
-struct MTPGpuPotentialStats {
+struct MTPGpuPotentialStats
+{
     MTPGpuPrecision precision = MTPGpuPrecision::FP64;
     int declared_moment_slots = 0;
     int active_moment_slots = 0;
@@ -663,14 +699,33 @@ struct MTPGpuPotentialStats {
 // Actual allocated GPU bytes. Workspaces grow lazily, so values obtained
 // immediately after initialize() contain the resident potential but no
 // per-batch storage yet.
-enum class MTPGpuLinearDerivative { Force, Virial };
-enum class MTPGpuLinearKind { Energy, Site, Force, Virial, Host };
+enum class MTPGpuLinearDerivative
+{
+    Force,
+    Virial
+};
+enum class MTPGpuLinearKind
+{
+    Energy,
+    Site,
+    Force,
+    Virial,
+    Host
+};
 
 // Supplied CPU factorization only: no rank/regularization decisions on device.
 // All dense arrays are row-major. Native columns are an exact layout identity,
 // including order and repetitions; host-matrix rows may use arbitrary IDs.
-enum class MTPGpuScoreFormula { Square, MaxVolWide, MaxVolTall, OnlineGram };
-struct MTPGpuScoreFactor {
+enum class MTPGpuScoreFormula
+{
+    Square,
+    MaxVolWide,
+    MaxVolTall,
+    OnlineGram
+};
+
+struct MTPGpuScoreFactor
+{
     MTPGpuScoreFormula formula = MTPGpuScoreFormula::Square;
     std::uint64_t owner_identity = 0, generation = 0;
     int active_rows = 0;
@@ -678,20 +733,27 @@ struct MTPGpuScoreFactor {
     std::vector<double> active, coefficient_map, gram_inverse;
     std::vector<double> gram_diagonal, active_leverage;
 };
-struct MTPGpuLinearRows {
+
+struct MTPGpuLinearRows
+{
     std::uint64_t context_identity = 0, generation = 0;
     GpuCacheToken input;
     int rows = 0, columns = 0;
     bool host_source = false;
 };
-struct MTPGpuScoreToken {
+
+struct MTPGpuScoreToken
+{
     std::uint64_t context_identity = 0, owner_identity = 0, generation = 0;
 };
-struct MTPGpuScoreDiagnostics {
+
+struct MTPGpuScoreDiagnostics
+{
     double row_norm2 = 0., projection = 0., residual2_unclamped = 0., candidate_leverage = 0.;
 };
 
-struct MTPGpuMemoryStats {
+struct MTPGpuMemoryStats
+{
     std::size_t parameter_copy_bytes = 0; // included in potential_bytes
     MTPGpuPrecision precision = MTPGpuPrecision::FP64;
     std::size_t potential_bytes = 0;
@@ -701,7 +763,8 @@ struct MTPGpuMemoryStats {
     std::size_t moment_workspace_bytes = 0;
     std::size_t adjoint_workspace_bytes = 0;
     std::size_t directional_workspace_bytes = 0;
-    std::size_t analytic_hvp_io_bytes = 0; // one 3N direction and one product or selected row/column block
+    std::size_t analytic_hvp_io_bytes =
+        0; // one 3N direction and one product or selected row/column block
     std::size_t neural_cache_bytes = 0;
     std::size_t loss_gradient_bytes = 0;
     std::size_t conversion_buffer_bytes = 0;
@@ -713,7 +776,8 @@ struct MTPGpuMemoryStats {
     std::size_t training_peak_device_bytes = 0;
 };
 
-struct MTPGpuDeviceInfo {
+struct MTPGpuDeviceInfo
+{
     std::string name;
     std::string architecture;
     std::string identity;
@@ -722,8 +786,9 @@ struct MTPGpuDeviceInfo {
     int compute_units = 0;
 };
 
-class MTPGpuDirect {
-public:
+class MTPGpuDirect
+{
+  public:
     MTPGpuDirect();
     ~MTPGpuDirect();
 
@@ -737,27 +802,19 @@ public:
     static bool available_device_count(int *count, std::string *error = nullptr);
 
     static const char *backend_name();
-    static bool device_info(int device, MTPGpuDeviceInfo *info,
-                            std::string *error = nullptr);
+    static bool device_info(int device, MTPGpuDeviceInfo *info, std::string *error = nullptr);
 
     bool initialize(const MTPGpuPotentialView &potential, std::string *error = nullptr);
     bool initialize(const MTPGpuPotentialView &potential,
-                    const MTPGpuInitializationOptions &options,
-                    std::string *error = nullptr);
+                    const MTPGpuInitializationOptions &options, std::string *error = nullptr);
     bool initialize_from_mlip(const mlip &potential, std::string *error = nullptr);
-    bool initialize_from_mlip(const mlip &potential,
-                              const MTPGpuInitializationOptions &options,
+    bool initialize_from_mlip(const mlip &potential, const MTPGpuInitializationOptions &options,
                               std::string *error = nullptr);
-    bool update_coefficients(const double *radial_coeffs,
-                             const double *species_coeffs,
-                             const double *moment_coeffs,
-                             std::string *error = nullptr);
-    bool update_coefficients(const double *radial_coeffs,
-                             const double *species_coeffs,
-                             const double *moment_coeffs,
-                             const double *descriptor_species_coeffs,
-                             const double *descriptor_moment_coeffs,
-                             const double *model_coeffs,
+    bool update_coefficients(const double *radial_coeffs, const double *species_coeffs,
+                             const double *moment_coeffs, std::string *error = nullptr);
+    bool update_coefficients(const double *radial_coeffs, const double *species_coeffs,
+                             const double *moment_coeffs, const double *descriptor_species_coeffs,
+                             const double *descriptor_moment_coeffs, const double *model_coeffs,
                              std::string *error = nullptr);
     bool memory_info(std::size_t *free_bytes, std::size_t *total_bytes,
                      std::string *error = nullptr) const;
@@ -772,55 +829,56 @@ public:
     // Unweighted native linear columns, row-major; offsets index resident
     // centers. Repeated/reordered columns are permitted. Budget covers this
     // projection's device buffer, separately from the resident forward pass.
-    bool linear_energy_block(GpuCacheToken token, const int *offsets, int rows,
-                             const int *columns, int column_count, double *output,
-                             size_t workspace_budget_bytes,
+    bool linear_energy_block(GpuCacheToken token, const int *offsets, int rows, const int *columns,
+                             int column_count, double *output, size_t workspace_budget_bytes,
                              std::string *error = nullptr);
     // Force rows: 3*atom+axis. Virial rows: 9*structure+3*a+b, raw -dE/dstrain.
     // Same prepared moments as linear_energy_block; one-column reverse scratch
     // and the requested row-major output are both charged to the block budget.
     bool linear_derivative_block(GpuCacheToken token, MTPGpuLinearDerivative kind,
-                                 const int *structure_offsets, int structures,
-                                 int first_row, int rows, const int *columns,
-                                 int column_count, double *output,
-                                 size_t workspace_budget_bytes,
-                                 std::string *error = nullptr);
+                                 const int *structure_offsets, int structures, int first_row,
+                                 int rows, const int *columns, int column_count, double *output,
+                                 size_t workspace_budget_bytes, std::string *error = nullptr);
     // Synchronous resident preparation: no numerical B values downloaded.
     // A token expires on next row preparation, input/coefficient changes or
     // failure. total_cap=0 preserves the legacy host wrapper's independent cap.
     bool prepare_linear_energy_device(GpuCacheToken input, const int *offsets, int rows,
-        const int *columns, int column_count, MTPGpuLinearRows &token,
-        size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
+                                      const int *columns, int column_count, MTPGpuLinearRows &token,
+                                      size_t workspace_cap, size_t total_cap,
+                                      std::string *error = nullptr);
     bool prepare_linear_derivative_device(GpuCacheToken input, MTPGpuLinearDerivative kind,
-        const int *structure_offsets, int structures, int first_row, int rows,
-        const int *columns, int column_count, MTPGpuLinearRows &token,
-        size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
+                                          const int *structure_offsets, int structures,
+                                          int first_row, int rows, const int *columns,
+                                          int column_count, MTPGpuLinearRows &token,
+                                          size_t workspace_cap, size_t total_cap,
+                                          std::string *error = nullptr);
     // Explicit materialized-row path, separately counted from resident physics.
     // Does not require an initialized potential; select the device first.
     bool upload_linear_rows(const std::vector<double> &rows, int row_count,
-        const std::vector<int> &native_columns, MTPGpuLinearRows &token,
-        size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
-    bool upload_score_factor(const MTPGpuScoreFactor &, MTPGpuScoreToken &,
-        size_t total_cap, std::string *error = nullptr);
+                            const std::vector<int> &native_columns, MTPGpuLinearRows &token,
+                            size_t workspace_cap, size_t total_cap, std::string *error = nullptr);
+    bool upload_score_factor(const MTPGpuScoreFactor &, MTPGpuScoreToken &, size_t total_cap,
+                             std::string *error = nullptr);
     // Free transient row/products arenas while retaining factor and forward
     // storage. Useful before reserving workspace in the next forward budget.
     bool release_linear_workspaces(std::string *error = nullptr);
     // Exact allocation sizes for a fresh block, without allocating or changing
     // tokens. Physics kinds require the current complete FP64 forward batch.
     bool estimate_linear_workspace(MTPGpuLinearKind kind, int structures, int rows,
-        const std::vector<int> &columns, int active_rows, MTPGpuScoreFormula formula,
-        bool diagnostics, size_t &observation_bytes, size_t &score_bytes,
-        std::string *error = nullptr) const;
+                                   const std::vector<int> &columns, int active_rows,
+                                   MTPGpuScoreFormula formula, bool diagnostics,
+                                   size_t &observation_bytes, size_t &score_bytes,
+                                   std::string *error = nullptr) const;
     // scales empty / one / rows means unit / uniform / per-row scale.
     // workspace_cap bounds the sum of retained observation and scoring arenas;
     // total_cap also includes the factor, parameters, geometry and forward state.
     bool score_linear_block(const MTPGpuLinearRows &, const MTPGpuScoreToken &,
-        const std::vector<double> &scales, std::vector<double> &scores,
-        size_t total_cap, size_t workspace_cap, std::string *error = nullptr,
-        std::vector<MTPGpuScoreDiagnostics> *diagnostics = nullptr);
+                            const std::vector<double> &scales, std::vector<double> &scores,
+                            size_t total_cap, size_t workspace_cap, std::string *error = nullptr,
+                            std::vector<MTPGpuScoreDiagnostics> *diagnostics = nullptr);
     // Only explicitly selected raw rows are copied, in requested order.
     bool download_linear_rows(const MTPGpuLinearRows &, const std::vector<int> &selected,
-        std::vector<double> &output, std::string *error = nullptr);
+                              std::vector<double> &output, std::string *error = nullptr);
     void invalidate_forward();
     // An adapter-side rejected training call also discards accumulated gradients.
     void invalidate_training_state();
@@ -835,38 +893,31 @@ public:
     // Ordinary FP64 linear model, complete ordered geometry and positive
     // aggregate memory_budget_bytes. Streams centers; no finite differences.
     bool compute_analytic_hvp(const MTPGpuBatchRequest &geometry,
-                             const MTPGpuAnalyticHvpRequest &hvp,
-                             std::string *error = nullptr);
+                              const MTPGpuAnalyticHvpRequest &hvp, std::string *error = nullptr);
     // Streams centers, sharing primal/tangent moments across selected columns.
     // Uses the same positive aggregate geometry budget as analytic HVP. No
     // dense coordinate Hessian, per-edge Jacobian, or model coefficient edits.
     bool compute_linear_hvp_block(const MTPGpuBatchRequest &geometry,
                                   const MTPGpuLinearHvpRequest &block,
                                   std::string *error = nullptr);
-    bool prepare_loss(const MTPGpuLossRequest &request,
-                      std::string *error = nullptr);
+    bool prepare_loss(const MTPGpuLossRequest &request, std::string *error = nullptr);
     bool prepare_hvp_pair_loss(const MTPGpuHVPForcePairLossRequest &request,
-                              MTPGpuHVPPairMetrics &metrics,
-                              GpuCacheToken &prepared_token,
-                              std::string *error = nullptr);
-    bool accumulate_gradient(const MTPGpuGradientRequest &request,
-                             std::string *error = nullptr);
+                               MTPGpuHVPPairMetrics &metrics, GpuCacheToken &prepared_token,
+                               std::string *error = nullptr);
+    bool accumulate_gradient(const MTPGpuGradientRequest &request, std::string *error = nullptr);
     MTPGpuDeviceOutput device_outputs() const;
-    bool project_channels(const MTPGpuDeviceInput &,int channels,const double *species,
-                          const double *coefficients,double *output,std::string *error=nullptr);
+    bool project_channels(const MTPGpuDeviceInput &, int channels, const double *species,
+                          const double *coefficients, double *output, std::string *error = nullptr);
     bool compute_lammps(const MTPGpuComputeRequest &request, std::string *error = nullptr);
 
-private:
+  private:
     struct AnalyticHvpOperation;
     bool compute_analytic_hvp_impl(const MTPGpuBatchRequest &geometry,
-                                   const AnalyticHvpOperation &operation,
-                                   std::string *error);
-    bool compute_batch_impl(const MTPGpuBatchRequest &request,
-                            const AnalyticHvpOperation *hvp,
+                                   const AnalyticHvpOperation &operation, std::string *error);
+    bool compute_batch_impl(const MTPGpuBatchRequest &request, const AnalyticHvpOperation *hvp,
                             std::string *error);
-    bool compute_impl(const MTPGpuComputeRequest &request,
-                      const MTPGpuBatchRequest *batch, std::string *error,
-                      const AnalyticHvpOperation *hvp = nullptr);
+    bool compute_impl(const MTPGpuComputeRequest &request, const MTPGpuBatchRequest *batch,
+                      std::string *error, const AnalyticHvpOperation *hvp = nullptr);
     struct State;
     State *state_ = nullptr;
 };

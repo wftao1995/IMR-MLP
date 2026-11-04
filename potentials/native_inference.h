@@ -8,16 +8,19 @@
 #include <string>
 #include <vector>
 
-namespace Potentials {
+namespace Potentials
+{
 
-struct NativeInferenceOptions {
+struct NativeInferenceOptions
+{
     std::string pottype;
     std::string settings_file;
     std::string device = "cpu";
     int device_id = -1;
 };
 
-struct NativeInferenceRequest {
+struct NativeInferenceRequest
+{
     bool forces = true;
     bool energy = true;
     bool site_energy = true;
@@ -37,7 +40,8 @@ struct NativeInferenceRequest {
 // neighbors and types. Change revision for any topology/type change and
 // owner when switching providers; zero disables topology caching. Neither
 // token permits caching positions, displacements or computed predictions.
-struct NativePackedNeighborhoodView {
+struct NativePackedNeighborhoodView
+{
     int owned_count = 0, total_count = 0, edge_count = 0;
     const int *centers = nullptr, *offsets = nullptr, *neighbors = nullptr, *types = nullptr;
     const double *positions = nullptr, *vectors = nullptr, *distances = nullptr;
@@ -50,12 +54,14 @@ struct NativePackedNeighborhoodView {
 // represented by ghost atoms. The evaluator filters the physical cutoff and
 // owns the prepared geometry/CSR for the complete call. No caller-supplied
 // revision or validation certificate can skip validation on this entry.
-struct NativeCandidateNeighborhoodView {
+struct NativeCandidateNeighborhoodView
+{
     int owned_count = 0, total_count = 0, candidate_count = 0;
     const int *offsets = nullptr, *neighbors = nullptr;
 };
 
-struct NativeInferenceResult {
+struct NativeInferenceResult
+{
     double energy = 0.;
     SiteCoordinateMatrix forces;
     Eigen::Matrix3d virial = Eigen::Matrix3d::Zero();
@@ -65,20 +71,22 @@ struct NativeInferenceResult {
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> latents;
 };
 
-struct NativeInferenceStatistics {
-    int owned_atoms=0,ghost_atoms=0;
-    std::size_t neighbor_edges=0,model_device_bytes=0;
-    std::uint64_t model_evaluations=0,force_kernel_launches=0;
+struct NativeInferenceStatistics
+{
+    int owned_atoms = 0, ghost_atoms = 0;
+    std::size_t neighbor_edges = 0, model_device_bytes = 0;
+    std::uint64_t model_evaluations = 0, force_kernel_launches = 0;
     // Internal builder generation; zero for other entry points or after failure.
-    std::uint64_t candidate_topology_revision=0;
+    std::uint64_t candidate_topology_revision = 0;
 };
 
 // Owns the original trained model and all inference workspaces. Local calls
 // use one neighborhood for each owned atom in [0, neighborhoods.size()).
 // Neighbor indices address the supplied owned+ghost Atoms arrays. Outputs
 // include ghost force/virial contributions; the caller performs reverse comm.
-class NativeInference {
-public:
+class NativeInference
+{
+  public:
     NativeInference(const std::string &model_file, const NativeInferenceOptions &options);
     ~NativeInference();
     NativeInference(const NativeInference &) = delete;
@@ -98,14 +106,17 @@ public:
     NativeInferenceResult evaluate_local(Atoms &atoms, AnyNeighborhoods &neighborhoods,
                                          const NativeInferenceRequest &request = {});
     NativeInferenceResult evaluate_distributed(Atoms &atoms, AnyNeighborhoods &neighborhoods,
+                                               const NativeCollectives &collectives,
+                                               const NativeInferenceRequest &request = {});
+    NativeInferenceResult
+    evaluate_distributed_packed(Atoms &atoms, const NativePackedNeighborhoodView &neighborhoods,
+                                const NativeCollectives &collectives,
+                                const NativeInferenceRequest &request = {});
+    NativeInferenceResult evaluate_distributed_candidates(
+        const Atoms &atoms, const NativeCandidateNeighborhoodView &candidates,
         const NativeCollectives &collectives, const NativeInferenceRequest &request = {});
-    NativeInferenceResult evaluate_distributed_packed(Atoms &atoms,
-        const NativePackedNeighborhoodView &neighborhoods,
-        const NativeCollectives &collectives, const NativeInferenceRequest &request = {});
-    NativeInferenceResult evaluate_distributed_candidates(const Atoms &atoms,
-        const NativeCandidateNeighborhoodView &candidates,
-        const NativeCollectives &collectives, const NativeInferenceRequest &request = {});
-private:
+
+  private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

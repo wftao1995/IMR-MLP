@@ -8,17 +8,19 @@
 #include <vector>
 #include <utility>
 
-namespace BasisAnalysis {
+namespace BasisAnalysis
+{
 
 /// Result container for a full correlation analysis of a descriptor matrix.
-struct CorrelationResult {
-    Eigen::MatrixXd pearson;       // (nscalar x nscalar) Pearson correlation coefficients
-    Eigen::VectorXd vif;           // (nscalar) Variance Inflation Factors
-    double cond_number = 0.0;      // Condition number of the correlation matrix
-    Eigen::VectorXd eigenvalues;   // Eigenvalues of the correlation matrix (descending)
-    Eigen::MatrixXd eigenvectors;  // Corresponding eigenvectors (columns)
-    int nsamples = 0;              // Number of samples (atoms) used
-    int nfeatures = 0;             // Number of scalar moments
+struct CorrelationResult
+{
+    Eigen::MatrixXd pearson;      // (nscalar x nscalar) Pearson correlation coefficients
+    Eigen::VectorXd vif;          // (nscalar) Variance Inflation Factors
+    double cond_number = 0.0;     // Condition number of the correlation matrix
+    Eigen::VectorXd eigenvalues;  // Eigenvalues of the correlation matrix (descending)
+    Eigen::MatrixXd eigenvectors; // Corresponding eigenvectors (columns)
+    int nsamples = 0;             // Number of samples (atoms) used
+    int nfeatures = 0;            // Number of scalar moments
 
     /// Numerical rank: count of eigenvalues > machine-epsilon * max_eig
     int rank(double eps = 1e-14) const;
@@ -32,8 +34,9 @@ struct CorrelationResult {
 ///
 /// The input is a (nfeatures x nsamples) matrix where each column is one
 /// atom's raw scalar-moment descriptor vector.
-class CorrelationAnalyzer {
-public:
+class CorrelationAnalyzer
+{
+  public:
     /// Construct with a raw descriptor matrix (nfeatures rows x nsamples cols).
     /// Borrows the matrix; it must outlive this analyzer.
     explicit CorrelationAnalyzer(const Eigen::MatrixXd &descriptors);
@@ -55,11 +58,10 @@ public:
 
     /// Compute full eigenvalue decomposition of the correlation matrix.
     /// eigenvalues are sorted descending.
-    static void compute_eigensystem(const Eigen::MatrixXd &corr,
-                                    Eigen::VectorXd &eigenvalues,
+    static void compute_eigensystem(const Eigen::MatrixXd &corr, Eigen::VectorXd &eigenvalues,
                                     Eigen::MatrixXd &eigenvectors);
 
-private:
+  private:
     const Eigen::MatrixXd &desc_;
 };
 

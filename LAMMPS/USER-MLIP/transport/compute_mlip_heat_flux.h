@@ -16,20 +16,22 @@ ComputeStyle(mlip/heat/flux,ComputeMLIPHeatFlux)
 #include "compute.h"
 #include "mlip_transport_provider.h"
 
-namespace LAMMPS_NS {
+namespace LAMMPS_NS
+{
 
-class ComputeMLIPHeatFlux : public Compute, public MLIPTransportFluxRequest {
- public:
-  ComputeMLIPHeatFlux(class LAMMPS *, int, char **);
-  ~ComputeMLIPHeatFlux() override;
-  void init() override;
-  void compute_vector() override;
+class ComputeMLIPHeatFlux : public Compute, public MLIPTransportFluxRequest
+{
+  public:
+    ComputeMLIPHeatFlux(class LAMMPS *, int, char **);
+    ~ComputeMLIPHeatFlux() override;
+    void init() override;
+    void compute_vector() override;
 
- private:
-  MLIPTransportProvider *provider_ = nullptr;
+  private:
+    MLIPTransportProvider *provider_ = nullptr;
 };
 
-}    // namespace LAMMPS_NS
+} // namespace LAMMPS_NS
 
 #endif
 #endif

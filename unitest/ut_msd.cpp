@@ -10,15 +10,16 @@
 using Catch::Approx;
 
 // ── Helpers ────────────────────────────────────────────────────────────
-static std::vector<Atoms> make_trajectory(int nframes, int natoms,
-                                           double box = 100.0,
-                                           double vel_x = 0.0,
-                                           double ts = 1.0) {
+static std::vector<Atoms> make_trajectory(int nframes, int natoms, double box = 100.0,
+                                          double vel_x = 0.0, double ts = 1.0)
+{
     std::vector<Atoms> traj(nframes);
-    for (int f = 0; f < nframes; ++f) {
+    for (int f = 0; f < nframes; ++f)
+    {
         traj[f].cell_ = Eigen::Matrix3d::Identity() * box;
         traj[f].chemmap_.assign(natoms, 0);
-        for (int i = 0; i < natoms; ++i) {
+        for (int i = 0; i < natoms; ++i)
+        {
             double x = f * ts * vel_x;
             traj[f].pos_.push_back({x, 0.0, 0.0});
         }
@@ -26,10 +27,10 @@ static std::vector<Atoms> make_trajectory(int nframes, int natoms,
     return traj;
 }
 
-static ComputeMSD make_msd(bool fft = true, bool tac_avg = true,
-                            double ts = 1.0, bool drift_cm = false,
-                            bool do_fit = false, double fit_start = 0.0,
-                            double fit_end = 0.0) {
+static ComputeMSD make_msd(bool fft = true, bool tac_avg = true, double ts = 1.0,
+                           bool drift_cm = false, bool do_fit = false, double fit_start = 0.0,
+                           double fit_end = 0.0)
+{
     GPSettings s;
     s.Modify("fft", fft ? "true" : "false");
     s.Modify("tacavg", tac_avg ? "true" : "false");
@@ -41,7 +42,8 @@ static ComputeMSD make_msd(bool fft = true, bool tac_avg = true,
     s.Modify("der", "false");
     s.Modify("drift_cm", drift_cm ? "true" : "false");
     s.Modify("do_lfit", do_fit ? "true" : "false");
-    if (do_fit) {
+    if (do_fit)
+    {
         s.Modify("fit_start", std::to_string(fit_start));
         s.Modify("fit_end", std::to_string(fit_end));
     }
@@ -52,7 +54,8 @@ static ComputeMSD make_msd(bool fft = true, bool tac_avg = true,
 // Center of mass
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: center of mass of single atom", "[msd]") {
+TEST_CASE("MSD: center of mass of single atom", "[msd]")
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 10.0;
     atom.pos_ = {{1.0, 2.0, 3.0}};
@@ -66,7 +69,8 @@ TEST_CASE("MSD: center of mass of single atom", "[msd]") {
     REQUIRE(cm[2] == Approx(3.0));
 }
 
-TEST_CASE("MSD: center of mass of two equal-mass atoms", "[msd]") {
+TEST_CASE("MSD: center of mass of two equal-mass atoms", "[msd]")
+{
     Atoms atom;
     atom.cell_ = Eigen::Matrix3d::Identity() * 10.0;
     atom.pos_ = {{0.0, 0.0, 0.0}, {2.0, 0.0, 0.0}};
@@ -83,7 +87,8 @@ TEST_CASE("MSD: center of mass of two equal-mass atoms", "[msd]") {
 // Stationary particle — MSD should be zero
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: stationary particle MSD=0", "[msd]") {
+TEST_CASE("MSD: stationary particle MSD=0", "[msd]")
+{
     auto traj = make_trajectory(10, 1); // stationary
     auto msd = make_msd(true, true, 1.0, false);
     msd.atom_masses = {1.0};
@@ -98,7 +103,8 @@ TEST_CASE("MSD: stationary particle MSD=0", "[msd]") {
 // Constant velocity — MSD should be quadratic: MSD(m) = v² * (m*ts)²
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: constant velocity particle MSD is quadratic", "[msd]") {
+TEST_CASE("MSD: constant velocity particle MSD is quadratic", "[msd]")
+{
     double v = 1.0;
     auto traj = make_trajectory(10, 1, 100.0, v, 1.0);
     auto msd = make_msd(true, true, 1.0, false);
@@ -107,7 +113,8 @@ TEST_CASE("MSD: constant velocity particle MSD is quadratic", "[msd]") {
 
     auto &t = msd.msd_total;
     // MSD(m) = (v*m*ts)² = m² for v=1, ts=1
-    for (int m = 0; m < (int)t.size(); ++m) {
+    for (int m = 0; m < (int)t.size(); ++m)
+    {
         double expected = v * v * m * m; // = m²
         REQUIRE(t[m] == Approx(expected).epsilon(1e-10));
     }
@@ -117,7 +124,8 @@ TEST_CASE("MSD: constant velocity particle MSD is quadratic", "[msd]") {
 // nac vs ac vs fft consistency
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: nac algorithm gives same result as fft for stationary", "[msd]") {
+TEST_CASE("MSD: nac algorithm gives same result as fft for stationary", "[msd]")
+{
     auto traj1 = make_trajectory(10, 1);
     auto traj2 = traj1;
 
@@ -125,7 +133,7 @@ TEST_CASE("MSD: nac algorithm gives same result as fft for stationary", "[msd]")
     msd_nac.atom_masses = {1.0};
     msd_nac.compute(traj1);
 
-    auto msd_fft = make_msd(true, true, 1.0, false);   // fft
+    auto msd_fft = make_msd(true, true, 1.0, false); // fft
     msd_fft.atom_masses = {1.0};
     msd_fft.compute(traj2);
 
@@ -133,15 +141,16 @@ TEST_CASE("MSD: nac algorithm gives same result as fft for stationary", "[msd]")
         REQUIRE(msd_nac.msd_total[i] == Approx(msd_fft.msd_total[i]).margin(1e-12));
 }
 
-TEST_CASE("MSD: ac and fft give similar results for constant motion", "[msd]") {
+TEST_CASE("MSD: ac and fft give similar results for constant motion", "[msd]")
+{
     auto traj1 = make_trajectory(10, 1, 100.0, 0.5, 1.0);
     auto traj2 = traj1;
 
-    auto msd_ac = make_msd(false, true, 1.0, false);  // ac
+    auto msd_ac = make_msd(false, true, 1.0, false); // ac
     msd_ac.atom_masses = {1.0};
     msd_ac.compute(traj1);
 
-    auto msd_fft = make_msd(true, true, 1.0, false);  // fft
+    auto msd_fft = make_msd(true, true, 1.0, false); // fft
     msd_fft.atom_masses = {1.0};
     msd_fft.compute(traj2);
 
@@ -153,7 +162,8 @@ TEST_CASE("MSD: ac and fft give similar results for constant motion", "[msd]") {
 // Drift correction
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: drift_cm removes COM translation", "[msd]") {
+TEST_CASE("MSD: drift_cm removes COM translation", "[msd]")
+{
     // Two atoms both moving at same velocity — COM is moving
     // After drift_cm, MSD should be 0 (atoms are stationary relative to COM)
     auto traj = make_trajectory(10, 2, 100.0, 1.0, 1.0);
@@ -166,11 +176,13 @@ TEST_CASE("MSD: drift_cm removes COM translation", "[msd]") {
         REQUIRE(t[i] == Approx(0.0).margin(1e-12));
 }
 
-TEST_CASE("MSD: drift_cm preserves relative motion", "[msd]") {
+TEST_CASE("MSD: drift_cm preserves relative motion", "[msd]")
+{
     // Two atoms: atom 0 stationary, atom 1 moves at v=1
     // 10 frames, each has 2 atoms
     std::vector<Atoms> traj(10);
-    for (int f = 0; f < 10; ++f) {
+    for (int f = 0; f < 10; ++f)
+    {
         traj[f].cell_ = Eigen::Matrix3d::Identity() * 100.0;
         traj[f].chemmap_ = {0, 0};
         traj[f].pos_ = {{0.0, 0.0, 0.0}, {f * 1.0, 0.0, 0.0}};
@@ -183,7 +195,8 @@ TEST_CASE("MSD: drift_cm preserves relative motion", "[msd]") {
     // atom0 moves at -0.5, atom1 moves at +0.5
     // MSD of atom0: (0.5*m)², atom1: (0.5*m)²
     // Total weighted: 0.5 * [(0.5*m)² + (0.5*m)²] = 0.25*m²
-    for (int m = 0; m < (int)msd.msd_total.size(); ++m) {
+    for (int m = 0; m < (int)msd.msd_total.size(); ++m)
+    {
         double expected = 0.25 * m * m;
         REQUIRE(msd.msd_total[m] == Approx(expected).epsilon(1e-10));
     }
@@ -193,7 +206,8 @@ TEST_CASE("MSD: drift_cm preserves relative motion", "[msd]") {
 // Linear fit
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: linear fit on constant velocity data", "[msd]") {
+TEST_CASE("MSD: linear fit on constant velocity data", "[msd]")
+{
     auto traj = make_trajectory(20, 1, 100.0, 1.0, 1.0);
     auto msd = make_msd(true, true, 1.0, false, true, 2.0, 19.0);
     msd.atom_masses = {1.0};
@@ -206,7 +220,8 @@ TEST_CASE("MSD: linear fit on constant velocity data", "[msd]") {
     REQUIRE(std::isfinite(msd.b_total));
 }
 
-TEST_CASE("MSD: lfit bounds are respected", "[msd]") {
+TEST_CASE("MSD: lfit bounds are respected", "[msd]")
+{
     auto traj = make_trajectory(20, 1, 100.0, 0.5, 1.0);
     GPSettings s;
     s.Modify("fft", "true");
@@ -219,8 +234,8 @@ TEST_CASE("MSD: lfit bounds are respected", "[msd]") {
     s.Modify("der", "false");
     s.Modify("drift_cm", "false");
     s.Modify("do_lfit", "true");
-    s.Modify("fit_start", "5.0");   // start fit at t=5
-    s.Modify("fit_end", "15.0");    // end fit at t=15
+    s.Modify("fit_start", "5.0"); // start fit at t=5
+    s.Modify("fit_end", "15.0");  // end fit at t=15
     auto msd = ComputeMSD(s);
     msd.atom_masses = {1.0};
     msd.compute(traj);
@@ -233,7 +248,8 @@ TEST_CASE("MSD: lfit bounds are respected", "[msd]") {
 // Weighting / postprocessing
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: weighted average with equal weights equals arithmetic mean", "[msd]") {
+TEST_CASE("MSD: weighted average with equal weights equals arithmetic mean", "[msd]")
+{
     auto traj = make_trajectory(10, 2, 100.0, 0.0, 1.0);
     auto msd = make_msd(true, true, 1.0, false);
     msd.atom_masses = {1.0};
@@ -248,7 +264,8 @@ TEST_CASE("MSD: weighted average with equal weights equals arithmetic mean", "[m
 // Time axis
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: time axis is correct", "[msd]") {
+TEST_CASE("MSD: time axis is correct", "[msd]")
+{
     auto traj = make_trajectory(10, 1, 100.0, 0.0, 2.5); // ts = 2.5
     auto msd = make_msd(true, true, 2.5, false);
     msd.atom_masses = {1.0};
@@ -270,7 +287,8 @@ TEST_CASE("MSD: time axis is correct", "[msd]") {
 // Settings constructor
 // ═══════════════════════════════════════════════════════════════════════
 
-TEST_CASE("MSD: settings constructor propagates parameters", "[msd]") {
+TEST_CASE("MSD: settings constructor propagates parameters", "[msd]")
+{
     GPSettings s;
     s.Modify("fft", "false");
     s.Modify("tacavg", "false");
@@ -281,7 +299,8 @@ TEST_CASE("MSD: settings constructor propagates parameters", "[msd]") {
     (void)msd; // just verify construction doesn't throw
 }
 
-TEST_CASE("MSD: invalid input is rejected", "[msd]") {
+TEST_CASE("MSD: invalid input is rejected", "[msd]")
+{
     std::vector<Atoms> empty;
     auto msd = make_msd(true, true, 1.0, false);
     REQUIRE_THROWS_AS(msd.compute(empty), std::invalid_argument);
@@ -291,10 +310,12 @@ TEST_CASE("MSD: invalid input is rejected", "[msd]") {
     REQUIRE_THROWS_AS(msd.compute(traj), std::invalid_argument);
 }
 
-TEST_CASE("MSD: max_length limits lags but uses every time origin", "[msd]") {
+TEST_CASE("MSD: max_length limits lags but uses every time origin", "[msd]")
+{
     auto traj = make_trajectory(6, 1, 100.0);
     const double x[] = {0.0, 0.0, 0.0, 0.0, 10.0, 10.0};
-    for (int i = 0; i < 6; ++i) traj[i].pos_[0][0] = x[i];
+    for (int i = 0; i < 6; ++i)
+        traj[i].pos_[0][0] = x[i];
 
     GPSettings s;
     s.Modify("fft", "true");
@@ -309,7 +330,8 @@ TEST_CASE("MSD: max_length limits lags but uses every time origin", "[msd]") {
     REQUIRE(msd.msd_total[1] == Approx(20.0).margin(1e-10));
 }
 
-TEST_CASE("MSD: compute does not modify wrapped input", "[msd]") {
+TEST_CASE("MSD: compute does not modify wrapped input", "[msd]")
+{
     auto traj = make_trajectory(4, 1, 10.0);
     traj[0].pos_[0][0] = 9.0;
     traj[1].pos_[0][0] = 1.0;
@@ -325,11 +347,13 @@ TEST_CASE("MSD: compute does not modify wrapped input", "[msd]") {
     REQUIRE(msd.msd_total[1] == Approx(4.0).margin(1e-10));
 }
 
-TEST_CASE("MSD: integrated velocity drift removes accelerating translation", "[msd]") {
+TEST_CASE("MSD: integrated velocity drift removes accelerating translation", "[msd]")
+{
     auto traj = make_trajectory(4, 1, 100.0);
     const double velocity[] = {0.0, 1.0, 2.0, 3.0};
     const double position[] = {0.0, 0.5, 2.0, 4.5};
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4; ++i)
+    {
         traj[i].pos_[0][0] = position[i];
         traj[i].velocities_ = {{velocity[i], 0.0, 0.0}};
     }
@@ -344,9 +368,11 @@ TEST_CASE("MSD: integrated velocity drift removes accelerating translation", "[m
         REQUIRE(value == Approx(0.0).margin(1e-12));
 }
 
-TEST_CASE("MSD: position and velocity drift modes are exclusive", "[msd]") {
+TEST_CASE("MSD: position and velocity drift modes are exclusive", "[msd]")
+{
     auto traj = make_trajectory(3, 1);
-    for (auto &frame : traj) frame.velocities_ = {{0.0, 0.0, 0.0}};
+    for (auto &frame : traj)
+        frame.velocities_ = {{0.0, 0.0, 0.0}};
     GPSettings s;
     s.Modify("drift_cm", "true");
     s.Modify("drift_vm", "true");
@@ -355,9 +381,11 @@ TEST_CASE("MSD: position and velocity drift modes are exclusive", "[msd]") {
     REQUIRE_THROWS_AS(msd.compute(traj), std::invalid_argument);
 }
 
-TEST_CASE("MSD: finite-size correction keeps raw slope and uses SI conversion", "[msd]") {
+TEST_CASE("MSD: finite-size correction keeps raw slope and uses SI conversion", "[msd]")
+{
     auto traj = make_trajectory(4, 1, 10.0);
-    for (int i = 0; i < 4; ++i) traj[i].pos_[0][0] = std::sqrt(6.0 * i);
+    for (int i = 0; i < 4; ++i)
+        traj[i].pos_[0][0] = std::sqrt(6.0 * i);
     GPSettings s;
     s.Modify("fft", "false");
     s.Modify("tacavg", "false");
@@ -372,15 +400,15 @@ TEST_CASE("MSD: finite-size correction keeps raw slope and uses SI conversion", 
     msd.compute(traj);
 
     constexpr double kb = 8.617333262e-5;
-    const double expected_correction = kb * 300.0 * 2.837298 /
-        (6.0 * M_PI * 6.241509074e-3 * 10.0);
+    const double expected_correction = kb * 300.0 * 2.837298 / (6.0 * M_PI * 6.241509074e-3 * 10.0);
     REQUIRE(msd.k_total == Approx(6.0).margin(1e-10));
     REQUIRE(msd.diffusion_total.D_PBC == Approx(1.0).margin(1e-10));
     REQUIRE(msd.diffusion_total.D_correction == Approx(expected_correction).epsilon(1e-12));
     REQUIRE(msd.diffusion_total.D_infinite == Approx(1.0 + expected_correction).epsilon(1e-12));
 }
 
-TEST_CASE("MSD: fitting is disabled by default and requires an explicit window", "[msd]") {
+TEST_CASE("MSD: fitting is disabled by default and requires an explicit window", "[msd]")
+{
     auto traj = make_trajectory(5, 1);
     ComputeMSD default_msd;
     default_msd.atom_masses = {1.0};
@@ -395,15 +423,18 @@ TEST_CASE("MSD: fitting is disabled by default and requires an explicit window",
     REQUIRE_THROWS_AS(invalid_fit.compute(traj), std::invalid_argument);
 }
 
-TEST_CASE("MSD: FFT matches direct autocorrelation for a random trajectory", "[msd]") {
+TEST_CASE("MSD: FFT matches direct autocorrelation for a random trajectory", "[msd]")
+{
     constexpr int nframes = 64;
     constexpr int natoms = 3;
     auto direct_traj = make_trajectory(nframes, natoms, 1000.0);
     std::mt19937 rng(12345);
     std::normal_distribution<double> step(0.0, 0.2);
-    for (int atom = 0; atom < natoms; ++atom) {
+    for (int atom = 0; atom < natoms; ++atom)
+    {
         Eigen::RowVector3d pos(1.0e8 + atom, -2.0e8, 3.0e8);
-        for (int frame = 0; frame < nframes; ++frame) {
+        for (int frame = 0; frame < nframes; ++frame)
+        {
             if (frame > 0)
                 pos += Eigen::RowVector3d(step(rng), step(rng), step(rng));
             direct_traj[frame].pos_[atom] = pos;
@@ -419,15 +450,15 @@ TEST_CASE("MSD: FFT matches direct autocorrelation for a random trajectory", "[m
         REQUIRE(fft.msd_total[i] == Approx(direct.msd_total[i]).margin(1e-8));
 }
 
-TEST_CASE("MSD: triclinic fractional unwrapping follows the nearest image", "[msd]") {
+TEST_CASE("MSD: triclinic fractional unwrapping follows the nearest image", "[msd]")
+{
     std::vector<Atoms> traj(2);
     Eigen::Matrix3d cell;
-    cell << 10.0, 0.0, 0.0,
-             2.0, 9.0, 0.0,
-             0.0, 0.0, 8.0;
+    cell << 10.0, 0.0, 0.0, 2.0, 9.0, 0.0, 0.0, 0.0, 8.0;
     const Eigen::RowVector3d frac0(0.9, 0.2, 0.3);
     const Eigen::RowVector3d frac1(0.1, 0.2, 0.3);
-    for (auto &frame : traj) {
+    for (auto &frame : traj)
+    {
         frame.cell_ = cell;
         frame.chemmap_ = {0};
     }
@@ -439,7 +470,8 @@ TEST_CASE("MSD: triclinic fractional unwrapping follows the nearest image", "[ms
     REQUIRE(msd.msd_total[1] == Approx(expected_delta.squaredNorm()).margin(1e-10));
 }
 
-TEST_CASE("MSD: invalid weights and changing atom identity are rejected", "[msd]") {
+TEST_CASE("MSD: invalid weights and changing atom identity are rejected", "[msd]")
+{
     auto traj = make_trajectory(4, 2);
     auto weighted = make_msd(true, true, 1.0, false);
     weighted.atomic_weight = {1.0, -0.5};
@@ -451,7 +483,8 @@ TEST_CASE("MSD: invalid weights and changing atom identity are rejected", "[msd]
     REQUIRE_THROWS_AS(msd.compute(changed), std::invalid_argument);
 }
 
-TEST_CASE("MSD: one instance can be reused for different atom counts", "[msd]") {
+TEST_CASE("MSD: one instance can be reused for different atom counts", "[msd]")
+{
     auto one = make_trajectory(5, 1);
     auto two = make_trajectory(6, 2);
     auto msd = make_msd(true, true, 1.0, false);
@@ -463,7 +496,8 @@ TEST_CASE("MSD: one instance can be reused for different atom counts", "[msd]") 
         REQUIRE(value == Approx(0.0).margin(1e-12));
 }
 
-TEST_CASE("MSD: derivative rejects too few lag samples", "[msd]") {
+TEST_CASE("MSD: derivative rejects too few lag samples", "[msd]")
+{
     auto traj = make_trajectory(3, 1);
     GPSettings s;
     s.Modify("drift_cm", "false");
@@ -472,20 +506,20 @@ TEST_CASE("MSD: derivative rejects too few lag samples", "[msd]") {
     REQUIRE_THROWS_AS(msd.compute(traj), std::invalid_argument);
 }
 
-
-TEST_CASE("MSD unwraps only periodic directions", "[msd]") {
+TEST_CASE("MSD unwraps only periodic directions", "[msd]")
+{
     const bool fft = GENERATE(false, true);
     const bool nonperiodic = GENERATE(false, true);
     const int axis = GENERATE(0, 1, 2);
     const int other = (axis + 1) % 3;
     auto traj = make_trajectory(5, 1, 10.0);
-    for (int f = 0; f < (int)traj.size(); ++f) {
+    for (int f = 0; f < (int)traj.size(); ++f)
+    {
         traj[f].pbc_ = nonperiodic ? std::array<bool, 3>{false, false, false}
-                                  : std::array<bool, 3>{true, true, true};
+                                   : std::array<bool, 3>{true, true, true};
         traj[f].pbc_[axis] = false;
         traj[f].pos_[0][axis] = 6.0 * f;
-        traj[f].pos_[0][other] = nonperiodic ? 9.0 + 2.0 * f
-                                           : std::fmod(9.0 + 2.0 * f, 10.0);
+        traj[f].pos_[0][other] = nonperiodic ? 9.0 + 2.0 * f : std::fmod(9.0 + 2.0 * f, 10.0);
     }
     auto msd = make_msd(fft);
     msd.compute(traj);
@@ -494,9 +528,11 @@ TEST_CASE("MSD unwraps only periodic directions", "[msd]") {
 }
 
 static void check_msd_source_preserved(const std::vector<Atoms> &frames,
-                                        const std::vector<Atoms> &original) {
+                                       const std::vector<Atoms> &original)
+{
     REQUIRE(frames.size() == original.size());
-    for (size_t f = 0; f < frames.size(); ++f) {
+    for (size_t f = 0; f < frames.size(); ++f)
+    {
         REQUIRE(frames[f].cartesian == original[f].cartesian);
         REQUIRE(frames[f].cell_.isApprox(original[f].cell_, 0));
         REQUIRE(frames[f].pbc_ == original[f].pbc_);
@@ -509,14 +545,16 @@ static void check_msd_source_preserved(const std::vector<Atoms> &frames,
     }
 }
 
-TEST_CASE("MSD: fractional nonperiodic positions retain Cartesian displacement units", "[msd]") {
+TEST_CASE("MSD: fractional nonperiodic positions retain Cartesian displacement units", "[msd]")
+{
     const bool fft = GENERATE(false, true);
     std::vector<Atoms> frames(2);
-    for (int f = 0; f < 2; ++f) {
+    for (int f = 0; f < 2; ++f)
+    {
         frames[f].cell_ = Eigen::Vector3d(4., 5., 6.).asDiagonal();
         frames[f].pbc_ = {false, false, false};
         frames[f].chemmap_ = {0};
-        frames[f].pos_ = {{1. + .4*f, 1., 1.5}};
+        frames[f].pos_ = {{1. + .4 * f, 1., 1.5}};
         frames[f].velocities_ = {{.4, .2, -.1}};
         frames[f].energy_ = 11. + f;
         frames[f].have_energy = true;
@@ -533,21 +571,24 @@ TEST_CASE("MSD: fractional nonperiodic positions retain Cartesian displacement u
     check_msd_source_preserved(frames, original);
 }
 
-TEST_CASE("MSD: mixed stored coordinates unwrap partial periodic crossings", "[msd]") {
+TEST_CASE("MSD: mixed stored coordinates unwrap partial periodic crossings", "[msd]")
+{
     const bool fft = GENERATE(false, true);
     const bool mixed = GENERATE(false, true);
     std::vector<Atoms> frames(3);
     const std::array<double, 3> fractional_x{.9, .1, .3};
-    for (int f = 0; f < 3; ++f) {
+    for (int f = 0; f < 3; ++f)
+    {
         frames[f].cell_ = Eigen::Vector3d(4., 5., 6.).asDiagonal();
         frames[f].pbc_ = {true, false, false};
         frames[f].chemmap_ = {0};
-        frames[f].pos_ = {{4*fractional_x[f], 1., 1.5}};
+        frames[f].pos_ = {{4 * fractional_x[f], 1., 1.5}};
         frames[f].velocities_ = {{.8, .2, -.1}};
         frames[f].energy_ = 21. + f;
         frames[f].have_energy = true;
         frames[f].features_["source"] = "partial-periodic";
-        if (!mixed || f == 1) frames[f].to_fractional();
+        if (!mixed || f == 1)
+            frames[f].to_fractional();
     }
     const auto original = frames;
     auto msd = make_msd(fft, true, 1., false);

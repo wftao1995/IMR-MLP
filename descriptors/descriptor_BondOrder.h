@@ -28,7 +28,7 @@
 
 class DescriptorBondOrder : public Descriptors, public ConnectSettings
 {
-private:
+  private:
     int maxl_ = 4;
     int qlmsize;
     std::vector<double> Qlm;
@@ -47,14 +47,19 @@ private:
         return m + l * (l + 1);
     }
 
-public:
+  public:
     DescriptorBondOrder(int _maxl) : DescriptorBondOrder()
     {
         init(_maxl);
     };
-    DescriptorBondOrder() { cutoff_ = 5.0; };
 
-    std::unique_ptr<Descriptors> clone() const override {
+    DescriptorBondOrder()
+    {
+        cutoff_ = 5.0;
+    };
+
+    std::unique_ptr<Descriptors> clone() const override
+    {
         auto copy = std::make_unique<DescriptorBondOrder>(maxl_);
         copy->cutoff_ = cutoff_;
         copy->normalize_w_inner = normalize_w_inner;
@@ -62,16 +67,20 @@ public:
         copy->InitSettings();
         return copy;
     }
-    ~DescriptorBondOrder(){};
+
+    ~DescriptorBondOrder() {};
 
     // ── GPSettings constructor (MSD pattern) ──
     void InitSettings()
     {
         Connect(cutoff_, "cutoff", "cutoff radius for neighborhood");
         Connect(maxl_, "maxl", "maximum angular momentum L (even, at least 2, default 4)");
-        Connect(normalize_w_inner, "normalize_w_inner", "must be false; termwise normalization is not rotationally invariant");
-        Connect(normalize_w_outer, "normalize_w_outer", "legacy flag: false gives normalized Wl, true gives raw Wl");
+        Connect(normalize_w_inner, "normalize_w_inner",
+                "must be false; termwise normalization is not rotationally invariant");
+        Connect(normalize_w_outer, "normalize_w_outer",
+                "legacy flag: false gives normalized Wl, true gives raw Wl");
     }
+
     DescriptorBondOrder(const GPSettings &_settings) : DescriptorBondOrder()
     {
         InitSettings();
@@ -79,12 +88,21 @@ public:
         init(maxl_);
     }
 
-    int lsize() const { return maxl_; };
-    int qmlsize() const { return qlmsize; };
+    int lsize() const
+    {
+        return maxl_;
+    };
+
+    int qmlsize() const
+    {
+        return qlmsize;
+    };
+
     void get_qlm(std::vector<double> &qlm)
     {
         qlm = Qlm;
     }
+
     void get_qlm(std::vector<std::complex<double>> &qlm)
     {
         qlm = Qlmc;
@@ -99,26 +117,40 @@ public:
         maxl_ = ml;
         qlmsize = (maxl_ + 1) * (maxl_ + 1);
         Qlm.resize(qlmsize);
-        Qlmc.resize(qlmsize); 
+        Qlmc.resize(qlmsize);
         rsph.init(maxl_, maxl_);
         csph.init(maxl_, maxl_);
     }
 
     void compute(const Neighborhood &nbh, std::vector<double> &Ql, std::vector<double> &Wl);
     void compute_ref(const Neighborhood &nbh, std::vector<double> &Ql, std::vector<double> &Wl);
-    void compute_ref_pairs(const Neighborhood &nbh, const double rcut, std::vector<double> &Ql, std::vector<double> &Wl);
+    void compute_ref_pairs(const Neighborhood &nbh, const double rcut, std::vector<double> &Ql,
+                           std::vector<double> &Wl);
 
     // --- Descriptors interface ---
     void compute(Neighborhood &nbh, Eigen::VectorXd &out) override;
-    void compute(Neighborhood &nbh, Eigen::VectorXd &out,
-                 const ComputeOptions &opts) override;
-    int feature_size() const override { return maxl_; }
-    bool supports_weighted_site_hvp() const override { return true; }
-    bool supports_weighted_site_hessian() const override { return true; }
+    void compute(Neighborhood &nbh, Eigen::VectorXd &out, const ComputeOptions &opts) override;
+
+    int feature_size() const override
+    {
+        return maxl_;
+    }
+
+    bool supports_weighted_site_hvp() const override
+    {
+        return true;
+    }
+
+    bool supports_weighted_site_hessian() const override
+    {
+        return true;
+    }
+
     void compute_weighted_site_hvp(Neighborhood &, const Eigen::VectorXd &,
-        const DescriptorSiteMatrix &, double &, DescriptorSiteMatrix &, DescriptorSiteMatrix &) override;
-    void compute_weighted_site_hessian(Neighborhood &, const Eigen::VectorXd &,
-        double &, DescriptorSiteMatrix &, Eigen::MatrixXd &) override;
+                                   const DescriptorSiteMatrix &, double &, DescriptorSiteMatrix &,
+                                   DescriptorSiteMatrix &) override;
+    void compute_weighted_site_hessian(Neighborhood &, const Eigen::VectorXd &, double &,
+                                       DescriptorSiteMatrix &, Eigen::MatrixXd &) override;
 };
 
 #endif

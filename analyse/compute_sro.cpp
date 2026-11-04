@@ -46,7 +46,8 @@ ComputeSRO::ComputeSRO(const GPSettings &_settings)
 // get_orders is now a template in sro_common.h — works for both
 // Neighborhood and NeighborhoodSimple
 
-std::vector<pair_srotype> ComputeSRO::compute(const Atoms &atom, const AnyNeighborhoods &nbhs, std::map<sro_counter, size_t> *pcount)
+std::vector<pair_srotype> ComputeSRO::compute(const Atoms &atom, const AnyNeighborhoods &nbhs,
+                                              std::map<sro_counter, size_t> *pcount)
 {
     std::map<int, int> spmap = atom.types_count_map();
     int total_atoms = atom.size();
@@ -89,11 +90,9 @@ std::vector<pair_srotype> ComputeSRO::compute(const Atoms &atom, const AnyNeighb
                 tmp.chema = it->first;
                 tmp.chemb = it2->first;
                 tmp.order = o;
-                tmp.sro = compute_sro_value(sro_type,
-                    static_cast<double>(counter[cttmp]),
-                    static_cast<double>(total_pairs[o]),
-                    concen[it->first], concen[it2->first],
-                    tmp.chema == tmp.chemb);
+                tmp.sro = compute_sro_value(sro_type, static_cast<double>(counter[cttmp]),
+                                            static_cast<double>(total_pairs[o]), concen[it->first],
+                                            concen[it2->first], tmp.chema == tmp.chemb);
                 ret.push_back(tmp);
             }
         }
@@ -104,8 +103,10 @@ std::vector<pair_srotype> ComputeSRO::compute(const Atoms &atom, const AnyNeighb
     }
     return ret;
 }
+
 // forward set to true if use neighborhood_cluster
-std::vector<pair_srotype> ComputeSRO::compute(const Atoms &atom, const AnyNeighborhoodsSimple &nbhs, std::map<sro_counter, size_t> *pcount, bool forward)
+std::vector<pair_srotype> ComputeSRO::compute(const Atoms &atom, const AnyNeighborhoodsSimple &nbhs,
+                                              std::map<sro_counter, size_t> *pcount, bool forward)
 {
     std::map<int, int> spmap = atom.types_count_map();
     int total_atoms = atom.size();
@@ -155,11 +156,9 @@ std::vector<pair_srotype> ComputeSRO::compute(const Atoms &atom, const AnyNeighb
                 tmp.chema = it->first;
                 tmp.chemb = it2->first;
                 tmp.order = o;
-                tmp.sro = compute_sro_value(sro_type,
-                    static_cast<double>(counter[cttmp]),
-                    static_cast<double>(total_pairs[o]),
-                    concen[it->first], concen[it2->first],
-                    tmp.chema == tmp.chemb);
+                tmp.sro = compute_sro_value(sro_type, static_cast<double>(counter[cttmp]),
+                                            static_cast<double>(total_pairs[o]), concen[it->first],
+                                            concen[it2->first], tmp.chema == tmp.chemb);
                 ret.push_back(tmp);
             }
         }

@@ -6,7 +6,8 @@
 
 #include "../Decorrelator.h"
 
-namespace BasisAnalysis {
+namespace BasisAnalysis
+{
 
 /// Prune features based on Pearson correlation or VIF thresholds.
 ///
@@ -19,19 +20,18 @@ namespace BasisAnalysis {
 ///
 /// Pearson pruning is O(n^2); VIF pruning uses spectral factorizations and
 /// inverse updates in the positive definite phase. Selection is deterministic.
-class ThresholdPruning : public Decorrelator {
-public:
+class ThresholdPruning : public Decorrelator
+{
+  public:
     /// @param pearson_threshold  Remove if |pearson| > this (default 0.95)
     /// @param vif_threshold      Remove until all VIF <= this (default 10.0)
-    ThresholdPruning(double pearson_threshold = 0.95,
-                     double vif_threshold = 10.0);
+    ThresholdPruning(double pearson_threshold = 0.95, double vif_threshold = 10.0);
 
     std::string name() const override;
-    std::pair<std::set<int>, std::set<int>>
-    select(const CorrelationResult &corr,
-           int nscalar) override;
+    std::pair<std::set<int>, std::set<int>> select(const CorrelationResult &corr,
+                                                   int nscalar) override;
 
-private:
+  private:
     double pearson_threshold_;
     double vif_threshold_;
 };

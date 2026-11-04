@@ -13,7 +13,9 @@
 using namespace std::literals;
 using namespace std::complex_literals;
 
-Descriptor_BispectrumSO4::Descriptor_BispectrumSO4(double _cutoff, int _twojmax, bool _der, double _radius, CutoffFunctions::CutoffType ctype)
+Descriptor_BispectrumSO4::Descriptor_BispectrumSO4(double _cutoff, int _twojmax, bool _der,
+                                                   double _radius,
+                                                   CutoffFunctions::CutoffType ctype)
 {
     cutoff_ = _cutoff;
     twojmax_ = _twojmax;
@@ -44,7 +46,8 @@ void Descriptor_BispectrumSO4::init_internals(CutoffFunctions::CutoffType ctype)
         throw std::invalid_argument("BispectrumSO4: radius and cutoff must be positive");
     if (radial_angle_map_ != "linear" && radial_angle_map_ != "atan")
         throw std::invalid_argument("BispectrumSO4: radial_angle_map must be linear or atan");
-    if (quaternion_convention_ == "legacy") {
+    if (quaternion_convention_ == "legacy")
+    {
 #if defined(DES_SOF_Q1)
         convention_ = 1;
 #elif defined(DES_SOF_Q2)
@@ -54,21 +57,24 @@ void Descriptor_BispectrumSO4::init_internals(CutoffFunctions::CutoffType ctype)
 #else
         convention_ = 4;
 #endif
-    } else if (quaternion_convention_.size()==2 && quaternion_convention_[0]=='q' &&
-               quaternion_convention_[1]>='1' && quaternion_convention_[1]<='4')
-        convention_ = quaternion_convention_[1]-'0';
-    else throw std::invalid_argument("BispectrumSO4: invalid quaternion_convention");
+    }
+    else if (quaternion_convention_.size() == 2 && quaternion_convention_[0] == 'q' &&
+             quaternion_convention_[1] >= '1' && quaternion_convention_[1] <= '4')
+        convention_ = quaternion_convention_[1] - '0';
+    else
+        throw std::invalid_argument("BispectrumSO4: invalid quaternion_convention");
     cutfun_.setCutoffType(ctype);
     cutfun_.setCutoffRadius(cutoff_);
     invz0_ = M_PI / radius_;
-    if (average_!="outer" && average_!="inner-density")
+    if (average_ != "outer" && average_ != "inner-density")
         throw std::invalid_argument("BispectrumSO4: average must be outer or inner-density");
-    if (contraction_backend_!="reference" && contraction_backend_!="snap")
+    if (contraction_backend_ != "reference" && contraction_backend_ != "snap")
         throw std::invalid_argument("BispectrumSO4: contraction_backend must be reference or snap");
-    if(wigner_backend_!="direct" && wigner_backend_!="spline")
+    if (wigner_backend_ != "direct" && wigner_backend_ != "spline")
         throw std::invalid_argument("BispectrumSO4: wigner_backend must be direct or spline");
-    if(wigner_backend_=="spline")spline_=SO4Density::make_wigner_spline(twojmax_);
-    coefficient_offsets_=SO4Density::offsets(twojmax_);
+    if (wigner_backend_ == "spline")
+        spline_ = SO4Density::make_wigner_spline(twojmax_);
+    coefficient_offsets_ = SO4Density::offsets(twojmax_);
     bi_size = 0;
     for (int tj = 0; tj <= twojmax_; ++tj)
     {
@@ -118,28 +124,44 @@ void Descriptor_BispectrumSO4::init_internals(CutoffFunctions::CutoffType ctype)
     }
     // Prime the CG cache once and keep immutable, contiguous nonzero terms.
     // Concurrent descriptor evaluation never inserts into the global cache.
-    coupling_terms_.clear();coupling_offsets_.clear();reference_terms_=0;
-    for (int feature=0;feature<bi_size;++feature) {
+    coupling_terms_.clear();
+    coupling_offsets_.clear();
+    reference_terms_ = 0;
+    for (int feature = 0; feature < bi_size; ++feature)
+    {
         coupling_offsets_.push_back(coupling_terms_.size());
-        const int j1=bindex(feature,0),j2=bindex(feature,1),j=bindex(feature,2),shift=(j1+j2-j)/2;
-        for(int m=0;m<=j;++m)for(int mp=0;mp<=j/2;++mp)
-            for(int m2=0;m2<=j2;++m2) {
-                const int m1=m-m2+shift;if(m1<0 || m1>j1)continue;
-                const double cg=AngularFuncs::ClebschGordanTransCache(j1,j2,j,m1,m2,m);
-                for(int m2p=0;m2p<=j2;++m2p) {
-                    const int m1p=mp-m2p+shift;if(m1p<0 || m1p>j1)continue;
-                    const double cgp=AngularFuncs::ClebschGordanTransCache(j1,j2,j,m1p,m2p,mp);
-                    ++reference_terms_;
-                    const double w=((j%2==0 && mp==j/2)?1.:2.)*cg*cgp;
-                    if(w!=0.)coupling_terms_.push_back({SO4Density::index(coefficient_offsets_,j,m,mp),
-                        SO4Density::index(coefficient_offsets_,j1,m1,m1p),
-                        SO4Density::index(coefficient_offsets_,j2,m2,m2p),w});
+        const int j1 = bindex(feature, 0), j2 = bindex(feature, 1), j = bindex(feature, 2),
+                  shift = (j1 + j2 - j) / 2;
+        for (int m = 0; m <= j; ++m)
+            for (int mp = 0; mp <= j / 2; ++mp)
+                for (int m2 = 0; m2 <= j2; ++m2)
+                {
+                    const int m1 = m - m2 + shift;
+                    if (m1 < 0 || m1 > j1)
+                        continue;
+                    const double cg = AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1, m2, m);
+                    for (int m2p = 0; m2p <= j2; ++m2p)
+                    {
+                        const int m1p = mp - m2p + shift;
+                        if (m1p < 0 || m1p > j1)
+                            continue;
+                        const double cgp =
+                            AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1p, m2p, mp);
+                        ++reference_terms_;
+                        const double w = ((j % 2 == 0 && mp == j / 2) ? 1. : 2.) * cg * cgp;
+                        if (w != 0.)
+                            coupling_terms_.push_back(
+                                {SO4Density::index(coefficient_offsets_, j, m, mp),
+                                 SO4Density::index(coefficient_offsets_, j1, m1, m1p),
+                                 SO4Density::index(coefficient_offsets_, j2, m2, m2p), w});
+                    }
                 }
-            }
     }
     coupling_offsets_.push_back(coupling_terms_.size());
-    if (weights_.empty()) weights_.resize(10, 1.0);
-    if (selfweights_.empty()) selfweights_.resize(10, 0.6);
+    if (weights_.empty())
+        weights_.resize(10, 1.0);
+    if (selfweights_.empty())
+        selfweights_.resize(10, 0.6);
 }
 
 Eigen::Vector4d Descriptor_BispectrumSO4::compute_coord(Eigen::RowVector3d &x, double r)
@@ -148,7 +170,7 @@ Eigen::Vector4d Descriptor_BispectrumSO4::compute_coord(Eigen::RowVector3d &x, d
     double phi, theta, theta0;
     phi = std::atan2(x(1), x(0));
     theta = std::acos(x(2) / r);
-    theta0 = radial_angle_map_ == "atan" ? std::atan(r/radius_) : invz0_ * r;
+    theta0 = radial_angle_map_ == "atan" ? std::atan(r / radius_) : invz0_ * r;
     double stheta0 = radius_ * std::sin(theta0);
     double stheta1 = stheta0 * std::sin(theta);
     coord(0) = radius_ * std::cos(theta0);
@@ -165,10 +187,11 @@ void Descriptor_BispectrumSO4::add_uarray_self(int typei, uarrtype &uarr)
     {
         for (int m1 = 0; m1 < uarr[i].rows(); ++m1)
         {
-            uarr[i](m1, m1) = swig*basis_scale(i);
+            uarr[i](m1, m1) = swig * basis_scale(i);
         }
     }
 }
+
 // TODO: merge compute and add
 /**
  * U(\theta0, \theta, \phi) = D(\alpha, \beta, \gamma)
@@ -252,7 +275,8 @@ void Descriptor_BispectrumSO4::compute_uarray(cmpld &acj, cmpld &bcj, uarrtype &
     }
 }
 
-void Descriptor_BispectrumSO4::compute_zarray(complexdsqmat &zarr, uarrtype &uarr, int j1, int j2, int j)
+void Descriptor_BispectrumSO4::compute_zarray(complexdsqmat &zarr, uarrtype &uarr, int j1, int j2,
+                                              int j)
 {
     zarr.setZero();
     int cj = (j1 + j2 - j) / 2;
@@ -261,18 +285,18 @@ void Descriptor_BispectrumSO4::compute_zarray(complexdsqmat &zarr, uarrtype &uar
         for (int m2 = 0; m2 <= j2; ++m2)
         {
             int m1 = m - m2 + cj;
-            if (m1 < 0 || m1 > j1) continue;   // CG coeff would be zero
+            if (m1 < 0 || m1 > j1)
+                continue; // CG coeff would be zero
             for (int mp = 0; mp <= j / 2; ++mp)
             {
                 for (int m2p = 0; m2p <= j2; ++m2p)
                 {
                     int m1p = mp - m2p + cj;
-                    if (m1p < 0 || m1p > j1) continue;  // CG coeff would be zero
-                    zarr(m, mp) +=
-                        AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1, m2, m) *
-                        AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1p, m2p, mp) *
-                        uarr[j1](m1, m1p) *
-                        uarr[j2](m2, m2p);
+                    if (m1p < 0 || m1p > j1)
+                        continue; // CG coeff would be zero
+                    zarr(m, mp) += AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1, m2, m) *
+                                   AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1p, m2p, mp) *
+                                   uarr[j1](m1, m1p) * uarr[j2](m2, m2p);
                 }
             }
         }
@@ -281,33 +305,40 @@ void Descriptor_BispectrumSO4::compute_zarray(complexdsqmat &zarr, uarrtype &uar
 
 // Differentiate the same recurrence as compute_uarray, then conjugate once
 // all levels are complete. Each Cartesian component has independent storage.
-void Descriptor_BispectrumSO4::compute_duarray_cj(cmpld &acj, cmpld &bcj, cmplarr3 &dacj, cmplarr3 &dbcj, uarrtype &uarr, duarrtype &duarr)
+void Descriptor_BispectrumSO4::compute_duarray_cj(cmpld &acj, cmpld &bcj, cmplarr3 &dacj,
+                                                  cmplarr3 &dbcj, uarrtype &uarr, duarrtype &duarr)
 {
     duarr.resize(twojmax_ + 1);
     for (int j = 0; j <= twojmax_; ++j)
         for (auto &component : duarr[j])
             component.resize(j + 1, j + 1);
-    for (int axis = 0; axis < 3; ++axis) {
+    for (int axis = 0; axis < 3; ++axis)
+    {
         duarr[0][axis](0, 0) = COMPLEX_ZERO;
-        for (int j = 1; j <= twojmax_; ++j) {
+        for (int j = 1; j <= twojmax_; ++j)
+        {
             auto &du = duarr[j][axis];
             const auto &prev = duarr[j - 1][axis];
             const int offset = j / 2;
-            for (int mb = 0; mb <= offset; ++mb) {
-                du(0, mb) = rootpqarr(j, j - mb) *
-                    (uarr[j - 1](0, mb) * dacj[axis] + acj * prev(0, mb));
+            for (int mb = 0; mb <= offset; ++mb)
+            {
+                du(0, mb) =
+                    rootpqarr(j, j - mb) * (uarr[j - 1](0, mb) * dacj[axis] + acj * prev(0, mb));
                 du(j, mb) = -rootpqarr(j, j - mb) *
-                    (uarr[j - 1](j - 1, mb) * dbcj[axis] + bcj * prev(j - 1, mb));
-                for (int ma = 1; ma < j; ++ma) {
+                            (uarr[j - 1](j - 1, mb) * dbcj[axis] + bcj * prev(j - 1, mb));
+                for (int ma = 1; ma < j; ++ma)
+                {
                     du(ma, mb) = rootpqarr(j - ma, j - mb) *
-                        (uarr[j - 1](ma, mb) * dacj[axis] + acj * prev(ma, mb)) -
-                        rootpqarr(ma, j - mb) *
-                        (uarr[j - 1](ma - 1, mb) * dbcj[axis] + bcj * prev(ma - 1, mb));
+                                     (uarr[j - 1](ma, mb) * dacj[axis] + acj * prev(ma, mb)) -
+                                 rootpqarr(ma, j - mb) * (uarr[j - 1](ma - 1, mb) * dbcj[axis] +
+                                                          bcj * prev(ma - 1, mb));
                 }
             }
-            for (int mb = offset + 1; mb <= j; ++mb) {
+            for (int mb = offset + 1; mb <= j; ++mb)
+            {
                 int sign = mb % 2 == 0 ? 1 : -1;
-                for (int ma = 0; ma <= j; ++ma) {
+                for (int ma = 0; ma <= j; ++ma)
+                {
                     du(ma, mb) = static_cast<double>(sign) * std::conj(du(j - ma, j - mb));
                     sign = -sign;
                 }
@@ -327,88 +358,103 @@ void Descriptor_BispectrumSO4::add_uarray(uarrtype &uarrj, uarrtype &uarr, doubl
         {
             for (int mb = 0; mb <= j; mb++)
             {
-                uarr[j](ma, mb) += basis_scale(j)*fcut * uarrj[j](ma, mb);
+                uarr[j](ma, mb) += basis_scale(j) * fcut * uarrj[j](ma, mb);
             }
         }
     }
 }
 
-void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh, bi_type &ret, dbi_type &dret)
+void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh, bi_type &ret,
+                                                              dbi_type &dret)
 {
     using MatrixXcd = Eigen::Matrix<cmpld, Eigen::Dynamic, Eigen::Dynamic>;
     using UArray = std::vector<MatrixXcd>;
     using DUArray = std::array<UArray, 3>;
 
-    auto make_uarray = [this]() {
+    auto make_uarray = [this]()
+    {
         UArray arr;
         arr.reserve(twojmax_ + 1);
-        for (int j = 0; j <= twojmax_; ++j) {
+        for (int j = 0; j <= twojmax_; ++j)
+        {
             arr.emplace_back(MatrixXcd::Zero(j + 1, j + 1));
         }
         return arr;
     };
 
-    auto make_duarray = [&make_uarray]() {
+    auto make_duarray = [&make_uarray]()
+    {
         DUArray darr;
-        for (int a = 0; a < 3; ++a) {
+        for (int a = 0; a < 3; ++a)
+        {
             darr[a] = make_uarray();
         }
         return darr;
     };
 
-    auto compute_uarray_full = [this](const cmpld &acj, const cmpld &bcj, UArray &uarr) {
+    auto compute_uarray_full = [this](const cmpld &acj, const cmpld &bcj, UArray &uarr)
+    {
         uarr[0](0, 0) = COMPLEX_ONE;
-        for (int j = 1; j <= twojmax_; ++j) {
+        for (int j = 1; j <= twojmax_; ++j)
+        {
             int offset = j / 2;
-            for (int mb = 0; mb <= offset; ++mb) {
+            for (int mb = 0; mb <= offset; ++mb)
+            {
                 uarr[j](0, mb) = rootpqarr(j, j - mb) * acj * uarr[j - 1](0, mb);
                 uarr[j](j, mb) = -rootpqarr(j, j - mb) * bcj * uarr[j - 1](j - 1, mb);
-                for (int ma = 1; ma < j; ++ma) {
-                    uarr[j](ma, mb) =
-                        rootpqarr(j - ma, j - mb) * acj * uarr[j - 1](ma, mb) -
-                        rootpqarr(ma, j - mb) * bcj * uarr[j - 1](ma - 1, mb);
+                for (int ma = 1; ma < j; ++ma)
+                {
+                    uarr[j](ma, mb) = rootpqarr(j - ma, j - mb) * acj * uarr[j - 1](ma, mb) -
+                                      rootpqarr(ma, j - mb) * bcj * uarr[j - 1](ma - 1, mb);
                 }
             }
-            for (int mb = offset + 1; mb <= j; ++mb) {
+            for (int mb = offset + 1; mb <= j; ++mb)
+            {
                 int sign = mb % 2 == 0 ? 1 : -1;
-                for (int ma = 0; ma <= j; ++ma) {
-                    uarr[j](ma, mb) = sign == 1
-                        ? std::conj(uarr[j](j - ma, j - mb))
-                        : -std::conj(uarr[j](j - ma, j - mb));
+                for (int ma = 0; ma <= j; ++ma)
+                {
+                    uarr[j](ma, mb) = sign == 1 ? std::conj(uarr[j](j - ma, j - mb))
+                                                : -std::conj(uarr[j](j - ma, j - mb));
                     sign = -sign;
                 }
             }
         }
     };
 
-    auto compute_duarray_full = [this](const cmpld &acj, const cmpld &bcj,
-                                       const std::array<cmpld, 3> &dacj,
-                                       const std::array<cmpld, 3> &dbcj,
-                                       const UArray &uarr, DUArray &duarr) {
-        for (int j = 1; j <= twojmax_; ++j) {
+    auto compute_duarray_full =
+        [this](const cmpld &acj, const cmpld &bcj, const std::array<cmpld, 3> &dacj,
+               const std::array<cmpld, 3> &dbcj, const UArray &uarr, DUArray &duarr)
+    {
+        for (int j = 1; j <= twojmax_; ++j)
+        {
             int offset = j / 2;
-            for (int mb = 0; mb <= offset; ++mb) {
-                for (int a = 0; a < 3; ++a) {
-                    duarr[a][j](0, mb) = rootpqarr(j, j - mb) *
-                        (dacj[a] * uarr[j - 1](0, mb) + acj * duarr[a][j - 1](0, mb));
-                    duarr[a][j](j, mb) = -rootpqarr(j, j - mb) *
-                        (dbcj[a] * uarr[j - 1](j - 1, mb) + bcj * duarr[a][j - 1](j - 1, mb));
-                    for (int ma = 1; ma < j; ++ma) {
+            for (int mb = 0; mb <= offset; ++mb)
+            {
+                for (int a = 0; a < 3; ++a)
+                {
+                    duarr[a][j](0, mb) = rootpqarr(j, j - mb) * (dacj[a] * uarr[j - 1](0, mb) +
+                                                                 acj * duarr[a][j - 1](0, mb));
+                    duarr[a][j](j, mb) = -rootpqarr(j, j - mb) * (dbcj[a] * uarr[j - 1](j - 1, mb) +
+                                                                  bcj * duarr[a][j - 1](j - 1, mb));
+                    for (int ma = 1; ma < j; ++ma)
+                    {
                         duarr[a][j](ma, mb) =
                             rootpqarr(j - ma, j - mb) *
                                 (dacj[a] * uarr[j - 1](ma, mb) + acj * duarr[a][j - 1](ma, mb)) -
-                            rootpqarr(ma, j - mb) *
-                                (dbcj[a] * uarr[j - 1](ma - 1, mb) + bcj * duarr[a][j - 1](ma - 1, mb));
+                            rootpqarr(ma, j - mb) * (dbcj[a] * uarr[j - 1](ma - 1, mb) +
+                                                     bcj * duarr[a][j - 1](ma - 1, mb));
                     }
                 }
             }
-            for (int mb = offset + 1; mb <= j; ++mb) {
+            for (int mb = offset + 1; mb <= j; ++mb)
+            {
                 int sign = mb % 2 == 0 ? 1 : -1;
-                for (int ma = 0; ma <= j; ++ma) {
-                    for (int a = 0; a < 3; ++a) {
-                        duarr[a][j](ma, mb) = sign == 1
-                            ? std::conj(duarr[a][j](j - ma, j - mb))
-                            : -std::conj(duarr[a][j](j - ma, j - mb));
+                for (int ma = 0; ma <= j; ++ma)
+                {
+                    for (int a = 0; a < 3; ++a)
+                    {
+                        duarr[a][j](ma, mb) = sign == 1 ? std::conj(duarr[a][j](j - ma, j - mb))
+                                                        : -std::conj(duarr[a][j](j - ma, j - mb));
                     }
                     sign = -sign;
                 }
@@ -416,19 +462,27 @@ void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh,
         }
     };
 
-    auto compute_zarray_full = [](const UArray &uarr, int j1, int j2, int j) {
+    auto compute_zarray_full = [](const UArray &uarr, int j1, int j2, int j)
+    {
         MatrixXcd zarr = MatrixXcd::Zero(j + 1, j + 1);
         const int cj = (j1 + j2 - j) / 2;
-        for (int m = 0; m <= j; ++m) {
-            for (int m2 = 0; m2 <= j2; ++m2) {
+        for (int m = 0; m <= j; ++m)
+        {
+            for (int m2 = 0; m2 <= j2; ++m2)
+            {
                 const int m1 = m - m2 + cj;
-                if (m1 < 0 || m1 > j1) continue;
+                if (m1 < 0 || m1 > j1)
+                    continue;
                 const double cg = AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1, m2, m);
-                for (int mp = 0; mp <= j; ++mp) {
-                    for (int m2p = 0; m2p <= j2; ++m2p) {
+                for (int mp = 0; mp <= j; ++mp)
+                {
+                    for (int m2p = 0; m2p <= j2; ++m2p)
+                    {
                         const int m1p = mp - m2p + cj;
-                        if (m1p < 0 || m1p > j1) continue;
-                        const double cgp = AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1p, m2p, mp);
+                        if (m1p < 0 || m1p > j1)
+                            continue;
+                        const double cgp =
+                            AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1p, m2p, mp);
                         zarr(m, mp) += cg * cgp * uarr[j1](m1, m1p) * uarr[j2](m2, m2p);
                     }
                 }
@@ -437,22 +491,30 @@ void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh,
         return zarr;
     };
 
-    auto compute_dzarray_full = [](const UArray &uarr, const UArray &duarr, int j1, int j2, int j) {
+    auto compute_dzarray_full = [](const UArray &uarr, const UArray &duarr, int j1, int j2, int j)
+    {
         MatrixXcd dzarr = MatrixXcd::Zero(j + 1, j + 1);
         const int cj = (j1 + j2 - j) / 2;
-        for (int m = 0; m <= j; ++m) {
-            for (int m2 = 0; m2 <= j2; ++m2) {
+        for (int m = 0; m <= j; ++m)
+        {
+            for (int m2 = 0; m2 <= j2; ++m2)
+            {
                 const int m1 = m - m2 + cj;
-                if (m1 < 0 || m1 > j1) continue;
+                if (m1 < 0 || m1 > j1)
+                    continue;
                 const double cg = AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1, m2, m);
-                for (int mp = 0; mp <= j; ++mp) {
-                    for (int m2p = 0; m2p <= j2; ++m2p) {
+                for (int mp = 0; mp <= j; ++mp)
+                {
+                    for (int m2p = 0; m2p <= j2; ++m2p)
+                    {
                         const int m1p = mp - m2p + cj;
-                        if (m1p < 0 || m1p > j1) continue;
-                        const double cgp = AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1p, m2p, mp);
+                        if (m1p < 0 || m1p > j1)
+                            continue;
+                        const double cgp =
+                            AngularFuncs::ClebschGordanTransCache(j1, j2, j, m1p, m2p, mp);
                         dzarr(m, mp) += cg * cgp *
-                            (duarr[j1](m1, m1p) * uarr[j2](m2, m2p) +
-                             uarr[j1](m1, m1p) * duarr[j2](m2, m2p));
+                                        (duarr[j1](m1, m1p) * uarr[j2](m2, m2p) +
+                                         uarr[j1](m1, m1p) * duarr[j2](m2, m2p));
                     }
                 }
             }
@@ -462,7 +524,8 @@ void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh,
 
     ret.assign(bi_size, 0.0);
     dret.resize(bi_size);
-    for (auto &it : dret) {
+    for (auto &it : dret)
+    {
         it.resize(nbh.nbhcount_, 3);
         it.setZero();
     }
@@ -470,36 +533,43 @@ void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh,
     UArray total_u = make_uarray();
     const int typei = nbh.centertype;
     const double swig = selfweights_[typei];
-    for (int j = 0; j <= twojmax_; ++j) {
-        for (int ma = 0; ma <= j; ++ma) {
-            total_u[j](ma, ma) = swig*basis_scale(j);
+    for (int j = 0; j <= twojmax_; ++j)
+    {
+        for (int ma = 0; ma <= j; ++ma)
+        {
+            total_u[j](ma, ma) = swig * basis_scale(j);
         }
     }
 
     std::vector<DUArray> total_du;
     total_du.reserve(nbh.nbhcount_);
 
-    for (int i = 0; i < nbh.nbhcount_; ++i) {
+    for (int i = 0; i < nbh.nbhcount_; ++i)
+    {
         const int typej = nbh.chemmap_[i];
         const double r = nbh.distances_[i];
         const double x = nbh.pos_[i](0);
         const double y = nbh.pos_[i](1);
         const double z = nbh.pos_[i](2);
-        if (!(r>0.)) throw std::invalid_argument("SO4 requires nonzero neighbor distance");
+        if (!(r > 0.))
+            throw std::invalid_argument("SO4 requires nonzero neighbor distance");
         using namespace SO4Density;
-        const auto jx=FirstOrder::variable(x,0), jy=FirstOrder::variable(y,1), jz=FirstOrder::variable(z,2);
-        const auto jr=SO4Density::sqrt(jx*jx+jy*jy+jz*jz);
-        FirstOrder ar,ai,br,bi;
-        SO4Density::parameters(jx,jy,jz,jr,radius_,convention_,radial_angle_map_=="atan",ar,ai,br,bi);
-        const cmpld acj(ar.value,ai.value),bcj(br.value,bi.value);
-        std::array<cmpld,3> dacj,dbcj;
-        for (int a=0;a<3;++a) {
-            dacj[a]=cmpld(ar.gradient[a],ai.gradient[a]);
-            dbcj[a]=cmpld(br.gradient[a],bi.gradient[a]);
+        const auto jx = FirstOrder::variable(x, 0), jy = FirstOrder::variable(y, 1),
+                   jz = FirstOrder::variable(z, 2);
+        const auto jr = SO4Density::sqrt(jx * jx + jy * jy + jz * jz);
+        FirstOrder ar, ai, br, bi;
+        SO4Density::parameters(jx, jy, jz, jr, radius_, convention_, radial_angle_map_ == "atan",
+                               ar, ai, br, bi);
+        const cmpld acj(ar.value, ai.value), bcj(br.value, bi.value);
+        std::array<cmpld, 3> dacj, dbcj;
+        for (int a = 0; a < 3; ++a)
+        {
+            dacj[a] = cmpld(ar.gradient[a], ai.gradient[a]);
+            dbcj[a] = cmpld(br.gradient[a], bi.gradient[a]);
         }
-        const double fcut = cutfun_.fcut(r)*weights_[typej];
-        const double dfcutdr = cutfun_.dfcut(r)*weights_[typej];
-        const std::array<double,3> dfcut={dfcutdr*x/r,dfcutdr*y/r,dfcutdr*z/r};
+        const double fcut = cutfun_.fcut(r) * weights_[typej];
+        const double dfcutdr = cutfun_.dfcut(r) * weights_[typej];
+        const std::array<double, 3> dfcut = {dfcutdr * x / r, dfcutdr * y / r, dfcutdr * z / r};
 
         UArray atom_u = make_uarray();
         compute_uarray_full(acj, bcj, atom_u);
@@ -508,34 +578,43 @@ void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh,
         compute_duarray_full(acj, bcj, dacj, dbcj, atom_u, atom_du);
 
         DUArray neighbor_du = make_duarray();
-        for (int j = 0; j <= twojmax_; ++j) {
-            total_u[j] += basis_scale(j)*fcut * atom_u[j];
-            for (int a = 0; a < 3; ++a) {
-                neighbor_du[a][j] = basis_scale(j)*(dfcut[a] * atom_u[j] + fcut * atom_du[a][j]);
+        for (int j = 0; j <= twojmax_; ++j)
+        {
+            total_u[j] += basis_scale(j) * fcut * atom_u[j];
+            for (int a = 0; a < 3; ++a)
+            {
+                neighbor_du[a][j] = basis_scale(j) * (dfcut[a] * atom_u[j] + fcut * atom_du[a][j]);
             }
         }
         total_du.push_back(std::move(neighbor_du));
     }
 
-    for (int cbi = 0; cbi < bi_size; ++cbi) {
+    for (int cbi = 0; cbi < bi_size; ++cbi)
+    {
         const int j1 = bindex(cbi, 0);
         const int j2 = bindex(cbi, 1);
         const int j = bindex(cbi, 2);
         const MatrixXcd zarr = compute_zarray_full(total_u, j1, j2, j);
 
-        for (int m = 0; m <= j; ++m) {
-            for (int mp = 0; mp <= j / 2; ++mp) {
+        for (int m = 0; m <= j; ++m)
+        {
+            for (int mp = 0; mp <= j / 2; ++mp)
+            {
                 const double factor = (j % 2 == 0 && mp == j / 2) ? 1.0 : 2.0;
                 ret[cbi] += factor * std::real(std::conj(total_u[j](m, mp)) * zarr(m, mp));
             }
         }
 
-        for (int k = 0; k < nbh.nbhcount_; ++k) {
-            for (int a = 0; a < 3; ++a) {
+        for (int k = 0; k < nbh.nbhcount_; ++k)
+        {
+            for (int a = 0; a < 3; ++a)
+            {
                 const MatrixXcd dzarr = compute_dzarray_full(total_u, total_du[k][a], j1, j2, j);
                 double db = 0.0;
-                for (int m = 0; m <= j; ++m) {
-                    for (int mp = 0; mp <= j / 2; ++mp) {
+                for (int m = 0; m <= j; ++m)
+                {
+                    for (int mp = 0; mp <= j / 2; ++mp)
+                    {
                         const double factor = (j % 2 == 0 && mp == j / 2) ? 1.0 : 2.0;
                         db += factor * std::real(std::conj(total_du[k][a][j](m, mp)) * zarr(m, mp) +
                                                  std::conj(total_u[j](m, mp)) * dzarr(m, mp));
@@ -549,15 +628,23 @@ void Descriptor_BispectrumSO4::compute_descriptors_derivative(Neighborhood &nbh,
 
 void Descriptor_BispectrumSO4::compute_descriptors(Neighborhood &nbh, bi_type &ret, dbi_type *dret)
 {
-    if (uses_snap() || spline_) { compute_snap(nbh,ret,dret);return; }
+    if (uses_snap() || spline_)
+    {
+        compute_snap(nbh, ret, dret);
+        return;
+    }
     ret.clear();
     ret.resize(bi_size);
-    if (dret != nullptr) {
+    if (dret != nullptr)
+    {
         compute_descriptors_derivative(nbh, ret, *dret);
         return;
     }
-    std::for_each(uarray.begin(), uarray.end(), [](complexdsqmat &a)
-                  { a.setZero(); });
+    std::for_each(uarray.begin(), uarray.end(),
+                  [](complexdsqmat &a)
+                  {
+                      a.setZero();
+                  });
     const int &typei = nbh.centertype;
     add_uarray_self(typei, uarray);
     // do not parallize this loop using shared memory method
@@ -573,10 +660,12 @@ void Descriptor_BispectrumSO4::compute_descriptors(Neighborhood &nbh, bi_type &r
         const double uy = y / r;
         const double uz = z / r;
         double fcut = cutfun_.fcut(r) * weights_[typej];
-        if (!(r>0.)) throw std::invalid_argument("SO4 requires nonzero neighbor distance");
-        double ar,ai,br,bi;
-        SO4Density::parameters(x,y,z,r,radius_,convention_,radial_angle_map_=="atan",ar,ai,br,bi);
-        cmpld acj(ar,ai), bcj(br,bi);
+        if (!(r > 0.))
+            throw std::invalid_argument("SO4 requires nonzero neighbor distance");
+        double ar, ai, br, bi;
+        SO4Density::parameters(x, y, z, r, radius_, convention_, radial_angle_map_ == "atan", ar,
+                               ai, br, bi);
+        cmpld acj(ar, ai), bcj(br, bi);
         compute_uarray(acj, bcj, uarray_j);
         add_uarray(uarray_j, uarray, fcut);
     }
@@ -619,7 +708,7 @@ void Descriptor_BispectrumSO4::compute_descriptors(Neighborhood &nbh, bi_type &r
             {
                 const double factor = (j % 2 == 0 && m2 == j / 2) ? 1.0 : 2.0;
                 ret[cbi] += factor * (uarray[j](m1, m2).real() * zarray[cbi](m1, m2).real() +
-                                   uarray[j](m1, m2).imag() * zarray[cbi](m1, m2).imag());
+                                      uarray[j](m1, m2).imag() * zarray[cbi](m1, m2).imag());
             }
         }
     }
@@ -628,8 +717,11 @@ void Descriptor_BispectrumSO4::compute_descriptors(Neighborhood &nbh, bi_type &r
 std::vector<double> Descriptor_BispectrumSO4::compute_descriptors_powerspectrum(Neighborhood &nbh)
 {
     std::vector<double> ret(twojmax_ + 1, 0);
-    std::for_each(uarray.begin(), uarray.end(), [](complexdsqmat &a)
-                  { a.setZero(); });
+    std::for_each(uarray.begin(), uarray.end(),
+                  [](complexdsqmat &a)
+                  {
+                      a.setZero();
+                  });
     const int &typei = nbh.centertype;
     add_uarray_self(typei, uarray);
     // do not parallize this loop using shared memory method
@@ -645,10 +737,12 @@ std::vector<double> Descriptor_BispectrumSO4::compute_descriptors_powerspectrum(
         const double uy = y / r;
         const double uz = z / r;
         double fcut = cutfun_.fcut(r) * weights_[typej];
-        if (!(r>0.)) throw std::invalid_argument("SO4 requires nonzero neighbor distance");
-        double ar,ai,br,bi;
-        SO4Density::parameters(x,y,z,r,radius_,convention_,radial_angle_map_=="atan",ar,ai,br,bi);
-        cmpld a(ar,ai), b(br,bi);
+        if (!(r > 0.))
+            throw std::invalid_argument("SO4 requires nonzero neighbor distance");
+        double ar, ai, br, bi;
+        SO4Density::parameters(x, y, z, r, radius_, convention_, radial_angle_map_ == "atan", ar,
+                               ai, br, bi);
+        cmpld a(ar, ai), b(br, bi);
         compute_uarray(a, b, uarray_j);
         add_uarray(uarray_j, uarray, fcut);
     }
@@ -679,7 +773,7 @@ void Descriptor_BispectrumSO4::compute(Neighborhood &nbh, Eigen::VectorXd &out)
 }
 
 void Descriptor_BispectrumSO4::compute(Neighborhood &nbh, Eigen::VectorXd &out,
-                                        const ComputeOptions &opts)
+                                       const ComputeOptions &opts)
 {
     bi_type bi;
     dbi_type dbi;
@@ -691,12 +785,16 @@ void Descriptor_BispectrumSO4::compute(Neighborhood &nbh, Eigen::VectorXd &out,
     for (int i = 0; i < bi_size; ++i)
         out[i] = bi[i];
 
-    if (need_der) {
+    if (need_der)
+    {
         auto &grad = opts.gradient->grad;
         grad.resize(bi_size, nbh.nbhcount_, 3);
-        for (int f = 0; f < bi_size; ++f) {
-            for (int j = 0; j < nbh.nbhcount_; ++j) {
-                for (int a = 0; a < 3; ++a) {
+        for (int f = 0; f < bi_size; ++f)
+        {
+            for (int j = 0; j < nbh.nbhcount_; ++j)
+            {
+                for (int a = 0; a < 3; ++a)
+                {
                     grad(f, j, a) = dbi[f](j, a);
                 }
             }

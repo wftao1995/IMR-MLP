@@ -93,8 +93,9 @@ def main():
         if not en_header or not zh_header:
             continue
         if len(en_header) != len(zh_header):
-            errors.append(f"{cmd}: option table has {len(en_header)} columns in EN "
-                          f"but {len(zh_header)} in ZH")
+            errors.append(
+                f"{cmd}: option table has {len(en_header)} columns in EN but {len(zh_header)} in ZH"
+            )
             continue
         if ("default" in en_header) != ("默认值" in zh_header):
             errors.append(f"{cmd}: default-value column present in only one language")
@@ -109,8 +110,10 @@ def main():
         print(f"\n{len(errors)} issue(s) found.")
         return 1
     else:
-        print(f"✅ EN/ZH consistent: {len(en_commands)} commands, "
-              f"option sets and option-table shape match.")
+        print(
+            f"✅ EN/ZH consistent: {len(en_commands)} commands, "
+            f"option sets and option-table shape match."
+        )
         return 0
 
 

@@ -9,19 +9,32 @@
 // tests.mk excludes this executable from real-MPI builds. These are the
 // serial stub contracts; an MPI implementation must not stand in for them.
 #ifndef IMRMLP_MPI
-namespace {
+namespace
+{
 void collective(int which, void *send, void *receive, int count, MPI_Datatype type)
 {
     int counts[] = {count};
     int displacements[] = {0};
     switch (which)
     {
-    case 0: MPI_Reduce(send, receive, count, type, MPI_SUM, 0, MPI_COMM_WORLD); break;
-    case 1: MPI_Allreduce(send, receive, count, type, MPI_SUM, MPI_COMM_WORLD); break;
-    case 2: MPI_Allgather(send, count, type, receive, count, type, MPI_COMM_WORLD); break;
-    case 3: MPI_Allgatherv(send, count, type, receive, counts, displacements, type, MPI_COMM_WORLD); break;
-    case 4: MPI_Gather(send, count, type, receive, count, type, 0, MPI_COMM_WORLD); break;
-    case 5: MPI_Gatherv(send, count, type, receive, counts, displacements, type, 0, MPI_COMM_WORLD); break;
+    case 0:
+        MPI_Reduce(send, receive, count, type, MPI_SUM, 0, MPI_COMM_WORLD);
+        break;
+    case 1:
+        MPI_Allreduce(send, receive, count, type, MPI_SUM, MPI_COMM_WORLD);
+        break;
+    case 2:
+        MPI_Allgather(send, count, type, receive, count, type, MPI_COMM_WORLD);
+        break;
+    case 3:
+        MPI_Allgatherv(send, count, type, receive, counts, displacements, type, MPI_COMM_WORLD);
+        break;
+    case 4:
+        MPI_Gather(send, count, type, receive, count, type, 0, MPI_COMM_WORLD);
+        break;
+    case 5:
+        MPI_Gatherv(send, count, type, receive, counts, displacements, type, 0, MPI_COMM_WORLD);
+        break;
     }
 }
 }
@@ -41,7 +54,8 @@ TEST_CASE("Serial MPI collectives accept null buffers for zero counts", "[mpi-st
     REQUIRE(received == 29);
 }
 
-TEMPLATE_TEST_CASE("Serial MPI collectives copy nonempty buffers exactly", "[mpi-stubs]", int, double)
+TEMPLATE_TEST_CASE("Serial MPI collectives copy nonempty buffers exactly", "[mpi-stubs]", int,
+                   double)
 {
     const int which = GENERATE(0, 1, 2, 3, 4, 5);
     CAPTURE(which);
@@ -51,7 +65,8 @@ TEMPLATE_TEST_CASE("Serial MPI collectives copy nonempty buffers exactly", "[mpi
     collective(which, sent.data(), received.data() + 1, sent.size(), type);
     REQUIRE(received.front() == -100);
     REQUIRE(received.back() == 200);
-    for (int i = 0; i < 3; ++i) REQUIRE(received[i + 1] == sent[i]);
+    for (int i = 0; i < 3; ++i)
+        REQUIRE(received[i + 1] == sent[i]);
     const auto saved = received;
     collective(which, nullptr, received.data() + 1, 0, type);
     REQUIRE(received == saved);

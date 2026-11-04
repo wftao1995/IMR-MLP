@@ -8,7 +8,8 @@
 #include <Eigen/Dense>
 #include <vector>
 
-namespace HessianUtils {
+namespace HessianUtils
+{
 
 Eigen::MatrixXd to_dense(const Potentials::HessianMatrix &hessian);
 void from_dense(const Eigen::MatrixXd &dense, Potentials::HessianMatrix &hessian);

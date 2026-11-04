@@ -58,14 +58,16 @@ TEST_CASE("Bond angle histograms retain upper endpoint observations", "[angles]"
     bondangle_count count;
     double cutoff = 1.1;
     double *cutoffs[] = {&cutoff};
-    const auto result = pair_cutoff ? compute.compute(nbhs, count, cutoffs)
-                                    : compute.compute(nbhs, count);
+    const auto result =
+        pair_cutoff ? compute.compute(nbhs, count, cutoffs) : compute.compute(nbhs, count);
     const bondangle_type_index key(0, 0, 0);
     const auto &bins = result.at(key);
     REQUIRE(count.at(key) == 1);
     REQUIRE(std::accumulate(bins.begin(), bins.end(), 0) == 1);
-    if (degree > 179) REQUIRE(bins.back() == 1);
-    else REQUIRE(bins.at(step == 0.5 ? 3 : 90) == 1);
+    if (degree > 179)
+        REQUIRE(bins.back() == 1);
+    else
+        REQUIRE(bins.at(step == 0.5 ? 3 : 90) == 1);
 }
 
 TEST_CASE("Dihedral histograms retain planar and nearly planar observations", "[angles]")
@@ -76,7 +78,9 @@ TEST_CASE("Dihedral histograms retain planar and nearly planar observations", "[
     Atoms atoms;
     atoms.cell_ = 10 * Eigen::Matrix3d::Identity();
     atoms.pbc_ = {false, false, false};
-    atoms.pos_ = {{2.3, 3.7, 3}, {3, 3, 3}, {4, 3, 3},
+    atoms.pos_ = {{2.3, 3.7, 3},
+                  {3, 3, 3},
+                  {4, 3, 3},
                   {4.7, 3 - 0.7 * std::cos(angle), 3 + 0.7 * std::sin(angle)}};
     atoms.chemmap_ = {0, 0, 0, 0};
     Neighborhoods nbhs(atoms, 1.1);
@@ -84,8 +88,8 @@ TEST_CASE("Dihedral histograms retain planar and nearly planar observations", "[
     dihedral_count count;
     double cutoff = 1.1;
     double *cutoffs[] = {&cutoff};
-    const auto result = pair_cutoff ? compute.compute(nbhs, count, cutoffs)
-                                    : compute.compute(nbhs, count);
+    const auto result =
+        pair_cutoff ? compute.compute(nbhs, count, cutoffs) : compute.compute(nbhs, count);
     const dihedral_type_index key(0, 0, 0, 0);
     const auto &bins = result.at(key);
     REQUIRE(count.at(key) == 1);
@@ -93,7 +97,9 @@ TEST_CASE("Dihedral histograms retain planar and nearly planar observations", "[
     REQUIRE(bins.at(static_cast<int>(std::round(degree))) == 1);
 }
 
-TEST_CASE("Periodic dihedral images retain the simple cubic torsion counts", "[angles][dihedral][periodic]") {
+TEST_CASE("Periodic dihedral images retain the simple cubic torsion counts",
+          "[angles][dihedral][periodic]")
+{
     const int repeat = GENERATE(1, 3);
     CAPTURE(repeat);
     Atoms atoms;
@@ -114,9 +120,11 @@ TEST_CASE("Periodic dihedral images retain the simple cubic torsion counts", "[a
     // left and right edges: four at 0 degrees, eight at 90, four at 180.
     REQUIRE(count.at(key) == 48 * atoms.size());
     REQUIRE(bins.size() == 181);
-    for (int bin = 0; bin < bins.size(); ++bin) {
+    for (int bin = 0; bin < bins.size(); ++bin)
+    {
         const int expected = bin == 0 || bin == 180 ? 12 * atoms.size()
-                           : bin == 90 ? 24 * atoms.size() : 0;
+                             : bin == 90            ? 24 * atoms.size()
+                                                    : 0;
         CAPTURE(bin);
         REQUIRE(bins[bin] == expected);
     }

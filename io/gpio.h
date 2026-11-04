@@ -39,7 +39,7 @@
 //#define VASP_ENERGY_USE_SIG0
 #define VASP_STRESS_USE_PR // stress * volume (pressure), not stress itself
 
-std::string_view skipLeadingSpaces(const std::string& input);
+std::string_view skipLeadingSpaces(const std::string &input);
 
 /**
  * @brief General-purpose I/O driver for atomic structures (the standard reader/writer).
@@ -59,7 +59,7 @@ std::string_view skipLeadingSpaces(const std::string& input);
  */
 class GPIO : public ConnectSettings
 {
-private:
+  private:
     // Per-parser state; concurrent streams use separate GPIO sessions.
     Eigen::Matrix3d cell_;
     std::vector<int> chem;
@@ -81,7 +81,9 @@ private:
     std::vector<int> remapid; // for vasp output, ie POSCAR
     bool seq_readheader = false;
     bool xdatcar6_header_pending = false;
-    struct XSFReadState {
+
+    struct XSFReadState
+    {
         bool initialized = false, animated = false, molecular = false;
         bool variable_cell = false, at_eof = false;
         int expected_steps = 1, expected_atoms = -1;
@@ -111,14 +113,18 @@ private:
     bool lmp_phrase_tag_always = false;
     bool lmp_tag_phrased = false;
     // id type x y z fx fy fz vx vy vz ix iy iz mol q  mx my mz grad site_en
-    // 0  1    2 3 4 5  6  7  8  9  10 11 12 13 14  15 16 17 18 19   20    
-    std::array<int, 32> lmp_common_tagid; 
+    // 0  1    2 3 4 5  6  7  8  9  10 11 12 13 14  15 16 17 18 19   20
+    std::array<int, 32> lmp_common_tagid;
     std::unordered_map<std::string, size_t> lmp_tagmap, lmp_tagvecsize;
     std::unordered_map<std::string, std::vector<int>> lmp_tagvecmap; // vector value temp
-    std::vector<int> lmp_typeinfo; // for lammps and extxyz, each col type info, 0 - int, 1 - float, -1 - string
+    std::vector<int>
+        lmp_typeinfo; // for lammps and extxyz, each col type info, 0 - int, 1 - float, -1 - string
     std::vector<double> lmp_readbuffer;
-    struct {
-        bool has_id = false, has_type = false, has_coord = false, has_x = false, has_y = false, has_z = false;
+
+    struct
+    {
+        bool has_id = false, has_type = false, has_coord = false, has_x = false, has_y = false,
+             has_z = false;
         bool has_vx = false, has_vy = false, has_vz = false;
         bool has_mol = false;
         bool has_fx = false, has_fy = false, has_fz = false;
@@ -127,35 +133,62 @@ private:
         bool has_q = false, has_mx = false, has_my = false, has_mz = false;
         bool has_siteen = false;
         int nvals = 0;
-        void reset() {
-            has_id = false; has_type = false; has_coord = false; has_x = false; has_y = false; has_z = false;
-            has_vx = false; has_vy = false; has_vz = false;
+
+        void reset()
+        {
+            has_id = false;
+            has_type = false;
+            has_coord = false;
+            has_x = false;
+            has_y = false;
+            has_z = false;
+            has_vx = false;
+            has_vy = false;
+            has_vz = false;
             has_mol = false;
-            has_fx = false; has_fy = false; has_fz = false;
-            has_ix = false; has_iy = false; has_iz = false;
-            wix = false; wiy = false; wiz = false; 
+            has_fx = false;
+            has_fy = false;
+            has_fz = false;
+            has_ix = false;
+            has_iy = false;
+            has_iz = false;
+            wix = false;
+            wiy = false;
+            wiz = false;
             has_q = false;
-            has_mx = false; has_my = false; has_mz = false;
+            has_mx = false;
+            has_my = false;
+            has_mz = false;
             has_siteen = false;
             nvals = 0;
         }
-        bool have_force() {return has_fx || has_fy || has_fz;}
-        bool have_velo() {return has_vx || has_vy || has_vz;}
+
+        bool have_force()
+        {
+            return has_fx || has_fy || has_fz;
+        }
+
+        bool have_velo()
+        {
+            return has_vx || has_vy || has_vz;
+        }
     } lmp_tag_flags;
+
     // Flags for lmp_parse_tags() to control which tag groups to process
-    enum LmpTagFlags : unsigned {
-        LMP_TAG_SCALED_COORDS  = 1 << 0,  // xs/xsu/ys/ysu/zs/zsu
-        LMP_TAG_IMAGE_FLAGS    = 1 << 1,  // ix/iy/iz
-        LMP_TAG_MOL            = 1 << 2,  // mol
-        LMP_TAG_SITEEN         = 1 << 3,  // site_en
-        LMP_TAG_MAGMOM         = 1 << 4,  // magmom_x/y/z
-        LMP_TAG_BRACKET_VEC    = 1 << 5,  // v_name[1] style bracket vectors
-        LMP_TAG_GUARDED_COORDS = 1 << 6,  // Use !has_x guard for coordinate assignment
-        LMP_TAG_CARTES_ALIAS   = 1 << 7,  // Use cartes_x/y/z alias (vs xu/yu/zu)
-        LMP_TAG_INIT_VECMAPS   = 1 << 8,  // Also clear lmp_tagvecmap/size
+    enum LmpTagFlags : unsigned
+    {
+        LMP_TAG_SCALED_COORDS = 1 << 0,  // xs/xsu/ys/ysu/zs/zsu
+        LMP_TAG_IMAGE_FLAGS = 1 << 1,    // ix/iy/iz
+        LMP_TAG_MOL = 1 << 2,            // mol
+        LMP_TAG_SITEEN = 1 << 3,         // site_en
+        LMP_TAG_MAGMOM = 1 << 4,         // magmom_x/y/z
+        LMP_TAG_BRACKET_VEC = 1 << 5,    // v_name[1] style bracket vectors
+        LMP_TAG_GUARDED_COORDS = 1 << 6, // Use !has_x guard for coordinate assignment
+        LMP_TAG_CARTES_ALIAS = 1 << 7,   // Use cartes_x/y/z alias (vs xu/yu/zu)
+        LMP_TAG_INIT_VECMAPS = 1 << 8,   // Also clear lmp_tagvecmap/size
     };
-    template<typename Tok>
-    bool lmp_parse_tags(Tok &tok, unsigned flags);
+
+    template <typename Tok> bool lmp_parse_tags(Tok &tok, unsigned flags);
 
     int nelm_, nsw_, isif_, ibrion_; // for vasp
     bool is_vasp_ml = false;
@@ -186,7 +219,7 @@ private:
     void write_next_extxyz(std::ostream &os, Atoms &atom);
     void write_next_cp2kxyz(std::ostream &os, Atoms &atom);
 
-protected:
+  protected:
     void discard_properties(Atoms &atom) const;
     bool read_mlpcfg_sequence(std::istream &is, Atoms &atom);
     bool read_mlpcfg_bin_sequence(std::istream &is, Atoms &atom);
@@ -196,7 +229,8 @@ protected:
     bool read_vasp_xml(std::vector<Atoms> &atoms, std::string filename);
 #endif
     bool read_vasp_outcar_sequence(std::istream &is);
-    bool read_vasp_xdatcar_header(std::istream &is, bool comment_read = false, bool *clean_eof = nullptr);
+    bool read_vasp_xdatcar_header(std::istream &is, bool comment_read = false,
+                                  bool *clean_eof = nullptr);
     bool read_vasp_abn_header(std::istream &is);
     bool read_vasp_xdatcar_sequence(std::istream &is, Atoms &atom);
     bool read_extented_xyz_sequence(std::istream &is, Atoms &atom);
@@ -207,8 +241,7 @@ protected:
     bool write_vasp_xdatcar6_sequence(std::ostream &os, Atoms &atom);
     void write_vasp_xdatcar_header(std::ostream &os, Atoms &atom);
     bool write_vasp_xdatcar_sequence(std::ostream &os, Atoms &atom);
-    bool write_vasp_xdatcar_positions(std::ostream &os, Atoms &atom,
-                                     const Eigen::Matrix3d &cell);
+    bool write_vasp_xdatcar_positions(std::ostream &os, Atoms &atom, const Eigen::Matrix3d &cell);
     bool write_mlpcfg_sequence(std::ostream &os, Atoms &atom);
     bool write_mlpcfg_bin_sequence(std::ostream &os, Atoms &atom);
     bool write_vtk(std::ostream &os, Atoms &atom);
@@ -236,49 +269,52 @@ protected:
     bool readornot();
     bool writeornot();
 
-public:
+  public:
     /// @brief Supported file formats enumeration
-    enum supported_format {
-        UNKNOWN,         ///< Unknown/undetected format
-        MLPCFG,          ///< MLIP's text cfg format
-        CFG,             ///< Generic cfg format
-        EXTXYZ,          ///< Extended XYZ format (per-atom properties)
-        SIMPLEXYZ,       ///< Simple XYZ format
-        XSF,             ///< XCrySDen's XSF format
-        CIF,             ///< Crystallographic Information File
-        OUTCAR,          ///< VASP OUTCAR (v5.x supported; v6.x limited)
-        POSCAR,          ///< VASP POSCAR
-        VASPRUN,         ///< VASP vasprun.xml (v6.3.x)
-        MLIPBIN,         ///< MLIP binary cfg format
-        XDATCAR,         ///< VASP XDATCAR (fixed cell trajectory)
-        XDATCAR6,        ///< VASP XDATCAR v6 (variable cell trajectory)
-        N2P2DAT,         ///< n2p2 training dataset format
-        VASPABN,         ///< VASP ML_ABN configuration format (v6.2.x)
-        LMPTRJ,          ///< LAMMPS dump trajectory
-        LMPDAT,          ///< LAMMPS data file
-        LMPYAML,         ///< LAMMPS YAML dump
-        POSCARPACKAGE,   ///< Multiple POSCARs in one file
-        GRODATA,         ///< GROMACS data file
-        CP2KXYZ = 21,    ///< CP2K XYZ format (preserve existing format IDs)
-        LMPDATFULL,      ///< LAMMPS data file (full format with all fields)
-        VTK,             ///< VTK format (ParaView)
-        DLPOLY4,         ///< DLPOLY4 structure file
-        MSI,             ///< Materials Studio / Cerius2 MSI DataModel format
-        XSD,             ///< Materials Studio XML structure format
-        CAR,             ///< Materials Studio / Biosym CAR archive format
+    enum supported_format
+    {
+        UNKNOWN,       ///< Unknown/undetected format
+        MLPCFG,        ///< MLIP's text cfg format
+        CFG,           ///< Generic cfg format
+        EXTXYZ,        ///< Extended XYZ format (per-atom properties)
+        SIMPLEXYZ,     ///< Simple XYZ format
+        XSF,           ///< XCrySDen's XSF format
+        CIF,           ///< Crystallographic Information File
+        OUTCAR,        ///< VASP OUTCAR (v5.x supported; v6.x limited)
+        POSCAR,        ///< VASP POSCAR
+        VASPRUN,       ///< VASP vasprun.xml (v6.3.x)
+        MLIPBIN,       ///< MLIP binary cfg format
+        XDATCAR,       ///< VASP XDATCAR (fixed cell trajectory)
+        XDATCAR6,      ///< VASP XDATCAR v6 (variable cell trajectory)
+        N2P2DAT,       ///< n2p2 training dataset format
+        VASPABN,       ///< VASP ML_ABN configuration format (v6.2.x)
+        LMPTRJ,        ///< LAMMPS dump trajectory
+        LMPDAT,        ///< LAMMPS data file
+        LMPYAML,       ///< LAMMPS YAML dump
+        POSCARPACKAGE, ///< Multiple POSCARs in one file
+        GRODATA,       ///< GROMACS data file
+        CP2KXYZ = 21,  ///< CP2K XYZ format (preserve existing format IDs)
+        LMPDATFULL,    ///< LAMMPS data file (full format with all fields)
+        VTK,           ///< VTK format (ParaView)
+        DLPOLY4,       ///< DLPOLY4 structure file
+        MSI,           ///< Materials Studio / Cerius2 MSI DataModel format
+        XSD,           ///< Materials Studio XML structure format
+        CAR,           ///< Materials Studio / Biosym CAR archive format
     };
+
     supported_format seq_iformat;
     supported_format seq_oformat;
 
     bool read_header_dispatch(std::istream &is, supported_format iformat);
-    bool read_atom_dispatch(std::istream &is, supported_format iformat, Atoms &atom, bool &doneflag);
+    bool read_atom_dispatch(std::istream &is, supported_format iformat, Atoms &atom,
+                            bool &doneflag);
     bool write_atom_dispatch(std::ostream &os, supported_format oformat, Atoms &atom);
 
     bool drop; //drop non-converged structures
     bool lossless = true;
     bool write_virtual = true;
     bool write_stress = false; // ASE's convension
-    bool write_mass = false; // write mass in lammps data file, default false
+    bool write_mass = false;   // write mass in lammps data file, default false
 
     static bool overwrite;
     static bool backupold;
@@ -288,16 +324,18 @@ public:
 
     std::vector<std::string> discard_props;
 
-    // see if file exists, overwrite or backup it 
+    // see if file exists, overwrite or backup it
     // static std::ostream &create_ofs(std::ostream &os, std::string fnm);
 
-    bool force_write_all_to_one = false; // force write all images to a single file, for format like POSCAR
+    bool force_write_all_to_one =
+        false; // force write all images to a single file, for format like POSCAR
     bool reset_status_every_write = true;
     bool reset_status_every_read = true;
     bool suffix_id_use_internal = false; // atom.id instead of write_icfg
     // bool standalong_format_piped_out = true; // set to false so that POSCAR will not write as POSCAR_0 when ncfg is exactly one
     std::string fname_separator = ""; // for POSCAR multiple output, POSCAR_0, POSCAR0 POSCAR-0, etc
-    std::string header_line = "Generated by GPIO"; // for output file support headers, write headers info
+    std::string header_line =
+        "Generated by GPIO"; // for output file support headers, write headers info
     bool cfg_have_efs;
     bool cfg_have_mag = false;
     bool read_mag = false;
@@ -308,13 +346,18 @@ public:
     int read_startfrom = 0;
     int read_endto = INT_MAX;
     int read_irate = 1;
+
     /// Whether a bulk MLIPBIN read has consumed its inclusive end bound.
-    bool binary_read_limit_reached() const { return ncfgs_ > read_endto; }
+    bool binary_read_limit_reached() const
+    {
+        return ncfgs_ > read_endto;
+    }
+
     int outrate = 1;
-    int out_startfrom = 0;  //output
-    int out_endto = INT_MAX;      //output, include endto
-    int iwrite_offset = 0; // output index offset, usually use 0 or 1
-    bool outdirect = false; // weather output use direct coordinate
+    int out_startfrom = 0;   //output
+    int out_endto = INT_MAX; //output, include endto
+    int iwrite_offset = 0;   // output index offset, usually use 0 or 1
+    bool outdirect = false;  // weather output use direct coordinate
     bool isdummytype;
     bool append;
     bool force_tilt;
@@ -329,8 +372,16 @@ public:
     explicit GPIO(bool bind_console);
     /// Fresh parser with independent bindings and a snapshot of this configuration.
     std::unique_ptr<GPIO> new_session_state() const;
-    bool read_free_energy() const { return session_free_energy_.value_or(vasp_use_free_eng); }
-    void set_read_free_energy(bool value) { session_free_energy_ = value; }
+
+    bool read_free_energy() const
+    {
+        return session_free_energy_.value_or(vasp_use_free_eng);
+    }
+
+    void set_read_free_energy(bool value)
+    {
+        session_free_energy_ = value;
+    }
 
     /// @name Single-shot I/O
     /// @{
@@ -387,7 +438,12 @@ public:
     void setmap(void);
     /// @brief Set element names in species-index order (empty restores atomic numbers).
     void setmap(const std::vector<std::string> &elements);
-    void setmap(std::initializer_list<std::string> elements) { setmap(std::vector<std::string>(elements)); }
+
+    void setmap(std::initializer_list<std::string> elements)
+    {
+        setmap(std::vector<std::string>(elements));
+    }
+
     /// @brief Restore exact species IDs, including nonconsecutive IDs.
     void setmap(const std::map<int, std::string> &elements);
 
@@ -399,8 +455,7 @@ public:
     /// model, then the periodic-table fallback. Returns true when the model
     /// element list was installed. A missing map file is an error when it was
     /// named explicitly or when require_if_absent is true.
-    bool install_species_map(const std::string &mapfile,
-                             bool map_explicit,
+    bool install_species_map(const std::string &mapfile, bool map_explicit,
                              const std::vector<std::string> &model_elements,
                              bool require_if_absent);
     /// @brief Guess file format from filename extension
@@ -409,14 +464,23 @@ public:
     static supported_format format2enum(const std::string &input);
 
     /// @brief Get chemistry map (integer ID -> element name)
-    inline std::map<int, std::string> getmap(void) const { return mapidname; };
+    inline std::map<int, std::string> getmap(void) const
+    {
+        return mapidname;
+    };
+
     /// @brief Get reverse chemistry map (element name -> integer ID)
-    inline std::map<std::string, int> getrevmap(void) const { return mapnameid; };
+    inline std::map<std::string, int> getrevmap(void) const
+    {
+        return mapnameid;
+    };
+
     static inline bool file_exist(const std::string &name)
     {
         struct stat fbuf;
         return (stat(name.c_str(), &fbuf) == 0);
     }
+
     std::vector<int> &report_chem(std::vector<int> &ret)
     {
         ret.clear();
@@ -424,6 +488,7 @@ public:
             ret.push_back(it.first);
         return ret;
     }
+
     std::string get_type(int t)
     {
         return mapidname[t];
@@ -433,21 +498,28 @@ public:
     bool absolute_index_write = false;
     bool write_symbol = true; // for format like xsf, xyz, write symbol or atomic number
 
-    std::set<std::string> tags_; // used in lammps and extented xyz format, per atom
+    std::set<std::string> tags_;  // used in lammps and extented xyz format, per atom
     std::set<std::string> gtags_; // global attrib tags for extented xyz format
     bool read_all_keys = true;
 
-    void set_header(const std::string &line) { header_line = line; }
+    void set_header(const std::string &line)
+    {
+        header_line = line;
+    }
 
     void build_remap(Atoms &atom);
 
     // todo: complete this
     void InitSettings();
-    void InitBySettings(GPSettings settings) {
+
+    void InitBySettings(GPSettings settings)
+    {
         InitSettings();
         ApplySettings(settings);
     }
-    GPIO(GPSettings settings) : GPIO() {
+
+    GPIO(GPSettings settings) : GPIO()
+    {
         InitBySettings(settings);
     }
 };
