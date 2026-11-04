@@ -26,6 +26,9 @@
 | I/O 与压缩输入 | `compressed/`（gzip、zstd 示例） |
 | 混合势 | `zbl-mtp-hybrid-al/calc-efs.ini` |
 
+`.gz` 输入在默认构建中可用；`compressed/example.xyz.zst` 需要
+`USE_ZSTD=1` 和 libzstd，否则读取器会报 `Zstandard compression is not supported`。
+
 这些是模板，不能在没有模型和数据时直接运行。先复制需要的配置到独立运行目录，
 修改输入与模型路径，并核对物种映射。相对路径始终从启动 `imrmlp` 的工作目录
 解析，即使配置文件在其他目录。从仓库根目录开始，例如：

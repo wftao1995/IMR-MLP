@@ -30,6 +30,10 @@ with a value or a commented key, never a bare key: the loader reports
 | I/O and compressed inputs | `compressed/` (gzip and zstd examples) |
 | Hybrid example | `zbl-mtp-hybrid-al/calc-efs.ini` |
 
+The gzip inputs (`.gz`) work with the default build. `compressed/example.xyz.zst`
+requires `USE_ZSTD=1` and libzstd; otherwise the reader reports
+`Zstandard compression is not supported`.
+
 These are templates, not self-contained calculations. Copy a suitable file to a
 new run directory, replace the input/model paths and check the species map.
 Relative paths resolve from the directory where you launch `imrmlp`, even when
