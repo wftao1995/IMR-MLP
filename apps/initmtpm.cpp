@@ -47,8 +47,8 @@ int initmtpm(int argc, char** argv)
         .addop(randomize, "randomize", "r", "randomize coeffs or not, default true", false, 1, 0);
     cmdopts.phrase_options(argc, argv);
     if(cmdopts.displayhelp){cmdopts.showhelp(cout);return 0;}
-    const bool modern=!input.empty()||!output.empty()||!target_type.empty()||!elements.empty()||reinitialize||fit_offsets||normalize||!offset_target.empty();
-    if (!settingfile.empty() && (cmdopts.was_provided("settings")||!modern)) {
+    const bool modern_cli=!input.empty()||!output.empty()||!target_type.empty()||!elements.empty()||reinitialize||fit_offsets||normalize||!offset_target.empty();
+    if (!settingfile.empty() && (cmdopts.was_provided("settings")||!modern_cli)) {
         try {
             settings.Load(settingfile);
         } catch (const GPException& e) {
@@ -57,6 +57,9 @@ int initmtpm(int argc, char** argv)
         }
     }
     apply_settings_to_cmdopts(cmdopts, settings);
+    // Settings may supply the modern-workflow options too; decide the path
+    // after they have been applied, not only from the command line.
+    const bool modern=modern_cli||!input.empty()||!output.empty()||!target_type.empty()||!elements.empty()||reinitialize||fit_offsets||normalize||!offset_target.empty();
     if(modern||(!settings["pot:pottype"].empty()&&settings["pot:pottype"]!="mtp_m")) {
         if(!output.empty()&&cmdopts.was_provided("potfile")&&output!=potfile)GPERROR("Conflicting output and potfile options");
         if(output.empty()&&(cmdopts.was_provided("potfile")||settings.count("potfile")))output=potfile;

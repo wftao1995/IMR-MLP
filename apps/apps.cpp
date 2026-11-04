@@ -66,7 +66,7 @@ std::map<std::string, std::pair<std::function<int(int, char *[])>, std::string>>
     REG_COMMAND(trainmtp, "Train MTP potential using reference data"),
     REG_COMMAND(trainnlpot, "Train general nonlinear potential using reference data"),
     REG_COMMAND(train_linear, "Train linear descriptor-based potential using least-squares regression"),
-    REG_COMMAND(initmtpm, "Initialize MTP_M potential with random coefficients"),
+    REG_COMMAND(initmtpm, "Initialize MTP-based models (MTP-M heads, templates, parameter reuse)"),
     // cell utils
     REG_COMMAND(mk_orth, "Find an (nearly) orthogonal cell for a given structure, lattice vector a will be kept"),
     REG_COMMAND(mk_orth_search, "Find an (nearly) orthogonal cell for a given structure, search all possible orientations"),

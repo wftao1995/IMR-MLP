@@ -25,12 +25,19 @@ int adjustmtp(int argc, char *argv[]) {
            .addop(species_order, "neworder", "", "new species order, i.e 2 1 0 means 0 1 2 -> 2 1 0", true, -1)
            .phrase_options(argc, argv);
     if(cmdopts.displayhelp){cmdopts.showhelp(cout);return 0;}
+    // Apply the settings file before selecting the execution path: input,
+    // output and neworder may all come from the deck, not only from the CLI.
+    GPSettings all;
+    if(!settings_file.empty()){
+        try{all.Load(settings_file);}
+        catch(const GPException &e){std::cerr<<e.What()<<'\n';return 1;}
+        apply_settings_to_cmdopts(cmdopts,all);
+    }
     const bool modern=GPM::is_file(infile)||GPM::extension(infile)||GPM::extension(outfile)||type!="auto"||!basis_order.empty()||!appended.empty()||!settings_file.empty();
     if(modern) {
         Training::collective_try([&]{
             if(mpi.rank!=0)return;
             MTPWorkflow::LocalComputation local;
-            GPSettings all;if(!settings_file.empty())all.Load(settings_file);
             auto config=all.ExtractSubSettings("pot");config.Modify("potfile",infile);if(type!="auto"||config["pottype"].empty())config.Modify("pottype",type);
             std::string input_magic;if(MTPWorkflow::fs::exists(infile)){auto stream=open_ifile(infile);if(stream)*stream>>input_magic;}
             if(input_magic=="MTP"&&!GPM::is_file(infile)&&!GPM::extension(infile)&&(config["pottype"]=="auto"||config["pottype"]=="mtp_m")) {
@@ -56,8 +63,9 @@ int adjustmtp(int argc, char *argv[]) {
             Potentials::potential_wrapper wrapper(config);
             MTPWorkflow::Adjustment operation;operation.appended=appended;operation.elements=element_names;operation.sources=sources;operation.order=species_order;operation.initialization=initialization;operation.basis=basis_order.empty()?"keep":basis_order;
             auto adjusted=MTPWorkflow::adjust_tree(*wrapper.pot,operation);
-            const auto output=cmdopts.was_provided("output")?outfile:"_Adjusted_Potential_.gpm";
-            if(!cmdopts.was_provided("output")&&MTPWorkflow::fs::absolute(output).lexically_normal()==MTPWorkflow::fs::absolute(infile).lexically_normal())GPERROR("Explicit output is required to overwrite the input");
+            const bool explicit_output=cmdopts.was_provided("output")||all.count("output");
+            const auto output=explicit_output?outfile:"_Adjusted_Potential_.gpm";
+            if(!explicit_output&&MTPWorkflow::fs::absolute(output).lexically_normal()==MTPWorkflow::fs::absolute(infile).lexically_normal())GPERROR("Explicit output is required to overwrite the input");
             MTPWorkflow::save(*adjusted,output);
         });return 0;
     }
