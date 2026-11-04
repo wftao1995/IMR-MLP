@@ -55,6 +55,11 @@ class PotentialHybridScale : public AnyPotential
         return result;
     }
 
+    std::vector<std::unique_ptr<AnyPotential>> take_children() &&
+    {
+        return std::move(ppots_);
+    }
+
     const std::vector<double> &child_cutoffs() const
     {
         return pot_cutoffs_;

@@ -1,6 +1,11 @@
+#include "potentials/mtp_initialization.h"
+#include "potentials/mtp_adjustment.h"
+#include "utils/temporary_directory.h"
+#include "potentials/potential_wrapper.h"
+#include "potentials/potential_mtp_m.h"
+#include "potentials/model_bundle.h"
+#include "train/collective_error.h"
 #include <catch2/catch_all.hpp>
-#include "apps/mtp_workflow.h"
-#include "apps/mtp_tree_workflow.h"
 #include "potentials/potential_hybrid.h"
 #include <cstdlib>
 #include <numeric>
@@ -82,7 +87,7 @@ std::vector<Atoms> geometries()
 }
 
 std::unique_ptr<AnyPotential> initialize(const CorpusCase &fixture, const std::string &kind,
-                                         MTPWorkflow::Stage &stage)
+                                         Utils::TemporaryDirectory &stage)
 {
     const auto input = (stage.path / "input.mtp").string(),
                output = (stage.path / "initial.gpm").string();
@@ -107,8 +112,23 @@ std::unique_ptr<AnyPotential> initialize(const CorpusCase &fixture, const std::s
         config.Modify("pot:pot2:r1", "3");
     }
     RNG.mtd.seed(71329);
-    MTPWorkflow::initialize_model(config, input, output, "", {"Al", "Ni"}, false, true, -.08, .12,
-                                  "", "", "", false, false, 1., false, "");
+    Potentials::save_inference_model(
+        *Potentials::MTP::initialize_model(config, {.input = input,
+                                                    .type = "",
+                                                    .elements = {"Al", "Ni"},
+                                                    .reset = false,
+                                                    .randomize = true,
+                                                    .lower = -.08,
+                                                    .upper = .12,
+                                                    .scale = 1.,
+                                                    .index = "",
+                                                    .explicit_index = false,
+                                                    .dataset = "",
+                                                    .format = "",
+                                                    .fit = false,
+                                                    .normalize = false,
+                                                    .offset_target = ""}),
+        output);
     auto model = ModelBundle::load(output)->release_potential();
     for (auto *mtp : leaves(*model))
     {
@@ -204,7 +224,7 @@ void observables(AnyPotential &model, const std::vector<Atoms> &frames,
 
 void graph_levels(PotMTP &model)
 {
-    MTPWorkflow::validate_graph(model);
+    Potentials::MTP::validate_graph(model);
     std::vector<int> levels(model.alpha_moments_count, 0);
     for (int i = 0; i < model.alpha_index_times_count; ++i)
     {
@@ -264,7 +284,7 @@ TEST_CASE("Real MTM corpus retains scalar columns and EFS through sorting and mi
     const auto fixture = GENERATE_COPY(Catch::Generators::from_range(cases()));
     const std::string kind = GENERATE("mtp", "mtp_m", "hybrid");
     INFO(fixture.name << " / " << kind);
-    MTPWorkflow::Stage stage;
+    Utils::TemporaryDirectory stage;
     auto model = initialize(fixture, kind, stage);
     auto frames = geometries();
     const auto expected = evaluate(*model, frames);
@@ -293,31 +313,31 @@ TEST_CASE("Real MTM corpus retains scalar columns and EFS through sorting and mi
             graph_levels(direct);
             mapped_features(direct, frames, original_features, coefficients);
         }
-        MTPWorkflow::Adjustment op;
+        Potentials::MTP::Adjustment op;
         op.basis = order;
-        model = MTPWorkflow::adjust_tree(*model, op);
+        model = Potentials::MTP::adjust_tree(*model, op);
         observables(*model, frames, expected);
         mapped_features(*leaves(*model).front(), frames, original_features, coefficients);
     }
-    MTPWorkflow::Adjustment extend;
+    Potentials::MTP::Adjustment extend;
     extend.appended = {"Cu"};
     extend.sources = {1};
     extend.initialization = "clone";
     extend.order = {2, 0, 1};
     extend.basis = "level-group";
-    model = MTPWorkflow::adjust_tree(*model, extend);
+    model = Potentials::MTP::adjust_tree(*model, extend);
     for (auto &frame : frames)
         for (int &id : frame.chemmap_)
             ++id;
     observables(*model, frames, expected);
     mapped_features(*leaves(*model).front(), frames, original_features, coefficients);
     const auto gpm = (stage.path / "continued.gpm").string();
-    MTPWorkflow::save(*model, gpm);
+    Potentials::save_inference_model(*model, gpm);
     model = ModelBundle::load(gpm)->release_potential();
     observables(*model, frames, expected);
     mapped_features(*leaves(*model).front(), frames, original_features, coefficients);
     const auto native = (stage.path / "native.model").string();
-    MTPWorkflow::save(*model, native);
+    Potentials::save_inference_model(*model, native);
     GPSettings settings;
     settings.Modify("potfile", native);
     settings.Modify("pottype", kind);
@@ -354,7 +374,7 @@ TEST_CASE("Alternative real contraction graphs represent the same scalar basis",
     for (const auto &[left, right] : pairs)
     {
         INFO(left.name << " and " << right.name);
-        MTPWorkflow::Stage a_stage, b_stage;
+        Utils::TemporaryDirectory a_stage, b_stage;
         auto a = initialize(left, "mtp", a_stage), b = initialize(right, "mtp", b_stage);
         auto *ma = leaves(*a).front(), *mb = leaves(*b).front();
         REQUIRE(ma->alpha_scalar_moments == mb->alpha_scalar_moments);

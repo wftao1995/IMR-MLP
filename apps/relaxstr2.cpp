@@ -13,7 +13,6 @@
 #include "tools/procstr.h"
 #include "tools/tools.h"
 #include "utils/gputils.h"
-#include "help_utils.h"
 #include "relax_masks.h"
 #include <cmath>
 #include <filesystem>

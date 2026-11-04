@@ -13,7 +13,6 @@
 #include "train/train_mtp.h"
 #include "train/collective_error.h"
 #include "train/conditional_linear_persistence.h"
-#include "help_utils.h"
 #include <chrono>
 #include <iomanip>
 

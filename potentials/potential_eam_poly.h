@@ -91,6 +91,7 @@ class PotentialEAMPoly : public PotEAMAny
     PotentialEAMPoly(const std::string &filename,
                      const std::map<std::string, int> &mappingtype2id = {});
 
+    PotentialEAMPoly(const PotentialEAMPoly &source);
     ~PotentialEAMPoly();
 
     using AnyPotential::applyHessianVectorProduct;

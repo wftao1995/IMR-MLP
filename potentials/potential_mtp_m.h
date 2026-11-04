@@ -1848,6 +1848,8 @@ template <class T> class PotMTP_M : public PotMTP
         }
     }
 
+    explicit PotMTP_M(PotMTP_M &source);
+
     PotMTP_M(const std::string &potfile)
     {
         InitSettings();
@@ -4561,6 +4563,11 @@ template <class T> class PotMTP_M : public PotMTP
             }
             coeff_offset += model_coeff_size;
         }
+    }
+
+    void random_init_local() override
+    {
+        random_init();
     }
 
     virtual void random_init()

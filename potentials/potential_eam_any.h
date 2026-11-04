@@ -25,6 +25,11 @@ class PotEAMAny : public AnyPotential
     std::vector<std::string> type_name;
 
   public:
+    const std::vector<std::string> &element_names() const
+    {
+        return type_name;
+    }
+
     double rho_min = 0.0;
     double rho_max = 0.0;
     PotEAMAny() {};

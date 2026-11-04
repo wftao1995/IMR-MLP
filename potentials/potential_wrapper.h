@@ -20,6 +20,10 @@
 namespace Potentials
 {
 
+/// Fill native MTP family/head settings not explicitly supplied by the caller.
+/// GPM settings pass through unchanged, apart from the input path.
+GPSettings native_mtp_settings(const std::string &input, GPSettings settings);
+
 /// True only for audited concrete CPU implementations (including local composites).
 bool supports_frame_local_efs(const AnyPotential &pot);
 

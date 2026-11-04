@@ -57,13 +57,22 @@ $(BUILD_DIR)/unitest/%.test: $(BUILD_DIR)/unitest/%.o $(TARGETSLIB) $(UT_MAIN_IN
 # Run all Catch2 tests in a temp directory to prevent CWD pollution.
 # Tests/analyse code that writes to hardcoded relative paths (e.g. *.dat)
 # will write to the temp dir instead of the project root.
-run_tests: $(CATCH2_BINS)
+RUN_TEST_BINS = $(CATCH2_BINS)
+ifneq ($(strip $(TEST_NAMES)),)
+UNKNOWN_TEST_NAMES := $(filter-out $(notdir $(CATCH2_SRCS:.cpp=)),$(TEST_NAMES))
+ifneq ($(UNKNOWN_TEST_NAMES),)
+$(error Unknown or unavailable TEST_NAMES for $(BUILD_MODE): $(UNKNOWN_TEST_NAMES))
+endif
+RUN_TEST_BINS = $(addprefix $(BUILD_DIR)/unitest/,$(addsuffix .test,$(TEST_NAMES)))
+endif
+
+run_tests: $(RUN_TEST_BINS)
 	@echo "=== Running unit tests ($(BUILD_MODE) mode) ==="
 	@passed=0; failed=0; \
 	tmpdir=$$(mktemp -d /tmp/imrmlp_unitest_XXXXXX); \
 	mkdir -p $$tmpdir/unitest; \
 	ln -sf $(UNITEST_DATA_ROOT) $$tmpdir/unitest/test-data; \
-	for t in $(CATCH2_BINS); do \
+	for t in $(RUN_TEST_BINS); do \
 		echo "--- $$t ---"; \
 		ret=0; \
 		(cd $$tmpdir && LD_LIBRARY_PATH="$(CURDIR)/$(BUILD_DIR):$$LD_LIBRARY_PATH" $(CURDIR)/$$t) || ret=$$?; \

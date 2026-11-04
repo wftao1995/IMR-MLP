@@ -1263,3 +1263,13 @@ void Potentials::PotentialEAMPoly::OutputLAMMPSset(std::string outfile, int nr, 
     if (!close_ofile(ofs))
         throw std::runtime_error("Failed to write EAM output file: " + outfile);
 }
+
+Potentials::PotentialEAMPoly::PotentialEAMPoly(const PotentialEAMPoly &source)
+    : PotentialEAMPoly(source.npoly_rho, source.npoly_f, source.npoly_pair, source.nelems,
+                       source.rmax_pair, source.rmax_rho, source.basis_poly, source.b)
+{
+    PotEAMAny::operator=(source);
+    omp_inited = false;
+    std::copy(source.regression_coeffs.begin(), source.regression_coeffs.end(),
+              regression_coeffs.begin());
+}

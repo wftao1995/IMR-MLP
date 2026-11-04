@@ -102,6 +102,7 @@ TEST_CASE("EAM FS density rows distinguish hosts from neighbors", "[eam]")
 {
     const bool omp = GENERATE(false, true);
     const bool reverse = GENERATE(false, true);
+    const bool triangle = GENERATE(false, true);
     {
         std::ofstream out("asymmetric.fs");
         out << std::setprecision(17) << "a\nb\nc\n2 H He\n5 2 5 1 4\n";
@@ -125,10 +126,44 @@ TEST_CASE("EAM FS density rows distinguish hosts from neighbors", "[eam]")
                     reverse ? std::map<std::string, int>{{"H", 1}, {"He", 0}}
                             : std::map<std::string, int>{});
     auto atoms = dimer(reverse ? 1 : 0, reverse ? 0 : 1);
-    evaluate(*pot, atoms, omp);
-    REQUIRE(atoms.energy_ == Approx(3.0));
-    REQUIRE(atoms.forces_[0](0) == Approx(1.5));
-    REQUIRE(atoms.stress_(0, 0) == Approx(-3.0));
+    if (triangle)
+    {
+        atoms.pos_.push_back({.5, 1., .3});
+        atoms.chemmap_.push_back(reverse ? 1 : 0);
+    }
+    // For linear embedding and density, each pair contributes
+    // (F'_host * rho'_neighbor + F'_neighbor * rho'_host) * distance.
+    const double density[2][2] = {{0.2, 0.7}, {0.4, 0.3}};
+    auto expected = atoms;
+    expected.resetEFS();
+    for (int i = 0; i < atoms.size(); ++i)
+        for (int j = i + 1; j < atoms.size(); ++j)
+        {
+            const int host = reverse ? 1 - atoms.chemmap_[i] : atoms.chemmap_[i];
+            const int neighbor = reverse ? 1 - atoms.chemmap_[j] : atoms.chemmap_[j];
+            const auto delta = (atoms.pos_[j] - atoms.pos_[i]).eval();
+            const double r = delta.norm();
+            const double left = (host + 1) * density[host][neighbor];
+            const double right = (neighbor + 1) * density[neighbor][host];
+            expected.energy_ += (left + right) * r;
+            expected.site_energies_[i] += left * r;
+            expected.site_energies_[j] += right * r;
+            expected.forces_[i] += (left + right) / r * delta;
+            expected.forces_[j] -= (left + right) / r * delta;
+            expected.stress_ -= (left + right) / r * delta.transpose() * delta;
+        }
+    for (int repeat = 1; repeat <= 2; ++repeat)
+    {
+        pot->add_efs = repeat > 1;
+        evaluate(*pot, atoms, omp);
+        REQUIRE(atoms.energy_ == Approx(repeat * expected.energy_));
+        REQUIRE((atoms.stress_ - repeat * expected.stress_).norm() < 1e-12);
+        for (int i = 0; i < atoms.size(); ++i)
+        {
+            REQUIRE((atoms.forces_[i] - repeat * expected.forces_[i]).norm() < 1e-12);
+            REQUIRE(atoms.site_energies_[i] == Approx(repeat * expected.site_energies_[i]));
+        }
+    }
 }
 
 TEST_CASE("EAM HE embedding grid uses its declared density origin", "[eam][he]")

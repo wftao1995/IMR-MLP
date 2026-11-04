@@ -82,7 +82,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/unitest
 
 # ── Standard object lists ──────────────────────────────────────────────
-OBJAPP = mtp_tree_workflow.o model_bundle_app.o apps.o convstr.o calc_efs.o calc_err.o \
+OBJAPP = model_bundle_app.o apps.o convstr.o calc_efs.o calc_err.o \
 		mlpcalcfc.o ti_reference_app.o ti_fit_fc.o calc_eos.o mlpcalccellhess.o \
 		split_set.o calc_ferr.o \
 		calc_neb.o calc_dimer.o mlpnroptimize.o mtp2spline.o adjustpot.o testpot.o \
@@ -96,7 +96,7 @@ OBJAPP = mtp_tree_workflow.o model_bundle_app.o apps.o convstr.o calc_efs.o calc
 		train_linear.o \
 	pot2table.o attach_hessian.o calc_crowding.o
 
-OBJPOT = model_native.o potential.o potential_eam_zhou_2004.o potential_mindist.o \
+OBJPOT = mtp_initialization.o mtp_adjustment.o mtp_model_internal.o model_native.o potential.o potential_eam_zhou_2004.o potential_mindist.o \
 		potential_mtp.o basis.o cutoff.o xtrans.o ace_lmp.o potential_shell.o \
 		potential_mtpnn1.o potential_hybmtp.o model_elements.o \
 		potential_hybrid.o potential_hybrid_scale.o potential_hybrid_scale_curvature.o potential_mtp_symmetry.o potential_eamalloy_spline.o potential_lj.o potential_eamfs_spline.o \
@@ -130,7 +130,7 @@ OBJBASE = structures.o \
 		neighborhood_shell.o neighborhood_ghost.o neighborhoodKD.o neighborhood_voro_direct.o \
 		symmetry.o structure_comparison.o
 
-OBJMISC = units.o lower_energy_envelope.o chem.o procstr.o gputils.o comm.o mpi_stubs.o spglib_driver.o \
+OBJMISC = temporary_directory.o units.o lower_energy_envelope.o chem.o procstr.o gputils.o comm.o mpi_stubs.o spglib_driver.o \
 		compressed_stream.o cmdopts.o minkowski_reduce.o \
 		nn1hidden.o nn2hidden.o CutoffFuncs.o \
 		combinatorics.o angular_functions.o intersitials.o symbasis.o \
@@ -495,3 +495,14 @@ check-docs:
 # ── Auto-generated deps + test infra ───────────────────────────────────
 -include $(OBJDEPS)
 include unitest/tests.mk
+
+# Ad hoc syntax checks must not emit a-*.d into the working directory.
+# Use the source header rather than requiring a pre-existing mode-specific PCH.
+check-syntax:
+	@test -n "$(strip $(SYNTAX_SOURCES))" || { echo 'Set SYNTAX_SOURCES to the C++ files to check.' >&2; exit 1; }
+	@set -e; for source in $(SYNTAX_SOURCES); do \
+		echo "Checking $$source"; \
+		$(CXX) $(filter-out -MMD -MP,$(CXXFLAGS_NO_PCH) $(SYNTAX_FLAGS)) -include utils/stdafx.h -fsyntax-only "$$source"; \
+	done
+
+.PHONY: check-syntax

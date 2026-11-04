@@ -20,7 +20,6 @@
 #include "base/neighborhood.h"
 #include "base/neighborhood_voro_radi.h"
 #include "base/neighborhoodKD.h"
-#include "help_utils.h"
 #include <array>
 #include <sstream>
 #include <fmt/format.h>

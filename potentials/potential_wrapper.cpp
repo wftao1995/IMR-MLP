@@ -47,6 +47,61 @@ namespace fs = std::filesystem;
 namespace Potentials
 {
 
+GPSettings native_mtp_settings(const std::string &infile, GPSettings config)
+{
+    config.Modify("potfile", infile);
+    auto stream = open_ifile(infile);
+    std::string input_magic;
+    if (stream)
+        *stream >> input_magic;
+    if (input_magic == "MTP" && !GPM::is_file(infile) && !GPM::extension(infile) &&
+        (config["pottype"] == "auto" || config["pottype"] == "mtp_m"))
+    {
+        const auto header = MTPMetadata::read_header(infile);
+        if (header.tag.text("type") == "MTP_LES")
+            config.Modify("pottype", "mtp_les");
+        if (header.tag.text("type") == "MTP_M")
+        {
+            config.Modify("pottype", "mtp_m");
+            if (config["extmodel"].empty())
+                config.Modify("extmodel", header.tag.text("model"));
+            if (config["n_input"].empty() && header.tag.fields.count("q"))
+                config.Modify("n_input",
+                              std::to_string(int(header.tag.fields.at("q").get<double>())));
+            if (header.tag.fields.count("nn"))
+            {
+                const auto &nn = header.tag.fields.at("nn").get<MTPMetadata::Object>();
+                const auto &layers = nn.at("hidden_layers").get<MTPMetadata::Array>();
+                for (size_t i = 0; i < layers.size(); ++i)
+                {
+                    auto key = i ? "n_neuron2" : "n_neuron";
+                    if (config[key].empty())
+                        config.Modify(key, std::to_string(int(layers[i].get<double>())));
+                }
+                if (config["activation_function"].empty())
+                    config.Modify("activation_function", nn.at("activation").get<std::string>());
+            }
+        }
+    }
+    if (config["pottype"] == "auto" && !GPM::is_file(infile) && !GPM::extension(infile))
+    {
+        if (input_magic == "pottype")
+        {
+            std::string declared;
+            *stream >> declared;
+            config.Modify("pottype", declared);
+        }
+        else if (std::filesystem::exists(infile + ".nn"))
+            config.Modify("pottype", "mtpnn1");
+        else if (std::filesystem::exists(infile + "_sub1"))
+        {
+            config.Modify("pottype", "hmtp");
+            config.Modify("potlevel", std::filesystem::exists(infile + "_sub3") ? "3" : "2");
+        }
+    }
+    return config;
+}
+
 bool supports_frame_local_efs(const AnyPotential &pot)
 {
     const auto &type = typeid(pot);

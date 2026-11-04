@@ -557,14 +557,17 @@ class PotMTP : public AnyPotential
                                        const std::vector<std::string> &new_elements = {}) override;
 
     void ReorderByLevel();
+    void ReorderByLevel(std::vector<int> &permutation);
     // same as reorder by level, but sort alpha_index_times in each level by moment id and group them together, like {a+b->c, a+b->d, a+b->e}
     void ReorderByLevelGroup();
+    void ReorderByLevelGroup(std::vector<int> &permutation);
     // alpha_index_times -> NN like structure
     void NNMap();
 
     void SaveOrdered(std::string filename);
 
     void random_init();
+    virtual void random_init_local();
     void random_init_linear();
     void random_init_radial();
     void random_init_moments();

@@ -397,3 +397,42 @@ def test_generated_high_order_basis_preserves_predictions_on_repeated_sort(tmp_p
         np.testing.assert_allclose(
             labels(tmp_path, 'twice.gpm', 'twice.cfg'), expected, atol=1e-9, rtol=1e-8
         )
+
+
+def test_hybrid_secondary_child_has_no_independent_offsets(tmp_path):
+    prepare(tmp_path, 'hybrid')
+    config = (tmp_path / 'tree.ini').read_text().replace(
+        'pot:pot2:pottype zbl\n',
+        'pot:pot2:pottype mtp\npot:pot2:potfile template.mtp\n',
+    )
+    (tmp_path / 'tree.ini').write_text(config)
+    run(
+        tmp_path,
+        'initmtpm',
+        '--settings=tree.ini',
+        '--elements',
+        'H',
+        '--randomize=false',
+        '--output=shared.gpm',
+    )
+    original = (tmp_path / 'shared.gpm').read_bytes()
+    (tmp_path / 'labeled.xyz').write_text(
+        (tmp_path / 'periodic.xyz').read_text().replace(' pbc=', ' energy=0.0 pbc=')
+    )
+    result = run_command(
+        'imrmlp',
+        [
+            'initmtpm',
+            '--input=shared.gpm',
+            '--output=fitted.gpm',
+            '--dataset=labeled.xyz',
+            '--format=extxyz',
+            '--fit-species-offsets',
+            '--offset-target=pot2',
+        ],
+        tmp_path,
+    )
+    assert result.returncode != 0
+    assert 'rank deficient' in result.stderr
+    assert (tmp_path / 'shared.gpm').read_bytes() == original
+    assert not (tmp_path / 'fitted.gpm').exists()

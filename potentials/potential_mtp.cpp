@@ -43,6 +43,11 @@ namespace
 
 AnyBasis *clone_basis(AnyBasis &basis)
 {
+    // Native basis headers omit fitted polynomial matrices and normalizations.
+    if (auto *poly = dynamic_cast<RBasis_PolyB *>(&basis))
+        return new RBasis_PolyB(*poly);
+    if (auto *poly = dynamic_cast<RBasis_PolyBCos *>(&basis))
+        return new RBasis_PolyBCos(*poly);
     std::stringstream serialized;
     serialized << std::setprecision(std::numeric_limits<double>::max_digits10);
     basis.SaveToStream(serialized);
@@ -782,6 +787,12 @@ void PotMTP::write_linear_coeff(std::ostream &ofs)
 // FORWARD GROUP AND BACKWARD GROUP
 void Potentials::PotMTP::ReorderByLevelGroup()
 {
+    std::vector<int> permutation;
+    ReorderByLevelGroup(permutation);
+}
+
+void Potentials::PotMTP::ReorderByLevelGroup(std::vector<int> &permutation)
+{
     struct alpha_index_basic_t
     {
         int mu, b1, b2, b3;
@@ -971,13 +982,15 @@ void Potentials::PotMTP::ReorderByLevelGroup()
         }
     }
     //4. resort alpha_moment_mapping and adjust coeffs
-    std::vector<std::pair<int, double>> tmp_moment_coeffs(alpha_scalar_moments);
+    permutation.resize(alpha_scalar_moments);
+    std::vector<double> previous_coefficients(moment_coeffs, moment_coeffs + alpha_scalar_moments);
+    std::vector<std::pair<int, int>> tmp_moment_coeffs(alpha_scalar_moments);
     for (int i = 0; i < alpha_scalar_moments; ++i)
     {
-        tmp_moment_coeffs[i] = std::make_pair(alpha_moment_mapping[i], moment_coeffs[i]);
+        tmp_moment_coeffs[i] = std::make_pair(alpha_moment_mapping[i], i);
     }
     std::ranges::sort(tmp_moment_coeffs,
-                      [](const std::pair<int, double> &a, const std::pair<int, double> &b)
+                      [](const std::pair<int, int> &a, const std::pair<int, int> &b)
                       {
                           if (a.first < b.first)
                               return true;
@@ -992,7 +1005,8 @@ void Potentials::PotMTP::ReorderByLevelGroup()
     for (int i = 0; i < alpha_scalar_moments; ++i)
     {
         alpha_moment_mapping[i] = tmp_moment_coeffs[i].first;
-        moment_coeffs[i] = tmp_moment_coeffs[i].second;
+        permutation[i] = tmp_moment_coeffs[i].second;
+        moment_coeffs[i] = previous_coefficients[permutation[i]];
         ++lev_scalar_count.at(moment_levels.at(alpha_moment_mapping[i]));
     }
     // A ladder prefix ends at the first moment in the following level,
@@ -1647,6 +1661,12 @@ void PotMTP::adjust_species(const std::vector<int> &newsp)
  */
 void PotMTP::ReorderByLevel()
 {
+    std::vector<int> permutation;
+    ReorderByLevel(permutation);
+}
+
+void PotMTP::ReorderByLevel(std::vector<int> &permutation)
+{
     struct alpha_index_basic_t
     {
         int mu, b1, b2, b3;
@@ -1828,13 +1848,15 @@ void PotMTP::ReorderByLevel()
         }
     }
     //4. resort alpha_moment_mapping and adjust coeffs
-    std::vector<std::pair<int, double>> tmp_moment_coeffs(alpha_scalar_moments);
+    permutation.resize(alpha_scalar_moments);
+    std::vector<double> previous_coefficients(moment_coeffs, moment_coeffs + alpha_scalar_moments);
+    std::vector<std::pair<int, int>> tmp_moment_coeffs(alpha_scalar_moments);
     for (int i = 0; i < alpha_scalar_moments; ++i)
     {
-        tmp_moment_coeffs[i] = std::make_pair(alpha_moment_mapping[i], moment_coeffs[i]);
+        tmp_moment_coeffs[i] = std::make_pair(alpha_moment_mapping[i], i);
     }
     std::ranges::sort(tmp_moment_coeffs,
-                      [](const std::pair<int, double> &a, const std::pair<int, double> &b)
+                      [](const std::pair<int, int> &a, const std::pair<int, int> &b)
                       {
                           if (a.first < b.first)
                               return true;
@@ -1849,7 +1871,8 @@ void PotMTP::ReorderByLevel()
     for (int i = 0; i < alpha_scalar_moments; ++i)
     {
         alpha_moment_mapping[i] = tmp_moment_coeffs[i].first;
-        moment_coeffs[i] = tmp_moment_coeffs[i].second;
+        permutation[i] = tmp_moment_coeffs[i].second;
+        moment_coeffs[i] = previous_coefficients[permutation[i]];
         ++lev_scalar_count.at(moment_levels.at(alpha_moment_mapping[i]));
     }
     // A ladder prefix ends at the first moment in the following level,
@@ -4487,11 +4510,18 @@ PotMTP::PotMTP(PotMTP &opt)
     for (AnyBasis *basis : opt.p_radical_basis_pair)
         p_radical_basis_pair.push_back(basis ? clone_basis(*basis) : nullptr);
     regression_coeffs = new double[reg_coeff_size];
-    memcpy(regression_coeffs, opt.regression_coeffs, reg_coeff_size * sizeof(double));
     radial_coeffs = regression_coeffs;
     species_coeffs = regression_coeffs + radial_coeff_size;
     linear_coeffs = species_coeffs;
-    moment_coeffs = linear_coeffs + species_count;
+    moment_coeffs = species_coeffs + species_coeff_size;
+    if (opt.coeffs_handled_external)
+    {
+        std::copy_n(opt.radial_coeffs, radial_coeff_size, radial_coeffs);
+        std::copy_n(opt.species_coeffs, species_coeff_size, species_coeffs);
+        std::copy_n(opt.moment_coeffs, moment_coeff_size, moment_coeffs);
+    }
+    else
+        std::copy_n(opt.regression_coeffs, reg_coeff_size, regression_coeffs);
     nu_arr_list = new int[alpha_index_basic_count]();
     memcpy(nu_arr_list, opt.nu_arr_list, alpha_index_basic_count * sizeof(int));
     max_alpha_index_basic = opt.max_alpha_index_basic;
@@ -4577,6 +4607,14 @@ void Potentials::PotMTP::random_init_moments()
 
 void PotMTP::random_init()
 {
+    random_init_local();
+#ifdef IMRMLP_MPI
+    MPI_Bcast(regression_coeffs, reg_coeff_size, MPI_DOUBLE, 0, mpi.comm);
+#endif
+}
+
+void PotMTP::random_init_local()
+{
     Message("Random initialize");
     // init radical coeffs
     std::uniform_real_distribution<double> uniform(random_lower, random_upper); // -1e-3 - 1e-3 ??
@@ -4610,9 +4648,6 @@ void PotMTP::random_init()
             }
         }
     }
-#ifdef IMRMLP_MPI
-    MPI_Bcast(regression_coeffs, reg_coeff_size, MPI_DOUBLE, 0, mpi.comm);
-#endif
     empty = false;
 }
 

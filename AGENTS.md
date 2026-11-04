@@ -12,6 +12,8 @@ This repository is a C++23 scientific simulation and MLIP framework with Python 
 - `make test`: build `libimrmlp.so` and run all Catch2 tests from `unitest/ut_*.cpp`.
 - `make python`: build the pybind11 extension module.
 - `pytest`: run Python binding tests using the `pyproject.toml` pytest settings.
+- `make check-syntax SYNTAX_SOURCES='path/to/source.cpp'`: run ad hoc syntax checks without emitting dependency files; use `SYNTAX_FLAGS` for additional include paths or defines.
+- `make run_tests TEST_NAMES='ut_openkim_parameters'`: build and run selected Catch2 programs in an isolated temporary working directory.
 
 When running a test executable directly, or invoking `make run_tests`, prepend the matching build directory to `LD_LIBRARY_PATH`, for example `LD_LIBRARY_PATH=$PWD/build/release:$LD_LIBRARY_PATH make run_tests`. Otherwise, the dynamic loader may select an older installed `libimrmlp.so` instead of the library just built in this checkout, producing stale results or ABI/symbol errors. Keep the build mode consistent (`build/debug` for debug tests, `build/asan` for ASan tests, and so on); append any required runtime library directories after the project build directory.
 

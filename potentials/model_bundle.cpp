@@ -7,6 +7,7 @@
 #include "active_learn/gpm_al.h"
 #include "active_learn/al_potential.h"
 #include "utils/mpi_stubs.h"
+#include "utils/temporary_directory.h"
 
 namespace Potentials
 {
@@ -27,6 +28,23 @@ Writer encode(AnyPotential &p)
         w.manifest["models"].get<Object>().at("root").get<Object>().at("species");
     return w;
 }
+}
+
+void save_inference_model(AnyPotential &model, const std::string &output)
+{
+    if (output.empty())
+        GPERROR("Output must name a model file");
+    const auto target = std::filesystem::absolute(output).lexically_normal();
+    Utils::TemporaryDirectory stage(target.parent_path());
+    const auto path = (stage.path / "model.gpm").string();
+    Potentials::ModelBundle::save_potential(model, path,
+                                            Potentials::ModelBundle::Profile::Inference);
+    Potentials::ModelBundle::validate(path);
+    if (GPM::extension(output))
+        std::filesystem::rename(path, target);
+    else
+        Potentials::ModelBundle::load(path)->save_native(
+            output, Potentials::ModelBundle::Profile::Inference);
 }
 
 ModelBundle::~ModelBundle() = default;

@@ -305,3 +305,13 @@ void Potentials::PotMTPHyb3::AccumulateEFSCombinationGard(Atoms &atom, AnyNeighb
         pot3->AccumulateEFSCombinationGard(atom, nbhs3, dLdE, dLdF, dLdS,
                                            out_gard_accumulator + c_offset3);
 }
+
+Potentials::PotMTPHyb3::PotMTPHyb3(std::unique_ptr<PotMTP> first, std::unique_ptr<PotMTP> second,
+                                   std::unique_ptr<PotMTP> third)
+    : PotMTPHyb3(first.get(), second.get(), third.get())
+{
+    first.release();
+    second.release();
+    third.release();
+    needfree = true;
+}

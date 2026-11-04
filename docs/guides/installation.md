@@ -279,3 +279,18 @@ test executables. Full testing, other maintenance targets and licensing are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md) and [third-party notices](../../THIRD_PARTY_NOTICES.md).
 Reading the manual needs no Doxygen; building it is covered in the
 [documentation build guide](../README.md).
+
+For ad hoc C++ syntax checks and individual test programs, use:
+
+```bash
+make check-syntax SYNTAX_SOURCES='potentials/native_long_range.cpp unitest/ut_native_long_range.cpp'
+make run_tests TEST_NAMES='ut_openkim_parameters'
+```
+
+`check-syntax` uses the selected build mode without emitting object or dependency
+files; add include paths or defines with `SYNTAX_FLAGS` when needed. `run_tests`
+builds the selected test programs and runs them in a temporary working directory,
+with the matching build library first in `LD_LIBRARY_PATH`. This keeps OpenKIM's
+`kim.log` and other test outputs out of the repository root. Omit `TEST_NAMES` to
+run the complete suite. Direct test invocations should also use a temporary
+working directory and the matching library path.

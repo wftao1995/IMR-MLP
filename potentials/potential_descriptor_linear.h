@@ -37,6 +37,11 @@ class PotentialDescriptorLinear : public AnyPotential
     PotentialDescriptorLinear(GPSettings settings, std::unique_ptr<Descriptors> descriptor = {});
     explicit PotentialDescriptorLinear(const std::string &filename);
 
+    const Descriptors &descriptor() const
+    {
+        return *desc_wrapper_->desc;
+    }
+
     using AnyPotential::Save;
     void Save(std::ostream &os) override;
 

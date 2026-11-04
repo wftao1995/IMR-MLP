@@ -127,3 +127,67 @@ def test_minimum_pair_grid_can_be_loaded(tmp_path, monkeypatch, lj_input):
     )
     potential.calculate(atoms)
     assert atoms.energy == pytest.approx(lj_energy_force(2.05)[0])
+
+
+@pytest.mark.parametrize('names', [None, [], ['H'], ['H', 'He', 'Li'], ['H', 'He', 'Li', 'Be']])
+def test_multispecies_table_headers_and_sample_order(tmp_path, names):
+    # Distinct pair strengths make incorrect pair/triplet placement observable.
+    strengths = {(i, j): 1 + i + 3 * j for j in range(3) for i in range(j + 1)}
+    (tmp_path / 'potential.lj').write_text(
+        'pot:ntypes 3\n'
+        + ''.join(
+            f'pot:{i}-{j} {strength} 1\npot:cut:{i}-{j} 3\n'
+            for (i, j), strength in strengths.items()
+        )
+    )
+    if names is not None:
+        (tmp_path / 'index.map').write_text(''.join(name + '\n' for name in names))
+    result = run_command(
+        'imrmlp',
+        [
+            'pot2table',
+            '--potfile',
+            'potential.lj',
+            '--pottype',
+            'lj612',
+            '--pair',
+            '--threebody',
+            '--lammps-prefix',
+            'lmp',
+            '--nr',
+            '3',
+            '--ntheta',
+            '3',
+            '--rmin',
+            '1.1',
+            '--rmax',
+            '1.5',
+        ],
+        tmp_path,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    header = ''.join((names[i] if names and i < len(names) else f'X{i}') + ' ' for i in range(3))
+    pair_lines = (tmp_path / 'pair_table.out').read_text().splitlines()
+    triplet_lines = (tmp_path / 'threebody_table.out').read_text().splitlines()
+    assert pair_lines[0] == triplet_lines[0] == header
+    pairs = np.loadtxt(pair_lines[2:])
+    radii = pairs[:, 1]
+    energy, force = lj_energy_force(radii)
+    np.testing.assert_allclose(pairs[:, 2:], energy[:, None] * list(strengths.values()))
+    for (i, j), strength in strengths.items():
+        lammps = np.loadtxt(tmp_path / f'lmp_{i}_{j}', skiprows=5)
+        np.testing.assert_allclose(lammps[:, 1], radii)
+        np.testing.assert_allclose(lammps[:, 2], strength * energy)
+        np.testing.assert_allclose(lammps[:, 3], strength * force)
+
+    # File order groups triplets by largest, then middle, then smallest type.
+    # At theta=pi/2 the outer pair distance is sqrt(2)*r.
+    triplets = np.loadtxt(triplet_lines[4:]).reshape(10, 3, 3)
+    outer_energy, _ = lj_energy_force(np.sqrt(2) * radii)
+    expected = [
+        (strengths[i, j] + strengths[i, k]) * energy + strengths[j, k] * outer_energy
+        for k in range(3)
+        for j in range(k + 1)
+        for i in range(j + 1)
+    ]
+    np.testing.assert_allclose(triplets[:, :, 1], expected)

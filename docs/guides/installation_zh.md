@@ -247,3 +247,16 @@ Voro++ 和 LBFGS++ 随仓库提供；ALGLIB 和 FFTW 为外部依赖，oneMKL �
 把匹配构建目录放在 `LD_LIBRARY_PATH` 最前。完整测试、其他维护目标和第三方许可见
 [贡献说明](../../CONTRIBUTING.md)、[许可说明](../../THIRD_PARTY_NOTICES.md)。
 阅读手册不需要 Doxygen；自行构建手册见[文档构建说明](../README.md)。
+
+临时 C++ 语法检查和单项测试请使用：
+
+```bash
+make check-syntax SYNTAX_SOURCES='potentials/native_long_range.cpp unitest/ut_native_long_range.cpp'
+make run_tests TEST_NAMES='ut_openkim_parameters'
+```
+
+`check-syntax` 使用选定构建模式的配置，不生成对象文件或依赖文件；需要额外
+包含路径或宏定义时可传入 `SYNTAX_FLAGS`。`run_tests` 构建选定的测试程序，
+在临时工作目录运行，并将匹配的构建库目录放在 `LD_LIBRARY_PATH` 首位，
+避免 OpenKIM 的 `kim.log` 和其他测试输出落入仓库根目录。不传 `TEST_NAMES`
+则运行完整套件。直接调用测试程序时，也应使用临时工作目录和匹配的库路径。

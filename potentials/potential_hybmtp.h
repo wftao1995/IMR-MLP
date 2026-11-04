@@ -123,6 +123,9 @@ class PotMTPHyb3 : public AnyPotential
         setup();
     }
 
+    PotMTPHyb3(std::unique_ptr<PotMTP> first, std::unique_ptr<PotMTP> second,
+               std::unique_ptr<PotMTP> third = {});
+
     ~PotMTPHyb3()
     {
         if (needfree)

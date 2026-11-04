@@ -17,7 +17,6 @@
 #include "species_map_utils.h"
 #include "libalglib/interpolation.h"
 #include "libalglib/ap.h"
-#include "help_utils.h"
 #include "neb_parallel.h"
 
 using namespace std;

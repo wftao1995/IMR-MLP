@@ -1162,9 +1162,22 @@ Eigen::MatrixXd PotMTP_LES::linear_sog_components(Atoms &atom, AnyNeighborhoods 
 
 void PotMTP_LES::random_init()
 {
+    random_init_local();
+#ifdef IMRMLP_MPI
+    MPI_Bcast(regression_coeffs, reg_coeff_size, MPI_DOUBLE, 0, mpi.comm);
+    if (les_species_coeffs && les_moment_coeffs)
+    {
+        MPI_Bcast(les_species_coeffs, latent_species_count(), MPI_DOUBLE, 0, mpi.comm);
+        MPI_Bcast(les_moment_coeffs, latent_moment_count(), MPI_DOUBLE, 0, mpi.comm);
+    }
+#endif
+}
+
+void PotMTP_LES::random_init_local()
+{
     dEdq_valid_ = false;
     sync_les_engine();
-    PotMTP::random_init();
+    PotMTP::random_init_local();
 
     if (!les_species_coeffs || !les_moment_coeffs)
         return;
@@ -1184,10 +1197,6 @@ void PotMTP_LES::random_init()
     lr_les = true;
     sync_les_engine();
 
-#ifdef IMRMLP_MPI
-    MPI_Bcast(les_species_coeffs, latent_species_count(), MPI_DOUBLE, 0, mpi.comm);
-    MPI_Bcast(les_moment_coeffs, latent_moment_count(), MPI_DOUBLE, 0, mpi.comm);
-#endif
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1999,3 +2008,37 @@ void PotMTP_LES::compute_bec(Atoms &atom, bool remove_mean, double epsilon_facto
 }
 
 } // namespace Potentials
+
+Potentials::PotMTP_LES::PotMTP_LES(PotMTP_LES &source) : PotMTP(source)
+{
+    InitSettings();
+    lr_les = source.lr_les;
+    les_version = source.les_version;
+    les_kernel = source.les_kernel;
+    sog_terms = source.sog_terms;
+    sog_channels = source.sog_channels;
+    sog_log_bandwidth_min = source.sog_log_bandwidth_min;
+    sog_log_bandwidth_max = source.sog_log_bandwidth_max;
+    lr_sigma = source.lr_sigma;
+    dl = source.dl;
+    les_taper_fraction = source.les_taper_fraction;
+    les_cutoff_mode = source.les_cutoff_mode;
+    les_charge_treatment = source.les_charge_treatment;
+    les_init_range = source.les_init_range;
+    les_balance_initial_charges = source.les_balance_initial_charges;
+    les_hessian_fd_nudge = source.les_hessian_fd_nudge;
+    remove_self_interaction = source.remove_self_interaction;
+    les_response_parity = source.les_response_parity;
+    allocated_channels_ = source.allocated_channels_;
+    model_les = source.model_les;
+    if (lr_les)
+    {
+        auto species = std::make_unique<double[]>(latent_species_count());
+        auto moments = std::make_unique<double[]>(latent_moment_count());
+        std::copy_n(source.les_species_coeffs, latent_species_count(), species.get());
+        std::copy_n(source.les_moment_coeffs, latent_moment_count(), moments.get());
+        les_species_coeffs = species.release();
+        les_moment_coeffs = moments.release();
+    }
+    nl_inited = source.nl_inited;
+}

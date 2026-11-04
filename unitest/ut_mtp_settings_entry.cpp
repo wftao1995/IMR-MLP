@@ -1,6 +1,12 @@
+#include "potentials/mtp_initialization.h"
+#include "potentials/mtp_adjustment.h"
+#include "utils/temporary_directory.h"
+#include "potentials/potential_wrapper.h"
+#include "potentials/potential_mtp_m.h"
+#include "potentials/model_bundle.h"
+#include "train/collective_error.h"
 #include <catch2/catch_all.hpp>
 #include "apps/apps.h"
-#include "apps/mtp_workflow.h"
 
 #if defined(GPML_MPI) || defined(IMRMLP_MPI)
 // The oracle is process-local; distributed publication/error propagation is
@@ -42,7 +48,7 @@ TEST_CASE("MTP commands apply settings-only paths and model options", "[mtp][cli
 {
     using namespace Potentials;
     const std::string kind = GENERATE("mtp", "mtp_m");
-    MTPWorkflow::Stage stage;
+    Utils::TemporaryDirectory stage;
     Options command;
     const auto input = (stage.path / "template.mtp").string(),
                output = (stage.path / "initial.gpm").string();
@@ -84,4 +90,22 @@ TEST_CASE("MTP commands apply settings-only paths and model options", "[mtp][cli
             std::map<int, std::string>{{0, "He"}, {1, "H"}});
     REQUIRE(ModelBundle::load(adjusted)->potential().gpm_elements ==
             std::map<int, std::string>{{0, "H"}, {1, "He"}});
+}
+
+TEST_CASE("MTP leaf initialization keeps the last repeated head setting", "[mtp][settings]")
+{
+    GPSettings settings;
+    settings.Modify("pot:pottype", "mtp_m");
+    settings.Modify("pot:extmodel", "mtp_m_n2");
+    settings.settings.emplace("pot:n_input", "1");
+    settings.settings.emplace("pot:n_input", "2");
+    settings.Modify("pot:n_neuron", "3");
+    settings.Modify("pot:n_neuron2", "2");
+    auto model = Potentials::MTP::initialize_model(
+        settings, {.input = "unitest/test-data/mtp-basis-corpus/shapeev-06.mtp",
+                   .elements = {"H", "He"},
+                   .randomize = false});
+    const auto metadata = dynamic_cast<Potentials::PotMTP &>(*model).model_metadata();
+    REQUIRE(metadata.at("q").get<double>() == 2.);
+    REQUIRE(settings.count("pot:n_input") == 2);
 }

@@ -86,7 +86,7 @@ class PotMTPNN1 : public AnyPotential
 
     int nn_coeff_size = 0;
 
-    PotMTPNN1(GPSettings settings);
+    PotMTPNN1(GPSettings settings, std::unique_ptr<PotMTP> descriptor = {});
 
     // THESE ARE TEMPLATE VARIABLES
     // DO NOT USE THIS ELSEWHERE

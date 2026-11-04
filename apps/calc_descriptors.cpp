@@ -12,7 +12,6 @@
 #include "descriptors/descriptor_BondOrder.h"
 #include "descriptors/descriptor_MTM.h"
 #include "descriptors/descriptor_wrapper.h"
-#include "help_utils.h"
 #include <exception>
 #include <cmath>
 

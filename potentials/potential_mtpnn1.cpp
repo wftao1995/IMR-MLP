@@ -17,13 +17,14 @@
  */
 namespace fs = std::filesystem;
 
-Potentials::PotMTPNN1::PotMTPNN1(GPSettings settings)
+Potentials::PotMTPNN1::PotMTPNN1(GPSettings settings, std::unique_ptr<PotMTP> descriptor)
 {
     InitSettings();
     ApplySettings(settings);
     if (nnlay != 1 && nnlay != 2)
         GPERROR("MTPNN1 nnlay must be 1 or 2");
-    if (fs::exists(nnfile))
+    const bool from_objects = bool(descriptor);
+    if (!from_objects && fs::exists(nnfile))
         nnlay = IMRMLPNN::CoeffIO::layers(nnfile, nnlay);
     std::unique_ptr<PotMTP> mtp;
     std::unique_ptr<IMRMLPNN::NN1lay> nn;
@@ -31,7 +32,13 @@ Potentials::PotMTPNN1::PotMTPNN1(GPSettings settings)
     bool can_load_nn = false;
     bool can_load_mtp = false;
     bool can_load_sc = false;
-    if (fs::exists(mtpfile))
+    if (descriptor)
+    {
+        mtp = std::move(descriptor);
+        p_mtp = mtp.get();
+        can_load_mtp = p_mtp->inited();
+    }
+    else if (fs::exists(mtpfile))
     {
         mtp = std::make_unique<PotMTP>(mtpfile);
         p_mtp = mtp.get();
@@ -54,7 +61,7 @@ Potentials::PotMTPNN1::PotMTPNN1(GPSettings settings)
         nn = std::make_unique<IMRMLPNN::NN1lay>();
         p_nn = nn.get();
     }
-    if (fs::exists(nnfile))
+    if (!from_objects && fs::exists(nnfile))
     {
         if (nnlay > 1)
             p_nn2->load_coeffs(nnfile);
@@ -70,14 +77,15 @@ Potentials::PotMTPNN1::PotMTPNN1(GPSettings settings)
     }
     else
     {
-        Warning("NN1lay coeffs file not found, use an empty init");
+        if (!from_objects)
+            Warning("NN1lay coeffs file not found, use an empty init");
         if (nnlay > 1)
             p_nn2->setup(p_mtp->alpha_scalar_moments + 1, nn_nhidden, nn_nhidden2);
         else
             p_nn->setup(p_mtp->alpha_scalar_moments + 1, nn_nhidden);
     }
     species_coeffs.resize(p_mtp->species_count, 0);
-    if (fs::exists(spcfile))
+    if (!from_objects && fs::exists(spcfile))
     {
         auto ifs = open_ifile(spcfile);
         if (!ifs)
@@ -95,7 +103,8 @@ Potentials::PotMTPNN1::PotMTPNN1(GPSettings settings)
     }
     else
     {
-        Warning("Species coeffs file not found, use an empty init");
+        if (!from_objects)
+            Warning("Species coeffs file not found, use an empty init");
     }
     if (can_load_mtp && can_load_nn && can_load_sc)
     {

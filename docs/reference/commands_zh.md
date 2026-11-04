@@ -562,22 +562,37 @@ imrmlp nnmtp -pot init.mtp -n 10 -n2 5 -o nnmtp_template.mtp
 
 ### `initmtpm` — 初始化 MTP_M
 
-使用随机系数初始化 PotMTP_M（多阶 MTP）势文件。
-在没有预训练势时用作起点。MTP 等级和物种数量在设置文件的 `[pot]` 部分配置。
+初始化 MTP-M 头、普通 MTP 参数或模型模板。同一命令有两个入口：
+
+* **旧版分层设置** — `pot:potfile` 指定匹配拓扑、物种和径向布局的模板，
+  `pot:extmodel` 选择头，顶层 `potfile`（或 `--potfile`）是原生输出；需要参考
+  数据集来初始化偏置与统计量。
+* **显式入口** — `--input` 是模板或模型，`--output` 是结果（默认
+  `_Initialized_Potential_.gpm`）。只有请求偏置或描述符统计时才需要数据集；
+  `--type`、`--elements` 描述新布局，`--reinitialize` 重置已有参数。
 
 ```bash
-imrmlp initmtpm --settings=settings.ini
-imrmlp initmtpm -pot initial.mtp --dataset=train.cfg
+imrmlp initmtpm --settings init.ini
+imrmlp initmtpm --settings init.ini --potfile initialized.mtp \
+  --dataset train.xyz --format extxyz
 ```
 
 | 选项 | 别名 | 默认值 | 描述 |
 |--------|-------|---------|-------------|
-| `--settings` | | `settings.ini` | 设置文件（位置参数，必需） |
-| `--potfile` | `-pot` | `potential.mtp` | 输出势文件 |
-| `--dataset` | `-d` | `train.cfg` | 用于基组检测的参考数据 |
-| `--format` | `-f` | | 数据格式（空 = 自动检测） |
+| `--settings` | | `settings.ini` | 设置文件 |
+| `--potfile` | `-pot` | `potential.mtp` | 势文件（旧版原生输出） |
+| `--dataset` | `-d` | `train.cfg` | 偏置与统计量参考数据集 |
+| `--format` | `-f` | | 数据集格式（空 = 自动识别） |
 | `--index` | `-id` | `index.map` | 索引文件 |
-| `--randomize` | `-r` | `true` | 随机化系数（布尔值） |
+| `--input` | `-in` | | 显式入口的模板或模型 |
+| `--output` | `-out` | `_Initialized_Potential_.gpm` | 显式入口输出模型 |
+| `--type` | | | 目标模型家族 |
+| `--elements` | | | 有序元素符号 |
+| `--reinitialize` | | `false` | 重置已有参数 |
+| `--fit-species-offsets` | | `false` | 拟合元素能量偏置 |
+| `--normalize-descriptors` | | `false` | 归一化描述符统计量 |
+| `--offset-target` | | | 偏置拟合的能量分支 |
+| `--randomize` | `-r` | `true` | 随机初始化系数（布尔） |
 | `--rand-scale` | | `1.0` | 随机缩放因子 |
 | `--rand-lb` | | `-0.1` | 随机下界 |
 | `--rand-ub` | | `0.1` | 随机上界 |
@@ -1906,6 +1921,7 @@ Pair 表包含恰好 `N` 个均匀网格点，包括两个端点。导出 pair �
 
 ```bash
 imrmlp adjustmtp --input=original.mtp --output=reordered.mtp --neworder 0 2 1
+imrmlp adjustmtp --settings adjustmtp.ini   # 从设置文件读取相同的键
 ```
 
 | 选项 | 别名 | 默认值 | 描述 |
@@ -1914,6 +1930,12 @@ imrmlp adjustmtp --input=original.mtp --output=reordered.mtp --neworder 0 2 1
 | `--output` | `-out` | `output-adj.mtp` | 输出势（位置参数） |
 | `--neworder` | | | 新物种顺序（位置参数，可多值）；顺序变长时追加随机初始化物种 |
 | `--elements` | | | 输出物种顺序对应的元素符号；`--neworder` 追加物种时必需 |
+| `--settings` | |  | 模型工厂设置文件 |
+| `--type` | | `auto` | 输入模型家族；GPM 自动推断 |
+| `--basis-order` | |  | 基组排序：keep、level 或 level-group |
+| `--append-elements` | |  | 追加的元素名称 |
+| `--clone-from` | |  | 克隆元素所用的原物种编号 |
+| `--new-species-init` | | `clone` | 新物种初始化：clone 或 random |
 
 新的 GPM/MTP-M 入口将基组调整 `--basis-order keep|level|level-group` 与元素置换
 `--neworder` 分开，默认保持基组顺序，输出 `_Adjusted_Potential_.gpm`。

@@ -601,24 +601,44 @@ still contribute to normalization, but are skipped with a warning when fitting
 species energy offsets. If all energy labels are missing, offsets are initialized
 to zero with a warning. Hidden neuron counts must be positive for each used layer.
 
+<a id="initmtpm--initialize-mtp_m"></a>
+<a id="guide_commands_section_5ececd16f3e5"></a>
+
 ### `initmtpm` — Initialize MTP-based models
 
-Initialize a PotMTP_M (multi-order MTP) potential file with random coefficients.
-Used as a starting point when no pre-trained potential exists. The MTP level and
-species count are configured in the `[pot]` section of the settings file.
+Initialize MTP-M heads, ordinary-MTP parameters or model templates. Two entry
+points share one command:
+
+* **Legacy layer settings** — `pot:potfile` supplies a template with the intended
+  topology, species and radial layout, `pot:extmodel` selects the head, and the
+  top-level `potfile` (or `--potfile`) is the native output. A reference dataset
+  is required for offset and statistics initialization.
+* **Explicit entry** — `--input` is the template/model and `--output` is the
+  result (default `_Initialized_Potential_.gpm`). The dataset is optional unless
+  offsets or descriptor statistics are requested. `--type` and `--elements`
+  describe a new layout; `--reinitialize` resets existing parameters.
 
 ```bash
-imrmlp initmtpm --settings=settings.ini
-imrmlp initmtpm -pot initial.mtp --dataset=train.cfg
+imrmlp initmtpm --settings init.ini
+imrmlp initmtpm --settings init.ini --potfile initialized.mtp \
+  --dataset train.xyz --format extxyz
 ```
 
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
-| `--settings` | | `settings.ini` | Settings file (positional, required) |
-| `--potfile` | `-pot` | `potential.mtp` | Output potential file |
-| `--dataset` | `-d` | `train.cfg` | Reference dataset for basis detection |
+| `--settings` | | `settings.ini` | Settings file |
+| `--potfile` | `-pot` | `potential.mtp` | Potential file (legacy native output) |
+| `--dataset` | `-d` | `train.cfg` | Reference dataset for offsets and statistics |
 | `--format` | `-f` | | Dataset format (empty = auto-detect) |
 | `--index` | `-id` | `index.map` | Index file |
+| `--input` | `-in` | | Template or model for the explicit entry |
+| `--output` | `-out` | `_Initialized_Potential_.gpm` | Explicit-entry output model |
+| `--type` | | | Target model family |
+| `--elements` | | | Ordered element symbols |
+| `--reinitialize` | | `false` | Reset existing parameters |
+| `--fit-species-offsets` | | `false` | Fit elemental energy offsets |
+| `--normalize-descriptors` | | `false` | Normalize descriptor statistics |
+| `--offset-target` | | | Energy branch for offset fitting |
 | `--randomize` | `-r` | `true` | Randomize coefficients (bool) |
 | `--rand-scale` | | `1.0` | Random scale factor |
 | `--rand-lb` | | `-0.1` | Random lower bound |
@@ -2047,6 +2067,7 @@ production — this command permutes the coefficient layout without retraining.
 
 ```bash
 imrmlp adjustmtp --input=original.mtp --output=reordered.mtp --neworder 0 2 1
+imrmlp adjustmtp --settings adjustmtp.ini   # same keys from a settings file
 ```
 
 | Option | Alias | Default | Description |
@@ -2055,6 +2076,12 @@ imrmlp adjustmtp --input=original.mtp --output=reordered.mtp --neworder 0 2 1
 | `--output` | `-out` | `output-adj.mtp` | Output potential (positional) |
 | `--neworder` | | | New species order (positional, multiple values); longer orders append randomly initialized species |
 | `--elements` | | | Element symbols in the output species order; required when `--neworder` appends species |
+| `--settings` | |  | Model factory settings file |
+| `--type` | | `auto` | Input model family; inferred from GPM |
+| `--basis-order` | |  | Basis order: keep, level, or level-group |
+| `--append-elements` | |  | Names of appended elements |
+| `--clone-from` | |  | Source species IDs for cloned elements |
+| `--new-species-init` | | `clone` | Initialize new species by clone or random |
 
 The explicit GPM/MTP-M entry separates `--basis-order keep|level|level-group`
 from element permutation (`--neworder`). It defaults to keeping the basis order

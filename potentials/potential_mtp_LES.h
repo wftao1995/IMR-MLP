@@ -109,6 +109,8 @@ class PotMTP_LES : public PotMTP
         delete[] les_moment_coeffs;
     }
 
+    explicit PotMTP_LES(PotMTP_LES &source);
+
     // Prevent shallow copy of owning raw pointers
     PotMTP_LES(const PotMTP_LES &) = delete;
     PotMTP_LES &operator=(const PotMTP_LES &) = delete;
@@ -240,6 +242,7 @@ class PotMTP_LES : public PotMTP
     Eigen::MatrixXd linear_sog_components(Atoms &, AnyNeighborhoods &);
     void set_sog_linear_weights(const Eigen::VectorXd &weights);
     void random_init() override;
+    void random_init_local() override;
     void AccumulateEFSCombinationGard(Atoms &atom, AnyNeighborhoods &nbhs, double dLdE,
                                       Eigen::Matrix<double, -1, 3> &dLdF, Eigen::Matrix3d &dLdS,
                                       Eigen::Matrix<double, -1, 3, Eigen::RowMajor> &wgt_d2UdRdx,

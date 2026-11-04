@@ -6,6 +6,45 @@
 namespace Potentials
 {
 
+template <class T> PotMTP_M<T>::PotMTP_M(PotMTP_M<T> &source) : PotMTP(source)
+{
+    InitSettings();
+    ApplySettings(source.CurrentSettings());
+    n_props = source.n_props;
+    model_coeff_size = source.model_coeff_size;
+    req_radical = source.req_radical;
+    req_species = source.req_species;
+    req_moment = source.req_moment;
+    req_model = source.req_model;
+    req_les = source.req_les;
+    req_sog = source.req_sog;
+    lr_les = source.lr_les;
+    model_les = source.model_les;
+    if constexpr (std::is_same_v<T, m_model_nn1>)
+    {
+        model.n_input = source.model.n_input;
+        model.n_neuron = source.model.n_neuron;
+        model.acfunc_enum = source.model.acfunc_enum;
+        GPSettings settings;
+        model.init(settings);
+    }
+    else
+        model = source.model;
+    ext_dUdQ.resize(n_props);
+    ext_dUdt.resize(model_coeff_size);
+    ext_d2UdQdQ.resize(n_props, n_props);
+    ext_d2UdQdt.resize(n_props, model_coeff_size);
+    init_coeffs();
+    empty = source.empty;
+    nl_inited = source.nl_inited;
+}
+
+template PotMTP_M<m_model_mtpfs>::PotMTP_M(PotMTP_M<m_model_mtpfs> &);
+template PotMTP_M<m_model_mtpq2>::PotMTP_M(PotMTP_M<m_model_mtpq2> &);
+template PotMTP_M<m_model_mtpli>::PotMTP_M(PotMTP_M<m_model_mtpli> &);
+template PotMTP_M<m_model_nn1>::PotMTP_M(PotMTP_M<m_model_nn1> &);
+template PotMTP_M<m_model_nn2>::PotMTP_M(PotMTP_M<m_model_nn2> &);
+
 #define EXTMODEL_TYPES                                                                             \
     X(mtp_m_fs, m_model_mtpfs)                                                                     \
     X(mtp_m_q2, m_model_mtpq2)                                                                     \

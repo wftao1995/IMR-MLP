@@ -8,6 +8,7 @@
 #include "io/gpio.h"
 #include "species_map_utils.h"
 #include "train/train_linear_potential.h"
+#include "train/training_data.h"
 #include "train/collective_error.h"
 #include <memory>
 
@@ -126,33 +127,9 @@ int train_linear(int argc, char *argv[])
 
 #ifdef IMRMLP_MPI
     Message("Balancing");
-    {
-        sort(atoms.begin(), atoms.end(),
-             [](const Atoms &a, const Atoms &b)
-             {
-                 return a.size() < b.size();
-             });
-        auto itrm = remove_if(atoms.begin(), atoms.end(),
-                              [](Atoms &at)
-                              {
-                                  return at.id % mpi.size == mpi.rank ? false : true;
-                              });
-        atoms.erase(itrm, atoms.end());
-        if (atoms_valid.size() > 0)
-        {
-            sort(atoms_valid.begin(), atoms_valid.end(),
-                 [](const Atoms &a, const Atoms &b)
-                 {
-                     return a.size() < b.size();
-                 });
-            auto itrm2 = remove_if(atoms_valid.begin(), atoms_valid.end(),
-                                   [](Atoms &at)
-                                   {
-                                       return at.id % mpi.size == mpi.rank ? false : true;
-                                   });
-            atoms_valid.erase(itrm2, atoms_valid.end());
-        }
-    }
+    Training::distribute_training_data(atoms, false);
+    if (!atoms_valid.empty())
+        Training::distribute_training_data(atoms_valid, false);
 #endif
 
     Message("Construct trainer");
@@ -168,23 +145,13 @@ int train_linear(int argc, char *argv[])
     if (!p_pot->supports_linear_fit())
         GPERROR("Potential type does not support linear fitting");
     Message("Preparing neighborhoods");
-    std::vector<Neighborhoods> nbhs, nbhs_valid;
-    nbhs.resize(atoms.size());
-    for (int i = 0; i < atoms.size(); ++i)
-    {
-        atoms[i].wrap();
-        nbhs[i] = Neighborhoods(atoms[i], p_pot->cutoff);
-    }
+    auto nbhs = Training::training_neighborhoods(atoms, p_pot->cutoff);
+    std::vector<Neighborhoods> nbhs_valid;
     Message("Init trainer");
     trainer.init(atoms, nbhs, p_pot);
     if (atoms_valid.size() > 0)
     {
-        nbhs_valid.resize(atoms_valid.size());
-        for (int i = 0; i < atoms_valid.size(); ++i)
-        {
-            atoms_valid[i].wrap();
-            nbhs_valid[i] = Neighborhoods(atoms_valid[i], p_pot->cutoff);
-        }
+        nbhs_valid = Training::training_neighborhoods(atoms_valid, p_pot->cutoff);
         trainer.init_valid(atoms_valid, nbhs_valid);
     }
 

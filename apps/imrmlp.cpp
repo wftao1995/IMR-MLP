@@ -187,7 +187,8 @@ int main(int argc, char *argv[])
     int ret = 0;
     try
     {
-        ret = command_maps[command].first(argc - 1, argv + 1);
+        if ((command != "initmtpm" && command != "adjustmtp") || mpi.rank == 0)
+            ret = command_maps[command].first(argc - 1, argv + 1);
     }
     catch (const std::exception &e)
     {
@@ -195,5 +196,9 @@ int main(int argc, char *argv[])
         ret = 1;
     }
 
+#ifdef IMRMLP_MPI
+    if (command == "initmtpm" || command == "adjustmtp")
+        MPI_Bcast(&ret, 1, MPI_INT, 0, mpi.comm);
+#endif
     return ret;
 }

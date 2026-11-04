@@ -59,5 +59,8 @@ class ModelBundle : public std::enable_shared_from_this<ModelBundle>
     ModelBundle() = default;
 };
 
+// Publish an inference model after GPM validation; export native files when requested.
+void save_inference_model(AnyPotential &model, const std::string &output);
+
 bool save_gpm_if_requested(AnyPotential &potential, const std::string &path);
 } // namespace Potentials
