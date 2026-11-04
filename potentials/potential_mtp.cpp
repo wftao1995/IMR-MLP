@@ -794,15 +794,15 @@ void Potentials::PotMTP::ReorderByLevelGroup() {
         if (a.second[4] > b.second[4]) return true; // leading terms are scalar ones
         return false;
     });
-    int bidprev = 0;
-    int id_curr = alpha_index_basic_count - 1;
+    int id_curr = alpha_index_basic_count;
+    std::map<int, int> assigned_ids;
     for (int i = 0; i < alpha_index_times_count; ++i) {
-        int bid = alpha_index_times_pair[i].second[1];
-        if (bidprev != bid) {
-            bidprev = bid;
-            ++id_curr;
-        }
-        alpha_index_times_pair[i].second[0] = id_curr;
+        const int bid = alpha_index_times_pair[i].second[1];
+        // Grouping by operands may separate contributions to the same sum.
+        // Each accumulated moment still owns exactly one output coordinate.
+        auto [entry, inserted] = assigned_ids.try_emplace(bid, id_curr);
+        if (inserted) ++id_curr;
+        alpha_index_times_pair[i].second[0] = entry->second;
     }
     // 3.3 re-index alpha_index_times array
     std::map<int, int> index_nonbasic_old_to_new;
@@ -1470,15 +1470,15 @@ void PotMTP::ReorderByLevel() {
         if (a.second[4] > b.second[4]) return true; // leading terms are scalar ones
         return false;
     });
-    int bidprev = 0;
-    int id_curr = alpha_index_basic_count - 1;
+    int id_curr = alpha_index_basic_count;
+    std::map<int, int> assigned_ids;
     for (int i = 0; i < alpha_index_times_count; ++i) {
-        int bid = alpha_index_times_pair[i].second[1];
-        if (bidprev != bid) {
-            bidprev = bid;
-            ++id_curr;
-        }
-        alpha_index_times_pair[i].second[0] = id_curr;
+        const int bid = alpha_index_times_pair[i].second[1];
+        // Grouping by operands may separate contributions to the same sum.
+        // Each accumulated moment still owns exactly one output coordinate.
+        auto [entry, inserted] = assigned_ids.try_emplace(bid, id_curr);
+        if (inserted) ++id_curr;
+        alpha_index_times_pair[i].second[0] = entry->second;
     }
     // 3.3 re-index alpha_index_times array
     std::map<int, int> index_nonbasic_old_to_new;

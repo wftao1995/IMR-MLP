@@ -69,3 +69,17 @@ TEST_CASE("EDQRd refuses inseparable penalties when changing reference gauge", "
 }
 
 #endif
+
+TEST_CASE("Grouped basis sorting preserves interleaved accumulation targets", "[mtp][workflow][tree]") {
+    PotMTP source;load_swap_fixture(source,2,false);
+    source.set_element_map({{0,"Al"},{1,"Ni"}});
+    source.alpha_index_times << 0,0,1,4, 2,2,1,4, 1,1,1,5, 3,3,1,5;
+    auto atoms=swap_lattice(2,2),expected=atoms;source.getEFS(expected);
+    MTPWorkflow::Adjustment op;op.basis="level-group";
+    auto adjusted=MTPWorkflow::adjust_tree(source,op);
+    MTPWorkflow::validate_graph(dynamic_cast<PotMTP&>(*adjusted));
+    compare(*adjusted,atoms,expected);
+    MTPWorkflow::Stage stage;const auto output=(stage.path/"grouped.gpm").string();
+    MTPWorkflow::save(*adjusted,output);auto reloaded=ModelBundle::load(output);
+    compare(reloaded->potential(),atoms,expected);
+}
