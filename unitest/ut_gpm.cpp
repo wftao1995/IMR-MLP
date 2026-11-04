@@ -147,6 +147,36 @@ TEST_CASE("GPM built-in effective settings roundtrip", "[gpm]") {
     potential_wrapper wrapper(s);CAPTURE(type);roundtrip(*wrapper.pot);
 }
 
+TEST_CASE("GPM preserves deployed PolyB matrices across native and standalone loaders (IMR)", "[gpm][standalone][radial]") {
+    namespace F=StandaloneRadialFixture;
+    auto head=GENERATE("classic","li","q2","fs","n1","n2");
+    const bool split=GENERATE(false,true);Directory dir;
+    std::vector<std::string> blocks{F::block("RBPolyB",8)};
+    if(split)blocks={F::block("RBPolyB",8,0,0,false,.4,4.1),F::block("RBPolyBCos",8),
+        F::block("RBChebyshev",8),F::block("RBPolyBCos",8,0,0,false,.6,4.7)};
+    std::ofstream(dir.file("source.mtp"))<<F::model(blocks,8,head);
+    GPSettings settings;settings.Modify("pottype",std::string(head)=="classic"?"mtp":"mtp_m");
+    settings.Modify("potfile",dir.file("source.mtp"));settings.Modify("extmodel",std::string("mtp_m_")+head);
+    settings.Modify("n_input","2");settings.Modify("n_neuron","3");settings.Modify("n_neuron2","2");settings.Modify("typemap","");
+    potential_wrapper original(settings);auto &mtp=dynamic_cast<PotMTP &>(*original.pot);
+    // Deliberately change the prepared matrix: silently re-solving the basis
+    // must fail even on a machine using the same eigensolver as the writer.
+    for(auto *basis:split?mtp.p_radical_basis_pair:std::vector<AnyBasis *>{mtp.p_radical_basis}) {
+        if(auto *poly=dynamic_cast<RBasis_PolyB *>(basis))poly->coeffs(0,0)+=.0003;
+        if(auto *poly=dynamic_cast<RBasis_PolyBCos *>(basis))poly->coeffs(1,0)-=.0002;
+    }
+    original.pot->Save(dir.file());auto restored=ModelBundle::load(dir.file());
+    REQUIRE_THROWS(restored->save_native(dir.file("lossy.mtp")));
+    REQUIRE_FALSE(std::filesystem::exists(dir.file("lossy.mtp")));
+    equivalent(*original.pot,restored->potential());standalone_equivalent(mtp,dir.file());
+    auto reader=std::make_shared<GPM::Reader>(dir.file());GPM::Writer bad;bad.preserve(reader);
+    auto &node=bad.manifest.at("models").get<GPM::Object>().at(GPM::string(bad.manifest.at("root_model"))).get<GPM::Object>();
+    auto &basis=node.at("configuration").get<GPM::Object>().at("radial_bases").get<GPM::Array>()[0].get<GPM::Object>();
+    basis.at("polynomial").get<GPM::Object>()["version"]=GPM::Value(2.);bad.save(dir.file("bad.gpm"));
+    REQUIRE_THROWS(ModelBundle::load(dir.file("bad.gpm")));
+    REQUIRE_THROWS(MLIPCore::read_model_text(dir.file("bad.gpm").c_str()));
+}
+
 TEST_CASE("GPM MaxVol resumes grading selection and candidate collection", "[gpm][al]") {
     Directory dir;PotMTP p;load_swap_fixture(p,2,false);p.Save(dir.file());auto b=ModelBundle::load(dir.file());
     ActiveSelector selector(new PotEFSBuilder(b->potential()));selector.select_mode=GENERATE(std::string("online"),std::string("full"),std::string("stream"));
@@ -500,4 +530,44 @@ TEST_CASE("GPM v2 packs arrays and preserves scalar edge values", "[gpm][format]
     REQUIRE_THROWS(bad.field("positions",positions));
     std::fstream old(dir.file(),std::ios::in|std::ios::out|std::ios::binary);old.seekp(8);old.put(1);old.close();
     REQUIRE_THROWS_WITH(GPM::Reader(dir.file()),Catch::Matchers::ContainsSubstring("unsupported major version"));
+}
+
+// The companion process is built against the other library; see test_gpm_interop.py.
+TEST_CASE("GPM interoperability worker", "[.gpm-interop]") {
+    const char *mode=std::getenv("GPM_INTEROP_MODE"), *path=std::getenv("GPM_INTEROP_MODEL"),
+        *result=std::getenv("GPM_INTEROP_RESULT"), *basis=std::getenv("GPM_INTEROP_BASIS");
+    REQUIRE(mode); REQUIRE(path); REQUIRE(result); REQUIRE(basis);
+    std::unique_ptr<AnyPotential> original;
+    std::shared_ptr<ModelBundle> bundle;
+    if(std::string(mode)=="write"||std::string(mode)=="legacy") {
+        namespace F=StandaloneRadialFixture;
+        auto source=std::string(path)+".mtp";
+        std::ofstream(source)<<F::model({F::block(basis,4)},4,"classic");
+        GPSettings settings;settings.Modify("pottype","mtp");settings.Modify("potfile",source);settings.Modify("typemap","");
+        potential_wrapper wrapper(settings);original.reset(wrapper.pot);wrapper.pot=nullptr;
+        auto &mtp=dynamic_cast<PotMTP &>(*original);
+        if(std::string(mode)=="write") {
+            if(auto *p=dynamic_cast<RBasis_PolyB *>(mtp.p_radical_basis))p->coeffs(0,0)+=.1;
+            if(auto *p=dynamic_cast<RBasis_PolyBCos *>(mtp.p_radical_basis))p->coeffs(0,0)+=.1;
+        }
+        original->Save(path);
+        if(std::string(mode)=="legacy") {
+            auto reader=std::make_shared<GPM::Reader>(path);GPM::Writer legacy;legacy.preserve(reader);
+            auto &node=legacy.manifest.at("models").get<GPM::Object>().at(GPM::string(legacy.manifest.at("root_model"))).get<GPM::Object>();
+            auto &bases=node.at("configuration").get<GPM::Object>().at("radial_bases").get<GPM::Array>();
+            for(auto &entry:bases)entry.get<GPM::Object>().erase("polynomial");
+            legacy.save(path);
+        }
+    } else {
+        bundle=ModelBundle::load(path);
+        if(const char *output=std::getenv("GPM_INTEROP_OUTPUT"))bundle->potential().Save(output);
+    }
+    auto &pot=original?*original:bundle->potential();
+    Atoms atoms;atoms.cell_=20*Eigen::Matrix3d::Identity();atoms.pbc_={false,false,false};
+    atoms.pos_={{1,1,1},{2.2,1.4,1.2},{3.7,1.3,1.1}};atoms.chemmap_={0,1,0};
+    pot.getEFS(atoms);
+    std::ofstream out(result);out<<std::setprecision(17)<<atoms.energy_<<"\n";
+    for(const auto &f:atoms.forces_)for(int j=0;j<3;++j)out<<f[j]<<"\n";
+    for(int i=0;i<3;++i)for(int j=0;j<3;++j)out<<atoms.stress_(i,j)<<"\n";
+    REQUIRE(bool(out));
 }

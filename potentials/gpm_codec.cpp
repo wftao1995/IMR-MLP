@@ -78,7 +78,20 @@ void encode_mtp(Writer&w,PotMTP &p,Object &node,const std::string&id) {
     Object c{{"species_count",Value(double(p.species_count))},{"radial_functions",Value(double(p.radial_func_count))},
         {"radial_mode",Value(double(p.radial_mode))},{"radial_size",Value(double(p.rb_size))},{"moments_count",Value(double(p.alpha_moments_count))},
         {"metadata",Value(p.potential_tag.output(p.model_metadata(),p.species_count))}};
-    Array bases;auto add_basis=[&](AnyBasis &b){std::ostringstream out;out<<std::setprecision(17);b.SaveToStream(out);auto config=named_settings(out.str());config["scaling"]=Value(real_text(b.scaling));bases.emplace_back(config);};
+    Array bases;auto add_basis=[&](AnyBasis &b){
+        std::ostringstream out;out<<std::setprecision(17);b.SaveToStream(out);auto config=named_settings(out.str());config["scaling"]=Value(real_text(b.scaling));
+        const Eigen::MatrixXd *matrix=nullptr;const std::vector<double> *normalizations=nullptr;
+        if(auto *poly=dynamic_cast<RBasis_PolyB *>(&b)){matrix=&poly->coeffs;normalizations=&poly->invNalpha;}
+        else if(auto *poly=dynamic_cast<RBasis_PolyBCos *>(&b)){matrix=&poly->coeffs;normalizations=&poly->invNalpha;}
+        if(matrix){
+            const auto n=std::size_t(b.basis_size);require(matrix->rows()==b.basis_size&&matrix->cols()==b.basis_size&&normalizations->size()==n,"invalid native polynomial dimensions");
+            const auto prefix=id+"/radial_basis/"+std::to_string(bases.size());
+            config["polynomial"]=Value(Object{{"version",Value(1.)},{"layout",Value("column_major")},
+                {"matrix",vector_block(w,prefix+"/matrix",std::vector<double>(matrix->data(),matrix->data()+matrix->size()),{n,n})},
+                {"normalizations",vector_block(w,prefix+"/normalizations",*normalizations)}});
+        }
+        bases.emplace_back(config);
+    };
     if(p.radial_basis_split)for(auto *b:p.p_radical_basis_pair)add_basis(*b);else add_basis(*p.p_radical_basis);
     c["radial_bases"]=Value(bases);
     Object params;auto coeff=[&](const char*name,const double*values,int n){require(n>=0&&(n==0||values),"missing MTP coefficients");
@@ -131,7 +144,18 @@ std::unique_ptr<AnyPotential> read_mtp(const Reader&r,const Object&node,const st
     }
     auto &mtp=dynamic_cast<PotMTP&>(*p);mtp.radial_mode=integer(at(object(at(node,"configuration")),"radial_mode"));require(mtp.radial_mode<=1,"unsupported radial mode");const auto &bases=array(at(object(at(node,"configuration")),"radial_bases"));
     for(size_t i=0;i<bases.size();++i){double scale=std::stod(string(at(object(bases[i]),"scaling")));require(std::isfinite(scale),"nonfinite basis scale");
-        (mtp.radial_basis_split?mtp.p_radical_basis_pair[i]:mtp.p_radical_basis)->scaling=scale;}
+        auto *basis=mtp.radial_basis_split?mtp.p_radical_basis_pair[i]:mtp.p_radical_basis;basis->scaling=scale;
+        std::vector<double> matrix,normalizations;
+        if(polynomial_data(r,object(bases[i]),basis->basis_size,matrix,normalizations)) {
+            auto restore=[&](auto &poly){
+                std::copy(matrix.begin(),matrix.end(),poly.coeffs.data());poly.invNalpha=normalizations;
+                for(int j=0;j<basis->basis_size;++j){poly.dinv[j]=normalizations[j]*(j+3);poly.ddinv[j]=normalizations[j]*(j+3)*(j+2);}
+            };
+            if(auto *poly=dynamic_cast<RBasis_PolyB *>(basis))restore(*poly);
+            else if(auto *poly=dynamic_cast<RBasis_PolyBCos *>(basis))restore(*poly);
+            else require(false,"polynomial data attached to an incompatible native basis");
+        }
+    }
     return p;
 }
 }

@@ -274,7 +274,26 @@ namespace MLIPCore
             GPM::require(GPM::string(GPM::at(units,"length"))=="angstrom"&&GPM::string(GPM::at(units,"energy"))=="eV"&&GPM::string(GPM::at(units,"charge"))=="e"&&GPM::string(GPM::at(units,"stress"))=="virial_eV","unsupported GPM units");
             const auto &metadata=GPM::object(GPM::at(GPM::object(GPM::at(node,"configuration")),"metadata"));
             GPM::require(!metadata.count("long_range"),"standalone does not support long-range GPM models");
-            return GPM::mtp_text(reader,node,true);
+            auto text=GPM::mtp_text(reader,node,true);
+            const auto &configuration=GPM::object(GPM::at(node,"configuration"));
+            const auto &definitions=GPM::array(GPM::at(configuration,"radial_bases"));
+            std::vector<mlip::radial_basis_t> bases(definitions.size());bool fixed=false;
+            for(std::size_t i=0;i<definitions.size();++i) {
+                const auto &definition=GPM::object(definitions[i]);
+                std::ostringstream out;GPM::print_basis(out,definition);out<<"end\n";
+                std::istringstream in(out.str());std::string key;in>>key;
+                // mtp_text folds each pair's scale into its coefficients.
+                bases[i]=Radial::read_radial_basis(in,1.).basis;
+                fixed=GPM::polynomial_data(reader,definition,bases[i].size,
+                    bases[i].polynomial_matrix,bases[i].polynomial_normalizations)||fixed;
+            }
+            if(fixed) {
+                std::vector<mlip::radial_basis_t *> pointers;for(auto &basis:bases)pointers.push_back(&basis);
+                const int species=GPM::integer(GPM::at(configuration,"species_count"));
+                Radial::finish_bases("",pointers,bases.size()>1,species);
+                text+=Radial::cache_footer(pointers,bases.size()>1,species);
+            }
+            return text;
         }
         std::ifstream input(filename);
         if (!input) throw std::runtime_error("Cannot open MTP potential: " + std::string(filename));

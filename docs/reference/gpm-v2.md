@@ -112,6 +112,8 @@ The v1 codecs cover `mtp`, `mtp_m`, `mtpnn1`, `mtp_les`, `hmtp`, `hybrid`, `hybr
 
 MTP nodes store radial definitions, per-basis scaling, moment rules, explicit coefficient order, and named head/kernel fields. `mtp_m` metadata distinguishes li/q2/fs/n1/n2 and describes network dimensions and activation. Native numeric arrays are independent of Eigen or object memory layout. Existing MTP parsers receive an in-memory rendering of these fields; no original model is reopened.
 
+PolyB and PolyBCos radial definitions can include the prepared orthogonalization matrix and normalization values. Readers restore these values, including for ordered split bases; older GPM files without these blocks remain readable and initialize the basis locally.
+
 Other codecs store effective spline tables, function parameters, descriptor settings, NN normalization and weights, or ordered children. MTM descriptor models embed their MTP dependency. Hybrid training flags and feature transition parameters are preserved. These codecs retain existing computation and training restrictions.
 
 `EAMZhou2004::SaveParameterSet` / `LoadParameterSet` persist the separate `eam_zhou2004_parameters` object, including active elements and named parameters. This is a parameter-set artifact, not a new runnable potential factory type. `model_info` and `model_validate` accept it.

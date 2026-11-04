@@ -34,11 +34,30 @@ inline Value index_block(Writer&w,const std::string&id,const std::vector<int32_t
     Bytes b(v.size()*4);for(size_t i=0;i<v.size();++i)put_le(b.data()+4*i,static_cast<uint32_t>(v[i]),4);
     w.add(id,"i32",shape,std::move(b));return Value(Object{{"block",Value(id)}});
 }
+// The eigensolver's rounded orthogonalization is part of a deployed PolyB
+// model. Keep it in FP64 blocks rather than recomputing it on each platform.
+inline bool polynomial_data(const Reader &reader,const Object &basis,std::size_t size,
+                            std::vector<double> &matrix,std::vector<double> &normalizations) {
+    const auto found=basis.find("polynomial");if(found==basis.end())return false;
+    const auto type=string(at(basis,"radial_basis_type"));
+    require(type=="RBPolyB"||type=="RBPolyBCos","polynomial data attached to a non-PolyB basis");
+    const auto &data=object(found->second);
+    require(integer(at(data,"version"))==1&&string(at(data,"layout"))=="column_major","unsupported polynomial data format");
+    auto read=[&](const char *name,const std::vector<uint64_t> &shape) {
+        const auto &reference=at(data,name);const auto id=string(at(object(reference),"block"));
+        require(reader.info(id).shape==shape,"invalid polynomial block shape");
+        auto values=GPM::values(reader,reference);
+        for(double x:values)require(std::isfinite(x),"nonfinite polynomial data");return values;
+    };
+    require(size>0&&checked_mul(size,size)<=100000000,"invalid polynomial basis size");
+    matrix=read("matrix",{size,size});normalizations=read("normalizations",{size});
+    for(double x:normalizations)require(x>0,"invalid polynomial normalization");return true;
+}
 inline void print_basis(std::ostream &out,const Object &basis) {
     for(const auto *name:{"radial_basis_type","min_dist","max_dist","radial_basis_size"})out<<name<<" = "<<string(at(basis,name))<<'\n';
     // The configurable-basis parser accepts named cutoff/shift fields until the
     // next radial section. Preserve the dependency order of function selectors.
-    std::set<std::string> done{"radial_basis_type","min_dist","max_dist","radial_basis_size","scaling"};
+    std::set<std::string> done{"radial_basis_type","min_dist","max_dist","radial_basis_size","scaling","polynomial"};
     for(const auto *name:{"rb_b","basis_function_type","cutoff_type","cutoff_power","cutoff_coefficients","cutoff_b","cutoff_r1","cutoff_r2","shift_type","shift_lambda"}) {
         auto it=basis.find(name);if(it!=basis.end()){out<<name<<" = "<<string(it->second)<<'\n';done.insert(name);}}
     for(const auto &p:basis)if(!done.count(p.first))out<<p.first<<" = "<<string(p.second)<<'\n';

@@ -102,6 +102,8 @@ v1 codec 覆盖 `mtp`、`mtp_m`、`mtpnn1`、`mtp_les`、`hmtp`、`hybrid`、`hy
 
 MTP 节点保存径向基定义、各基缩放、矩规则、明确的系数顺序和具名的头部/核字段。`mtp_m` 元数据区分 li/q2/fs/n1/n2，并记录网络维度和激活函数。数值数组不依赖 Eigen 或对象内存布局。现有 MTP 解析器读取这些字段在内存中生成的表达，不重新打开原模型。
 
+PolyB 和 PolyBCos 径向基可包含预计算的正交化矩阵和归一化值。读取时会恢复这些数值，包括按有序元素对拆分的径向基；不含这些数值块的旧 GPM 文件仍可读取，并在本地初始化径向基。
+
 其他 codec 保存有效样条表、函数参数、描述符配置、NN 归一化与权重或有序子模型。MTM 描述符内嵌依赖的 MTP；混合势保留训练标记和特征过渡参数，原有的计算与训练限制保持不变。
 
 `EAMZhou2004::SaveParameterSet` / `LoadParameterSet` 保存独立的 `eam_zhou2004_parameters` 对象，包含活跃元素和具名参数。它是参数集文件，不是新增的可执行势工厂类型；`model_info` 和 `model_validate` 支持它。
