@@ -89,11 +89,18 @@ Bond-order output is `[Q_2, Q_4, ..., Q_maxl, W_2, W_4, ..., W_maxl]`.
 `standardize_cell` and `get_sym_dataset`. The returned `symdataset` owns its
 symmetry operations, Wyckoff indices and atom mappings.
 
-For structure matching, first call `prepare_comparison_structure` on both
-inputs with the same tolerance, then `equivalent_structures` with
-`StructureComparisonOptions`. The shared matcher preserves species and finds
-one-to-one atom mappings under periodic translations and cell symmetries.
-`sameq` and structure deduplication use this kernel.
+Structure matching lives in `symmetry/structure_comparison.h`. Construct one
+`Symmetry3D::StructureComparator` with a `StructureComparisonOptions`
+(`symmetry_tolerance`, `position_tolerance`, `volume_tolerance`,
+`descriptor_tolerance`, `anchor_descriptor_tolerance`, plus `use_descriptors`,
+`scale_volume` and `allow_reflections`), call `prepare(atoms)` once per structure,
+then compare the prepared `ComparableStructure` values with
+`equivalent(first, second)`. Preparation reduces fully periodic cells, records the
+composition and computes the descriptors, so a batch can reuse one prepared input
+across many comparisons. The matcher preserves species and finds one-to-one atom
+mappings under periodic translations and cell symmetries; partial or nonperiodic
+structures keep their cells and atom counts. `sameq` and structure deduplication use
+this kernel.
 
 ## See also
 

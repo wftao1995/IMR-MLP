@@ -1,4 +1,4 @@
-# MTP_M：多通道与非线性能量头 {#theory_mtp_m}
+# MTP_M：多通道与非线性能量头
 
 [English](mtp-m.md)
 
@@ -218,8 +218,10 @@ N_{\mathrm{par}}=N_r+S+qS+qP+N_{\mathrm{head}}.
 [线性精修](../advanced/linear-refit_zh.md)；普通 MTP 的原生 VarPro 支持范围另见
 [变量投影](../advanced/mtp-native-varpro_zh.md)，不能直接套用于任意 MTP_M。
 
-`initmtpm` 用训练集初始化径向/投影参数、拟合元素能量偏移，并调整通道偏置使
-训练集上的通道均值居中；通道方差和通道间相关性不受约束，不要按白化基来解读通道值。
+`initmtpm` 只在显式给出两个开关之一时才会使用训练集，且两者都默认关闭：
+`--fit-species-offsets` 拟合元素能量偏移（复合模型还需 `--offset-target` 指定能量分支）；
+`--normalize-descriptors` 把每个标量通道除以其标准差，并平移元素偏移使通道均值居中。
+通道间相关性从不消除，因此通道是方差归一化的，但不是正交白化基。
 这些统计量只从训练集估计，不用最终测试集。初始化之后通常用 `trainnlpot --do-lbfgs`
 等非线性优化入口继续训练，并在独立验证集上比较模型容量、随机初始化和误差。
 
@@ -238,3 +240,4 @@ N_{\mathrm{par}}=N_r+S+qS+qP+N_{\mathrm{head}}.
 [工厂与头类型](../../potentials/potential_mtp_m.cpp)、
 [初始化](../../apps/initmtpm.cpp)。API 使用示例见
 [势函数接口](../development/api-potential_zh.md)。
+

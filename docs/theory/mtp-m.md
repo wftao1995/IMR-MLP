@@ -1,4 +1,4 @@
-# MTP_M: Multiple Channels and Nonlinear Energy Heads {#theory_mtp_m}
+# MTP_M: Multiple Channels and Nonlinear Energy Heads
 
 [中文](mtp-m_zh.md)
 
@@ -248,11 +248,14 @@ Use `fit:linear_refit output` with `trainnlpot`; see
 [variable projection](../advanced/mtp-native-varpro.md) has a separate support
 scope and cannot be applied to arbitrary MTP_M models.
 
-`initmtpm` uses training data to initialize radial/projection parameters, fit
-species energy offsets and adjust channel biases to center training-set
-channel means. Channel variance and inter-channel correlation stay unconstrained,
-so do not read the channels as a whitened basis. These statistics come from the
-training set only, never from the final test set. Continue with nonlinear
+`initmtpm` touches the training set only through two opt-in flags, both off by
+default. `--fit-species-offsets` fits the elemental energy offsets; with a
+composite model it needs `--offset-target` to choose the energy branch.
+`--normalize-descriptors` divides every scalar channel by its standard deviation and
+shifts the species offsets so the channel means are centred. Inter-channel
+correlation is never removed, so the channels are variance-normalised but not an
+orthogonal whitened basis. These statistics come from the training set only, never
+from the final test set. Continue with nonlinear
 optimization such as
 `trainnlpot --do-lbfgs`, comparing model capacity, random initializations and
 errors on independent validation data.
@@ -275,3 +278,4 @@ Implementation sources: [channels, heads and derivatives](../../potentials/poten
 [factory and head types](../../potentials/potential_mtp_m.cpp), and
 [initialization](../../apps/initmtpm.cpp). API examples are in the
 [potential interface guide](../development/api-potential.md).
+

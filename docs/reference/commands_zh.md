@@ -483,7 +483,7 @@ imrmlp fastfit --settings=settings.ini --potfile=init.mtp --trainset=train.cfg -
 | `--force-norm-d` | | | 力归一化分母偏移 |
 | `--force-norm-f` | | | 力归一化尺度（0 关闭） |
 | `--force-norm-p` | | | 力归一化幂次 |
-| `--seed` | | | 可复现随机种子 |
+| `--seed` | | `42` | 可复现随机种子 |
 | `--search-steps` | | `-1` | SA/贪心步数（-1 选择自动预算） |
 | `--population` | | `0` | NSGA-II 种群规模（0 = 自动） |
 | `--generations` | | `0` | NSGA-II 代数（0 = 自动） |
@@ -718,7 +718,7 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--pool` |  | `pool.xyz` | 输入结构池 |
 | `--potfile` |  | `potential.mtp` | 势文件用于 B-矩阵 |
 | `--pottype` |  | `mtp` | 势类型：mtp、eampoly、lj612... |
-| `--dtype` |  | `mtm` | 描述符类型：mtm、pot_efs、behler、bondorder |
+| `--dtype` |  | `mtm` | 描述符类型：mtm、pot_efs、behler、bondorder、biso4 |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--input-format` | `-if` | auto | 输入池文件格式 |
 | `--output-format` | `-of` | auto | 输出格式 |
@@ -884,7 +884,7 @@ imrmlp maxvol_extend --potfile=potential.mtp \
 | `--train` |  | — | 训练集文件 |
 | `--candidates` |  | `candidates.xyz` | 候选结构文件 |
 | `--output` | `-o` | `new_selected.xyz` | 输出新入选的候选结构 |
-| `--dtype` |  | `mtm` | 描述符类型：mtm、pot_efs、behler、bondorder |
+| `--dtype` |  | `mtm` | 描述符类型：mtm、pot_efs、behler、bondorder、biso4 |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--input-format` | `-if` | auto | 输入文件格式 |
 | `--output-format` | `-of` | `extxyz` | 输出格式 |
@@ -935,7 +935,7 @@ imrmlp diverse_select --method=fps --metric=cosine --n-select=50 --pool=pool.xyz
 | `--pool` | | `pool.xyz` | 输入结构池文件 |
 | `--potfile` | | `potential.mtp` | 势文件（用于基于描述符的 B-矩阵） |
 | `--pottype` | | `mtp` | 势类型 |
-| `--dtype` | | `mtm` | 描述符类型：`mtm`、`pot_efs`、`behler`、`bondorder` |
+| `--dtype` | | `mtm` | 描述符类型：`mtm`、`pot_efs`、`behler`、`bondorder`、`biso4` |
 | `--index` | `-id` | `index.map` | 索引文件 |
 | `--format` | `-f` | | 输入格式 |
 | `--output` | `-o` | `selected.xyz` | 输出选中结构文件 |
@@ -985,18 +985,18 @@ imrmlp calc_crowding --potfile=potential.mtp --input=pool.xyz --kernel=gaussian 
 | `--index` | `-id` | `index.map` | 物种索引映射 |
 | `--kernel` | | `cosine` | 核函数：`cosine` 或 `gaussian` |
 | `--sigma` | | auto | 高斯带宽（≤0 = 自动） |
-| `--standardize` | | `false` | 核函数前标准化描述符分量（布尔） |
-| `--alpha` | | | 反密度指数 |
-| `--clip-min` | | | 权重下界裁剪 |
-| `--clip-max` | | | 权重上界裁剪 |
-| `--sample` | | | 每元素参考行数（-1 = 精确小数据模式） |
-| `--seed` | | | 确定性采样种子 |
-| `--batch-rows` | | | 密度查询批大小 |
+| `--standardize` | | `true` | 核函数前标准化描述符分量（布尔） |
+| `--alpha` | | `0.5` | 反密度指数 |
+| `--clip-min` | | `1e-3` | 权重下界裁剪 |
+| `--clip-max` | | `1e3` | 权重上界裁剪 |
+| `--sample` | | `256` | 每元素参考行数（-1 = 精确小数据模式） |
+| `--seed` | | `0` | 确定性采样种子 |
+| `--batch-rows` | | `2048` | 密度查询批大小 |
 | `--bucket` | | `true` | 按化学元素分桶 |
 | `--apply-to-energy` | | `false` | 以平均原子权重写入构型 fitness |
 | `--potfile` | | `potential.mtp` | `dtype=pot_efs` 使用的势文件 |
 | `--pottype` | | `mtp` | 势类型 |
-| `--dtype` | | `mtm` | 描述符类型：`mtm`、`mtp`、`mtp_scalar`、`behler`、`bondorder` |
+| `--dtype` | | `mtm` | 描述符类型：`mtm`、`mtp`、`mtp_scalar`、`behler`、`bondorder`、`biso4` |
 | `--mode` | | `nbh` | 行模式；本命令强制为 `nbh` |
 | `--all-coeffs` | | `false` | 使用全部势系数 |
 | `--row-scaling` | | `uniform` | 行缩放：`uniform` 或 `mlip` |
@@ -1165,7 +1165,7 @@ imrmlp swap_axis --order=xzy --input=POSCAR --output=swapped.vasp
 | `--order` | `-order` | `xyz` | 轴排列（位置参数）：`xyz`、`xzy`、`yxz`、`yzx`、`zxy`、`zyx`（或 `abc` 形式） |
 | `--input` | `-in` | `POSCAR` | 输入结构（位置参数） |
 | `--output` | `-out` | `POSCAR_REV` | 输出结构（位置参数） |
-| `--tol` | `-tol` | `1e-6` | 轴交换容差 |
+| `--tol` | `-tol` | `1e-6` | 为兼容而接受；当前实现不读取该值 |
 | `--keephand` | `-k` | `true` | 保持右手性 |
 | `--tolower` | `-l` | `false` | 结果转换为下三角形式 |
 | `--index` | `-index` | `index.map` | 物种索引映射 |
@@ -1946,7 +1946,7 @@ imrmlp adjustmtp --settings adjustmtp.ini   # 从设置文件读取相同的键
 | `--basis-order` | |  | 基组排序：keep、level 或 level-group |
 | `--append-elements` | |  | 追加的元素名称 |
 | `--clone-from` | |  | 克隆元素所用的原物种编号 |
-| `--new-species-init` | | `clone` | 新物种初始化：clone 或 random |
+| `--new-species-init` | | — | 与 `--append-elements` 同用且必填：`clone` 或 `random` |
 
 新的 GPM/MTP-M 入口将基组调整 `--basis-order keep|level|level-group` 与元素置换
 `--neworder` 分开，默认保持基组顺序，输出 `_Adjusted_Potential_.gpm`。
@@ -2166,7 +2166,7 @@ imrmlp smooth_traj --input=trajectory.cfg --output=smoothed.cfg --timestep=0.1
 | `--alpha-reduce` | `-ar` | `0.9` | 回溯时的步长缩减因子 |
 | `--max-backtracks` | `-mbt` | `10` | 最大回溯步数 |
 | `--fixed-atoms` | `-fix` | | 固定原子索引，0-based（可多值） |
-| `--eigzero-tol` | `-eigtol` | | 零特征值容差 |
+| `--eigzero-tol` | `-eigtol` | `0.001` | 零特征值容差 |
 
 ### `calc_dimer` — Dimer 鞍点搜索 *（别名：`dimer`）*
 

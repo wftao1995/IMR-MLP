@@ -298,7 +298,8 @@ every non-conservative gradient filter.
 | Equalities only, memory matters | AUL, or SQP |
 | Bounds, walls, intervals | SQP or NLC, mandatory |
 | KKT residual and dual feasibility wanted as convergence evidence | SQP |
-| LC, LF, VIB or `keep_symm` already active | cannot use SQP; go back to masks or coordinate transforms |
+| LC or LF already active | SQP and NLC both work: the trial step is decoded back through the coordinate map, so the transform need not be rewritten as masks |
+| VIB or `keep_symm` already active | cannot use SQP; `keep_symm` also rules out LC, LF, fixed volume/shape and every structural constraint |
 | Multiple MPI ranks | file constraints unavailable; use masks or coordinate transforms |
 
 ### External loads change the target stress

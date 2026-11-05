@@ -579,8 +579,8 @@ Nudged Elastic Band parameters for `calc_neb`.
 | `neb:init_method` | str | — | Path initialization method |
 | `neb:idpp_fmax` | float | — | IDPP force convergence target |
 | `neb:idpp_max_steps` | int | — | IDPP iteration limit |
-| `neb:neb_ftol` | float | — | NEB force tolerance |
-| `neb:gtol` | float | — | Alias of `neb:neb_ftol` |
+| `neb:neb_ftol` | float | `1e-2` | NEB force tolerance |
+| `neb:gtol` | float | `1e-2` | Alias of `neb:neb_ftol` |
 | `neb:check_saddle` | bool | no | Verify the saddle after convergence |
 | `neb:debug` | int | 0 | Debug output level |
 

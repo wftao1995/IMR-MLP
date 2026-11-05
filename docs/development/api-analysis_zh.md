@@ -83,9 +83,15 @@ int main() {
 `standardize_cell` 和 `get_sym_dataset`。返回的 `symdataset` 持有自身的
 对称操作、Wyckoff 编号与原子映射。
 
-比较结构时，先用相同容差对两个输入调用 `prepare_comparison_structure`，再通过
-`StructureComparisonOptions` 和 `equivalent_structures` 判等。共享内核保留物种，
-在周期平移与晶胞对称操作下寻找一一原子映射，供 `sameq` 和结构去重共同使用。
+结构比较的实现位于 `symmetry/structure_comparison.h`。先用
+`StructureComparisonOptions`（`symmetry_tolerance`、`position_tolerance`、
+`volume_tolerance`、`descriptor_tolerance`、`anchor_descriptor_tolerance`，以及
+`use_descriptors`、`scale_volume`、`allow_reflections`）构造一个
+`Symmetry3D::StructureComparator`，对每个结构调用一次 `prepare(atoms)`，再用
+`equivalent(first, second)` 比较得到的 `ComparableStructure`。`prepare` 会约化全周期
+晶胞、记录组分并计算描述符，因此同一批比较可以复用已准备好的输入。匹配器保留物种，
+在周期平移与晶胞对称操作下寻找一一原子映射；部分周期或非周期结构保留原晶胞与原子数。
+`sameq` 与结构去重共用该内核。
 
 ## 参见
 

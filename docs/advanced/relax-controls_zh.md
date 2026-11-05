@@ -269,7 +269,8 @@ Python 的 `Relaxation` 里 `constraint_loops` 默认是 10（C++ 是 5），`gt
 | 只有等式，且希望省内存 | AUL，或 SQP |
 | 有上下界、壁面、区间 | 必须 SQP 或 NLC |
 | 需要 KKT 残差与对偶可行性作为收敛证据 | SQP |
-| 已启用 LC、LF、VIB 或 `keep_symm` | 不能进 SQP；回到掩码或坐标层 |
+| 已启用 LC 或 LF | SQP 与 NLC 都支持：试探步会经坐标映射解回真实几何，无需改写成掩码 |
+| 已启用 VIB 或 `keep_symm` | 不能进 SQP；`keep_symm` 还排除 LC、LF、定体积/定形状与所有结构约束 |
 | 多 MPI 进程 | 不能使用文件约束；改用掩码或坐标变换 |
 
 ### 外部载荷改的是目标应力

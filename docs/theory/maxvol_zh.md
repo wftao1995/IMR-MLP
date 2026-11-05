@@ -1,4 +1,4 @@
-# MaxVol 算法与主动学习技术说明 {#theory_maxvol}
+# MaxVol 算法与主动学习技术说明
 
 [English](maxvol.md)
 
@@ -241,7 +241,7 @@ BMatrixBuilder ──► B 行 + BRowRef 元数据
 full / stream / online MaxVol ──► 主动行矩阵 C
     │                                  │
     ├──► 去重后的 selected configs     ├──► grade
-    └──► score file                    └──► .sel state
+    └──► score file                    └──► saved state
 ```
 
 选择的基本单位是 <b>B 行</b>，输出的基本单位是 <b>原子构型</b>。一个构型可能贡献
@@ -491,7 +491,8 @@ shortlist 中批量交换，再进入下一轮全池扫描。它和 `full` 都�
 `threshold` 时，用 `full` 或 `stream/exact` 对全池重跑一次再采信结果；只看到
 `selected.xyz` 已写出，说明不了这一条。
 
-当前 `ActiveSelector` state 格式为 v10，扩展名为 .sel 的文件保存紧凑主动矩阵、行元数据、
+当前 `ActiveSelector` state 格式为 v10。默认把状态嵌入模型旁的 `.maxvol.gpm` 容器；
+`--legacy` 运行则改写 `.sel` 侧车文件。两种形式都保存紧凑主动矩阵、行元数据、
 训练构型、已选构型、builder 元数据、缩放参数、在线进度和收敛信息。运行时分解
 缓存会在加载后重建。状态适合断点续传，但不是跨不同势参数化的通用模型文件。
 
@@ -669,7 +670,10 @@ build/release/imrmlp maxvol_select select.ini \
 
 1. 写出去重后的入选构型到 `selected.xyz`；
 2. 写出每个池构型的 `idx grade selected` 到 `maxvol_scores.dat`；
-3. 自动把 state 保存为 `potfile + ".sel"`，本例为 `potential.mtp.sel`；
+3. 自动把选择状态保存在模型旁：对模型构建类 `dtype`（`mtm`、`mtp`、`mtp_scalar`、
+   `pot_efs`、`mtp_energy`）写入 `potfile + ".maxvol.gpm"`，本例为
+   `potential.mtp.maxvol.gpm`；`maxvol_select --legacy` 则改写侧车文件
+   `potfile + ".sel"`；
 4. 打印选中构型数、log-volume、收敛状态、最大剩余 grade 和虚拟行数；
 5. `verbose=true` 且使用 stream 时额外打印构建、初始化、评分时间、扫描次数、
    交换数、线程数以及 RAM/mmap 字节数。
@@ -887,7 +891,7 @@ Eigen::VectorXd candidate_scores = mv.score_rows(B_candidate, selected);
 - 输入构型顺序，尤其是 `online`；
 - MPI rank 数、OpenMP 线程数和 stream cache 后端；
 - `converged`、`termination_reason`、最大剩余 grade、虚拟行数和交换数；
-- `.sel` state 与最终选中构型。
+- 选择状态与最终选中构型。
 
 
 ## 11. 常见问题与排查
@@ -1067,3 +1071,4 @@ CURResult cur_select_rows(
 - @ref theory_mtp （MTP 理论）。
 
 **参见：** @ref maxvol, @ref theory_training
+

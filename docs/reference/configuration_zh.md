@@ -567,8 +567,8 @@ export_file     candidates.xyz
 | `neb:init_method` | str | — | 路径初始化方法 |
 | `neb:idpp_fmax` | float | — | IDPP 力收敛目标 |
 | `neb:idpp_max_steps` | int | — | IDPP 迭代上限 |
-| `neb:neb_ftol` | float | — | NEB 力容差 |
-| `neb:gtol` | float | — | `neb:neb_ftol` 的别名 |
+| `neb:neb_ftol` | float | `1e-2` | NEB 力容差 |
+| `neb:gtol` | float | `1e-2` | `neb:neb_ftol` 的别名 |
 | `neb:check_saddle` | bool | 否 | 收敛后校验鞍点 |
 | `neb:debug` | int | 0 | 调试输出级别 |
 

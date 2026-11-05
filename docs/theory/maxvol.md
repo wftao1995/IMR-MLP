@@ -1,4 +1,4 @@
-# MAXVOL Active Learning {#theory_maxvol}
+# MAXVOL Active Learning
 
 [中文](maxvol_zh.md)
 
@@ -269,7 +269,7 @@ BMatrixBuilder ──► B rows + BRowRef metadata
 full / stream / online MaxVol ──► active row matrix C
     │                                  │
     ├──► de-duplicated selected configs ├──► grade
-    └──► score file                    └──► .sel state
+    └──► score file                    └──► saved state
 ```
 
 The unit of selection is a **B row**; the unit of output is an **atomic
@@ -568,10 +568,11 @@ States that hit a cap without converging are still saved and later
 pool before using the result. A written `selected.xyz` on its own settles
 nothing.
 
-The current `ActiveSelector` state format is v10; `.sel` files store the
-compact active matrix, row metadata, training configurations, selected
-configurations, builder metadata, scaling parameters, online progress, and
-convergence information. Runtime factorization caches are rebuilt after
+The current `ActiveSelector` state format is v10. By default the state is embedded in
+the `.maxvol.gpm` container written next to the model; legacy `--legacy` runs write a
+`.sel` sidecar instead. Either form stores the compact active matrix, row metadata,
+training configurations, selected configurations, builder metadata, scaling parameters,
+online progress, and convergence information. Runtime factorization caches are rebuilt after
 loading. States support checkpoint/resume but are not generic model files
 across different potential parameterizations.
 
@@ -779,8 +780,11 @@ The command will:
 1. write the de-duplicated selected configurations to `selected.xyz`;
 2. write `idx grade selected` for every pool configuration to
    `maxvol_scores.dat`;
-3. automatically save the state as `potfile + ".sel"`, here
-   `potential.mtp.sel`;
+3. automatically save the selection state next to the model: for the
+   model-builder dtypes (`mtm`, `mtp`, `mtp_scalar`, `pot_efs`, `mtp_energy`)
+   the state is embedded in `potfile + ".maxvol.gpm"`, here
+   `potential.mtp.maxvol.gpm`; `maxvol_select --legacy` writes the sidecar
+   `potfile + ".sel"` instead;
 4. print the number of selected configurations, log-volume, convergence
    status, maximum remaining grade, and virtual-row count;
 5. with `verbose=true` and the stream backend, additionally print build,
@@ -1020,7 +1024,7 @@ are not universal physical constants for every material.
 - MPI rank count, OpenMP thread count, and the stream cache backend;
 - `converged`, `termination_reason`, maximum remaining grade, virtual-row
   count, and swap count;
-- the `.sel` state and the final selected configurations.
+- the saved selection state and the final selected configurations.
 
 ## 11. FAQ and Troubleshooting
 
@@ -1221,3 +1225,4 @@ Main code entry points:
 - @ref theory_mtp (MTP theory).
 
 **See also:** @ref maxvol, @ref theory_training
+

@@ -533,7 +533,7 @@ imrmlp fastfit --settings=settings.ini --potfile=init.mtp --trainset=train.cfg -
 | `--force-norm-d` | | | Force normalization denominator offset |
 | `--force-norm-f` | | | Force normalization scale (0 disables) |
 | `--force-norm-p` | | | Force normalization power |
-| `--seed` | | | Reproducible random seed |
+| `--seed` | | `42` | Reproducible random seed |
 | `--search-steps` | | `-1` | SA/greedy steps (-1 selects an automatic budget) |
 | `--population` | | `0` | NSGA-II population (0 = automatic) |
 | `--generations` | | `0` | NSGA-II generations (0 = automatic) |
@@ -800,7 +800,7 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--pool` | | `pool.xyz` | Input structure pool |
 | `--potfile` | | `potential.mtp` | Potential file for B-matrix |
 | `--pottype` | | `mtp` | Potential type: mtp, eampoly, lj612, ... |
-| `--dtype` | | `mtm` | Descriptor type: mtm, pot_efs, behler, bondorder |
+| `--dtype` | | `mtm` | Descriptor type: mtm, pot_efs, behler, bondorder, biso4 |
 | `--index` | `-id` | `index.map` | Index file |
 | `--input-format` | `-if` | auto | Input pool file format |
 | `--output-format` | `-of` | auto | Output format |
@@ -977,7 +977,7 @@ the combined pool.  Suitable for one-shot training set construction.
 | `--train` |  | — | Training set file |
 | `--candidates` | | `candidates.xyz` | Candidate structures to evaluate |
 | `--output` | `-o` | `new_selected.xyz` | Output newly selected structures |
-| `--dtype` | | `mtm` | Descriptor type: mtm, pot_efs, behler, bondorder |
+| `--dtype` | | `mtm` | Descriptor type: mtm, pot_efs, behler, bondorder, biso4 |
 | `--index` | `-id` | `index.map` | Index file |
 | `--input-format` | `-if` | auto | Input file format |
 | `--output-format` | `-of` | `extxyz` | Output format |
@@ -1030,7 +1030,7 @@ imrmlp diverse_select --method=fps --metric=cosine --n-select=50 --pool=pool.xyz
 | `--pool` | | `pool.xyz` | Input structure pool file |
 | `--potfile` | | `potential.mtp` | Potential file (for descriptor-based B-matrix) |
 | `--pottype` | | `mtp` | Potential type |
-| `--dtype` | | `mtm` | Descriptor type: mtm, pot_efs, behler, bondorder |
+| `--dtype` | | `mtm` | Descriptor type: mtm, pot_efs, behler, bondorder, biso4 |
 | `--index` | `-id` | `index.map` | Index file |
 | `--format` | `-f` | | Input format (empty = auto-detect) |
 | `--output` | `-o` | `selected.xyz` | Output selected structures file |
@@ -1082,18 +1082,18 @@ imrmlp calc_crowding --potfile=potential.mtp --input=pool.xyz --kernel=gaussian 
 | `--index` | `-id` | `index.map` | Species index map |
 | `--kernel` | | `cosine` | Kernel: `cosine` or `gaussian` |
 | `--sigma` | | auto | Gaussian bandwidth (≤0 = automatic) |
-| `--standardize` | | `false` | Scale descriptor components before the kernel (bool) |
-| `--alpha` | | | Inverse-density exponent |
-| `--clip-min` | | | Lower weight clip |
-| `--clip-max` | | | Upper weight clip |
-| `--sample` | | | Reference rows per element (-1 = exact small-data mode) |
-| `--seed` | | | Deterministic sampling seed |
-| `--batch-rows` | | | Density query batch size |
+| `--standardize` | | `true` | Scale descriptor components before the kernel (bool) |
+| `--alpha` | | `0.5` | Inverse-density exponent |
+| `--clip-min` | | `1e-3` | Lower weight clip |
+| `--clip-max` | | `1e3` | Upper weight clip |
+| `--sample` | | `256` | Reference rows per element (-1 = exact small-data mode) |
+| `--seed` | | `0` | Deterministic sampling seed |
+| `--batch-rows` | | `2048` | Density query batch size |
 | `--bucket` | | `true` | Bucket density by chemical element |
 | `--apply-to-energy` | | `false` | Write the configuration fitness as the mean atomic weight |
 | `--potfile` | | `potential.mtp` | Potential file used by `dtype=pot_efs` |
 | `--pottype` | | `mtp` | Potential type |
-| `--dtype` | | `mtm` | Descriptor type: `mtm`, `mtp`, `mtp_scalar`, `behler`, `bondorder` |
+| `--dtype` | | `mtm` | Descriptor type: `mtm`, `mtp`, `mtp_scalar`, `behler`, `bondorder`, `biso4` |
 | `--mode` | | `nbh` | Row mode; forced to `nbh` by this command |
 | `--all-coeffs` | | `false` | Use all potential coefficients |
 | `--row-scaling` | | `uniform` | Row scaling: `uniform` or `mlip` |
@@ -1267,7 +1267,7 @@ imrmlp swap_axis --order=xzy --input=POSCAR --output=swapped.vasp
 | `--order` | `-order` | `xyz` | Axis permutation (positional): `xyz`, `xzy`, `yxz`, `yzx`, `zxy`, `zyx` (or `abc` forms) |
 | `--input` | `-in` | `POSCAR` | Input structure file (positional) |
 | `--output` | `-out` | `POSCAR_REV` | Output structure file (positional) |
-| `--tol` | `-tol` | `1e-6` | Tolerance used when swapping axes |
+| `--tol` | `-tol` | `1e-6` | Accepted for compatibility; the current implementation does not read it |
 | `--keephand` | `-k` | `true` | Preserve right-handedness |
 | `--tolower` | `-l` | `false` | Convert the result to lower-triangular form |
 | `--index` | `-index` | `index.map` | Species index map |
@@ -2093,7 +2093,7 @@ imrmlp adjustmtp --settings adjustmtp.ini   # same keys from a settings file
 | `--basis-order` | |  | Basis order: keep, level, or level-group |
 | `--append-elements` | |  | Names of appended elements |
 | `--clone-from` | |  | Source species IDs for cloned elements |
-| `--new-species-init` | | `clone` | Initialize new species by clone or random |
+| `--new-species-init` | | — | Required with `--append-elements`: `clone` or `random` |
 
 The explicit GPM/MTP-M entry separates `--basis-order keep|level|level-group`
 from element permutation (`--neworder`). It defaults to keeping the basis order
@@ -2331,7 +2331,7 @@ fixed-cell refinement; exit code 2 means the iteration budget was exhausted.
 | `--alpha-reduce` | `-ar` | `0.9` | Step reduction factor during backtracking |
 | `--max-backtracks` | `-mbt` | `10` | Maximum backtracking steps |
 | `--fixed-atoms` | `-fix` | | Fixed atom indices, 0-based (multiple values) |
-| `--eigzero-tol` | `-eigtol` | | Eigenvalue zero tolerance |
+| `--eigzero-tol` | `-eigtol` | `0.001` | Eigenvalue zero tolerance |
 
 ### `calc_dimer` — Dimer Saddle Search *(alias: `dimer`)*
 
