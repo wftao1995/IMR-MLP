@@ -148,3 +148,9 @@ objective-report objective.tsv
 设置 `cost-export-dir pareto-models` 后，保存并重载每个 shortlist 模型、全量 EFS 复核通过，再以临时目录整体发布导出包。目标目录及同名 `.tmp` 必须不存在；原先单赢家文件仍输出。包内含输入母势的精确副本 `parent.mtp`、所有已核验的 `candidate-*.mtp`、`objective.tsv`、`manifest.tsv` 和逐轮 `rounds.tsv`。
 
 manifest 分开标记 `proxy_pareto` 与 `measured_pareto`，并包含原始标量 ID、压缩后图规模、验证误差、代理成本、实测延迟和 IQR；两者都只覆盖本次有限 shortlist，超出 `cost-archive-size` 的候选从未参与。力误差栏沿用逐原子向量范数口径（Δf 平方和按原子数平均后开方），各向同性时约为分量 RMSE 的 √3 倍；要分量口径就改用 `calc_err` 的 force cmpt 列。判断快慢用上节的平局规则（与最快中位数区间重叠 → 验证误差 → 原始 ID），IQR 本身只描述本次测量的波动。模型、数据与二进制 SHA256 应在冻结实验时一并记录；导出目录本身不包含私有数据，也不自动提交模型。
+
+## 相关
+
+- [MTP 基组生成、筛选与复核](basis-generation-selection_zh.md)
+- [MTP 基组的生成、优化与选择](../guides/basis-selection_zh.md)
+- [命令参考](../reference/commands_zh.md)

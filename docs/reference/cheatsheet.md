@@ -129,3 +129,9 @@ current active set; measure the error with `calc_err` on the same configurations
 | `--index` / `-id` | Species index file |
 | `--verbose` | Verbose output (only a few commands) |
 | `--help` | Command-specific help |
+
+## Related
+
+- [Command Reference](commands.md)
+- [Configuration System](configuration.md)
+- [Installation and build](../guides/installation.md)

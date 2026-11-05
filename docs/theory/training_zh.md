@@ -171,3 +171,9 @@ fit:lr_decay_rate 0.001
 
 实现细节见 @ref train "训练模块"；线性最小二乘见 @ref theory_linear "线性训练"；
 主动集选择见 @ref theory_maxvol "MaxVol"。
+
+## 相关
+
+- [线性势训练](linear_zh.md)
+- [训练、评估与部署](../guides/workflows_zh.md)
+- [HVP 监督训练与数据格式](../advanced/hvp-training_zh.md)

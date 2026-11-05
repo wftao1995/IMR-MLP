@@ -130,3 +130,9 @@ MTP+LES 和兼容的 MTP-M+LES/SOG 模型支持解析笛卡尔 Hessian 与 Hessi
 `lr_les=true` 的 MTP-M 在力、virial 和参数梯度中包含完整描述符电荷响应，
 LES 系数冻结时仍包含径向梯度。GPU 求值/训练目前支持 SOG，Coulomb LES v2
 使用 CPU；具体后端范围见 [GPU 指南](../development/cuda_zh.md)。
+
+## 相关
+
+- [MTP + 可训练 SOG（v3/v4）](sog_zh.md)
+- [多通道 SOG：训练与部署](../advanced/sog-multichannel_zh.md)
+- [势类型与文件格式](potential-types_zh.md)

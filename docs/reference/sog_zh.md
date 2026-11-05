@@ -125,3 +125,9 @@ MTP-M 使用普通单阶段非线性训练器。参数组为 `sr_radial`、`sr_s
 独立参考求和、坐标与参数导数、序列化、冻结参数组和分阶段拟合。
 MPI 测试命令见[多通道指南](../advanced/sog-multichannel_zh.md)，
 部署回归见 [LAMMPS 适配器](../../LAMMPS/USER-MLIP/opt-les/README.md)。
+
+## 相关
+
+- [MTP+LES v2](les-v2_zh.md)
+- [多通道 SOG：训练与部署](../advanced/sog-multichannel_zh.md)
+- [配置系统](configuration_zh.md)

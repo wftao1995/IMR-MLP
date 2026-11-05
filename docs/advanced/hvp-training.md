@@ -153,3 +153,9 @@ To reduce reference-calculation cost, generate each probe's labels directly from
 
 `unitest/ut_hvp_training.cpp` covers analytic basis HVP versus the full Hessian, linear fitting, nonlinear and LES parameter gradients, weighting/cache behavior, I/O roundtrips and malformed-data rejection.
 `unitest/python/test_hvp_io.py` checks Python label assignment and roundtrips through all three formats.
+
+## Related
+
+- [Linear refinement after potential training](linear-refit.md)
+- [Training Methodology](../theory/training.md)
+- [Command Reference](../reference/commands.md)

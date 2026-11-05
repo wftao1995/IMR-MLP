@@ -232,3 +232,9 @@ imrmlp maxvol_extend --settings model.mtp.ini --candidates candidates.xyz
 旧 CLI 的 builder 类型应与选样时一致；混合势还需指定对应 `--pottype`。
 原生输出路径不能以 `.gpm` 结尾。所有输出先暂存并重载校验，再发布；发生可报告
 的发布错误时回滚已有输出。多个文件的发布期间，并发读取方应等待转换完成。
+
+## 相关
+
+- [势类型与文件格式](potential-types_zh.md)
+- [命令参考](commands_zh.md)
+- [训练、评估与部署](../guides/workflows_zh.md)

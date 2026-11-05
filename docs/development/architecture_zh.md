@@ -151,3 +151,9 @@ PotMTP::getEFS()
 `PotKIM` 将任何 KIM API 模型包装为 `AnyPotential` 接口，使 KIM 兼容势可作为
 即插即用的替代品在整个框架中使用。支持自动检测支持的物种类型，并与标准
 `Neighborhoods` 基础设施集成以构建近邻列表。
+
+## 相关
+
+- [核心API：Atoms和邻域](api-core_zh.md)
+- [API 示例](cpp-examples_zh.md)
+- [I/O API：读取和写入结构](api-io_zh.md)

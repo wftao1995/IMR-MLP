@@ -152,3 +152,9 @@ In error-cost modes 5/6, `cost-archive-rule pareto` enables a capacity-bounded n
 `cost-export-dir pareto-models` publishes a fresh directory only after every shortlisted model has been saved, reloaded and verified with direct full-data EFS evaluation. Neither the directory nor its `.tmp` path may exist. The usual single-winner output remains. The bundle contains exact input bytes in `parent.mtp`, every verified `candidate-*.mtp`, `objective.tsv`, `manifest.tsv`, and raw `rounds.tsv` timing samples.
 
 The manifest separately marks proxy-cost and measured-latency Pareto fronts within this finite shortlist, and records original scalar IDs, compact graph counts, validation errors, cost, latency and IQR; candidates beyond `cost-archive-size` never enter either front. Force errors keep the per-atom vector-norm convention (square the per-atom Δf, average over atoms, take the root), which is about √3 times the component RMSE for isotropic errors; use the force cmpt columns of `calc_err` for the component convention. Judge speed with the tie rule above (overlap with the fastest median, then validation error, then original ID); the IQR itself only describes the spread of this measurement. Freeze model, dataset and binary SHA256 values in the experiment record; the export does not copy private datasets or commit models.
+
+## Related
+
+- [MTP basis generation, selection and verification](basis-generation-selection.md)
+- [Generating, optimizing and selecting an MTP basis](../guides/basis-selection.md)
+- [Command Reference](../reference/commands.md)

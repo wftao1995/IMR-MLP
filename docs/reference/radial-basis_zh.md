@@ -1,4 +1,4 @@
-# 可配置 Chebyshev 径向基
+# 可配置 Chebyshev 径向基 {#reference_radial_basis}
 
 [English](radial-basis.md)
 
@@ -73,3 +73,9 @@ radial_basis_type = RBChebyshevConfigurable
 C++ API 中保留的专用类为 `RBChebyshev`、`RBChebyCos`、
 `RBChebyshevPoly4`、`RBChebyshevPoly5`、`RBPolyB` 和
 `RBPolyBCos`。势文件中的可配置径向基使用 `RBChebyshevConfigurable`。
+
+## 相关
+
+- [矩张量势（MTP）](../theory/mtp_zh.md)
+- [势类型与文件格式](potential-types_zh.md)
+- [MTP 基组生成、筛选与复核](../advanced/basis-generation-selection_zh.md)

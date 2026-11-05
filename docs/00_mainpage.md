@@ -39,6 +39,7 @@ runnable examples listed at the end.
 | Migration or reaction barriers | [NEB paths](guides/neb.md) |
 | Phonons, elasticity and equation of state | [Crystal properties](guides/properties.md) |
 | Train and validate a model | [Training workflow](guides/workflows.md) |
+| Diagnose and rebuild the MTP basis | [Basis generation and selection](guides/basis-selection.md) |
 | Selection, reference labeling and retraining | [Active learning](guides/active-learning.md) |
 | Run a model in LAMMPS / Python | [LAMMPS](../LAMMPS/README.md) / [Python](../README-python.md) |
 

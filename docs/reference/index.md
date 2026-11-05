@@ -11,6 +11,8 @@ Commands, configuration, Python and model formats.
 - [Command Cheat Sheet](cheatsheet.md)
 - [Configuration System](configuration.md)
 - [Command Reference](commands.md)
+- [Scalar metadata expressions in convstr](convstr-scalar-labels.md)
+- [Selecting HA categories](ha-selected-indices.md)
 
 ## Python API
 

@@ -267,8 +267,7 @@ fmt = guess_format("structure.cfg")
 指定 `format="lmpdat"` 或 `format="n2p2"`；`trajectory.cp2k.xyz` 会被识别为
 `extxyz`，CP2K 数据需指定 `format="cp2kxyz"`。内容探测是独立功能：
 `imrmlp.io.detect_format(path)` 报告候选格式，`read(path, detect_content=True)`
-使用唯一的内容匹配结果。上表描述文件读写；流会话仅支持其中一部分格式，见
-[共享工作流](../advanced/shared-workflows_zh.md)。
+使用唯一的内容匹配结果。上表描述文件读写；流会话仅支持其中一部分格式。
 
 ### 流式与增量 I/O
 

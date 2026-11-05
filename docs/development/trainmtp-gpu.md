@@ -1,4 +1,4 @@
-# trainmtp GPU training
+# trainmtp GPU training {#development_trainmtp_gpu}
 
 [中文](trainmtp-gpu_zh.md)
 
@@ -67,3 +67,9 @@ promise of speedup.
 For HIP/DCU use `BUILD_MODE=hip HIP_ARCH=<device architecture>`, `fit:device hip`
 and `build/hip/imrmlp-hip`. Local hardware validation of this port uses CUDA;
 HIP requires validation on the corresponding hardware.
+
+## Related
+
+- [MTP GPU evaluation and training (CUDA/HIP)](cuda.md)
+- [Training, evaluation and deployment](../guides/workflows.md)
+- [Configuration System](../reference/configuration.md)

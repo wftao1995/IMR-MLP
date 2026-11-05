@@ -1,4 +1,4 @@
-# Symmetry-constrained relaxation and neighbor safety
+# Symmetry-constrained relaxation and neighbor safety {#advanced_relax_symmetry}
 
 [中文](relax-symmetry_zh.md)
 
@@ -90,3 +90,9 @@ periodic inputs can have zero lattice vectors in nonperiodic directions;
 space-group-constrained relaxation still requires its own valid periodic/cell
 conditions. Skew cells can increase neighbor counts and memory use. If neighbor
 construction fails, correct geometry or cutoff settings before rerunning.
+
+## Related
+
+- [Relaxation under constraints](relax-controls.md)
+- [Structure relaxation](../guides/relaxation.md)
+- [Configuration System](../reference/configuration.md)

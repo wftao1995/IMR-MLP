@@ -197,3 +197,9 @@ python3 LAMMPS/USER-MLIP/hyb-ti/tests/run_regression.py /path/to/lmp --ranks 2
   会按原样使用。
 - 不支持 pair 状态的 restart。
 - 简谐参考的 GPU 执行需要单独的设备验证；`mlip/gpudirect` 不覆盖该风格。
+
+## 相关
+
+- [晶体性质](../guides/properties_zh.md)
+- [命令参考](../reference/commands_zh.md)
+- [配置系统](../reference/configuration_zh.md)

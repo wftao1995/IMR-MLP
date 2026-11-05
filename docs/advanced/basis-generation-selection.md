@@ -230,3 +230,9 @@ imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --output-sum
 Retain separate E, F and virial errors, and inspect extreme configurations and relaxation/MD stability for the target application. Throughput follows from the compressed model, the system size and the backend together, with the scalar count as one contributor; measure the same set of structures before and after compression. Further nonlinear training after reduction produces a new candidate and requires renewed validation. For graph reordering intended to preserve predictions, use `mtpbasis --source ... --target ... --report ...`; compare E/F/virial after parameter transfer as well.
 
 Complete options are in the [command reference](../reference/commands.md). Implementation entry points are `apps/genmtm.cpp`, `mtmbasis/mtm.cpp` and `apps/fastfit.cpp`; regression coverage includes `unitest/ut_mtmbasis.cpp`, `unitest/ut_fastfit_regression.cpp` and `unitest/ut_fastfit_correlation.cpp`.
+
+## Related
+
+- [Generating, optimizing and selecting an MTP basis](../guides/basis-selection.md)
+- [fastfit basis selection by E/F/S evaluation cost](fastfit-cost-selection.md)
+- [Moment Tensor Potentials (MTP)](../theory/mtp.md)

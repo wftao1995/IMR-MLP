@@ -150,3 +150,9 @@ increment in the remaining scaled coordinates. A rank-deficient fit has many val
 solutions, and the coefficients move with the solver and thresholds, so comparing
 predictions and the objective is the stable criterion. Independent
 validation/test sets are used for reporting, not solving.
+
+## Related
+
+- [Native variable-projection training for ordinary MTP](mtp-native-varpro.md)
+- [Linear Potential Training](../theory/linear.md)
+- [Training, evaluation and deployment](../guides/workflows.md)

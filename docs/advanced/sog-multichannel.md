@@ -1,4 +1,4 @@
-# Multichannel SOG: training and deployment
+# Multichannel SOG: training and deployment {#advanced_sog_multichannel}
 
 [中文](sog-multichannel_zh.md)
 
@@ -128,3 +128,9 @@ OMP_NUM_THREADS=2 MKL_NUM_THREADS=1 \
 LAMMPS tests cover multichannel output, zero/self-mode combinations, empty MPI
 partitions and invalid metadata. See the
 [LES/SOG adapter](../../LAMMPS/USER-MLIP/opt-les/README.md) for commands.
+
+## Related
+
+- [MTP + trainable SOG (v3/v4)](../reference/sog.md)
+- [MTP+LES v2](../reference/les-v2.md)
+- [MTP_M: Multiple Channels and Nonlinear Energy Heads](../theory/mtp-m.md)

@@ -1,4 +1,4 @@
-# Selecting HA categories
+# Selecting HA categories {#reference_ha_selection}
 
 [中文](ha-selected-indices_zh.md)
 
@@ -40,3 +40,9 @@ complete classification followed by exact selection, preserving the existing enc
 Not every workload becomes faster: the gain follows the selected class's share of the bond
 graph, and selecting the class present on every FCC bond saves
 little work.
+
+## Related
+
+- [Command Reference](commands.md)
+- [Crystal properties](../guides/properties.md)
+- [Configuration System](configuration.md)

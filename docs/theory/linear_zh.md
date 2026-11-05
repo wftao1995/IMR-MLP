@@ -175,3 +175,9 @@ L2（Tikhonov / 权重衰减）正则化为 Gram 矩阵添加 @f$\lambda \mathbf
 | `ErrorMonitor` | @ref train | 训练/验证误差跟踪 |
 
 **参见：** @ref theory_mtp, @ref theory_training
+
+## 相关
+
+- [训练方法](training_zh.md)
+- [训练、评估与部署](../guides/workflows_zh.md)
+- [势训练后的线性精修](../advanced/linear-refit_zh.md)

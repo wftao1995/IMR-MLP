@@ -1,4 +1,4 @@
-# convstr 中的标量元数据表达式
+# convstr 中的标量元数据表达式 {#reference_convstr_labels}
 
 [English](convstr-scalar-labels.md)
 
@@ -50,3 +50,9 @@ EXTXYZ 与 BIN 把计算出的标签保存为数值标量属性。CFG 通过已�
 语法错误与目标冲突在打开输出前检查。变量缺失或类型非数值、除数为零、
 函数定义域失败以及非有限结果都会报告帧 ID 与赋值。流式模式下
 后续失败会保留已写入的有效前缀，不回滚整个文件。
+
+## 相关
+
+- [命令参考](commands_zh.md)
+- [输入文件与配置约定](../guides/conventions_zh.md)
+- [单点计算与误差评估](../guides/single-point_zh.md)

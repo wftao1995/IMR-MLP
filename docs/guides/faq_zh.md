@@ -102,3 +102,9 @@ LES/SOG 属于 `mtp_les` 家族，
 并设置所用功能提供的种子，例如 `dimer:random_seed`。
 Dimer 的 `random_seed=0` 在同一构建下可复现，`-1` 表示非确定性初始化。
 每次运行使用独立目录，避免最终模型与日志被覆盖。
+
+## 相关
+
+- [故障排查](troubleshooting_zh.md)
+- [命令参考](../reference/commands_zh.md)
+- [配置系统](../reference/configuration_zh.md)

@@ -1,4 +1,4 @@
-# 对称性约束弛豫与近邻安全性
+# 对称性约束弛豫与近邻安全性 {#advanced_relax_symmetry}
 
 [English](relax-symmetry.md)
 
@@ -78,3 +78,9 @@ Python 结果的 `converged` 表示是否收敛，`n_iter` 是被接受的优化
 周期边界。部分周期结构允许非周期方向的晶格矢量为零；但空间群保对称弛豫需要
 满足其自身的周期性和晶胞条件。斜交晶胞会增加近邻数和内存消耗。
 近邻构建报错时，应先修正输入几何或截断设置再重新运行。
+
+## 相关
+
+- [约束下的弛豫计算](relax-controls_zh.md)
+- [结构弛豫](../guides/relaxation_zh.md)
+- [配置系统](../reference/configuration_zh.md)

@@ -1,4 +1,4 @@
-# trainmtp GPU 训练
+# trainmtp GPU 训练 {#development_trainmtp_gpu}
 
 [English](trainmtp-gpu.md)
 
@@ -54,3 +54,9 @@ MPI 使用 `BUILD_MODE=mpi-cuda` 或 `mpi-hip`。完整构型属于单个 rank�
 
 HIP/DCU 改用 `BUILD_MODE=hip HIP_ARCH=<设备架构>`、`fit:device hip` 与
 `build/hip/imrmlp-hip`。本地实机验证使用 CUDA；HIP 需在对应硬件验证。
+
+## 相关
+
+- [MTP GPU 求值与训练（CUDA/HIP）](cuda_zh.md)
+- [训练、评估与部署](../guides/workflows_zh.md)
+- [配置系统](../reference/configuration_zh.md)

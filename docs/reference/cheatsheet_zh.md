@@ -123,3 +123,9 @@ MaxVol 选择将可复用的 GPM 主动集写到 `potential.mtp.maxvol.gpm`；�
 | `--index` / `-id` | 物种索引文件 |
 | `--verbose` | 详细输出（仅少数命令支持） |
 | `--help` | 命令专用帮助 |
+
+## 相关
+
+- [命令参考](commands_zh.md)
+- [配置系统](configuration_zh.md)
+- [安装与构建](../guides/installation_zh.md)

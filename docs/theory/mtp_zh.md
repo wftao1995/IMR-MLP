@@ -361,3 +361,9 @@ E_i = \mathcal{N}\!\left(\{B_\alpha(\mathbf{r}_i)\}_\alpha\right)
 | `DescriptorMTM` | 包装为 `Descriptors` 的 MTP 描述符，用于 MaxVol |
 
 **参见：** @ref potentials
+
+## 相关
+
+- [线性势训练](linear_zh.md)
+- [可配置 Chebyshev 径向基](../reference/radial-basis_zh.md)
+- [MTP 基组的生成、优化与选择](../guides/basis-selection_zh.md)

@@ -109,3 +109,9 @@ NEB 的原有设置和 Python `NEB` 保留；VCNEB 的 `pressure` 单位 GPa，
 确认收敛并检查路径；一阶鞍点应恰有一个非平移的负 Hessian 模。应检查力容差、
 所用有限差分步长、晶胞尺寸，并以独立参考数据验证势函数精度。数值回归测试不能
 证明某一材料迁移或相变势垒的物理精度。
+
+## 相关
+
+- [鞍点与路径坐标及数值测试](saddle-numerics_zh.md)
+- [NEB 最小能量路径](../guides/neb_zh.md)
+- [命令参考](../reference/commands_zh.md)

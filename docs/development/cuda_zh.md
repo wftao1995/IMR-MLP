@@ -185,3 +185,9 @@ fit:gpu_cache_batches true
 GPU 单元测试对每个系数的能量/力/应力联合梯度与中心差分进行比较，
 还覆盖设备损失、主机/设备损失等价性、跨两块保留梯度、有序归约、系数更新和推理导数。
 未发现匹配的可见 GPU 设备时，运行测试会跳过。
+
+## 相关
+
+- [trainmtp GPU 训练](trainmtp-gpu_zh.md)
+- [安装与构建](../guides/installation_zh.md)
+- [势函数API：能量、力、应力](api-potential_zh.md)

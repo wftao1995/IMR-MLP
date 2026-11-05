@@ -284,7 +284,7 @@ fmt = guess_format("structure.cfg")
 CP2K data. Explicit content probing is separate: `imrmlp.io.detect_format(path)`
 reports matching format candidates, and `read(path, detect_content=True)` uses
 an unambiguous content match. The table describes file-based I/O; streaming
-sessions support a narrower set (see [shared workflows](../advanced/shared-workflows.md)).
+sessions support a narrower set.
 
 ### Streaming and incremental I/O
 

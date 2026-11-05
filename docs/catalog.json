@@ -179,6 +179,16 @@
               "source": "docs/reference/commands.md",
               "slug": "reference/commands",
               "render": true
+            },
+            {
+              "source": "docs/reference/convstr-scalar-labels.md",
+              "slug": "reference/convstr-scalar-labels",
+              "render": true
+            },
+            {
+              "source": "docs/reference/ha-selected-indices.md",
+              "slug": "reference/ha-selected-indices",
+              "render": true
             }
           ]
         },
@@ -258,6 +268,11 @@
               "render": true
             },
             {
+              "source": "docs/advanced/fastfit-cost-selection.md",
+              "slug": "advanced/fastfit-cost-selection",
+              "render": true
+            },
+            {
               "source": "docs/advanced/mtp-native-varpro.md",
               "slug": "advanced/mtp-native-varpro",
               "render": true
@@ -270,16 +285,6 @@
             {
               "source": "docs/advanced/hvp-training.md",
               "slug": "advanced/hvp-training",
-              "render": true
-            },
-            {
-              "source": "docs/advanced/fastfit-cost-selection.md",
-              "slug": "advanced/fastfit-cost-selection",
-              "render": true
-            },
-            {
-              "source": "docs/advanced/shared-workflows.md",
-              "slug": "advanced/shared-workflows",
               "render": true
             }
           ]
@@ -306,11 +311,6 @@
           },
           "pages": [
             {
-              "source": "docs/advanced/saddle-numerics.md",
-              "slug": "advanced/saddle-numerics",
-              "render": true
-            },
-            {
               "source": "docs/advanced/relax-controls.md",
               "slug": "advanced/relax-controls",
               "render": true
@@ -321,13 +321,13 @@
               "render": true
             },
             {
-              "source": "docs/advanced/convstr-scalar-labels.md",
-              "slug": "advanced/convstr-scalar-labels",
+              "source": "docs/advanced/saddle-numerics.md",
+              "slug": "advanced/saddle-numerics",
               "render": true
             },
             {
-              "source": "docs/advanced/ha-selected-indices.md",
-              "slug": "advanced/ha-selected-indices",
+              "source": "docs/advanced/saddle-workflows.md",
+              "slug": "advanced/saddle-workflows",
               "render": true
             },
             {
@@ -363,11 +363,6 @@
               "source": "examples/mtp-gpu-alni/README.md",
               "slug": "advanced/examples-mtp-gpu-alni",
               "render": true
-            },
-            {
-              "source": "docs/advanced/saddle-workflows.md",
-              "slug": "advanced/saddle-workflows",
-              "render": true
             }
           ]
         }
@@ -389,8 +384,8 @@
         {
           "id": "models",
           "title": {
-            "zh": "1. 势与描述符",
-            "en": "1. Potentials and descriptors"
+            "zh": "势与描述符",
+            "en": "Potentials and descriptors"
           },
           "pages": [
             {
@@ -408,8 +403,8 @@
         {
           "id": "training",
           "title": {
-            "zh": "2. 训练目标与优化",
-            "en": "2. Training objectives and optimization"
+            "zh": "训练目标与优化",
+            "en": "Training objectives and optimization"
           },
           "pages": [
             {
@@ -427,8 +422,8 @@
         {
           "id": "active",
           "title": {
-            "zh": "3. 主动学习",
-            "en": "3. Active learning"
+            "zh": "主动学习",
+            "en": "Active learning"
           },
           "pages": [
             {

@@ -1,4 +1,4 @@
-# Relaxation under constraints
+# Relaxation under constraints {#advanced_relax_controls}
 
 [中文](relax-controls_zh.md)
 

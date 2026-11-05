@@ -236,3 +236,9 @@ mpirun --bind-to none -n 4 build/mpi/unitest/ut_varpro_mpi.test
 ```
 
 Repeat with 1, 2 and 4 ranks when validating a local MPI installation.
+
+## Related
+
+- [Training Methodology](../theory/training.md)
+- [Linear refinement after potential training](linear-refit.md)
+- [Configuration System](../reference/configuration.md)

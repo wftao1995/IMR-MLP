@@ -1,4 +1,4 @@
-# NEB parallel execution and path symmetry
+# NEB parallel execution and path symmetry {#advanced_neb_parallel_symmetry}
 
 [中文](neb-parallel-symmetry_zh.md)
 
@@ -330,3 +330,9 @@ NEB distances are compared only when the same physical metric is retained.
 Gradient tests differentiate E+pV at steps 1e-4, 1e-5 and 1e-6 with explicit
 truncation/roundoff allowances. Spring, tangent and climbing residuals retain
 separate algebraic tests and are not treated as gradients of a total energy.
+
+## Related
+
+- [NEB minimum-energy paths](../guides/neb.md)
+- [Transition States and Stationary Points](saddle-workflows.md)
+- [Configuration System](../reference/configuration.md)

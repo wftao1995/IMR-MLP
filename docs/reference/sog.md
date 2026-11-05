@@ -1,4 +1,4 @@
-# MTP + trainable SOG (v3/v4)
+# MTP + trainable SOG (v3/v4) {#reference_sog}
 
 [中文](sog_zh.md)
 
@@ -151,3 +151,9 @@ serialization, frozen groups and staged fitting. See the
 [multichannel guide](../advanced/sog-multichannel.md) for MPI test commands
 and the [LAMMPS adapter](../../LAMMPS/USER-MLIP/opt-les/README.md) for deployment
 regressions.
+
+## Related
+
+- [MTP+LES v2](les-v2.md)
+- [Multichannel SOG: training and deployment](../advanced/sog-multichannel.md)
+- [Configuration System](configuration.md)

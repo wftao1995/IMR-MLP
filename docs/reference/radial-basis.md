@@ -1,4 +1,4 @@
-# Configurable Chebyshev radial basis
+# Configurable Chebyshev radial basis {#reference_radial_basis}
 
 [中文](radial-basis_zh.md)
 
@@ -79,3 +79,9 @@ Specialized classes retained by the C++ API are `RBChebyshev`,
 `RBChebyCos`, `RBChebyshevPoly4`, `RBChebyshevPoly5`, `RBPolyB`, and
 `RBPolyBCos`. For configurable radial bases in potential files, use
 `RBChebyshevConfigurable`.
+
+## Related
+
+- [Moment Tensor Potentials (MTP)](../theory/mtp.md)
+- [Potential Types and File Formats](potential-types.md)
+- [MTP basis generation, selection and verification](../advanced/basis-generation-selection.md)

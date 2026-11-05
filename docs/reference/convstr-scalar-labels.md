@@ -1,4 +1,4 @@
-# Scalar metadata expressions in convstr
+# Scalar metadata expressions in convstr {#reference_convstr_labels}
 
 [中文](convstr-scalar-labels_zh.md)
 
@@ -57,3 +57,9 @@ Invalid syntax and target conflicts are checked before opening output. Missing
 or nonnumeric variables, zero divisors, function-domain failures and nonfinite
 results report the frame ID and assignment. In streaming mode a later failure
 retains the already written valid prefix; it does not roll back the entire file.
+
+## Related
+
+- [Command Reference](commands.md)
+- [Input files and settings conventions](../guides/conventions.md)
+- [Single-point calculation and error evaluation](../guides/single-point.md)

@@ -1,10 +1,20 @@
-# Saddle and path coordinates and numerical tests
+# Saddle and path coordinates and numerical tests {#advanced_saddle_numerics}
 
 [中文](saddle-numerics_zh.md)
 
 The checks use analytic potentials and small synthetic MTP fixtures. They
 verify derivatives and solver behavior; material accuracy depends on the model
 and data supplied for the calculation.
+
+## Scope
+
+NR and mode following require MTP analytical Hessians. Their dense Hessians
+are intended for small candidate structures. NR finds stationary points
+without selecting a Hessian index. The tests target CPU/OpenMP and fixed-cell
+or hydrostatic-pressure derivatives; they do not qualify anisotropic external
+stress or arbitrary material migration paths. Variable-cell mode-following
+convergence is settled by the exit code and the final force / single-negative-mode
+check, with `MODECAR` as input only.
 
 ## Coordinate and solver contracts
 
@@ -56,12 +66,8 @@ make -j8 imrmlp test python
 python3 -m pytest
 ```
 
-## Scope
+## Related
 
-NR and mode following require MTP analytical Hessians. Their dense Hessians
-are intended for small candidate structures. NR finds stationary points
-without selecting a Hessian index. The tests target CPU/OpenMP and fixed-cell
-or hydrostatic-pressure derivatives; they do not qualify anisotropic external
-stress or arbitrary material migration paths. Variable-cell mode-following
-convergence is settled by the exit code and the final force / single-negative-mode
-check, with `MODECAR` as input only.
+- [Transition States and Stationary Points](saddle-workflows.md)
+- [NEB parallel execution and path symmetry](neb-parallel-symmetry.md)
+- [Command Reference](../reference/commands.md)

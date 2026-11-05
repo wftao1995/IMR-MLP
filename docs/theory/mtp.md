@@ -387,3 +387,9 @@ The model must provide a `propagate()` method that returns @f$E@f$,
 | `DescriptorMTM` | MTP descriptor wrapped as a `Descriptors` for MaxVol |
 
 **See:** @ref potentials
+
+## Related
+
+- [Linear Potential Training](linear.md)
+- [Configurable Chebyshev radial basis](../reference/radial-basis.md)
+- [Generating, optimizing and selecting an MTP basis](../guides/basis-selection.md)

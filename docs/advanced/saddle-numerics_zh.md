@@ -1,9 +1,16 @@
-# 鞍点与路径坐标及数值测试
+# 鞍点与路径坐标及数值测试 {#advanced_saddle_numerics}
 
 [English](saddle-numerics.md)
 
 这些检查使用解析势和小型合成 MTP 夹具，验证导数与求解器行为；
 材料精度取决于计算所使用的模型和数据。
+
+## 适用范围
+
+NR 与 mode following 需要 MTP 解析 Hessian。其稠密 Hessian 面向较小的候选结构。
+NR 寻找驻点时不指定鞍点阶数。测试以 CPU/OpenMP 以及定胞或静水压导数
+为目标，不用于验证各向异性外应力或任意材料迁移路径。
+变胞 mode following 是否收敛，看退出码与最终力／单一负模检查的结果，`MODECAR` 只是输入。
 
 ## 坐标与求解器约定
 
@@ -46,9 +53,8 @@ make -j8 imrmlp test python
 python3 -m pytest
 ```
 
-## 适用范围
+## 相关
 
-NR 与 mode following 需要 MTP 解析 Hessian。其稠密 Hessian 面向较小的候选结构。
-NR 寻找驻点时不指定鞍点阶数。测试以 CPU/OpenMP 以及定胞或静水压导数
-为目标，不用于验证各向异性外应力或任意材料迁移路径。
-变胞 mode following 是否收敛，看退出码与最终力／单一负模检查的结果，`MODECAR` 只是输入。
+- [IMR-MLP 过渡态与驻点计算](saddle-workflows_zh.md)
+- [NEB 并行计算与路径对称性](neb-parallel-symmetry_zh.md)
+- [命令参考](../reference/commands_zh.md)

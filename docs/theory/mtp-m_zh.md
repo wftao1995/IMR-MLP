@@ -1,4 +1,4 @@
-# MTP_M：多通道与非线性能量头
+# MTP_M：多通道与非线性能量头 {#theory_mtp_m}
 
 [English](mtp-m.md)
 
@@ -241,3 +241,8 @@ N_{\mathrm{par}}=N_r+S+qS+qP+N_{\mathrm{head}}.
 [初始化](../../apps/initmtpm.cpp)。API 使用示例见
 [势函数接口](../development/api-potential_zh.md)。
 
+## 相关
+
+- [训练方法](training_zh.md)
+- [MTP + 可训练 SOG（v3/v4）](../reference/sog_zh.md)
+- [多通道 SOG：训练与部署](../advanced/sog-multichannel_zh.md)

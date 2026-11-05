@@ -154,3 +154,9 @@ imrmlp attach_hessian --input structure.xyz --hessian FORCE_CONSTANTS --source f
 `unitest/ut_hvp_training.cpp` 覆盖解析基函数 HVP 与完整 Hessian 的一致性、线性拟合、
 非线性与 LES 参数梯度、权重及缓存行为，以及 IO 往返和坏数据拒绝。
 `unitest/python/test_hvp_io.py` 验证 Python 标签设置和三个格式的往返。
+
+## 相关
+
+- [势训练后的线性精修](linear-refit_zh.md)
+- [训练方法](../theory/training_zh.md)
+- [命令参考](../reference/commands_zh.md)

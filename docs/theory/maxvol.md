@@ -1,4 +1,4 @@
-# MAXVOL Active Learning
+# MAXVOL Active Learning {#theory_maxvol}
 
 [中文](maxvol_zh.md)
 
@@ -1226,3 +1226,8 @@ Main code entry points:
 
 **See also:** @ref maxvol, @ref theory_training
 
+## Related
+
+- [Active learning and candidate selection](../guides/active-learning.md)
+- [Configuration System](../reference/configuration.md)
+- [MTP basis generation, selection and verification](../advanced/basis-generation-selection.md)

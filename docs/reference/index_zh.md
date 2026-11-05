@@ -11,6 +11,8 @@
 - [命令速查表](cheatsheet_zh.md)
 - [配置系统](configuration_zh.md)
 - [命令参考](commands_zh.md)
+- [convstr 中的标量元数据表达式](convstr-scalar-labels_zh.md)
+- [选择 HA 类别](ha-selected-indices_zh.md)
 
 ## Python API
 

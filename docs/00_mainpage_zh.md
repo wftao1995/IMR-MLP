@@ -38,6 +38,7 @@
 | 计算迁移或反应势垒 | [NEB 路径](guides/neb_zh.md) |
 | 声子、弹性、状态方程 | [晶体性质](guides/properties_zh.md) |
 | 训练与验证自己的模型 | [训练流程](guides/workflows_zh.md) |
+| 诊断并重建 MTP 基组 | [基组生成与选择](guides/basis-selection_zh.md) |
 | 选样、参考标注与重训循环 | [主动学习](guides/active-learning_zh.md) |
 | 在 LAMMPS / Python 中运行模型 | [LAMMPS](../LAMMPS/README_zh.md) / [Python](../README-python_zh.md) |
 

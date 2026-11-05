@@ -230,3 +230,9 @@ imrmlp calc_err --input test.xyz --input-predict test-predicted.xyz --output-sum
 保留 E、F、virial 各自误差，并检查目标应用中的极端构型与弛豫／MD 稳定性。吞吐量由压缩后的模型、体系规模和后端共同决定，标量数只是其中一项；判据是压缩前后在同一批构型上的实测耗时。缩减后可再做非线性训练，但这会成为新的模型候选，需重新验证。仅重排计算图、要求保持预测的场景使用 `mtpbasis --source ... --target ... --report ...`；发生参数迁移后仍需比较 E/F/virial。
 
 完整命令参数见[命令参考](../reference/commands_zh.md)。实现核对入口为 `apps/genmtm.cpp`、`mtmbasis/mtm.cpp`、`apps/fastfit.cpp`；回归覆盖包括 `unitest/ut_mtmbasis.cpp`、`unitest/ut_fastfit_regression.cpp` 和 `unitest/ut_fastfit_correlation.cpp`。
+
+## 相关
+
+- [MTP 基组的生成、优化与选择](../guides/basis-selection_zh.md)
+- [fastfit 按 E/F/S 计算成本选基](fastfit-cost-selection_zh.md)
+- [矩张量势（MTP）](../theory/mtp_zh.md)

@@ -167,3 +167,9 @@ mpirun --bind-to none -n 4 build/mpi/unitest/ut_varpro_mpi.test
 ```
 
 测试包括与 `MPI_COMM_SELF` 全数据参考的完整径向梯度比较、空数据进程、只有工作进程持有验证标签、单进程计算报错、主进程报告和检查点写入失败。MPI 测试显式固定 Catch2 的顺序和随机种子，确保所有进程进入相同测试。
+
+## 相关
+
+- [训练方法](../theory/training_zh.md)
+- [势训练后的线性精修](linear-refit_zh.md)
+- [配置系统](../reference/configuration_zh.md)

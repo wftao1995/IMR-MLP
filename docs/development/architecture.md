@@ -156,3 +156,9 @@ for use with LAMMPS, ASE, or any KIM-aware MD code. Contains:
 potentials to be used as drop-in replacements throughout the framework. Supports auto-detection
 of supported species and integrates with the standard `Neighborhoods` infrastructure for
 neighbor list construction.
+
+## Related
+
+- [Core API: Atoms & Neighborhoods](api-core.md)
+- [API Examples](cpp-examples.md)
+- [I/O API: Reading and Writing Structures](api-io.md)

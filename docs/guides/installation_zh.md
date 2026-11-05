@@ -260,3 +260,9 @@ make run_tests TEST_NAMES='ut_openkim_parameters'
 在临时工作目录运行，并将匹配的构建库目录放在 `LD_LIBRARY_PATH` 首位，
 避免 OpenKIM 的 `kim.log` 和其他测试输出落入仓库根目录。不传 `TEST_NAMES`
 则运行完整套件。直接调用测试程序时，也应使用临时工作目录和匹配的库路径。
+
+## 相关
+
+- [输入文件与配置约定](conventions_zh.md)
+- [训练、评估与部署](workflows_zh.md)
+- [故障排查](troubleshooting_zh.md)

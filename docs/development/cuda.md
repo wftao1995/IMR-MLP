@@ -253,3 +253,9 @@ coefficient against central differences.  It also covers device loss,
 host/device loss equivalence, retained two-chunk gradients, ordered reduction,
 coefficient updates, and inference derivatives.  Runtime tests skip cleanly
 when no matching GPU device is visible.
+
+## Related
+
+- [trainmtp GPU training](trainmtp-gpu.md)
+- [Installation and build](../guides/installation.md)
+- [Potential API: Energy, Forces, Stress](api-potential.md)

@@ -40,6 +40,7 @@ runnable examples listed at the end.
 | Diffusion, reaction or transformation barriers | [NEB minimum-energy paths](guides/neb.html) |
 | Phonons, elasticity or bulk modulus | [Crystal properties](guides/properties.html) |
 | Prepare reference data, fit and validate a model | [Training workflow](guides/workflows.html) |
+| Model capacity is the limit, or the fit saturates | [MTP basis generation and selection](guides/basis-selection.html) |
 | Identify unfamiliar structures and add training data | [Active learning and selection](guides/active-learning.html) |
 | LAMMPS MD / Python and ASE | [LAMMPS](guides/lammps.html) / [Python](guides/python-installation.html) |
 
@@ -52,7 +53,7 @@ consult the [cheat sheet](reference/cheatsheet.html).
 |---|---|
 | [1. User guides](guides/index.html) | How to complete a task |
 | [2. Reference](reference/index.html) | Definitions of commands, options and formats |
-| [3. Advanced usage](advanced/index.html) | HVP, SOG, fastfit and specialized examples |
+| [3. Advanced usage](advanced/index.html) | Basis selection, HVP, variable projection, long-range models and saddle searches |
 | [4. Theory and algorithms](theory/index.html) | Why the models and methods work |
 | [5. Development](development/index.html) | For contributors changing code or extending interfaces |
 

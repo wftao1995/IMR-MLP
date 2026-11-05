@@ -225,3 +225,9 @@ input.
 - Restart of the pair state is not supported.
 - GPU execution of the harmonic reference requires separate device validation;
   `mlip/gpudirect` does not cover this style.
+
+## Related
+
+- [Crystal properties](../guides/properties.md)
+- [Command Reference](../reference/commands.md)
+- [Configuration System](../reference/configuration.md)

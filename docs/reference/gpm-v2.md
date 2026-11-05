@@ -249,3 +249,9 @@ Match the original builder family when using the legacy CLI; a composite model
 also needs its original `--pottype`. Native output paths must not end in `.gpm`.
 Files are staged and reloaded before publication. Reported publication failures
 roll back existing outputs; concurrent readers should wait for conversion to finish.
+
+## Related
+
+- [Potential Types and File Formats](potential-types.md)
+- [Command Reference](commands.md)
+- [Training, evaluation and deployment](../guides/workflows.md)

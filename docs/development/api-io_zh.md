@@ -162,7 +162,7 @@ io.write(structures, "output.data", "n2p2");
 
 读写方向与文件名检测是不同的能力。显式格式名见
 [Python 格式表](../reference/python_zh.md#支持的格式)；独立流会话支持的格式
-更少，见[共享工作流](../advanced/shared-workflows_zh.md)。
+更少，见[流式与增量 I/O](../reference/python_zh.md#流式与增量-io)。
 
 ### VASP OUTCAR
 

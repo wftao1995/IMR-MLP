@@ -103,3 +103,9 @@ Spline、LES/SOG 模型需选择各自对应的 style。
 
 报告问题时提供命令、最小配置、模型与物种信息、程序版本、构建模式、编译器和
 依赖版本及相关日志。只分享有权分发的最小复现输入。
+
+## 相关
+
+- [常见问题](faq_zh.md)
+- [命令参考](../reference/commands_zh.md)
+- [安装与构建](installation_zh.md)

@@ -1,4 +1,4 @@
-# MaxVol 算法与主动学习技术说明
+# MaxVol 算法与主动学习技术说明 {#theory_maxvol}
 
 [English](maxvol.md)
 
@@ -1072,3 +1072,8 @@ CURResult cur_select_rows(
 
 **参见：** @ref maxvol, @ref theory_training
 
+## 相关
+
+- [主动学习与候选选样](../guides/active-learning_zh.md)
+- [配置系统](../reference/configuration_zh.md)
+- [MTP 基组生成、筛选与复核](../advanced/basis-generation-selection_zh.md)

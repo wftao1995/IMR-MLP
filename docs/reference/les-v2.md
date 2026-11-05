@@ -1,4 +1,4 @@
-# MTP+LES v2
+# MTP+LES v2 {#reference_les_v2}
 
 [中文](les-v2_zh.md)
 
@@ -157,3 +157,9 @@ forces, virials and parameter gradients, including radial gradients when the
 LES coefficients are frozen. GPU evaluation/training currently supports SOG;
 Coulomb LES v2 uses the CPU. See the [GPU guide](../development/cuda.md) for
 backend coverage.
+
+## Related
+
+- [MTP + trainable SOG (v3/v4)](sog.md)
+- [Multichannel SOG: training and deployment](../advanced/sog-multichannel.md)
+- [Potential Types and File Formats](potential-types.md)

@@ -1,4 +1,4 @@
-# MTP_M: Multiple Channels and Nonlinear Energy Heads
+# MTP_M: Multiple Channels and Nonlinear Energy Heads {#theory_mtp_m}
 
 [中文](mtp-m_zh.md)
 
@@ -279,3 +279,8 @@ Implementation sources: [channels, heads and derivatives](../../potentials/poten
 [initialization](../../apps/initmtpm.cpp). API examples are in the
 [potential interface guide](../development/api-potential.md).
 
+## Related
+
+- [Training Methodology](training.md)
+- [MTP + trainable SOG (v3/v4)](../reference/sog.md)
+- [Multichannel SOG: training and deployment](../advanced/sog-multichannel.md)

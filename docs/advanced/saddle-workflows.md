@@ -138,3 +138,9 @@ exactly one negative nontranslational Hessian mode. Check force tolerance,
 finite-difference steps where used, cell size and potential accuracy against
 independent reference data. Numerical regression tests do not establish the
 physical accuracy of a material's migration or phase-transition barrier.
+
+## Related
+
+- [Saddle and path coordinates and numerical tests](saddle-numerics.md)
+- [NEB minimum-energy paths](../guides/neb.md)
+- [Command Reference](../reference/commands.md)

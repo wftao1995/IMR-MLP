@@ -121,3 +121,9 @@ uses only supplied synthetic inputs and is suitable for checking a fresh build.
 When reporting a problem, include the command, minimal settings, model/species
 metadata, version, build mode, compiler/dependency versions and the relevant
 log. Share a small reproducible input only if you have permission to distribute it.
+
+## Related
+
+- [Frequently asked questions](faq.md)
+- [Command Reference](../reference/commands.md)
+- [Installation and build](installation.md)

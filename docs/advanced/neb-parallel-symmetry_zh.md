@@ -1,4 +1,4 @@
-# NEB 并行计算与路径对称性
+# NEB 并行计算与路径对称性 {#advanced_neb_parallel_symmetry}
 
 [English](neb-parallel-symmetry.md)
 
@@ -250,3 +250,9 @@ VC 搜索要求完全周期、对称应变表示，以及原始 `neb_reference_c
 表示扰动留待独立群作用实现。回归覆盖平移、整体编号变换、幺模晶格基变换后的
 几何/EFS/投影；距离仅在同一物理度量下比较。焓梯度以 1e-4、1e-5、1e-6 步长和
 截断/舍入误差判据独立验证；弹簧、切向和爬坡残余仍按代数关系另测。
+
+## 相关
+
+- [NEB 最小能量路径](../guides/neb_zh.md)
+- [IMR-MLP 过渡态与驻点计算](saddle-workflows_zh.md)
+- [配置系统](../reference/configuration_zh.md)

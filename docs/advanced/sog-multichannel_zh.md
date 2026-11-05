@@ -1,4 +1,4 @@
-# 多通道 SOG：训练与部署
+# 多通道 SOG：训练与部署 {#advanced_sog_multichannel}
 
 [English](sog-multichannel.md)
 
@@ -86,3 +86,9 @@ OMP_NUM_THREADS=2 MKL_NUM_THREADS=1 \
 
 LAMMPS 测试覆盖多通道输出、零模/自能组合、空 MPI 分区及非法元数据，
 执行方法见 [LES/SOG 适配器](../../LAMMPS/USER-MLIP/opt-les/README.md)。
+
+## 相关
+
+- [MTP + 可训练 SOG（v3/v4）](../reference/sog_zh.md)
+- [MTP+LES v2](../reference/les-v2_zh.md)
+- [MTP_M：多通道与非线性能量头](../theory/mtp-m_zh.md)

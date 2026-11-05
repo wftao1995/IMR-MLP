@@ -294,3 +294,9 @@ with the matching build library first in `LD_LIBRARY_PATH`. This keeps OpenKIM's
 `kim.log` and other test outputs out of the repository root. Omit `TEST_NAMES` to
 run the complete suite. Direct test invocations should also use a temporary
 working directory and the matching library path.
+
+## Related
+
+- [Input files and settings conventions](conventions.md)
+- [Training, evaluation and deployment](workflows.md)
+- [Troubleshooting](troubleshooting.md)

@@ -199,3 +199,9 @@ before those structures can improve a supervised fit.
 
 For implementation details, see @ref train. For linear least squares, see
 @ref theory_linear; for active-set selection, see @ref theory_maxvol.
+
+## Related
+
+- [Linear Potential Training](linear.md)
+- [Training, evaluation and deployment](../guides/workflows.md)
+- [HVP-supervised training and data format](../advanced/hvp-training.md)

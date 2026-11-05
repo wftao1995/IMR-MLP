@@ -197,3 +197,9 @@ regularization, and reserve final test data for evaluation after selection.
 | `ErrorMonitor` | @ref train | Training/validation error tracking |
 
 **See:** @ref theory_mtp, @ref theory_training
+
+## Related
+
+- [Training Methodology](training.md)
+- [Training, evaluation and deployment](../guides/workflows.md)
+- [Linear refinement after potential training](../advanced/linear-refit.md)

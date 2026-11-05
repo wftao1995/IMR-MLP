@@ -39,6 +39,7 @@
 | 扩散、反应或相变势垒 | [NEB 最小能量路径](guides/neb.html) |
 | 声子、弹性、体模量 | [晶体性质](guides/properties.html) |
 | 准备参考数据、拟合并验证模型 | [训练工作流](guides/workflows.html) |
+| 模型表达力受限、拟合误差不再下降 | [MTP 基组生成与选择](guides/basis-selection.html) |
 | 找出陌生构型并补充训练数据 | [主动学习与选样](guides/active-learning.html) |
 | LAMMPS MD / Python 与 ASE | [LAMMPS](guides/lammps.html) / [Python](guides/python-installation.html) |
 
@@ -50,7 +51,7 @@
 |---|---|
 | [1. 使用指南](guides/index.html) | 回答“怎样完成一个任务” |
 | [2. 参考手册](reference/index.html) | 回答“某个命令、参数或格式如何定义” |
-| [3. 进阶使用](advanced/index.html) | HVP、SOG、fastfit 和专题案例 |
+| [3. 进阶使用](advanced/index.html) | 基组生成与选择、HVP、变量投影、长程模型与鞍点搜索 |
 | [4. 理论与算法](theory/index.html) | 回答“模型和方法为什么这样工作” |
 | [5. 开发文档](development/index.html) | 面向修改代码和扩展接口的开发者 |
 

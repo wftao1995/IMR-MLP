@@ -167,8 +167,8 @@ io.write(structures, "output.data", "n2p2");
 
 Read/write direction and filename detection are separate capabilities. See the
 [Python format table](../reference/python.md#supported-formats) for explicit
-format names, and [shared workflows](../advanced/shared-workflows.md) for the
-narrower independent streaming-session format set.
+format names, and the [streaming I/O helpers](../reference/python.md#streaming-and-incremental-io)
+for the narrower independent-session format set.
 
 ### VASP OUTCAR
 

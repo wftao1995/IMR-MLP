@@ -1,4 +1,4 @@
-# 约束下的弛豫计算
+# 约束下的弛豫计算 {#advanced_relax_controls}
 
 [English](relax-controls.md)
 

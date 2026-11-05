@@ -1,4 +1,4 @@
-# 选择 HA 类别
+# 选择 HA 类别 {#reference_ha_selection}
 
 [English](ha-selected-indices.md)
 
@@ -32,3 +32,9 @@ imrmlp calc_prop --settings ha.ini --input trajectory.xyz \
 阶段；对截断过滤仍作用于整个键图。周期镜像保持原有身份与对归属，第四个 HA
 分类器不变。扩展类别码先完整分类再精确选取，以保留原编码。加速取决于所选类别在键图中的
 占比：类别若在每条键上都出现，能省下的计算很少。
+
+## 相关
+
+- [命令参考](commands_zh.md)
+- [晶体性质](../guides/properties_zh.md)
+- [配置系统](configuration_zh.md)

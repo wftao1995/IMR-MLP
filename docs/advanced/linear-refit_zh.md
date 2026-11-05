@@ -130,3 +130,9 @@ LD_LIBRARY_PATH=$PWD/build/mpi:$LD_LIBRARY_PATH \
 固定成分数据不能独立确定所有元素偏置。精修保留无法确定的组合，在其余缩放坐标
 中求最小增量解。秩亏时有效解不唯一，系数会随求解器与阈值变化；比较预测值和目标是
 唯一稳定的判据。独立验证/测试集只用于报告，不参与求解。
+
+## 相关
+
+- [普通 MTP 的原生变量投影训练](mtp-native-varpro_zh.md)
+- [线性势训练](../theory/linear_zh.md)
+- [训练、评估与部署](../guides/workflows_zh.md)
