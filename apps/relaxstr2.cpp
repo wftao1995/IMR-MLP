@@ -245,7 +245,7 @@ class Relaxstr2Params : public ConnectSettings
     bool selective_dynamics = false;
     std::string strain_mask = "";
     double pressure = 0;
-    bool dprecond = false;
+    bool dprecond = true;
 
     string potfile = "";
     string pottype = "";
@@ -321,7 +321,7 @@ class Relaxstr2Params : public ConnectSettings
             cmdopts, pressure, "pressure", "p",
             "External hydrostatic pressure (GPa). Positive values = compressive loading");
         ConnectWithConsole(cmdopts, dprecond, "dprecond", "",
-                           "Diagonal preconditioning intensity for thin/flat systems", 1, 10);
+                           "Boolean (default true): automatic scaling requires relax_cell=true, fix_shape=false, cartesian=false, atomic_force_recast=false, with_constraint_vib=false, and symmetric strain or periodic subspace; precond_file overrides; force_switchoff_scaling disables; lbfgspp does not scale search steps; its gradient tolerance depends on scaling", 1, 10);
         for (const auto &name :
              {"gtol", "selective_dynamics", "strain_mask", "stepmax", "pressure", "dprecond"})
             cmdopts.map_setting(name, std::string("relax:") + name);

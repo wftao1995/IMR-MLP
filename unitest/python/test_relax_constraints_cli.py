@@ -55,6 +55,42 @@ def run(path, *extra):
     return run_command('imrmlp', ['relax', 'settings.ini', '--num_threads', '1', *extra], path)
 
 
+@pytest.mark.parametrize(
+    'setting,cli,expected',
+    [
+        (None, [], False),
+        ('False', [], True),
+        ('False', ['--dprecond', 'true'], False),
+        ('True', ['--dprecond', 'false'], True),
+    ],
+)
+def test_dprecond_default_and_cli_override(tmp_path, setting, cli, expected):
+    prepare(tmp_path, {'kind': 'volume', 'residual_tolerance': 1e-6})
+    path = tmp_path / 'settings.ini'
+    text = path.read_text()
+    text = text.replace(
+        'relax:dprecond False\n', '' if setting is None else f'relax:dprecond {setting}\n'
+    )
+    path.write_text(text)
+    result = run(tmp_path, *cli)
+    if expected:
+        assert result.returncode == 0, result.stdout + result.stderr
+    else:
+        assert result.returncode != 0
+        assert 'Raw9 lattice constraints are incompatible' in result.stderr
+
+
+def test_dprecond_help_describes_driver_default_and_conditions(tmp_path):
+    result = run_command('imrmlp', ['relax', '--showhelp=100', '--help'], tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    line = next(line for line in result.stdout.splitlines() if '--dprecond ' in line)
+    for phrase in (
+        '[bool]', 'default true', 'atomic_force_recast=false', 'precond_file',
+        'lbfgspp does not scale search steps', 'gradient tolerance depends on scaling',
+    ):
+        assert phrase in line
+
+
 def cells(path):
     return [
         np.array(list(map(float, x.split()))).reshape(3, 3)

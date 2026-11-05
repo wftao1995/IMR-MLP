@@ -103,7 +103,7 @@ void RelaxationDrvV2::InitSettings()
             "Whether to use Cartesian coordinates (True) or fractional coordinates (False)", 1, 2);
     Connect(
         flags.dprecond, "dprecond",
-        "Use automatic diagonal scaling for fractional symmetric-strain or periodic-subspace variable-cell coordinates",
+        "Boolean (default true): automatic scaling requires relax_cell=true, fix_shape=false, cartesian=false, atomic_force_recast=false, with_constraint_vib=false, and symmetric strain or periodic subspace; precond_file overrides; force_switchoff_scaling disables; lbfgspp does not scale search steps; its gradient tolerance depends on scaling",
         1, 2);
     Connect(flags.write_traj, "write_traj", "Whether to write trajectory out to file");
     Connect(flags.traj_append, "traj_append", "Whether to append to existing trajectory file");

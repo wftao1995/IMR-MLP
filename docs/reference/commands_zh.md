@@ -182,7 +182,7 @@ CLI 混乱，并使配置可复现。参见 @ref guide_config 了解所有支持
 | `--cell-mask` | | — | 晶胞坐标掩码 |
 | `--strain_mask` | | — | 应变坐标掩码 |
 | `--stepmax` | | `0.1` | 单次更新最大步长 |
-| `--dprecond` | | `0` | 启用对角预条件（布尔值） |
+| `--dprecond` | | `true` | 按条件启用自动对角缩放的布尔覆盖值 |
 | `--write-force` | | `true` | 输出时写力 |
 | `--write-stress` | | `true` | 输出时写应力 |
 | `--write-ateng` | | `true` | 输出时写逐原子能量 |
@@ -1156,8 +1156,8 @@ imrmlp primi_reduce --input=POSCAR --output=primitive.vasp
 ### `swap_axis` — 重排晶格轴
 
 ```bash
-imrmlp swap_axis --order=132 --input=POSCAR --output=swapped.vasp
-# mode: 3 位数字排列。132 = xyz → xzy
+imrmlp swap_axis --order=xzy --input=POSCAR --output=swapped.vasp
+# xzy 交换第二和第三个轴
 ```
 
 | 选项 | 别名 | 默认值 | 描述 |
@@ -1555,6 +1555,17 @@ imrmlp ti_fit_fc --workflow export \
 `fitted` FC 可能含有较大的长程块，此时直接截断会显著改变参考态；若目标是
 保留原始局域模型，应使用 `--lammps-fc-source initial`。
 
+
+`relax:dprecond` 是布尔值，默认 `true`；`--dprecond true` 或
+`--dprecond false` 可覆盖设置。仅当 `relax_cell=True`、`fix_shape=False`、
+`cartesian=False`、`atomic_force_recast=False`、`with_constraint_vib=False`，
+且周期子空间已启用或同时满足 `cell_strain=True` 和 `symm_strain=True` 时，
+才选择自动对角缩放。由于 `atomic_force_recast` 默认为 `True`，该缩放默认不生效。
+`precond_file` 替代自动对角缩放；`force_switchoff_scaling=True` 将其关闭。
+FIRE、GD、MDMin 和 QuickMin 将该值用作梯度除数，ALGLIB 的 `lbfgs` 和 `cg`
+将其用作变量尺度；`lbfgspp` 不按其缩放搜索步，但梯度容差取决于最小对角尺度。
+其他选定度量可替代对角缩放，
+`thin_cell_scaling` 也可能独立于 `dprecond` 生效。
 
 | 选项 | 别名 | 默认值 | 说明 |
 | --- | --- | --- | --- |

@@ -46,6 +46,44 @@ def cell_args(command, inputs):
     return args
 
 
+@pytest.mark.parametrize('order', ['132', 'xxz', 'XYZ', 'invalid'])
+def test_swap_axis_rejects_invalid_order_before_writing(tmp_path, cell_input, order):
+    output = tmp_path / 'output.xyz'
+    output.write_text('keep existing output\n')
+    args = cell_args('swap_axis', cell_input)
+    args[-1] = order
+    result = run_command('imrmlp', [*args, '--overwrite'], tmp_path)
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert 'invalid --order' in result.stderr
+    assert order in result.stderr
+    assert output.read_text() == 'keep existing output\n'
+
+
+@pytest.mark.parametrize(
+    'order,alias,expected',
+    [
+        ('xyz', 'abc', [2, 0, 0, 0, 3, 0, 0, 0, 4]),
+        ('xzy', 'acb', [2, 0, 0, 0, 0, 4, 0, -3, 0]),
+        ('yxz', 'bac', [0, 3, 0, -2, 0, 0, 0, 0, 4]),
+        ('yzx', 'bca', [0, 3, 0, 0, 0, 4, 2, 0, 0]),
+        ('zxy', 'cab', [0, 0, 4, 2, 0, 0, 0, 3, 0]),
+        ('zyx', 'cba', [0, 0, 4, 0, 3, 0, -2, 0, 0]),
+    ],
+)
+def test_swap_axis_accepts_letter_orders_and_aliases(tmp_path, cell_input, order, alias, expected):
+    source = tmp_path / 'input.xyz'
+    source.write_text(source.read_text().replace('10 0 0 0 10 0 0 0 10', '2 0 0 0 3 0 0 0 4'))
+    for value in (order, alias):
+        args = cell_args('swap_axis', cell_input)
+        args[-1] = value
+        result = run_command('imrmlp', [*args, '--overwrite'], tmp_path)
+        assert result.returncode == 0, result.stdout + result.stderr
+        header = (tmp_path / 'output.xyz').read_text().splitlines()[1]
+        lattice = re.search(r'Lattice="([^"]+)"', header)
+        assert lattice is not None
+        assert [float(item) for item in lattice.group(1).split()] == pytest.approx(expected)
+
+
 @pytest.mark.parametrize('avgpos', [False, True])
 @pytest.mark.parametrize('full_device', [False, True])
 def test_calc_prop_reports_failed_structure_outputs(tmp_path, cell_input, avgpos, full_device):

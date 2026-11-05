@@ -857,7 +857,8 @@ int swap_axis(int argc, char *argv[])
     bool overwrite = false;
     std::string order = "xyz"; // xyz -> xyz xzy yxz yzx zxy zyx
     cmdopts.addop(tol, "tol", "tol", "tolerance")
-        .addop(order, "order", "order", "axis order: xyz -> (xyz|xzy|yxz|yzx|zxy|zyx)", true)
+        .addop(order, "order", "order", "axis order: xyz|xzy|yxz|yzx|zxy|zyx (or abc equivalents)",
+               true)
         .addop(strfile, "input", "in", "", true)
         .addop(outfile, "output", "out", "", true)
         .addop(informat, "input-format", "if")
@@ -869,18 +870,6 @@ int swap_axis(int argc, char *argv[])
         .add_request("order")
         .add_request("input")
         .phrase_options(argc, argv);
-    if (GPIO::file_exist(index))
-        iobj.readmap(index);
-    else
-        iobj.setmap();
-    if (GPIO::file_exist(outfile) && !overwrite)
-    {
-        std::cerr << "Error: output file " << outfile << " already exists; use --overwrite"
-                  << std::endl;
-        return 1;
-    }
-    if (!iobj.read(atoms, strfile, informat) || atoms.empty())
-        GPERROR("No structures loaded from " + strfile);
     int mode = 123;
     if (order == "xyz" || order == "abc")
         mode = 123;
@@ -894,6 +883,25 @@ int swap_axis(int argc, char *argv[])
         mode = 312;
     else if (order == "zyx" || order == "cba")
         mode = 321;
+    else
+    {
+        std::cerr << "Error: invalid --order value \"" << order
+                  << "\"; expected xyz, xzy, yxz, yzx, zxy, zyx or their abc equivalents"
+                  << std::endl;
+        return 1;
+    }
+    if (GPIO::file_exist(index))
+        iobj.readmap(index);
+    else
+        iobj.setmap();
+    if (GPIO::file_exist(outfile) && !overwrite)
+    {
+        std::cerr << "Error: output file " << outfile << " already exists; use --overwrite"
+                  << std::endl;
+        return 1;
+    }
+    if (!iobj.read(atoms, strfile, informat) || atoms.empty())
+        GPERROR("No structures loaded from " + strfile);
     for (auto &atom : atoms)
     {
         atom.swap_axis(mode, keephand);

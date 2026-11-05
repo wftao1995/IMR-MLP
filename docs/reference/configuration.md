@@ -232,7 +232,7 @@ Additional keys accepted by the relaxation drivers:
 | Key | Default | Description |
 |-----|---------|-------------|
 | `relax:periodic_subspace` | no | Use mixed periodic-fractional/open-Cartesian coordinates; cell changes affect the periodic Gram matrix only |
-| `relax:dprecond` | `0` | Diagonal preconditioning intensity (levels above 9 are hidden) |
+| `relax:dprecond` | `true` | Boolean: select automatic diagonal scaling when the [relaxation conditions](commands.md#relax--structure-relaxation) are met |
 | `relax:force_switchoff_scaling` | — | Scale forces smoothly near the switching region |
 | `relax:keep_symm` | no | Preserve the initial space-group symmetry |
 | `relax:cell_factor` | — | Scale factor applied to cell-coordinate steps |

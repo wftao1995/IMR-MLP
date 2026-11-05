@@ -227,7 +227,7 @@ MaxVol、FPS/CUR 与拥挤度命令从 `builder:` 和 `selector:` 块读取构�
 | 键 | 默认值 | 描述 |
 |-----|---------|-------------|
 | `relax:periodic_subspace` | 否 | 使用周期方向分数坐标与非周期方向笛卡尔坐标；变胞仅改变周期 Gram 矩阵 |
-| `relax:dprecond` | `0` | 对角预条件强度（大于 9 的级别默认隐藏） |
+| `relax:dprecond` | `true` | 布尔值：满足[弛豫条件](commands_zh.md#relax--结构弛豫)时选择自动对角缩放 |
 | `relax:force_switchoff_scaling` | — | 在切换区平滑缩放力 |
 | `relax:keep_symm` | 否 | 保持初始空间群对称性 |
 | `relax:cell_factor` | — | 晶胞坐标步长缩放因子 |

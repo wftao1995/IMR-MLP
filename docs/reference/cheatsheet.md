@@ -92,7 +92,7 @@ current active set; measure the error with `calc_err` on the same configurations
 | Search orthogonal cell | `imrmlp mk_orth_search --input=str.cfg` | `--tol=1e-4` |
 | Reduce to primitive | `imrmlp primi_reduce --input=POSCAR` | — |
 | Reduce translational mult. | `imrmlp trans_reduce --input=POSCAR` | `--tol=1e-4` |
-| Swap lattice axes | `imrmlp swap_axis --order=132 --input=POSCAR` | — |
+| Swap lattice axes | `imrmlp swap_axis --order=xzy --input=POSCAR` | — |
 | Check equivalence | `imrmlp sameq --input1=s1.cfg --input2=s2.cfg` | `--tol=0.1` |
 | Split dataset | `imrmlp split_set ds.cfg split_ --ratios=8,1,1 --shuffle yes` | `--nsplit=2` (equal) |
 | Remove duplicate atoms | `imrmlp rmdups --input=overlap.cfg --rtol=0.5` | — |

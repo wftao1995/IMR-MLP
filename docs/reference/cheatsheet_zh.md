@@ -86,7 +86,7 @@ MaxVol 选择将可复用的 GPM 主动集写到 `potential.mtp.maxvol.gpm`；�
 | 搜索正交晶胞 | `imrmlp mk_orth_search --input=str.cfg` | `--tol=1e-4` |
 | 约化到初基晶胞 | `imrmlp primi_reduce --input=POSCAR` | — |
 | 约化平移多重性 | `imrmlp trans_reduce --input=POSCAR` | `--tol=1e-4` |
-| 交换晶格轴 | `imrmlp swap_axis --order=132 --input=POSCAR` | — |
+| 交换晶格轴 | `imrmlp swap_axis --order=xzy --input=POSCAR` | — |
 | 检查结构等价性 | `imrmlp sameq --input1=s1.cfg --input2=s2.cfg` | `--tol=0.1` |
 | 划分数据集 | `imrmlp split_set ds.cfg split_ --ratios=8,1,1 --shuffle yes` | `--nsplit=2`（等分） |
 | 删除重叠原子 | `imrmlp rmdups --input=overlap.cfg --rtol=0.5` | — |

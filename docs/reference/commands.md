@@ -91,6 +91,18 @@ imrmlp calc_efs --potfile=potential.mtp --input=POSCAR --output=out.cfg --device
 imrmlp efs --settings=calc_efs.ini
 ```
 
+`relax:dprecond` is a Boolean, default `true`; `--dprecond true` or
+`--dprecond false` overrides the setting. Automatic diagonal scaling is selected only
+when `relax_cell=True`, `fix_shape=False`, `cartesian=False`,
+`atomic_force_recast=False`, `with_constraint_vib=False`, and either periodic
+subspace is active or both `cell_strain=True` and `symm_strain=True`. The default
+`atomic_force_recast=True` therefore leaves this scaling inactive. A `precond_file`
+replaces the automatic diagonal; `force_switchoff_scaling=True` disables it.
+FIRE, GD, MDMin and QuickMin use it as a gradient divisor; ALGLIB `lbfgs` and
+`cg` use it as variable scales. `lbfgspp` does not scale search steps, but its
+gradient tolerance depends on the minimum diagonal scale. Other selected metrics can replace diagonal scaling, and
+`thin_cell_scaling` may apply independently of `dprecond`.
+
 | Option | Alias | Default | Description |
 |--------|-------|---------|-------------|
 | `--input` | `-in` | `POSCAR` | Input structure file (positional, required) |
@@ -202,7 +214,7 @@ and `--discard-all` (drop extra properties on output).
 | `--cell-mask` | | — | Cell-coordinate mask |
 | `--strain_mask` | | — | Strain-coordinate mask |
 | `--stepmax` | | `0.1` | Maximum step per update |
-| `--dprecond` | | `0` | Enable diagonal preconditioning (Boolean) |
+| `--dprecond` | | `true` | Boolean override for conditional automatic diagonal scaling |
 | `--write-force` | | `true` | Write forces on output |
 | `--write-stress` | | `true` | Write stress on output |
 | `--write-ateng` | | `true` | Write per-atom energies on output |
@@ -1246,8 +1258,8 @@ imrmlp primi_reduce --input=POSCAR --output=primitive.vasp
 ### `swap_axis` — Reorder Lattice Axes
 
 ```bash
-imrmlp swap_axis --order=132 --input=POSCAR --output=swapped.vasp
-# mode: 3-digit permutation. 132 = xyz → xzy
+imrmlp swap_axis --order=xzy --input=POSCAR --output=swapped.vasp
+# xzy exchanges the second and third axes
 ```
 
 | Option | Alias | Default | Description |
