@@ -148,7 +148,7 @@ OBJREL = dimer_new.o neb.o neb_solver.o neb_symmetry.o neb_perturbation.o neb_re
 
 OBJCORR = CorrelationAnalyzer.o DescriptorCollector.o Decorrelator.o \
           ThresholdPruning.o ClusterRepresentative.o IterativeGreedyVIF.o \
-          DiagnosticReport.o BasisAnalyzer.o MTPBasisEquivalence.o
+          DiagnosticReport.o BasisAnalyzer.o MTPBasisEquivalence.o MTPSelection.o
 
 OBJLIB = $(OBJPOT) $(OBJDESC) $(OBJIO) $(OBJCP) $(OBJBASE) $(OBJMISC) $(OBJREL) $(OBJAPP) $(OBJMTM) $(OBJTRAIN) $(OBJAL) $(OBJCORR)
 

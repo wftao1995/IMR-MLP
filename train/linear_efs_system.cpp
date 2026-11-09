@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "linear_efs_system.h"
+#include "linear_equilibration.h"
+#include "libalglib/optimization.h"
 #include "efs_square_root.h"
 #include "utils/comm.h"
 #include <limits>
@@ -262,5 +264,146 @@ void LinearEFSSystem::require_observations(double we, double wf, double ws) cons
               ws * channels[2].observations >
           0))
         GPERROR("Dataset has no positive-weight E/F/S observations");
+}
+
+void BuildReducedSystem(const Eigen::MatrixXd &mat, const Eigen::VectorXd &vec,
+                        const std::vector<int> &indices, Eigen::MatrixXd &reduced_mat,
+                        Eigen::VectorXd &reduced_vec)
+{
+    if (mat.rows() != mat.cols() || vec.size() != mat.rows())
+    {
+        throw std::invalid_argument("normal-equation matrix/vector dimensions do not match");
+    }
+    std::vector<bool> seen(static_cast<std::size_t>(mat.rows()), false);
+    for (int idx : indices)
+    {
+        if (idx < 0 || idx >= mat.rows())
+            throw std::out_of_range("reduced-system index out of range");
+        if (seen[static_cast<std::size_t>(idx)])
+        {
+            throw std::invalid_argument("reduced-system indices must be unique");
+        }
+        seen[static_cast<std::size_t>(idx)] = true;
+    }
+
+    const Eigen::Index size = static_cast<Eigen::Index>(indices.size());
+    reduced_mat.resize(size, size);
+    reduced_vec.resize(size);
+    for (Eigen::Index i = 0; i < size; ++i)
+    {
+        reduced_vec(i) = vec(indices[static_cast<std::size_t>(i)]);
+        for (Eigen::Index j = 0; j < size; ++j)
+        {
+            reduced_mat(i, j) =
+                mat(indices[static_cast<std::size_t>(i)], indices[static_cast<std::size_t>(j)]);
+        }
+    }
+}
+
+void RemoveOneBasis(const Eigen::MatrixXd &mat, const Eigen::VectorXd &vec, int removed,
+                    Eigen::MatrixXd &reduced_mat, Eigen::VectorXd &reduced_vec)
+{
+    if (removed < 0 || removed >= mat.rows())
+        throw std::out_of_range("basis index out of range");
+    std::vector<int> keep;
+    keep.reserve(static_cast<std::size_t>(mat.rows() - 1));
+    for (int i = 0; i < mat.rows(); ++i)
+        if (i != removed)
+            keep.push_back(i);
+    BuildReducedSystem(mat, vec, keep, reduced_mat, reduced_vec);
+}
+
+bool solve_normal_equations(const Eigen::MatrixXd &A, const Eigen::VectorXd &b, Eigen::VectorXd &x,
+                            const std::string &method)
+{
+    using Eigen::MatrixXd;
+    using Eigen::VectorXd;
+    x.resize(b.size());
+    int success = 1;
+    try
+    {
+        if (A.rows() != b.size() || A.cols() != b.size() || !A.allFinite() || !b.allFinite())
+            GPERROR("Invalid normal equations");
+        // MTP columns can differ by many orders of magnitude. Solving raw
+        // normal equations can then discard physical directions even with SVD.
+        // Change coordinates after adding the physical regularizer, preserving
+        // the objective and the caller's matrix for later reduced-basis solves.
+        MatrixXd equilibrated = A;
+        VectorXd rhs = b;
+        const auto scales = Training::equilibrate_linear_system(equilibrated, rhs, b.size(), false);
+        equilibrated = MatrixXd(equilibrated.selfadjointView<Eigen::Lower>());
+        if (method == "ldlt")
+        {
+            Eigen::LDLT<MatrixXd> decomposition(equilibrated);
+            success = decomposition.info() == Eigen::Success;
+            if (success)
+                x = decomposition.solve(rhs);
+        }
+        else if (method == "llt")
+        {
+            Eigen::LLT<MatrixXd> decomposition(equilibrated);
+            success = decomposition.info() == Eigen::Success;
+            if (success)
+                x = decomposition.solve(rhs);
+        }
+        else if (method == "svd")
+            x = equilibrated.bdcSvd<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(rhs);
+        else if (method == "qr")
+            x = equilibrated.colPivHouseholderQr().solve(rhs);
+        else if (method == "cod")
+            x = equilibrated.completeOrthogonalDecomposition().solve(rhs);
+        else if (method == "alglib" || method == "algfast")
+        {
+            alglib::real_1d_array ae_x, ae_b;
+            alglib::real_2d_array ae_mat;
+            ae_b.setlength(b.size());
+            ae_mat.setlength(b.size(), b.size());
+            for (int i = 0; i < b.size(); ++i)
+            {
+                ae_b[i] = rhs[i];
+            }
+            for (int i = 0; i < b.size(); ++i)
+            {
+                for (int j = 0; j < b.size(); ++j)
+                {
+                    ae_mat(i, j) = equilibrated(i, j);
+                }
+            }
+            if (method == "alglib")
+            {
+                alglib::densesolverreport rep;
+                ae_x.setlength(b.size());
+                alglib::rmatrixsolve(ae_mat, ae_b, ae_x, rep);
+            }
+            else
+                alglib::spdmatrixsolvefast(ae_mat, true, ae_b);
+            x.resize(b.size());
+            for (int i = 0; i < b.size(); ++i)
+                x[i] = method == "alglib" ? ae_x[i] : ae_b[i];
+        }
+        else
+            success = 0;
+        if (success && !x.allFinite())
+            success = 0;
+        if (success)
+        {
+            const double residual = (equilibrated * x - rhs).stableNorm();
+            const double scale = equilibrated.stableNorm() * x.stableNorm() + rhs.stableNorm();
+            if (!std::isfinite(residual) || !std::isfinite(scale) || residual > 1e-8 * scale)
+                success = 0;
+        }
+        if (success)
+        {
+            for (int i = 0; i < x.size(); ++i)
+                x[i] *= scales[i];
+            if (!x.allFinite())
+                success = 0;
+        }
+    }
+    catch (...)
+    {
+        success = 0;
+    }
+    return success;
 }
 } // namespace Training

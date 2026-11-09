@@ -16,6 +16,8 @@ class PotMTP;
 namespace BasisAnalysis
 {
 
+std::vector<int> AllocateSampleQuotas(const std::vector<int> &local_sites, int max_samples);
+
 /// Collects raw scalar-moment descriptor vectors from training structures
 /// into a (nfeatures x nsamples) matrix. Each column is one atom's
 /// descriptor vector B[0..nscalar-1].

@@ -3,8 +3,8 @@
 
 #include <catch2/catch_all.hpp>
 #include "apps/apps.h"
-#include "apps/fastfit_errors.h"
-#include "apps/fastfit_cost.h"
+#include "train/error_monitor.h"
+#include "basis_analysis/MTPSelection.h"
 #include "apps/fastfit_cache.h"
 #include "apps/fastfit_utils.h"
 #include "train/linear_efs_system.h"
@@ -250,7 +250,7 @@ TEST_CASE("Cached EFS loss agrees with direct weighted predictions", "[fastfit][
         for (int i = p.species_count; i < x.size(); ++i)
             x[i] += .1 * trial * std::sin(i + 1);
         p.set_linear_coeff(x.data());
-        func_fastfit::ErrorsReport report(w);
+        Training::EFSFitErrors report(w);
         for (auto &ref : data)
         {
             auto pred = ref;
@@ -276,7 +276,7 @@ TEST_CASE("Cached EFS loss agrees with direct weighted predictions", "[fastfit][
             VectorXd perturbed = x;
             perturbed[i] += step;
             p.set_linear_coeff(perturbed.data());
-            func_fastfit::ErrorsReport report(w);
+            Training::EFSFitErrors report(w);
             for (auto &ref : data)
             {
                 auto pred = ref;
@@ -413,7 +413,7 @@ TEST_CASE("Mean-moments fastfit and nonlinear training share the objective and L
     double f;
     VectorXd g(fitted.get_NL_coeffs_count());
     trainer.AccumulateGard(f, g);
-    func_fastfit::ErrorsReport errors(1., .1, .001);
+    Training::EFSFitErrors errors(1., .1, .001);
     for (auto &ref : data)
     {
         auto a = ref;
@@ -631,7 +631,7 @@ TEST_CASE("Radial dependency groups eliminate complete channels", "[fastfit][cos
 {
     Workspace work;
     PotMTP p(work.model);
-    const auto groups = func_fastfit::cost::radial_dependency_groups(p);
+    const auto groups = BasisAnalysis::MTPSelection::radial_dependency_groups(p);
     REQUIRE_FALSE(groups.empty());
     REQUIRE(std::is_sorted(groups.begin(), groups.end()));
     REQUIRE(std::adjacent_find(groups.begin(), groups.end()) == groups.end());
@@ -968,7 +968,7 @@ TEST_CASE("Dependency groups remove complete basic-moment branches", "[fastfit][
 {
     Workspace work;
     PotMTP p(work.model);
-    const auto groups = func_fastfit::cost::dependency_groups(p);
+    const auto groups = BasisAnalysis::MTPSelection::dependency_groups(p);
     REQUIRE_FALSE(groups.empty());
     REQUIRE(std::is_sorted(groups.begin(), groups.end()));
     REQUIRE(std::adjacent_find(groups.begin(), groups.end()) == groups.end());
@@ -1003,8 +1003,8 @@ TEST_CASE("Dependency groups remove complete basic-moment branches", "[fastfit][
     for (int i = 0; i < 100; ++i)
     {
         auto before = chrom;
-        const bool changed = func_fastfit::cost::drop_dependency_group(chrom, groups, rng);
-        REQUIRE(changed == func_fastfit::cost::drop_dependency_group(repeat, groups, repeat_rng));
+        const bool changed = BasisAnalysis::MTPSelection::drop_dependency_group(chrom, groups, rng);
+        REQUIRE(changed == BasisAnalysis::MTPSelection::drop_dependency_group(repeat, groups, repeat_rng));
         REQUIRE(chrom == repeat);
         REQUIRE(std::count(chrom.begin(), chrom.end(), true) > 0);
         if (changed)
@@ -1015,14 +1015,14 @@ TEST_CASE("Dependency groups remove complete basic-moment branches", "[fastfit][
     }
     std::vector<bool> single(all.size(), false);
     single[0] = true;
-    REQUIRE_FALSE(func_fastfit::cost::drop_dependency_group(single, groups, rng));
-    REQUIRE_FALSE(func_fastfit::cost::drop_dependency_group(chrom, {}, rng));
+    REQUIRE_FALSE(BasisAnalysis::MTPSelection::drop_dependency_group(single, groups, rng));
+    REQUIRE_FALSE(BasisAnalysis::MTPSelection::drop_dependency_group(chrom, {}, rng));
 }
 
 TEST_CASE("Cost constraints archives and measured selection have deterministic semantics",
           "[fastfit][cost]")
 {
-    using namespace func_fastfit::cost;
+    using namespace BasisAnalysis::MTPSelection;
     REQUIRE(feasible(0, 0));
     REQUIRE_FALSE(feasible(1e-6, 0));
     REQUIRE(order_loss(.01) == order_loss(.01 + 1e-18));
@@ -1071,7 +1071,7 @@ TEST_CASE("Cost constraints archives and measured selection have deterministic s
 TEST_CASE("Pareto archive and exported front retain tradeoffs, endpoints and deterministic ties",
           "[fastfit][cost]")
 {
-    using namespace func_fastfit::cost;
+    using namespace BasisAnalysis::MTPSelection;
     Archive archive(8, .1, true);
     std::vector<Entry> entries{{{0}, 0, .01, 1, {}},  {{1}, 0, .02, .7, {}}, {{2}, 0, .03, .8, {}},
                                {{3}, 0, .04, .4, {}}, {{4}, 0, .2, .1, {}},  {{5}, 0, .02, .7, {}}};
@@ -1151,7 +1151,7 @@ TEST_CASE("Cost-aware fastfit verifies and measures constrained models", "[fastf
             REQUIRE(values.size() == 24);
             PotMTP saved(bundle + "/" + values[1]);
             REQUIRE(saved.alpha_scalar_moments > 0);
-            func_fastfit::ErrorsReport saved_errors(1., .1, .001);
+            Training::EFSFitErrors saved_errors(1., .1, .001);
             for (auto &ref : data)
             {
                 auto pred = ref;
@@ -1171,7 +1171,7 @@ TEST_CASE("Cost-aware fastfit verifies and measures constrained models", "[fastf
         PotMTP best(mode == 5 ? "__TEMPERED__.mtp" : "__NSGA2__.mtp");
         if (mode == 5)
             REQUIRE(best.alpha_scalar_moments == 1);
-        func_fastfit::ErrorsReport errors(1., .1, .001);
+        Training::EFSFitErrors errors(1., .1, .001);
         for (auto &ref : data)
         {
             auto pred = ref;

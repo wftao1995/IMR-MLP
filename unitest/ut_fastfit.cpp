@@ -1,14 +1,21 @@
+#include "basis_analysis/MTPSelection.h"
+#include "basis_analysis/DescriptorCollector.h"
 // Copyright (c) 2026 IMR-MLP contributors
 // SPDX-License-Identifier: MIT
 
 #include <catch2/catch_all.hpp>
 
 #include "apps/fastfit_utils.h"
+#include "train/linear_efs_system.h"
 
 #include <fstream>
 
 using Catch::Approx;
 using namespace func_fastfit::detail;
+using namespace BasisAnalysis::MTPSelection;
+using BasisAnalysis::AllocateSampleQuotas;
+using Training::BuildReducedSystem;
+using Training::RemoveOneBasis;
 
 TEST_CASE("fastfit removes the requested row and column", "[fastfit]")
 {
@@ -99,4 +106,20 @@ TEST_CASE("fastfit crowding distances preserve individual identity", "[fastfit]"
     REQUIRE(std::isinf(distances[1]));
     REQUIRE(distances[2] == Approx(1.5));
     REQUIRE(distances[3] == Approx(1.0));
+}
+
+TEST_CASE("Reduced coefficients expand with fixed species biases and selected order", "[fastfit]")
+{
+    Eigen::VectorXd reduced(4);
+    reduced << 2., 3., 5., 7.;
+    Eigen::VectorXd expected(7);
+    expected << 2., 3., 7., 0., 0., 5., 0.;
+    // Non-sorted scalar IDs exercise order, not just membership.
+    const std::vector<int> scalar_ids{3, 0};
+    REQUIRE(Training::expand_linear_coefficients(reduced, scalar_ids, 7, 2) == expected);
+    const std::vector<int> full_ids{0, 1, 5, 2};
+    REQUIRE(Training::expand_linear_coefficients(reduced, full_ids, 7) == expected);
+    const std::set<int> ordered_ids{0, 3};
+    expected << 2., 3., 5., 0., 0., 7., 0.;
+    REQUIRE(Training::expand_linear_coefficients(reduced, ordered_ids, 7, 2) == expected);
 }

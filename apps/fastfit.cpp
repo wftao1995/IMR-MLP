@@ -7,7 +7,6 @@
 #include "potentials/potential_mtp.h"
 #include "potentials/model_elements.h"
 #include "species_map_utils.h"
-#include "libalglib/optimization.h"
 #include "utils/mpi_stubs.h"
 #include "basis_analysis/DescriptorCollector.h"
 #include "basis_analysis/CorrelationAnalyzer.h"
@@ -16,9 +15,9 @@
 #include "basis_analysis/strategies/ClusterRepresentative.h"
 #include "basis_analysis/strategies/IterativeGreedyVIF.h"
 #include "apps/fastfit_utils.h"
-#include "apps/fastfit_errors.h"
+#include "train/error_monitor.h"
 #include "apps/fastfit_profile.h"
-#include "apps/fastfit_cost.h"
+#include "basis_analysis/MTPSelection.h"
 #include "apps/fastfit_cache.h"
 #include <iomanip>
 #include "train/linear_efs_system.h"
@@ -31,7 +30,7 @@
 
 #include <omp.h>
 
-namespace func_fastfit::cost
+namespace BasisAnalysis::MTPSelection
 {
 namespace
 {
@@ -164,10 +163,11 @@ void export_bundle(const std::string &directory, const std::string &parent_bytes
     }
 }
 } // namespace
-} // namespace func_fastfit::cost
+} // namespace BasisAnalysis::MTPSelection
 
 namespace func_fastfit
 {
+namespace cost = BasisAnalysis::MTPSelection;
 auto &cmdopt = CMDOption::global_cmdopts;
 using namespace std;
 using namespace Eigen;
@@ -373,116 +373,7 @@ void solve(MatrixXd &A, VectorXd &b, VectorXd &x, string method, Profile &profil
     if (mpi.rank == 0)
     {
         auto timing = profile.scope(Profile::Stage::Solve);
-        try
-        {
-            if (A.rows() != b.size() || A.cols() != b.size() || !A.allFinite() || !b.allFinite())
-                GPERROR("Invalid normal equations");
-            // MTP columns can differ by many orders of magnitude. Solving raw
-            // normal equations can then discard physical directions even with SVD.
-            // Change coordinates after adding the physical regularizer, preserving
-            // the objective and the caller's matrix for later reduced-basis solves.
-            MatrixXd equilibrated = A;
-            VectorXd rhs = b;
-            const auto scales =
-                Training::equilibrate_linear_system(equilibrated, rhs, b.size(), false);
-            equilibrated = MatrixXd(equilibrated.selfadjointView<Eigen::Lower>());
-            if (method == "ldlt")
-            {
-                Eigen::LDLT<MatrixXd> decomposition(equilibrated);
-                success = decomposition.info() == Eigen::Success;
-                if (success)
-                    x = decomposition.solve(rhs);
-            }
-            else if (method == "llt")
-            {
-                Eigen::LLT<MatrixXd> decomposition(equilibrated);
-                success = decomposition.info() == Eigen::Success;
-                if (success)
-                    x = decomposition.solve(rhs);
-            }
-            else if (method == "svd")
-                x = equilibrated.bdcSvd<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(rhs);
-            else if (method == "qr")
-                x = equilibrated.colPivHouseholderQr().solve(rhs);
-            else if (method == "cod")
-                x = equilibrated.completeOrthogonalDecomposition().solve(rhs);
-            else if (method == "alglib")
-            {
-                alglib::real_1d_array ae_x, ae_b;
-                alglib::real_2d_array ae_mat;
-                ae_x.setlength(b.size());
-                ae_b.setlength(b.size());
-                ae_mat.setlength(b.size(), b.size());
-                for (int i = 0; i < b.size(); ++i)
-                {
-                    ae_b[i] = rhs[i];
-                }
-                for (int i = 0; i < b.size(); ++i)
-                {
-                    for (int j = 0; j < b.size(); ++j)
-                    {
-                        ae_mat(i, j) = equilibrated(i, j);
-                    }
-                }
-                alglib::ae_int_t info;
-                alglib::densesolverreport rep;
-                alglib::rmatrixsolve(ae_mat, ae_b, ae_x, rep);
-                x.resize(b.size());
-                for (int i = 0; i < b.size(); ++i)
-                {
-                    x[i] = ae_x[i];
-                }
-            }
-            else if (method == "algfast")
-            {
-                alglib::real_1d_array ae_x, ae_b;
-                alglib::real_2d_array ae_mat;
-                ae_x.setlength(b.size());
-                ae_b.setlength(b.size());
-                ae_mat.setlength(b.size(), b.size());
-                for (int i = 0; i < b.size(); ++i)
-                {
-                    ae_b[i] = rhs[i];
-                }
-                for (int i = 0; i < b.size(); ++i)
-                {
-                    for (int j = 0; j < b.size(); ++j)
-                    {
-                        ae_mat(i, j) = equilibrated(i, j);
-                    }
-                }
-                alglib::ae_int_t info;
-                alglib::densesolverreport rep;
-                alglib::spdmatrixsolvefast(ae_mat, true, ae_b);
-                x.resize(b.size());
-                for (int i = 0; i < b.size(); ++i)
-                {
-                    x[i] = ae_b[i];
-                }
-            }
-            else
-                success = 0;
-            if (success && !x.allFinite())
-                success = 0;
-            if (success)
-            {
-                const double residual = (equilibrated * x - rhs).stableNorm();
-                const double scale = equilibrated.stableNorm() * x.stableNorm() + rhs.stableNorm();
-                if (!std::isfinite(residual) || !std::isfinite(scale) || residual > 1e-8 * scale)
-                    success = 0;
-            }
-            if (success)
-            {
-                for (int i = 0; i < x.size(); ++i)
-                    x[i] *= scales[i];
-                if (!x.allFinite())
-                    success = 0;
-            }
-        }
-        catch (...)
-        {
-            success = 0;
-        }
+        success = Training::solve_normal_equations(A, b, x, method);
     }
     profile.communicate(
         [&]
@@ -498,51 +389,13 @@ void solve(MatrixXd &A, VectorXd &b, VectorXd &x, string method, Profile &profil
         });
 }
 
-void RemoveBasis(MatrixXd &mat, VectorXd &vec, int toberemoved)
-{
-    MatrixXd reduced_mat;
-    VectorXd reduced_vec;
-    detail::RemoveOneBasis(mat, vec, toberemoved, reduced_mat, reduced_vec);
-    mat = std::move(reduced_mat);
-    vec = std::move(reduced_vec);
-}
-
-void Check(Params &params, VectorXd &x, PotMTP &pot, vector<Atoms> &atoms, vector<Atoms> &ref,
-           double &ermse, double &frmse, double &srmse, double &loss,
-           Profile::Stage stage = Profile::Stage::DirectEFS)
-{
-    pot.set_linear_coeff(x.data());
-    auto &profile = params.profiler;
-    auto timing = profile.scope(stage);
-    ErrorsReport errs(params.weights());
-    pot.omp_init();
-#pragma omp parallel
-    {
-#pragma omp for schedule(dynamic)
-        for (int i = 0; i < atoms.size(); ++i)
-        {
-            pot.getEFSOMPthread(atoms[i]);
-        }
-    }
-    errs.clear();
-    for (int i = 0; i < atoms.size(); ++i)
-    {
-        errs.add(atoms[i], ref[i]);
-    }
-    profile.communicate(
-        [&]
-        {
-            errs.Reduce(ermse, frmse, srmse, loss);
-        });
-}
-
-double Check(Params &params, PotMTP &pot, vector<Atoms> &atoms, vector<Atoms> &ref, double &ermse,
-             double &frmse, double &srmse, double &loss,
-             Profile::Stage stage = Profile::Stage::DirectEFS)
+double check_direct_report(Params &params, PotMTP &pot, vector<Atoms> &atoms, vector<Atoms> &ref,
+                           double &ermse, double &frmse, double &srmse, double &loss,
+                           Profile::Stage stage = Profile::Stage::DirectEFS)
 {
     auto &profile = params.profiler;
     auto timing = profile.scope(stage);
-    ErrorsReport errs(params.weights());
+    Training::EFSFitErrors errs(params.weights());
     pot.omp_init();
 #pragma omp parallel
     {
@@ -565,10 +418,19 @@ double Check(Params &params, PotMTP &pot, vector<Atoms> &atoms, vector<Atoms> &r
     return loss;
 }
 
-double Check(Params &params, PotMTP &pot, vector<Atoms> &atoms, vector<Atoms> &atomsref,
-             vector<Atoms> &atomsv, vector<Atoms> &atomsv_ref, double &ermse, double &frmse,
-             double &srmse, double &loss, double &ermse_v, double &frmse_v, double &srmse_v,
-             double &loss_v, Profile::Stage stage = Profile::Stage::DirectEFS)
+void check_coefficients(Params &params, VectorXd &x, PotMTP &pot, vector<Atoms> &atoms,
+                        vector<Atoms> &ref, double &ermse, double &frmse, double &srmse,
+                        double &loss, Profile::Stage stage = Profile::Stage::DirectEFS)
+{
+    pot.set_linear_coeff(x.data());
+    check_direct_report(params, pot, atoms, ref, ermse, frmse, srmse, loss, stage);
+}
+
+double check_datasets(Params &params, PotMTP &pot, vector<Atoms> &atoms, vector<Atoms> &atomsref,
+                      vector<Atoms> &atomsv, vector<Atoms> &atomsv_ref, double &ermse,
+                      double &frmse, double &srmse, double &loss, double &ermse_v, double &frmse_v,
+                      double &srmse_v, double &loss_v,
+                      Profile::Stage stage = Profile::Stage::DirectEFS)
 {
     ermse = 0;
     frmse = 0;
@@ -578,8 +440,8 @@ double Check(Params &params, PotMTP &pot, vector<Atoms> &atoms, vector<Atoms> &a
     frmse_v = 0;
     srmse_v = 0;
     loss_v = 0;
-    Check(params, pot, atoms, atomsref, ermse, frmse, srmse, loss, stage);
-    Check(params, pot, atomsv, atomsv_ref, ermse_v, frmse_v, srmse_v, loss_v, stage);
+    check_direct_report(params, pot, atoms, atomsref, ermse, frmse, srmse, loss, stage);
+    check_direct_report(params, pot, atomsv, atomsv_ref, ermse_v, frmse_v, srmse_v, loss_v, stage);
     return loss + loss_v;
 }
 
@@ -1025,15 +887,13 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
             indices.push_back(nspecies + i);
         MatrixXd matrix;
         VectorXd rhs;
-        detail::BuildReducedSystem(matA, vecA, indices, matrix, rhs);
+        Training::BuildReducedSystem(matA, vecA, indices, matrix, rhs);
         Candidate candidate;
         if (experimental_square_root)
             root_solve(scalar_ids, candidate.coeffs);
         else
             solve(matrix, rhs, candidate.coeffs, "ldlt", profile);
-        VectorXd full = VectorXd::Zero(nl);
-        for (int i = 0; i < indices.size(); ++i)
-            full[indices[i]] = candidate.coeffs[i];
+        VectorXd full = Training::expand_linear_coefficients(candidate.coeffs, indices, nl);
         double losses[2] = {};
         int valid_loss = 1;
         if (mpi.rank == 0)
@@ -1283,7 +1143,7 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                 auto direct = [&](vector<Atoms> &refs, std::array<double, 4> &result)
                 {
                     auto timing = profile.scope(Profile::Stage::FinalEFS);
-                    ErrorsReport report(params.weights());
+                    Training::EFSFitErrors report(params.weights());
                     collective_action(
                         [&]
                         {
@@ -1419,8 +1279,9 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
             if (params.cmp)
             {
                 VectorXd llt, ldlt, svd, alglib, algspd, qr, cod;
-                Check(params, basepot, atoms, atomsref, ermse, frmse, srmse, loss);
-                Check(params, basepot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v, loss_v);
+                check_direct_report(params, basepot, atoms, atomsref, ermse, frmse, srmse, loss);
+                check_direct_report(params, basepot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v,
+                                    loss_v);
                 if (mpi.rank == 0)
                     fmt::print(
                         cout,
@@ -1431,8 +1292,10 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                 {
                     solve(matA, vecA, xx, method, profile);
                     basepot.set_linear_coeff(xx.data());
-                    Check(params, basepot, atoms, atomsref, ermse, frmse, srmse, loss);
-                    Check(params, basepot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v, loss_v);
+                    check_direct_report(params, basepot, atoms, atomsref, ermse, frmse, srmse,
+                                        loss);
+                    check_direct_report(params, basepot, atoms_v, atomsref_v, ermse_v, frmse_v,
+                                        srmse_v, loss_v);
                     if (mpi.rank == 0)
                         fmt::print(
                             cout,
@@ -1460,10 +1323,10 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                     solve(matA, vecA, x, params.method, profile);
                 PotMTP pot(basepot);
                 pot.set_linear_coeff(x.data());
-                Check(params, pot, atoms, atomsref, ermse, frmse, srmse, loss,
-                      Profile::Stage::FinalEFS);
-                Check(params, pot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v, loss_v,
-                      Profile::Stage::FinalEFS);
+                check_direct_report(params, pot, atoms, atomsref, ermse, frmse, srmse, loss,
+                                    Profile::Stage::FinalEFS);
+                check_direct_report(params, pot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v,
+                                    loss_v, Profile::Stage::FinalEFS);
                 if (mpi.rank == 0)
                 {
                     fmt::print(
@@ -1505,7 +1368,7 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                 sel.push_back(nspecies + id);
             MatrixXd matr;
             VectorXd vecr;
-            detail::BuildReducedSystem(matA, vecA, sel, matr, vecr);
+            Training::BuildReducedSystem(matA, vecA, sel, matr, vecr);
             if (mpi.rank == 0)
             {
                 auto analysis_timing = profile.scope(Profile::Stage::Correlation);
@@ -1533,16 +1396,16 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
             }
             pot.remove_scalar_by_id(removed);
             pot.set_linear_coeff(x.data());
-            Check(params, pot, atoms, atomsref, atoms_v, atomsref_v, ermse, frmse, srmse, loss,
-                  ermse_v, frmse_v, srmse_v, loss_v);
+            check_datasets(params, pot, atoms, atomsref, atoms_v, atomsref_v, ermse, frmse, srmse,
+                           loss, ermse_v, frmse_v, srmse_v, loss_v);
             if (mpi.rank == 0)
                 fmt::print(
                     cout,
                     "{:6} : {:15.10f} {:15.10f} {:15.10f} {:15.10f} {:15.10f} {:15.10f} {:15.10f} {:15.10f}\n",
                     "REDUCED", ermse, frmse, srmse, loss, ermse_v, frmse_v, srmse_v, loss_v);
             pot.remove_orphans();
-            Check(params, pot, atoms, atomsref, atoms_v, atomsref_v, ermse, frmse, srmse, loss,
-                  ermse_v, frmse_v, srmse_v, loss_v, Profile::Stage::FinalEFS);
+            check_datasets(params, pot, atoms, atomsref, atoms_v, atomsref_v, ermse, frmse, srmse,
+                           loss, ermse_v, frmse_v, srmse_v, loss_v, Profile::Stage::FinalEFS);
             if (mpi.rank == 0)
                 profile.measure(Profile::Stage::Output,
                                 [&]
@@ -1560,8 +1423,9 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
             Message("Basis searching by cutone");
             VectorXd x;
             solve(matA, vecA, x, params.method, profile);
-            Check(params, x, basepot, atoms, atomsref, ermse, frmse, srmse, loss);
-            Check(params, x, basepot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v, loss_v);
+            check_coefficients(params, x, basepot, atoms, atomsref, ermse, frmse, srmse, loss);
+            check_coefficients(params, x, basepot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v,
+                               loss_v);
             if (mpi.rank == 0)
                 fmt::print(
                     cout,
@@ -1569,16 +1433,17 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                     "BEG", ermse, frmse, srmse, loss, ermse_v, frmse_v, srmse_v, loss_v);
             for (int i = nspecies; i < nl; ++i)
             {
-                MatrixXd nA = matA;
-                VectorXd nV = vecA;
-                RemoveBasis(nA, nV, i);
+                MatrixXd nA;
+                VectorXd nV;
+                Training::RemoveOneBasis(matA, vecA, i, nA, nV);
                 solve(nA, nV, x, params.method, profile);
                 PotMTP pot(basepot);
                 set<int> rr;
                 rr.insert(i - nspecies);
                 pot.remove_scalar_by_id(rr);
-                Check(params, x, pot, atoms, atomsref, ermse, frmse, srmse, loss);
-                Check(params, x, pot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v, loss_v);
+                check_coefficients(params, x, pot, atoms, atomsref, ermse, frmse, srmse, loss);
+                check_coefficients(params, x, pot, atoms_v, atomsref_v, ermse_v, frmse_v, srmse_v,
+                                   loss_v);
                 if (mpi.rank == 0)
                 {
                     fmt::print(
@@ -1686,7 +1551,9 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                         auto dice_gen = uniform_real_distribution<double>(0, 1);
                         mt19937 mtd(static_cast<mt19937::result_type>(params.seed));
                         const double reconstruction_floor =
-                            experimental_square_root ? detail::CURRoundoffTolerance(matM) : 0.;
+                            experimental_square_root
+                                ? BasisAnalysis::MTPSelection::CURRoundoffTolerance(matM)
+                                : 0.;
                         std::ofstream stability;
                         if (experimental_square_root)
                         {
@@ -1765,7 +1632,8 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                             if (experimental_square_root)
                             {
                                 int rank = 0;
-                                reconstruction = detail::StableCURResidual(matM, matC, rank);
+                                reconstruction = BasisAnalysis::MTPSelection::StableCURResidual(
+                                    matM, matC, rank);
                                 stability << sample_index++ << '\t' << rank << '\t'
                                           << reconstruction << '\t' << reconstruction_floor << '\n'
                                           << std::flush;
@@ -2044,9 +1912,9 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                                         });
 
                     double ermse_b, frmse_b, srmse_b, ermse_vb, frmse_vb, srmse_vb;
-                    Check(params, pot_best, atoms, atomsref, atoms_v, atomsref_v, ermse_b, frmse_b,
-                          srmse_b, loss_best, ermse_vb, frmse_vb, srmse_vb, loss_vb,
-                          Profile::Stage::FinalEFS);
+                    check_datasets(params, pot_best, atoms, atomsref, atoms_v, atomsref_v, ermse_b,
+                                   frmse_b, srmse_b, loss_best, ermse_vb, frmse_vb, srmse_vb,
+                                   loss_vb, Profile::Stage::FinalEFS);
                     if (mpi.rank == 0)
                         fmt::print(
                             cout,
@@ -2104,10 +1972,8 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                     }
 
                     auto candidate = fit_subset(sel_idxs);
-                    ind.coeffs = VectorXd::Zero(nl);
-                    ind.coeffs.head(nspecies) = candidate.coeffs.head(nspecies);
-                    for (int i = 0; i < sel_idxs.size(); ++i)
-                        ind.coeffs(nspecies + sel_idxs[i]) = candidate.coeffs(nspecies + i);
+                    ind.coeffs = Training::expand_linear_coefficients(candidate.coeffs, sel_idxs,
+                                                                      nl, nspecies);
                     ind.constraint_loss =
                         has_valid ? candidate.valid_loss / global_valid_count : 0.;
                     ind.obj[0] =
@@ -2271,7 +2137,8 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                     objectives.reserve(front_indices.size());
                     for (int idx : front_indices)
                         objectives.emplace_back(individuals[idx].obj[0], individuals[idx].obj[1]);
-                    const vector<double> distances = detail::CrowdingDistances(objectives);
+                    const vector<double> distances =
+                        BasisAnalysis::MTPSelection::CrowdingDistances(objectives);
                     for (size_t i = 0; i < front_indices.size(); ++i)
                         individuals[front_indices[i]].crowd_dist = distances[i];
                 };
@@ -2477,7 +2344,7 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                         objectives.reserve(pareto.size());
                         for (int idx : pareto)
                             objectives.emplace_back(pop[idx].obj[0], pop[idx].obj[1]);
-                        best_i = pareto[detail::SelectKneePoint(objectives)];
+                        best_i = pareto[BasisAnalysis::MTPSelection::SelectKneePoint(objectives)];
                     }
 
                     set<int> best_sel, best_rem;
@@ -2526,9 +2393,9 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                     }
 
                     double ermse, frmse, srmse, ermse_v, frmse_v, srmse_v, loss_v;
-                    Check(params, pot_best, atoms, atomsref, atoms_v, atomsref_v, ermse, frmse,
-                          srmse, pop[best_i].obj[0], ermse_v, frmse_v, srmse_v, loss_v,
-                          Profile::Stage::FinalEFS);
+                    check_datasets(params, pot_best, atoms, atomsref, atoms_v, atomsref_v, ermse,
+                                   frmse, srmse, pop[best_i].obj[0], ermse_v, frmse_v, srmse_v,
+                                   loss_v, Profile::Stage::FinalEFS);
                     if (mpi.rank == 0)
                     {
                         fmt::print(
@@ -2562,7 +2429,7 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                                   mpi.comm);
                 });
             vector<int> sample_quotas =
-                detail::AllocateSampleQuotas(all_site_counts, params.corr_max_samples);
+                BasisAnalysis::AllocateSampleQuotas(all_site_counts, params.corr_max_samples);
             BasisAnalysis::DescriptorCollector collector(
                 basepot, sample_quotas[mpi.rank], static_cast<unsigned>(params.seed) + mpi.rank);
             Eigen::MatrixXd desc_local = profile.measure(Profile::Stage::Descriptors,
@@ -2742,7 +2609,7 @@ int fastfit(int argc, char *argv[], AssemblyCache *assembly_cache = nullptr,
                     std::vector<int> idxs(reduced_ids.begin(), reduced_ids.end());
                     MatrixXd matr;
                     VectorXd vecr;
-                    detail::BuildReducedSystem(matA, vecA, idxs, matr, vecr);
+                    Training::BuildReducedSystem(matA, vecA, idxs, matr, vecr);
                     VectorXd x = profile.measure(
                         Profile::Stage::Solve,
                         [&]() -> VectorXd

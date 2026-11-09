@@ -3,7 +3,7 @@
 
 #include <catch2/catch_all.hpp>
 #include "apps/apps.h"
-#include "apps/fastfit_errors.h"
+#include "train/error_monitor.h"
 #include "io/gpio.h"
 #include "tools/constants.h"
 #include <Eigen/Geometry>
@@ -378,7 +378,7 @@ TEST_CASE("calc_ferr requires complete paired energies", "[apps][missing-labels]
 
 TEST_CASE("fastfit accumulates only present EFS labels", "[fastfit][missing-labels]")
 {
-    func_fastfit::ErrorsReport errors(1., 1., 1.);
+    Training::EFSFitErrors errors(1., 1., 1.);
     auto prediction = frame(1, 7);
     prediction.energy_ = 0.;
     prediction.forces_[0].setZero();
@@ -404,7 +404,7 @@ TEST_CASE("fastfit accumulates only present EFS labels", "[fastfit][missing-labe
     invalid.forces_.resize(1);
     auto two = frame(2, 7);
     REQUIRE_THROWS_AS(errors.add(two, invalid), GPException);
-    func_fastfit::ErrorsReport disabled(0., 0., 0.);
+    Training::EFSFitErrors disabled(0., 0., 0.);
     disabled.add(prediction, prediction);
     REQUIRE_THROWS_AS(disabled.Reduce(e, f, s, loss), GPException);
 }

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "hvp_fit.h"
+#include "efs_fit_weights.h"
 
 class ErrorMonitor
 {
@@ -61,3 +62,35 @@ class ErrorMonitor
 
     void report();
 };
+
+namespace Training
+{
+class EFSFitErrors
+{
+  public:
+    int ncfgs = 0;
+    double e_sum = 0; // squared sum
+    double f_sum = 0;
+    double v_sum = 0;
+    double loss = 0;
+    int e_c = 0;
+    int f_c = 0;
+    int v_c = 0;
+    EFSFitWeights weights;
+    double positive_observations = 0;
+    double weight_e;
+    double weight_f;
+    double weight_v;
+    // vector<double> e, f, v;
+
+    EFSFitErrors(double we, double wf, double ws);
+
+    explicit EFSFitErrors(const EFSFitWeights &w);
+
+    void clear();
+
+    void add(Atoms &prd, Atoms &ref);
+
+    void Reduce(double &ermse, double &frmse, double &vrmse, double &global_loss) const;
+};
+} // namespace Training

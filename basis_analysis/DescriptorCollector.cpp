@@ -3,6 +3,9 @@
 
 #include "DescriptorCollector.h"
 #include "potentials/potential_mtp.h"
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
 #include <random>
 #include <numeric>
 #include <cstring>
@@ -106,4 +109,52 @@ Eigen::MatrixXd DescriptorCollector::collect(const std::vector<Atoms> &atoms)
     return desc;
 }
 
-} // namespace BasisAnalysis
+std::vector<int> AllocateSampleQuotas(const std::vector<int> &local_sites, int max_samples)
+{
+    if (max_samples <= 0)
+        throw std::invalid_argument("corr-max-samples must be positive");
+    long long total = 0;
+    for (int count : local_sites)
+    {
+        if (count < 0)
+            throw std::invalid_argument("site count must be non-negative");
+        total += count;
+    }
+    std::vector<int> quotas(local_sites.size(), 0);
+    if (total <= max_samples)
+        return local_sites;
+
+    struct Fraction
+    {
+        std::size_t rank;
+        double value;
+    };
+
+    std::vector<Fraction> fractions;
+    int assigned = 0;
+    for (std::size_t rank = 0; rank < local_sites.size(); ++rank)
+    {
+        const double exact =
+            static_cast<double>(max_samples) * local_sites[rank] / static_cast<double>(total);
+        quotas[rank] = std::min(local_sites[rank], static_cast<int>(std::floor(exact)));
+        assigned += quotas[rank];
+        fractions.push_back({rank, exact - std::floor(exact)});
+    }
+    std::stable_sort(fractions.begin(), fractions.end(),
+                     [](const Fraction &a, const Fraction &b)
+                     {
+                         return a.value > b.value;
+                     });
+    for (const Fraction &fraction : fractions)
+    {
+        if (assigned == max_samples)
+            break;
+        if (quotas[fraction.rank] < local_sites[fraction.rank])
+        {
+            ++quotas[fraction.rank];
+            ++assigned;
+        }
+    }
+    return quotas;
+}
+}

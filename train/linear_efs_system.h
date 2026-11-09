@@ -6,6 +6,8 @@
 #include "efs_fit_weights.h"
 #include "potentials/potential_mtp.h"
 #include <array>
+#include <string>
+#include <vector>
 
 namespace Training
 {
@@ -43,4 +45,27 @@ class LinearEFSSystem
     void require_observations(double we, double wf, double ws) const;
 };
 
+void BuildReducedSystem(const Eigen::MatrixXd &mat, const Eigen::VectorXd &vec,
+                        const std::vector<int> &indices, Eigen::MatrixXd &reduced_mat,
+                        Eigen::VectorXd &reduced_vec);
+
+void RemoveOneBasis(const Eigen::MatrixXd &mat, const Eigen::VectorXd &vec, int removed,
+                    Eigen::MatrixXd &reduced_mat, Eigen::VectorXd &reduced_vec);
+
+bool solve_normal_equations(const Eigen::MatrixXd &A, const Eigen::VectorXd &b, Eigen::VectorXd &x,
+                            const std::string &method);
+
+// Expand an already validated selection. prefix coefficients (species biases)
+// remain fixed; selected IDs are relative to the remaining coefficient block.
+template <class Indices>
+Eigen::VectorXd expand_linear_coefficients(const Eigen::VectorXd &reduced, const Indices &indices,
+                                           int total, int prefix = 0)
+{
+    Eigen::VectorXd full = Eigen::VectorXd::Zero(total);
+    full.head(prefix) = reduced.head(prefix);
+    int column = prefix;
+    for (int id : indices)
+        full[prefix + id] = reduced[column++];
+    return full;
+}
 } // namespace Training
