@@ -109,6 +109,10 @@ class OnlineMaxVolState
         RegularizedGramInverse,
     };
 
+    // Ridge interpolation: residual = ||b-cC||^2 + lambda ||c||^2.
+    // Shared by scanning and exchange decisions; no subtraction of squared norms.
+    void regularized_coefficients(const Eigen::Ref<const OnlineRowMatrix> &rows,
+                                  Eigen::MatrixXd &coeff, Eigen::VectorXd &residual2) const;
     bool refactorize();
     bool refactorize_square(const Eigen::MatrixXd &dense);
     bool refactorize_gram(const Eigen::MatrixXd &dense);
@@ -123,6 +127,7 @@ class OnlineMaxVolState
     // C^-1 for a full-rank square state, otherwise
     // (C C^T + regularization I)^-1 for a wide state.
     Eigen::MatrixXd inverse_;
+    Eigen::MatrixXd regularized_map_; // V diag(s/(s^2+lambda)) U^T, never C^T * inverse_
     std::vector<BRowRef> selected_refs_;
     double log_det_ = 0.0;
     double regularization_ = 0.0;

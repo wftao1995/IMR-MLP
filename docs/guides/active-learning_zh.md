@@ -152,3 +152,5 @@ CLI 中读取 GPM 也不会自动启动采样。
 - [MaxVol 理论](../theory/maxvol_zh.md)、[命令参考](../reference/commands_zh.md)
 - [自包含的 MaxVol 选样练习](../../examples/active-learning/README_zh.md)
 - [LAMMPS `fix mlip/maxvol`](../../LAMMPS/USER-MLIP/maxvol/README_zh.md)
+
+秩亏情况下，CPU 流式/在线选择使用正则化插值评分。定义、数值稳定性及与截断 SVD 的区别见[秩亏 MaxVol 评分](maxvol-rank-deficient.md)。

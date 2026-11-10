@@ -217,8 +217,10 @@ class ActiveSelector:
     def grade(self, structure: Atoms) -> float:
         """Compute MaxVol extrapolation grade.
 
-        Returns grade >= 1.0. 1.0 = inside active set,
-        1-10 = mild extrapolation, >>10 = extreme extrapolation.
+        The structure grade is the maximum row score; it is not clamped to
+        one. Rank-deficient stream/online states use the regularized
+        interpolation criterion documented in maxvol-rank-deficient.md,
+        which differs from a truncated-pseudoinverse score.
         """
         return self._impl.grade(structure._impl)
 

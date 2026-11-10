@@ -54,6 +54,7 @@ void OnlineMaxVolState::clear()
 {
     C_.resize(0, 0);
     inverse_.resize(0, 0);
+    regularized_map_.resize(0, 0);
     selected_refs_.clear();
     log_det_ = 0.0;
     regularization_ = 0.0;
@@ -102,6 +103,7 @@ bool OnlineMaxVolState::refactorize()
     valid_ = false;
     factor_mode_ = FactorMode::None;
     regularization_ = 0.0;
+    regularized_map_.resize(0, 0);
     if (rows == cols && refactorize_square(dense))
         return true;
     return refactorize_gram(dense);
@@ -172,10 +174,38 @@ bool OnlineMaxVolState::refactorize_gram(const Eigen::MatrixXd &dense)
     inverse_ = 0.5 * (inverse_ + inverse_.transpose()).eval();
     if (!inverse_.allFinite())
         return false;
+    if (!exact)
+    {
+        // Multiplying C^T by the Gram inverse loses the small directions before
+        // scoring even starts. Form the ridge map directly from the SVD instead.
+        regularized_map_ = svd.matrixV() * (s.array() * inv_eigs.array()).matrix().asDiagonal() *
+                           svd.matrixU().transpose();
+        if (!regularized_map_.allFinite())
+            return false;
+    }
     factor_mode_ = exact ? FactorMode::GramInverse : FactorMode::RegularizedGramInverse;
     valid_ = true;
     updates_since_factorization_ = 0;
     return true;
+}
+
+void OnlineMaxVolState::regularized_coefficients(const Eigen::Ref<const OnlineRowMatrix> &rows,
+                                                 Eigen::MatrixXd &coeff,
+                                                 Eigen::VectorXd &residual2) const
+{
+    coeff.noalias() = rows * regularized_map_;
+    residual2.resize(rows.rows());
+    // Bound the reconstruction scratch even for a large exchange pool.
+    const int block = score_block_rows();
+    for (int first = 0; first < rows.rows(); first += block)
+    {
+        const int count = std::min(block, int(rows.rows()) - first);
+        const Eigen::MatrixXd residual =
+            rows.middleRows(first, count) - coeff.middleRows(first, count) * C_;
+        for (int i = 0; i < count; ++i)
+            residual2[first + i] = residual.row(i).squaredNorm() +
+                                   regularization_ * coeff.row(first + i).squaredNorm();
+    }
 }
 
 int OnlineMaxVolState::append_candidates(const Eigen::Ref<const OnlineRowMatrix> &candidates,
@@ -275,7 +305,8 @@ int OnlineMaxVolState::score_block_rows() const
 {
     constexpr std::size_t matrix_budget = 4u * 1024u * 1024u;
     const std::size_t row_bytes =
-        2u * sizeof(double) * static_cast<std::size_t>(std::max(1, active_size()));
+        sizeof(double) *
+        static_cast<std::size_t>(std::max(1, active_size()) + std::max(1, coeff_count()));
     return static_cast<int>(std::clamp<std::size_t>(matrix_budget / row_bytes, 1, 4096));
 }
 
@@ -311,6 +342,23 @@ OnlineMaxVolState::score_rows(const Eigen::Ref<const OnlineRowMatrix> &candidate
             coeff.noalias() = candidates.middleRows(first, count) * inverse_;
             for (int i = 0; i < count; ++i)
                 scores[first + i] = coeff.row(i).cwiseAbs().maxCoeff();
+        }
+        return scores;
+    }
+
+    if (factor_mode_ == FactorMode::RegularizedGramInverse)
+    {
+        const Eigen::VectorXd diagonal = inverse_.diagonal().cwiseMax(0.0);
+        for (int first = 0; first < rows; first += block_rows)
+        {
+            const int count = std::min(block_rows, rows - first);
+            Eigen::VectorXd residual2;
+            regularized_coefficients(candidates.middleRows(first, count), workspace.coeff,
+                                     residual2);
+            for (int i = 0; i < count; ++i)
+                scores[first + i] = std::sqrt((workspace.coeff.row(i).array().square().transpose() +
+                                               residual2[i] * diagonal.array())
+                                                  .maxCoeff());
         }
         return scores;
     }
@@ -392,13 +440,22 @@ int OnlineMaxVolState::maximize_with_candidates(const Eigen::Ref<const OnlineRow
         }
         else
         {
-            const Eigen::MatrixXd z = pool * C_.transpose();
-            coeff = z * inverse_;
+            Eigen::VectorXd residuals;
+            Eigen::MatrixXd z;
+            if (factor_mode_ == FactorMode::RegularizedGramInverse)
+                regularized_coefficients(pool, coeff, residuals);
+            else
+            {
+                z.noalias() = pool * C_.transpose();
+                coeff.noalias() = z * inverse_;
+            }
             const Eigen::VectorXd inv_diag = inverse_.diagonal().cwiseMax(0.0);
             for (int row = 0; row < pool.rows(); ++row)
             {
-                const double residual2 =
-                    std::max(0.0, pool.row(row).squaredNorm() - coeff.row(row).dot(z.row(row)));
+                const double residual2 = factor_mode_ == FactorMode::RegularizedGramInverse
+                                             ? residuals[row]
+                                             : std::max(0.0, pool.row(row).squaredNorm() -
+                                                                 coeff.row(row).dot(z.row(row)));
                 for (int slot = 0; slot < C_.rows(); ++slot)
                 {
                     const double gain = std::sqrt(std::max(
@@ -422,7 +479,8 @@ int OnlineMaxVolState::maximize_with_candidates(const Eigen::Ref<const OnlineRow
         const BRowRef entering_ref = pool_refs[static_cast<size_t>(best_row)];
         const BRowRef outgoing_ref = selected_refs_[static_cast<size_t>(best_slot)];
         const FactorMode old_mode = factor_mode_;
-        bool updated = old_mode == FactorMode::SquareInverse
+        bool updated = old_mode == FactorMode::RegularizedGramInverse ? false
+                       : old_mode == FactorMode::SquareInverse
                            ? update_square(replacement_coeff, best_slot, replacement)
                            : update_gram(best_slot, replacement);
 

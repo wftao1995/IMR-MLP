@@ -4,6 +4,7 @@
 #include <catch2/catch_all.hpp>
 #include "maxvol/online_maxvol.h"
 #include <sstream>
+#include <Eigen/QR>
 
 using Catch::Approx;
 
@@ -259,4 +260,56 @@ TEST_CASE("OnlineMaxVol periodic refactor controls long update drift", "[online_
                 Approx(0.0).margin(1e-9));
         REQUIRE(state.log_determinant() == Approx(rebuilt.log_determinant()).margin(1e-9));
     }
+}
+
+TEST_CASE("Rank deficient ridge grading agrees with spectral residual and batching",
+          "[online_maxvol][ridge]")
+{
+    // Rotations make the old dense Gram-inverse products catastrophically
+    // cancel. The known singular system supplies an independent reference.
+    constexpr int n = 48;
+    Eigen::MatrixXd seed(n, n);
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+            seed(i, j) = std::sin(1.3 * (i + 1) * (j + 2));
+    const Eigen::MatrixXd U = seed.householderQr().householderQ();
+    const Eigen::MatrixXd V = seed.transpose().householderQr().householderQ();
+    Eigen::VectorXd s(n);
+    for (int i = 0; i < n; ++i)
+        s[i] = i < n - 2 ? std::pow(10., -10. * i / (n - 3)) : 0.;
+    OnlineRowMatrix active = U * s.asDiagonal() * V.transpose();
+    OnlineMaxVolState state;
+    REQUIRE(state.initialize_from_rows(active));
+    const double lambda = 1e-12;
+    const Eigen::VectorXd d = (s.array().square() + lambda).inverse();
+    const Eigen::VectorXd diagonal = U.array().square().matrix() * d;
+    OnlineRowMatrix candidates(137, n);
+    for (int i = 0; i < candidates.rows(); ++i)
+        candidates.row(i) = (1. + i / 50.) * active.row(i % n);
+    // Include a missing direction, which truncated-pseudoinverse-only grades miss.
+    candidates.row(136) = V.col(n - 1).transpose();
+    const Eigen::VectorXd batch = state.score_rows(candidates);
+    for (int i = 0; i < candidates.rows(); ++i)
+    {
+        OnlineRowMatrix one = candidates.middleRows(i, 1);
+        const auto scalar = state.score_rows(one);
+        REQUIRE(batch[i] == Approx(scalar[0]).epsilon(1e-9).margin(1e-10));
+        const Eigen::RowVectorXd p = one * V;
+        const Eigen::RowVectorXd c =
+            (p.array() * s.transpose().array() * d.transpose().array()).matrix() * U.transpose();
+        const double residual = (p.array().square() * (lambda * d).transpose().array()).sum();
+        const double reference = std::sqrt((c.array().square().transpose() +
+                                            residual * diagonal.array()).maxCoeff());
+        REQUIRE(batch[i] == Approx(reference).epsilon(1e-7).margin(1e-9));
+    }
+    // Score and exchange must use the same threshold decision.
+    OnlineRowMatrix one = candidates.middleRows(80, 1);
+    REQUIRE(state.maximize_with_candidates(one, {}, batch[80] * (1. + 1e-7), 1) == 0);
+    REQUIRE(state.maximize_with_candidates(one, {}, batch[80] * (1. - 1e-7), 1) == 1);
+    std::stringstream saved(std::ios::in | std::ios::out | std::ios::binary);
+    state.save(saved);
+    saved.seekg(0);
+    OnlineMaxVolState restored;
+    REQUIRE(restored.load(saved));
+    REQUIRE((state.score_rows(candidates) - restored.score_rows(candidates)).norm() < 1e-7);
 }
