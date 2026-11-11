@@ -24,6 +24,7 @@
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <queue>
 #include <set>
 #include <sstream>
@@ -333,7 +334,8 @@ ActiveSelector::ActiveSelector()
     Connect(verbose, "verbose", "verbose output");
     Connect(select_mode, "select-mode",
             "selection backend: stream | full | online (order-dependent approximate)");
-    Connect(stream_mode, "stream-mode", "stream backend: exact (global rescans) | fast");
+    Connect(stream_mode, "stream-mode",
+            "stream backend: exact (global rescans) | fast | batch (CPU cached)");
     Connect(stream_chunk_size, "stream-chunk-size", "streaming cfg chunk size");
     Connect(stream_fast_passes, "stream-fast-passes", "max passes in stream fast mode");
     Connect(stream_cache_mode, "stream-cache-mode", "stream cache: auto | memory | mmap | off");
@@ -354,7 +356,8 @@ void ActiveSelector::RegisterConsole(CMDOption::CommandLineOptions &cmdopts)
         .addop(max_swaps, "max-swaps", "", "swap limit (0=unlimited)")
         .addop(select_mode, "select-mode", "",
                "selection backend: stream | full | online (order-dependent approximate)")
-        .addop(stream_mode, "stream-mode", "", "stream backend: exact (global rescans) | fast")
+        .addop(stream_mode, "stream-mode", "",
+               "stream backend: exact (global rescans) | fast | batch (CPU cached)")
         .addop(stream_chunk_size, "stream-chunk-size", "", "streaming cfg chunk size")
         .addop(stream_fast_passes, "stream-fast-passes", "", "max passes in stream fast mode")
         .addop(stream_cache_mode, "stream-cache-mode", "",
@@ -1017,6 +1020,14 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
 {
     if (!distributed)
         comm = MPI_COMM_SELF;
+    if (stream_mode == "batch")
+    {
+        int processes = 1;
+        MPI_Comm_size(comm, &processes);
+        if (processes > 1 || stream_cache_mode == "off")
+            throw std::invalid_argument(
+                "stream-mode=batch requires cached, single-process CPU selection");
+    }
     invalidate_grading();
     if (!builder_ || cfgs_.empty())
         return 0;
@@ -1250,7 +1261,7 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
     MPI_Allreduce(&allocation_ok, &all_allocations_ok, 1, MPI_INT, MPI_MIN, comm);
     if (!all_allocations_ok)
     {
-        if (stream_cache_mode == "auto")
+        if (stream_cache_mode == "auto" && stream_mode != "batch")
         {
             const int selected = select_streaming_legacy_current();
             stream_stats_.cache_backend = "off(auto-fallback)";
@@ -1674,7 +1685,15 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
         }
     }
 
+    // Pool workers each use one BLAS thread. Between pool scans batch mode
+    // uses a bounded BLAS team for its dense factors and working-set products.
+    // The local guard restores the caller's setting when selection returns.
+    std::optional<MklLocalThreadGuard> batch_blas_threads;
+    if (stream_mode == "batch")
+        batch_blas_threads.emplace(std::min(8, thread_count));
     OnlineMaxVolState stream_state;
+    if (stream_mode == "batch")
+        stream_state.enable_batch_updates();
     if (!stream_state.initialize_from_rows(C, refs))
         return 0;
     stream_stats_.initialization_seconds =
@@ -1683,8 +1702,11 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
     int swap_count = 0;
     const int pass_limit =
         stream_mode == "fast" ? std::max(1, stream_fast_passes) : std::max(1, mv_.max_iterations);
-    const bool use_shortlist = stream_mode == "fast" || uses_mlip_initialization();
+    const bool use_shortlist =
+        stream_mode == "fast" || stream_mode == "batch" || uses_mlip_initialization();
     const auto score_started = Clock::now();
+    std::set<std::vector<int>> batch_active_sets;
+    bool batch_cycle = false;
 
     // Score by row blocks, independently of configuration/cache segments.
     // A single large force configuration can then use all workers, without
@@ -1736,6 +1758,7 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
 
     for (int pass = 0; pass < pass_limit; ++pass)
     {
+        const auto scan_started = Clock::now();
         std::fill(selected_mask.begin(), selected_mask.end(), 0);
         for (const auto &ref : stream_state.selected_refs())
             if (ref.global_row >= 0 && ref.global_row < static_cast<int>(selected_mask.size()))
@@ -1802,6 +1825,8 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
                 }
 
             ++stream_stats_.score_passes;
+            stream_stats_.scan_seconds +=
+                std::chrono::duration<double>(Clock::now() - scan_started).count();
             const auto [best_gain, best_global] = gather_best(local_gain, local_global);
             if (best_global < 0 || !std::isfinite(best_gain) ||
                 best_gain <= std::max(1.0, threshold))
@@ -1819,9 +1844,10 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
         }
         else
         {
-            const int shortlist_limit = stream_fast_shortlist > 0
-                                            ? stream_fast_shortlist
-                                            : std::min(std::max(4 * k, 256), 4096);
+            const int shortlist_limit =
+                stream_fast_shortlist > 0
+                    ? stream_fast_shortlist
+                    : (stream_mode == "batch" ? 256 : std::min(std::max(4 * k, 256), 4096));
             using HeapItem = std::pair<double, int>; // gain, -global row
             using MinHeap =
                 std::priority_queue<HeapItem, std::vector<HeapItem>, std::greater<HeapItem>>;
@@ -1883,6 +1909,8 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
                         heap.pop();
                 }
             ++stream_stats_.score_passes;
+            stream_stats_.scan_seconds +=
+                std::chrono::duration<double>(Clock::now() - scan_started).count();
 
             std::vector<HeapItem> local_top;
             local_top.reserve(heap.size());
@@ -1951,17 +1979,46 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
                 shortlist.row(i) = candidate.row;
                 shortlist_refs.push_back(candidate.ref);
             }
-            const int remaining = max_swaps > 0 ? std::max(0, max_swaps - swap_count) : 0;
+            int remaining = max_swaps > 0 ? std::max(0, max_swaps - swap_count) : 0;
             if (max_swaps > 0 && remaining == 0)
                 break;
+            if (stream_mode == "batch")
+                remaining = remaining > 0 ? std::min(remaining, 64) : 64;
             const int changed = stream_state.maximize_with_candidates(shortlist, shortlist_refs,
                                                                       threshold, remaining);
             if (changed <= 0)
                 break;
             record_swaps(stream_state.last_swaps());
             swap_count += changed;
+            if (verbose && rank == 0 && stream_mode == "batch")
+                Message(fmt::format(
+                    "Stream batch {}: candidates={} max_before={:.8g} swaps={} "
+                    "total_swaps={} full_factors={} ridge_updates={} elapsed={:.3f}s",
+                    pass + 1, shortlist.rows(), global_top.front().first, changed, swap_count,
+                    stream_state.factor_stats().rebuilds, stream_state.factor_stats().ridge_updates,
+                    std::chrono::duration<double>(Clock::now() - total_started).count()));
         }
 
+        if (stream_mode == "batch")
+        {
+            std::vector<int> active;
+            active.reserve(stream_state.selected_refs().size());
+            for (const auto &ref : stream_state.selected_refs())
+                active.push_back(ref.global_row);
+            if (std::all_of(active.begin(), active.end(),
+                            [](int row)
+                            {
+                                return row >= 0;
+                            }))
+            {
+                std::sort(active.begin(), active.end());
+                if (!batch_active_sets.insert(std::move(active)).second)
+                {
+                    batch_cycle = true;
+                    break;
+                }
+            }
+        }
         log_det_ = stream_state.log_determinant();
         if (max_swaps > 0 && swap_count >= max_swaps)
             break;
@@ -1970,11 +2027,14 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
     stream_stats_.swaps = swap_count;
     refs = stream_state.selected_refs();
     C = stream_state.active_rows();
-    online_state_.initialize_from_rows(C, refs);
+    if (!online_state_.initialize_from_rows(C, refs))
+        throw std::runtime_error("Final MaxVol factorization failed");
     if (!build_compact_selected_state(C, refs))
         return 0;
-    log_det_ = stream_state.log_determinant();
+    log_det_ =
+        stream_mode == "batch" ? online_state_.log_determinant() : stream_state.log_determinant();
     double local_max_grade = 0.0;
+    const auto final_scan_started = Clock::now();
     std::vector<std::exception_ptr> final_errors(score_tasks.size());
 #ifdef USE_OMP
 #pragma omp parallel num_threads(score_thread_count) reduction(max : local_max_grade)
@@ -1997,6 +2057,8 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
                 const auto scores =
                     online_state_.score_rows(segment.matrix().middleRows(task.first, task.rows),
                                              score_workspaces[static_cast<std::size_t>(tid)]);
+                if (scores.size() != task.rows || !scores.allFinite())
+                    throw std::runtime_error("Incomplete or non-finite final MaxVol pool check");
                 if (scores.size() > 0)
                     local_max_grade = std::max(local_max_grade, scores.maxCoeff());
             }
@@ -2010,6 +2072,14 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
         if (error)
             std::rethrow_exception(error);
     ++stream_stats_.score_passes;
+    stream_stats_.scan_seconds +=
+        std::chrono::duration<double>(Clock::now() - final_scan_started).count();
+    stream_stats_.full_factorizations =
+        stream_state.factor_stats().rebuilds + online_state_.factor_stats().rebuilds;
+    stream_stats_.ridge_updates = stream_state.factor_stats().ridge_updates;
+    stream_stats_.factorization_seconds =
+        stream_state.factor_stats().rebuild_seconds + online_state_.factor_stats().rebuild_seconds;
+    stream_stats_.ridge_update_seconds = stream_state.factor_stats().update_seconds;
     double max_grade = local_max_grade;
     MPI_Allreduce(&local_max_grade, &max_grade, 1, MPI_DOUBLE, MPI_MAX, comm);
     stream_stats_.score_seconds =
@@ -2019,8 +2089,9 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
     set_selection_status(
         ok, max_grade,
         ok ? "threshold"
-           : (capped ? "max-swaps"
-                     : (stream_mode == "fast" ? "fast-pass-limit" : "postcheck-failed")));
+           : (batch_cycle ? "cycle"
+              : capped    ? "max-swaps"
+                          : (stream_mode == "fast" ? "fast-pass-limit" : "postcheck-failed")));
     stream_stats_.total_seconds =
         std::chrono::duration<double>(Clock::now() - total_started).count();
     online_processed_cfgs_ = ok ? cfgs_.size() : 0;

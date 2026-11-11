@@ -134,7 +134,7 @@ OBJMISC = temporary_directory.o units.o lower_energy_envelope.o chem.o procstr.o
 		compressed_stream.o cmdopts.o minkowski_reduce.o \
 		nn1hidden.o nn2hidden.o CutoffFuncs.o \
 		combinatorics.o angular_functions.o intersitials.o symbasis.o \
-		hessian_io.o maxvol.o online_maxvol.o active_selector.o b_matrix_builder.o \
+		hessian_io.o maxvol.o online_maxvol.o online_ridge_update.o active_selector.o b_matrix_builder.o \
 		hessian_utils.o ti_harmonic_reference.o ti_reference_io.o elastic_utils.o \
 		cur_selection.o fps_selector.o crowding.o spline.o
 

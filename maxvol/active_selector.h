@@ -67,6 +67,10 @@ class ActiveSelector : public ConnectSettings
         int descriptor_passes = 0;
         int score_passes = 0;
         int swaps = 0;
+        int full_factorizations = 0;
+        int ridge_updates = 0;
+        double factorization_seconds = 0.0;
+        double ridge_update_seconds = 0.0;
         std::size_t resident_bytes = 0;
         std::size_t mapped_bytes = 0;
         int configured_threads = 1;
@@ -75,6 +79,7 @@ class ActiveSelector : public ConnectSettings
         double build_seconds = 0.0;
         double initialization_seconds = 0.0;
         double score_seconds = 0.0;
+        double scan_seconds = 0.0;
         double total_seconds = 0.0;
         double mpi_seconds = 0.0;
         std::string cache_backend = "off";
@@ -90,7 +95,7 @@ class ActiveSelector : public ConnectSettings
     // online is order-dependent and does not revisit rejected historical rows.
     std::string select_mode = "stream"; // stream | full | online (approximate)
     // exact rescans the cached complete pool until convergence or the cap.
-    std::string stream_mode = "exact"; // exact | fast
+    std::string stream_mode = "exact"; // exact | fast | batch (CPU, cached)
     int stream_chunk_size = 32;
     int stream_fast_passes = 2;
     std::string stream_cache_mode = "auto"; // auto | memory | mmap | off

@@ -549,6 +549,10 @@ int maxvol_select(int argc, char *argv[])
                             stats.rows_built, stats.score_passes, stats.swaps, stats.build_seconds,
                             stats.initialization_seconds, stats.score_seconds,
                             stats.total_seconds));
+        Message(fmt::format(
+            "Stream factors: full={} ridge_updates={} factor={:.3f}s update={:.3f}s scan={:.3f}s",
+            stats.full_factorizations, stats.ridge_updates, stats.factorization_seconds,
+            stats.ridge_update_seconds, stats.scan_seconds));
     }
 
     Training::collective_try(

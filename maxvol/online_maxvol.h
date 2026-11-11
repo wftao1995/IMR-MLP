@@ -43,6 +43,23 @@ class OnlineMaxVolState
     /// 4 MiB per worker (or one row each for exceptionally wide active sets).
     int score_block_rows() const;
 
+    struct FactorStats
+    {
+        int rebuilds = 0;
+        int ridge_updates = 0;
+        double rebuild_seconds = 0.0;
+        double update_seconds = 0.0;
+    };
+
+    const FactorStats &factor_stats() const
+    {
+        return factor_stats_;
+    }
+
+    // Opt in before initialization. Derived factors are never serialized.
+    // Unsupported/uncertified updates fall back to a complete factorization.
+    void enable_batch_updates();
+
     void clear();
     void reset_identity(int ncols, double init_value = 1.0);
     bool initialize_from_rows(const Eigen::Ref<const OnlineRowMatrix> &C,
@@ -121,6 +138,7 @@ class OnlineMaxVolState
     bool update_square(const Eigen::RowVectorXd &coeff, int slot,
                        const Eigen::RowVectorXd &replacement);
     bool update_gram(int slot, const Eigen::RowVectorXd &replacement);
+    bool update_regularized(int slot, const Eigen::RowVectorXd &replacement);
     double factorization_error() const;
 
     OnlineRowMatrix C_;
@@ -128,6 +146,11 @@ class OnlineMaxVolState
     // (C C^T + regularization I)^-1 for a wide state.
     Eigen::MatrixXd inverse_;
     Eigen::MatrixXd regularized_map_; // V diag(s/(s^2+lambda)) U^T, never C^T * inverse_
+    // Stable residual map I - M*C, built spectrally (never by subtraction).
+    Eigen::MatrixXd ridge_residual_map_;
+    Eigen::VectorXd dominant_direction_, null_direction_;
+    bool batch_updates_ = false;
+    FactorStats factor_stats_;
     std::vector<BRowRef> selected_refs_;
     double log_det_ = 0.0;
     double regularization_ = 0.0;

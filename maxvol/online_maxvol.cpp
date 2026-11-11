@@ -6,6 +6,8 @@
 #include <Eigen/LU>
 #include <Eigen/SVD>
 #include <algorithm>
+#include <chrono>
+#include <stdexcept>
 #include <cmath>
 #include <cstdint>
 #include <istream>
@@ -50,11 +52,22 @@ bool read_ref(std::istream &is, BRowRef &ref)
 
 } // namespace
 
+void OnlineMaxVolState::enable_batch_updates()
+{
+    if (!empty())
+        throw std::logic_error("Enable batch updates before initializing OnlineMaxVolState");
+    batch_updates_ = true;
+}
+
 void OnlineMaxVolState::clear()
 {
     C_.resize(0, 0);
     inverse_.resize(0, 0);
     regularized_map_.resize(0, 0);
+    ridge_residual_map_.resize(0, 0);
+    dominant_direction_.resize(0);
+    null_direction_.resize(0);
+    factor_stats_ = {};
     selected_refs_.clear();
     log_det_ = 0.0;
     regularization_ = 0.0;
@@ -91,6 +104,21 @@ bool OnlineMaxVolState::initialize_from_rows(const Eigen::Ref<const OnlineRowMat
 
 bool OnlineMaxVolState::refactorize()
 {
+    const auto started = std::chrono::steady_clock::now();
+    ++factor_stats_.rebuilds;
+
+    // Count all exits, including failed factorizations.
+    struct Timer
+    {
+        double &seconds;
+        std::chrono::steady_clock::time_point started;
+
+        ~Timer()
+        {
+            seconds +=
+                std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+        }
+    } timer{factor_stats_.rebuild_seconds, started};
     const int rows = static_cast<int>(C_.rows());
     const int cols = static_cast<int>(C_.cols());
     if (rows <= 0 || cols <= 0)
@@ -104,6 +132,9 @@ bool OnlineMaxVolState::refactorize()
     factor_mode_ = FactorMode::None;
     regularization_ = 0.0;
     regularized_map_.resize(0, 0);
+    ridge_residual_map_.resize(0, 0);
+    dominant_direction_.resize(0);
+    null_direction_.resize(0);
     if (rows == cols && refactorize_square(dense))
         return true;
     return refactorize_gram(dense);
@@ -141,52 +172,72 @@ bool OnlineMaxVolState::refactorize_gram(const Eigen::MatrixXd &dense)
 {
     const int rows = static_cast<int>(dense.rows());
     const int cols = static_cast<int>(dense.cols());
+    const auto finish = [&](const auto &svd)
+    {
+        if (svd.info() != Eigen::Success)
+            return false;
+        const auto &U = svd.matrixU();
+        const auto &V = svd.matrixV();
+        const auto &s = svd.singularValues();
+        const double smax = s.size() > 0 && std::isfinite(s[0]) ? std::max(0.0, s[0]) : 0.0;
+        const double sv_tol = std::numeric_limits<double>::epsilon() *
+                              static_cast<double>(std::max(rows, cols)) * smax;
+        bool exact = s.size() == rows && smax > 0.0;
+        for (int i = 0; i < s.size(); ++i)
+            exact = exact && std::isfinite(s[i]) && s[i] > sv_tol;
+
+        regularization_ = 0.0;
+        if (!exact)
+        {
+            const double scale2 = smax > 0.0 ? smax * smax : 1.0;
+            const double relative = std::max(1e-12, std::numeric_limits<double>::epsilon() *
+                                                        static_cast<double>(std::max(rows, cols)));
+            regularization_ = std::max(std::numeric_limits<double>::min(), relative * scale2);
+        }
+
+        Eigen::VectorXd inv_eigs(rows);
+        log_det_ = 0.0;
+        for (int i = 0; i < rows; ++i)
+        {
+            const double si = i < s.size() && std::isfinite(s[i]) ? s[i] : 0.0;
+            const double eig = si * si + regularization_;
+            if (!std::isfinite(eig) || eig <= 0.0)
+                return false;
+            inv_eigs[i] = 1.0 / eig;
+            log_det_ += 0.5 * std::log(eig);
+        }
+        inverse_ = U * inv_eigs.asDiagonal() * U.transpose();
+        inverse_ = 0.5 * (inverse_ + inverse_.transpose()).eval();
+        if (!inverse_.allFinite())
+            return false;
+        if (!exact)
+        {
+            // Multiplying C^T by the Gram inverse loses the small directions before
+            // scoring even starts. Form the ridge map directly from the SVD instead.
+            regularized_map_ =
+                V * (s.array() * inv_eigs.array()).matrix().asDiagonal() * U.transpose();
+            if (!regularized_map_.allFinite())
+                return false;
+            if (batch_updates_ && rows == cols)
+            {
+                ridge_residual_map_ = V * (regularization_ * inv_eigs).asDiagonal() * V.transpose();
+                dominant_direction_ = V.col(0);
+                null_direction_ = V.col(cols - 1);
+            }
+        }
+        factor_mode_ = exact ? FactorMode::GramInverse : FactorMode::RegularizedGramInverse;
+        valid_ = true;
+        updates_since_factorization_ = 0;
+        return true;
+    };
+    if (batch_updates_)
+    {
+        // Keep input and factor buffers column-major for LAPACKE.
+        Eigen::BDCSVD<Eigen::MatrixXd, Eigen::ComputeThinU | Eigen::ComputeThinV> svd(dense);
+        return finish(svd);
+    }
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(dense, Eigen::ComputeThinU | Eigen::ComputeThinV);
-    const Eigen::VectorXd &s = svd.singularValues();
-    const double smax = s.size() > 0 && std::isfinite(s[0]) ? std::max(0.0, s[0]) : 0.0;
-    const double sv_tol =
-        std::numeric_limits<double>::epsilon() * static_cast<double>(std::max(rows, cols)) * smax;
-    bool exact = s.size() == rows && smax > 0.0;
-    for (int i = 0; i < s.size(); ++i)
-        exact = exact && std::isfinite(s[i]) && s[i] > sv_tol;
-
-    regularization_ = 0.0;
-    if (!exact)
-    {
-        const double scale2 = smax > 0.0 ? smax * smax : 1.0;
-        const double relative = std::max(1e-12, std::numeric_limits<double>::epsilon() *
-                                                    static_cast<double>(std::max(rows, cols)));
-        regularization_ = std::max(std::numeric_limits<double>::min(), relative * scale2);
-    }
-
-    Eigen::VectorXd inv_eigs(rows);
-    log_det_ = 0.0;
-    for (int i = 0; i < rows; ++i)
-    {
-        const double si = i < s.size() && std::isfinite(s[i]) ? s[i] : 0.0;
-        const double eig = si * si + regularization_;
-        if (!std::isfinite(eig) || eig <= 0.0)
-            return false;
-        inv_eigs[i] = 1.0 / eig;
-        log_det_ += 0.5 * std::log(eig);
-    }
-    inverse_ = svd.matrixU() * inv_eigs.asDiagonal() * svd.matrixU().transpose();
-    inverse_ = 0.5 * (inverse_ + inverse_.transpose()).eval();
-    if (!inverse_.allFinite())
-        return false;
-    if (!exact)
-    {
-        // Multiplying C^T by the Gram inverse loses the small directions before
-        // scoring even starts. Form the ridge map directly from the SVD instead.
-        regularized_map_ = svd.matrixV() * (s.array() * inv_eigs.array()).matrix().asDiagonal() *
-                           svd.matrixU().transpose();
-        if (!regularized_map_.allFinite())
-            return false;
-    }
-    factor_mode_ = exact ? FactorMode::GramInverse : FactorMode::RegularizedGramInverse;
-    valid_ = true;
-    updates_since_factorization_ = 0;
-    return true;
+    return finish(svd);
 }
 
 void OnlineMaxVolState::regularized_coefficients(const Eigen::Ref<const OnlineRowMatrix> &rows,
@@ -200,8 +251,11 @@ void OnlineMaxVolState::regularized_coefficients(const Eigen::Ref<const OnlineRo
     for (int first = 0; first < rows.rows(); first += block)
     {
         const int count = std::min(block, int(rows.rows()) - first);
-        const Eigen::MatrixXd residual =
-            rows.middleRows(first, count) - coeff.middleRows(first, count) * C_;
+        Eigen::MatrixXd residual;
+        if (ridge_residual_map_.size())
+            residual.noalias() = rows.middleRows(first, count) * ridge_residual_map_;
+        else
+            residual = rows.middleRows(first, count) - coeff.middleRows(first, count) * C_;
         for (int i = 0; i < count; ++i)
             residual2[first + i] = residual.row(i).squaredNorm() +
                                    regularization_ * coeff.row(first + i).squaredNorm();
@@ -471,6 +525,17 @@ int OnlineMaxVolState::maximize_with_candidates(const Eigen::Ref<const OnlineRow
             if (best_row >= 0)
                 replacement_coeff = coeff.row(best_row);
         }
+        // Incremental scores are sufficient away from the decision boundary.
+        // Resolve the 1e-4 tolerance band with a fresh factor before deciding
+        // either to exchange or to stop. The refreshed pass cannot loop here.
+        if (batch_updates_ && updates_since_factorization_ > 0 && std::isfinite(best) &&
+            std::abs(best - stop) <= 1e-4 * std::max(1., stop))
+        {
+            if (!refactorize())
+                throw std::runtime_error("Batch MaxVol threshold verification failed");
+            square_coeff_valid = false;
+            continue;
+        }
         if (!std::isfinite(best) || best <= stop)
             break;
 
@@ -479,7 +544,8 @@ int OnlineMaxVolState::maximize_with_candidates(const Eigen::Ref<const OnlineRow
         const BRowRef entering_ref = pool_refs[static_cast<size_t>(best_row)];
         const BRowRef outgoing_ref = selected_refs_[static_cast<size_t>(best_slot)];
         const FactorMode old_mode = factor_mode_;
-        bool updated = old_mode == FactorMode::RegularizedGramInverse ? false
+        bool updated = old_mode == FactorMode::RegularizedGramInverse
+                           ? update_regularized(best_slot, replacement)
                        : old_mode == FactorMode::SquareInverse
                            ? update_square(replacement_coeff, best_slot, replacement)
                            : update_gram(best_slot, replacement);
@@ -487,17 +553,6 @@ int OnlineMaxVolState::maximize_with_candidates(const Eigen::Ref<const OnlineRow
         if (!updated)
         {
             C_.row(best_slot) = replacement;
-            if (!refactorize())
-            {
-                C_.row(best_slot) = outgoing;
-                refactorize();
-                break;
-            }
-        }
-        else if (old_mode == FactorMode::RegularizedGramInverse)
-        {
-            // A missing direction may have been restored. Prefer the exact
-            // square/Gram factorization as soon as it becomes available.
             if (!refactorize())
             {
                 C_.row(best_slot) = outgoing;

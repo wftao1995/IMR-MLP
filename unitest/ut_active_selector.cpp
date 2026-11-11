@@ -1946,7 +1946,7 @@ TEST_CASE("ActiveSelector scores one large configuration across workers",
     cfg.pos_[0] << 1.0, 0.0, 0.0;
     cfg.pos_[1] << 0.0, 1.0, 0.0;
     std::vector<Atoms> pool{cfg};
-    for (const std::string mode : {"exact", "fast"})
+    for (const std::string mode : {"exact", "fast", "batch"})
     {
         ActiveSelector selector(new PositionRowsBuilder());
         selector.stream_mode = mode;
@@ -2106,4 +2106,44 @@ TEST_CASE("ActiveSelector grades a purely virtual active set", "[active_sel]")
     selector.grade_all(candidates, grades);
     REQUIRE(grades[0] == Approx(0.3));
     REQUIRE(selector.grade(cfg) == Approx(grades[0]));
+}
+
+TEST_CASE("Batch stream reports the full pool after a capped candidate exchange",
+          "[active_sel][stream_batch]")
+{
+    std::vector<Atoms> pool{make_row_cfg(1., 0.), make_row_cfg(0., 1.), make_row_cfg(4., 0.),
+                            make_row_cfg(0., 5.)};
+    ActiveSelector selector(new SimpleRowBuilder());
+    selector.stream_mode = "batch";
+    selector.stream_cache_mode = "memory";
+    selector.init_mode = "mlip";
+    selector.init_value = 0.1;
+    selector.stream_fast_shortlist = 1;
+    selector.max_swaps = 1;
+    selector.pow_scale = 0.;
+    selector.select_streaming(pool);
+    REQUIRE_FALSE(selector.converged());
+    REQUIRE(selector.termination_reason() == "max-swaps");
+    REQUIRE(selector.stream_stats().score_passes == 2);
+    REQUIRE(selector.stream_stats().swaps == 1);
+    std::vector<double> grades;
+    selector.grade_all(pool, grades);
+    REQUIRE(selector.max_remaining_grade() ==
+            Approx(*std::max_element(grades.begin(), grades.end())).margin(1e-10));
+    selector.max_swaps = 0;
+    selector.select_streaming(pool);
+    REQUIRE(selector.converged());
+    REQUIRE(selector.max_remaining_grade() <= 1.001 + 1e-8);
+}
+
+TEST_CASE("Batch stream rejects uncached selection through both public entry points",
+          "[active_sel][stream_batch]")
+{
+    std::vector<Atoms> pool{make_row_cfg(1., 0.), make_row_cfg(0., 1.)};
+    ActiveSelector selector(new SimpleRowBuilder());
+    selector.stream_mode = "batch";
+    selector.stream_cache_mode = "off";
+    REQUIRE_THROWS_AS(selector.select_streaming(pool), std::invalid_argument);
+    selector.add_candidates(pool);
+    REQUIRE_THROWS_AS(selector.select_streaming(), std::invalid_argument);
 }

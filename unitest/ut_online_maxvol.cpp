@@ -313,3 +313,110 @@ TEST_CASE("Rank deficient ridge grading agrees with spectral residual and batchi
     REQUIRE(restored.load(saved));
     REQUIRE((state.score_rows(candidates) - restored.score_rows(candidates)).norm() < 1e-7);
 }
+
+TEST_CASE("Batch ridge updates retain the current lambda and survive rebuilds",
+          "[online_maxvol][ridge][batch]")
+{
+    constexpr int n = 24;
+    Eigen::MatrixXd seed(n, n);
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+            seed(i, j) = std::sin(1.3 * (i + 1) * (j + 2));
+    const Eigen::MatrixXd V = seed.householderQr().householderQ();
+    Eigen::VectorXd singular = Eigen::VectorXd::Constant(n, 0.2);
+    singular[0] = 10.;
+    singular[n - 1] = 0.;
+    OnlineRowMatrix active = singular.asDiagonal() * V.transpose();
+    OnlineMaxVolState state;
+    state.enable_batch_updates();
+    REQUIRE(state.initialize_from_rows(active));
+    for (int iteration = 0; iteration < 130; ++iteration)
+    {
+        // Alternate lambda-changing and constant-lambda replacements. A
+        // rotated right basis exercises cancellation in the missing direction.
+        const int slot = iteration % (n - 1);
+        OnlineRowMatrix one = state.active_rows().middleRows(slot, 1);
+        const double current_grade = state.score_rows(one)[0];
+        REQUIRE(current_grade > 0.);
+        // Active-row grades can be below one in the ridge definition.
+        one *= 1.002 / current_grade;
+        CAPTURE(iteration, current_grade);
+        REQUIRE(state.maximize_with_candidates(one, {}, 1.001, 1) == 1);
+        OnlineMaxVolState rebuilt;
+        REQUIRE(rebuilt.initialize_from_rows(state.active_rows()));
+        OnlineRowMatrix probes(n + 1, n);
+        probes.topRows(n) = state.active_rows();
+        probes.row(n) = V.col(n - 1).transpose();
+        const auto expected = rebuilt.score_rows(probes);
+        const auto actual = state.score_rows(probes);
+        for (int row = 0; row < probes.rows(); ++row)
+        {
+            REQUIRE(std::abs(actual[row] - expected[row]) <=
+                    1e-4 * std::max(1., std::abs(expected[row])));
+            REQUIRE(actual[row] == Approx(state.score_rows(probes.middleRows(row, 1))[0])
+                                       .epsilon(1e-10)
+                                       .margin(1e-10));
+        }
+        REQUIRE(state.log_determinant() == Approx(rebuilt.log_determinant()).margin(1e-5));
+    }
+    REQUIRE(state.factor_stats().ridge_updates > 10);
+    REQUIRE(state.factor_stats().rebuilds >= 3);
+    REQUIRE(state.factor_stats().rebuilds < 15);
+    std::stringstream stream(std::ios::in | std::ios::out | std::ios::binary);
+    state.save(stream);
+    stream.seekg(0);
+    OnlineMaxVolState restored;
+    REQUIRE(restored.load(stream));
+    REQUIRE((state.score_rows(active) - restored.score_rows(active)).cwiseAbs().maxCoeff() < 1e-4);
+}
+
+TEST_CASE("Batch ridge updates fall back when rank or spectral separation changes",
+          "[online_maxvol][ridge][batch]")
+{
+    OnlineRowMatrix active(3, 3), candidate(1, 3);
+    active << 10., 0., 0., 0., 1., 0., 0., 0., 0.;
+    candidate << 0., 0., 2.;
+    OnlineMaxVolState state;
+    state.enable_batch_updates();
+    REQUIRE(state.initialize_from_rows(active));
+    REQUIRE(state.maximize_with_candidates(candidate, {}, 1.001, 1) == 1);
+    REQUIRE(state.factor_stats().ridge_updates == 0);
+    REQUIRE(state.factor_stats().rebuilds == 2);
+    OnlineMaxVolState rebuilt;
+    REQUIRE(rebuilt.initialize_from_rows(state.active_rows()));
+    REQUIRE(state.score_rows(candidate)[0] ==
+            Approx(rebuilt.score_rows(candidate)[0]).margin(1e-10));
+}
+
+TEST_CASE("Batch ridge refreshes near the stop threshold and without a dominant spectrum",
+          "[online_maxvol][ridge][batch]")
+{
+    SECTION("threshold band")
+    {
+        OnlineRowMatrix active = OnlineRowMatrix::Zero(3, 3);
+        active(0, 0) = 10.;
+        active(1, 1) = 1.;
+        OnlineMaxVolState state;
+        state.enable_batch_updates();
+        REQUIRE(state.initialize_from_rows(active));
+        OnlineRowMatrix first = 1.002 * active.middleRows(1, 1);
+        REQUIRE(state.maximize_with_candidates(first, {}, 1.001, 1) == 1);
+        REQUIRE(state.factor_stats().ridge_updates == 1);
+        const int before = state.factor_stats().rebuilds;
+        OnlineRowMatrix near = 1.00095 * state.active_rows().middleRows(1, 1);
+        REQUIRE(state.maximize_with_candidates(near, {}, 1.001, 1) == 0);
+        REQUIRE(state.factor_stats().rebuilds == before + 1);
+    }
+    SECTION("no separated largest singular value")
+    {
+        OnlineRowMatrix active = OnlineRowMatrix::Identity(4, 4);
+        active(3, 3) = 0.;
+        OnlineMaxVolState state;
+        state.enable_batch_updates();
+        REQUIRE(state.initialize_from_rows(active));
+        OnlineRowMatrix one = 1.002 * active.middleRows(0, 1);
+        REQUIRE(state.maximize_with_candidates(one, {}, 1.001, 1) == 1);
+        REQUIRE(state.factor_stats().ridge_updates == 0);
+        REQUIRE(state.factor_stats().rebuilds == 2);
+    }
+}
