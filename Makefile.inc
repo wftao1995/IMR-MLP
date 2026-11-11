@@ -86,9 +86,19 @@ endif
 
 ifeq ($(USE_MKL),1)
 IMRMLP_DEFINES_BASE += -DEIGEN_USE_MKL_ALL
-# MPI modes use sequential MKL (parallelism from multi-process)
+# Keep the existing sequential default; batch selection can opt into a
+# threaded BLAS team on its canonical update rank. Set MKL_NUM_THREADS=1
+# externally; batch mode sets/restores its local team size.
+MPI_MKL_THREADING ?= sequential
+ifeq ($(MPI_MKL_THREADING),sequential)
+MPI_MKL_LIBRARY = -lmkl_sequential
+else ifeq ($(MPI_MKL_THREADING),gnu)
+MPI_MKL_LIBRARY = -lmkl_gnu_thread
+else
+$(error MPI_MKL_THREADING must be sequential or gnu)
+endif
 ifneq ($(filter mpi mpi-debug mpi-cuda mpi-hip,$(BUILD_MODE)),)
-MKL_LIBS = -m64 -L$(MKL_LIBDIR) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core
+MKL_LIBS = -m64 -L$(MKL_LIBDIR) -Wl,--no-as-needed -lmkl_intel_lp64 $(MPI_MKL_LIBRARY) -lmkl_core
 else
 MKL_LIBS = -m64 -L$(MKL_LIBDIR) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core
 endif

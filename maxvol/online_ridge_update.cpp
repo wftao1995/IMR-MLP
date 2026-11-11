@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "maxvol/online_maxvol.h"
+#include "maxvol/mpi_batch.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -143,4 +144,127 @@ bool OnlineMaxVolState::update_regularized(int slot, const Eigen::RowVectorXd &r
     ++updates_since_factorization_;
     ++factor_stats_.ridge_updates;
     return true;
+}
+
+void OnlineMaxVolState::broadcast_runtime(MPI_Comm comm, int root)
+{
+#ifdef IMRMLP_MPI
+    int rank = 0, size = 1;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &size);
+    if (size == 1)
+        return;
+    MaxVolMPI::local(comm,
+                     [&]
+                     {
+                         if (root < 0 || root >= size || (rank == root && !valid_))
+                             throw std::runtime_error("Invalid canonical MaxVol state");
+                     });
+    const auto matrix = [&](auto &value)
+    {
+        int shape[2] = {int(value.rows()), int(value.cols())};
+        MPI_Bcast(shape, 2, MPI_INT, root, comm);
+        MaxVolMPI::local(comm,
+                         [&]
+                         {
+                             if (rank != root)
+                                 value.resize(shape[0], shape[1]);
+                         });
+        // Keep each MPI count in int range without a packed matrix copy.
+        constexpr Eigen::Index chunk = 1 << 20;
+        for (Eigen::Index first = 0; first < value.size(); first += chunk)
+            MPI_Bcast(value.data() + first, int(std::min(chunk, value.size() - first)), MPI_DOUBLE,
+                      root, comm);
+    };
+    matrix(C_);
+    matrix(inverse_);
+    matrix(regularized_map_);
+    matrix(ridge_residual_map_);
+    matrix(dominant_direction_);
+    matrix(null_direction_);
+    int control[] = {
+        int(selected_refs_.size()), int(last_swaps_.size()),      int(factor_mode_),
+        int(batch_updates_),        updates_since_factorization_, factor_stats_.rebuilds,
+        factor_stats_.ridge_updates};
+    MPI_Bcast(control, 7, MPI_INT, root, comm);
+    MaxVolMPI::local(comm,
+                     [&]
+                     {
+                         if (rank != root)
+                         {
+                             selected_refs_.resize(control[0]);
+                             last_swaps_.resize(control[1]);
+                         }
+                     });
+    // Pack only typed metadata, not the dense factors. One message avoids
+    // thousands of tiny reference broadcasts on a multi-node interconnect.
+    std::vector<int> references;
+    std::vector<double> gains;
+    MaxVolMPI::local(comm,
+                     [&]
+                     {
+                         references.resize(6 * (selected_refs_.size() + 2 * last_swaps_.size()));
+                         gains.resize(last_swaps_.size());
+                     });
+    size_t offset = 0;
+    const auto pack = [&](const BRowRef &r)
+    {
+        for (int field :
+             {r.cfg_index, r.local_row, r.global_row, int(r.kind), r.atom_index, r.component})
+            references[offset++] = field;
+    };
+    if (rank == root)
+    {
+        for (const auto &r : selected_refs_)
+            pack(r);
+        for (size_t i = 0; i < last_swaps_.size(); ++i)
+        {
+            const auto &step = last_swaps_[i];
+            pack(step.entering);
+            pack(step.outgoing);
+            gains[i] = step.gain;
+        }
+    }
+    const auto send = [&](auto &values, MPI_Datatype type)
+    {
+        constexpr size_t chunk = 1 << 20;
+        for (size_t first = 0; first < values.size(); first += chunk)
+            MPI_Bcast(values.data() + first, int(std::min(chunk, values.size() - first)), type,
+                      root, comm);
+    };
+    send(references, MPI_INT);
+    send(gains, MPI_DOUBLE);
+    if (rank != root)
+    {
+        offset = 0;
+        const auto unpack = [&](BRowRef &r)
+        {
+            const int *f = references.data() + offset;
+            r = {f[0], f[1], f[2], BRowKind(f[3]), f[4], f[5]};
+            offset += 6;
+        };
+        for (auto &r : selected_refs_)
+            unpack(r);
+        for (size_t i = 0; i < last_swaps_.size(); ++i)
+        {
+            auto &step = last_swaps_[i];
+            unpack(step.entering);
+            unpack(step.outgoing);
+            step.gain = gains[i];
+        }
+    }
+    double scalars[] = {log_det_, regularization_, factor_stats_.rebuild_seconds,
+                        factor_stats_.update_seconds};
+    MPI_Bcast(scalars, 4, MPI_DOUBLE, root, comm);
+    factor_mode_ = FactorMode(control[2]);
+    batch_updates_ = control[3];
+    updates_since_factorization_ = control[4];
+    factor_stats_ = {control[5], control[6], scalars[2], scalars[3]};
+    log_det_ = scalars[0];
+    regularization_ = scalars[1];
+    valid_ = true;
+#else
+    (void)comm;
+    (void)root;
+#endif
 }

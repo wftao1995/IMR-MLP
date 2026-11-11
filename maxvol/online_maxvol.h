@@ -4,6 +4,7 @@
 #pragma once
 
 #include "maxvol/b_matrix_builder.h"
+#include "utils/comm.h"
 #include <Eigen/Core>
 #include <iosfwd>
 #include <vector>
@@ -59,6 +60,10 @@ class OnlineMaxVolState
     // Opt in before initialization. Derived factors are never serialized.
     // Unsupported/uncertified updates fall back to a complete factorization.
     void enable_batch_updates();
+
+    // Runtime synchronization, including derived factors; no refactorization.
+    // All ranks must call with the same communicator/root. Not a disk format.
+    void broadcast_runtime(MPI_Comm comm, int root = 0);
 
     void clear();
     void reset_identity(int ncols, double init_value = 1.0);

@@ -735,10 +735,10 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--all-coeffs` |  | `false` | 使用 ALL 系数（不仅是线性系数，布尔值） |
 | `--row-scaling` |  | `uniform` | 行缩放：`uniform`，或仅对能量/应力做原子数缩放的 `mlip` |
 | `--select-mode` |  | `stream` | 选择后端：`stream`、`full` 或与输入顺序相关的近似 `online` |
-| `--stream-mode` |  | `exact` | `exact` 扫描缓存的完整候选池直至收敛；`fast` 使用有界的全局 shortlist |
+| `--stream-mode` |  | `exact` | `exact`：全池重扫；`fast`：限定轮数的候选清单；`batch`：受保护的增量更新及最终全池复查（CPU，支持 MPI） |
 | `--stream-chunk-size` |  | `32` | 每个并行构建/缓存分块包含的结构数 |
 | `--stream-fast-passes` |  | `2` | `fast` 流式模式的最大全局扫描轮数 |
-| `--stream-fast-shortlist` |  | `0` | `fast` 模式的全局 shortlist 大小；0 表示自动选择 |
+| `--stream-fast-shortlist` |  | `0` | `fast`/`batch` 的候选清单大小；0 表示自动选择（batch 默认 256） |
 | `--stream-cache-mode` |  | `auto` | 行缓存后端：`auto`、`memory`、`mmap` 或旧实现 `off` |
 | `--stream-memory-limit-mb` |  | `3072` | 每进程常驻行缓存上限；`auto` 会把后续分块转为 mmap |
 | `--stream-cache-dir` |  | — | 临时 mmap 目录；默认依次使用 `TMPDIR` 和 `/tmp` |
@@ -783,10 +783,12 @@ selector:stream-cache-mode auto
 selector:stream-memory-limit-mb 3072
 ```
 
+CPU MPI batch 的同步方式和构建选项见 [MPI batch selection](../guides/maxvol-rank-deficient.md#mpi-batch-selection)。
+
 `online` 模式只保留当前 active matrix，不保存此前被拒绝的历史候选。后续交换
 可能使旧候选的评分重新超过阈值，因此结果与候选到达顺序有关，是对累计候选池
 的近似选择。如果最终 active set 必须对所有输入行满足阈值，应使用 `full`，或
-使用 `stream-mode exact` 的流式模式。缓存式精确流只构建一次描述符，之后每次
+使用 `stream-mode exact` 或 `batch` 的流式模式。缓存式精确流只构建一次描述符，之后每次
 接受交换仅重新扫描缓存行。`auto` 会在每进程常驻缓存达到上限后，把新增分块
 透明地放入临时 mmap。MPI 运行时按 rank 划分结构，同时保持确定性的全局行顺序。
 

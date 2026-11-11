@@ -817,10 +817,10 @@ imrmlp maxvol_select --potfile=potential.mtp --pool=pool.cfg -o selected.cfg
 | `--all-coeffs` | | `false` | Use ALL potential coefficients, not just linear (bool) |
 | `--row-scaling` | | `uniform` | `uniform` or MLIP-compatible energy/stress-only atom-count scaling (`mlip`) |
 | `--select-mode` | | `stream` | Selection backend: `stream`, `full`, or order-dependent approximate `online` |
-| `--stream-mode` | | `exact` | `exact` scans the cached complete pool to convergence; `fast` uses bounded global shortlists |
+| `--stream-mode` | | `exact` | `exact`: full rescans; `fast`: capped shortlist passes; `batch`: guarded working-set updates with final full-pool checking (CPU, including MPI) |
 | `--stream-chunk-size` | | `32` | Number of structures built per parallel cache chunk |
 | `--stream-fast-passes` | | `2` | Maximum global passes in `fast` stream mode |
-| `--stream-fast-shortlist` | | `0` | Global shortlist size in `fast` mode; 0 selects an automatic size |
+| `--stream-fast-shortlist` | | `0` | Global shortlist size in `fast`/`batch`; 0 selects an automatic size (256 for batch) |
 | `--stream-cache-mode` | | `auto` | Row cache backend: `auto`, `memory`, `mmap`, or legacy `off` |
 | `--stream-memory-limit-mb` | | `3072` | Maximum resident row-cache size per process; `auto` spills later chunks to mmap |
 | `--stream-cache-dir` |  | — | Temporary mmap directory; defaults to `TMPDIR`, then `/tmp` |
@@ -867,10 +867,12 @@ selector:stream-cache-mode auto
 selector:stream-memory-limit-mb 3072
 ```
 
+For CPU MPI batch selection and its build options, see [MPI batch selection](../guides/maxvol-rank-deficient.md#mpi-batch-selection).
+
 `online` mode keeps the active matrix but does not retain rejected historical
 candidates. A later exchange can therefore raise an earlier candidate's score;
 the result is order-dependent and is an approximation over the cumulative
-pool. Use `full` or `stream` with `stream-mode exact` when the final active set
+pool. Use `full` or `stream` with `stream-mode exact` or `batch` when the final active set
 must satisfy the threshold against every input row. Cached exact streaming
 builds descriptors once, then rescans cached rows after each accepted exchange.
 `auto` keeps up to the configured per-process limit resident and transparently

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "maxvol/active_selector.h"
+#include "maxvol/mpi_batch.h"
 #include "potentials/model_bundle.h"
 #include "potentials/model_elements.h"
 #include "potentials/gpm_codec.h"
@@ -982,7 +983,8 @@ bool ActiveSelector::build_compact_selected_state(
 
     log_det_ = online_state_.valid() ? online_state_.log_determinant()
                                      : factorize_active_rows(B_full_).log_volume;
-    return !selected_cfgs_.empty();
+    // A valid state may contain only virtual rows.
+    return true;
 }
 
 int ActiveSelector::select_streaming(std::vector<Atoms> &cfgs)
@@ -1020,14 +1022,37 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
 {
     if (!distributed)
         comm = MPI_COMM_SELF;
-    if (stream_mode == "batch")
+    auto local_phase = [&](auto &&operation)
     {
-        int processes = 1;
-        MPI_Comm_size(comm, &processes);
-        if (processes > 1 || stream_cache_mode == "off")
-            throw std::invalid_argument(
-                "stream-mode=batch requires cached, single-process CPU selection");
-    }
+        MaxVolMPI::local(comm, operation);
+    };
+    // Agree the mode before any rank enters batch-only collectives.
+    int controls[] = {stream_mode == "batch"  ? 2
+                      : stream_mode == "fast" ? 1
+                                              : 0,
+                      max_swaps,
+                      stream_fast_passes,
+                      stream_fast_shortlist,
+                      stream_chunk_size,
+                      int(cfgs_.size()),
+                      builder_ ? builder_->coeff_count() : 0,
+                      stream_cache_mode == "off",
+                      uses_mlip_initialization()};
+    int low[9]{}, high[9]{};
+    MPI_Allreduce(controls, low, 9, MPI_INT, MPI_MIN, comm);
+    MPI_Allreduce(controls, high, 9, MPI_INT, MPI_MAX, comm);
+    double values[] = {threshold, weight, pow_scale, init_value}, lo[4]{}, hi[4]{};
+    MPI_Allreduce(values, lo, 4, MPI_DOUBLE, MPI_MIN, comm);
+    MPI_Allreduce(values, hi, 4, MPI_DOUBLE, MPI_MAX, comm);
+    local_phase(
+        [&]
+        {
+            if (!std::equal(std::begin(low), std::end(low), std::begin(high)) ||
+                !std::equal(std::begin(lo), std::end(lo), std::begin(hi)))
+                throw std::invalid_argument("CPU stream ranks disagree on controls or dimensions");
+            if (stream_mode == "batch" && stream_cache_mode == "off")
+                throw std::invalid_argument("stream-mode=batch requires cached CPU selection");
+        });
     invalidate_grading();
     if (!builder_ || cfgs_.empty())
         return 0;
@@ -1694,8 +1719,16 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
     OnlineMaxVolState stream_state;
     if (stream_mode == "batch")
         stream_state.enable_batch_updates();
-    if (!stream_state.initialize_from_rows(C, refs))
-        return 0;
+    const bool mpi_batch = stream_mode == "batch" && size > 1;
+    local_phase(
+        [&]
+        {
+            if (!mpi_batch || rank == 0)
+                if (!stream_state.initialize_from_rows(C, refs))
+                    throw std::runtime_error("Stream initialization failed");
+        });
+    if (mpi_batch)
+        stream_state.broadcast_runtime(comm);
     stream_stats_.initialization_seconds =
         std::chrono::duration<double>(Clock::now() - initialization_started).count();
     log_det_ = stream_state.log_determinant();
@@ -1814,9 +1847,13 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
                     }
                 }
             }
-            for (const auto &error : score_errors)
-                if (error)
-                    std::rethrow_exception(error);
+            local_phase(
+                [&]
+                {
+                    for (const auto &error : score_errors)
+                        if (error)
+                            std::rethrow_exception(error);
+                });
             for (const auto &[gain, global] : thread_best)
                 if (better_candidate(gain, global, local_gain, local_global))
                 {
@@ -1895,9 +1932,13 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
                     }
                 }
             }
-            for (const auto &error : score_errors)
-                if (error)
-                    std::rethrow_exception(error);
+            local_phase(
+                [&]
+                {
+                    for (const auto &error : score_errors)
+                        if (error)
+                            std::rethrow_exception(error);
+                });
 
             MinHeap heap;
             for (auto &thread_heap : thread_heaps)
@@ -1984,11 +2025,26 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
                 break;
             if (stream_mode == "batch")
                 remaining = remaining > 0 ? std::min(remaining, 64) : 64;
-            const int changed = stream_state.maximize_with_candidates(shortlist, shortlist_refs,
-                                                                      threshold, remaining);
+            int changed = 0;
+            local_phase(
+                [&]
+                {
+                    if (!mpi_batch || rank == 0)
+                        changed = stream_state.maximize_with_candidates(shortlist, shortlist_refs,
+                                                                        threshold, remaining);
+                });
+            if (mpi_batch)
+            {
+                MPI_Bcast(&changed, 1, MPI_INT, 0, comm);
+                stream_state.broadcast_runtime(comm);
+            }
             if (changed <= 0)
                 break;
-            record_swaps(stream_state.last_swaps());
+            local_phase(
+                [&]
+                {
+                    record_swaps(stream_state.last_swaps());
+                });
             swap_count += changed;
             if (verbose && rank == 0 && stream_mode == "batch")
                 Message(fmt::format(
@@ -2001,23 +2057,29 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
 
         if (stream_mode == "batch")
         {
-            std::vector<int> active;
-            active.reserve(stream_state.selected_refs().size());
-            for (const auto &ref : stream_state.selected_refs())
-                active.push_back(ref.global_row);
-            if (std::all_of(active.begin(), active.end(),
-                            [](int row)
-                            {
-                                return row >= 0;
-                            }))
-            {
-                std::sort(active.begin(), active.end());
-                if (!batch_active_sets.insert(std::move(active)).second)
+            local_phase(
+                [&]
                 {
-                    batch_cycle = true;
-                    break;
-                }
-            }
+                    if (rank != 0)
+                        return;
+                    std::vector<int> active;
+                    for (const auto &ref : stream_state.selected_refs())
+                        active.push_back(ref.global_row);
+                    if (std::all_of(active.begin(), active.end(),
+                                    [](int row)
+                                    {
+                                        return row >= 0;
+                                    }))
+                    {
+                        std::sort(active.begin(), active.end());
+                        batch_cycle = !batch_active_sets.insert(std::move(active)).second;
+                    }
+                });
+            int cycle = batch_cycle;
+            MPI_Bcast(&cycle, 1, MPI_INT, 0, comm);
+            batch_cycle = cycle;
+            if (batch_cycle)
+                break;
         }
         log_det_ = stream_state.log_determinant();
         if (max_swaps > 0 && swap_count >= max_swaps)
@@ -2025,12 +2087,23 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
     }
 
     stream_stats_.swaps = swap_count;
-    refs = stream_state.selected_refs();
-    C = stream_state.active_rows();
-    if (!online_state_.initialize_from_rows(C, refs))
-        throw std::runtime_error("Final MaxVol factorization failed");
-    if (!build_compact_selected_state(C, refs))
-        return 0;
+    local_phase(
+        [&]
+        {
+            refs = stream_state.selected_refs();
+            C = stream_state.active_rows();
+            if (!mpi_batch || rank == 0)
+                if (!online_state_.initialize_from_rows(C, refs))
+                    throw std::runtime_error("Final MaxVol factorization failed");
+        });
+    if (mpi_batch)
+        online_state_.broadcast_runtime(comm);
+    local_phase(
+        [&]
+        {
+            if (!build_compact_selected_state(C, refs))
+                throw std::runtime_error("Stream compact state publication failed");
+        });
     log_det_ =
         stream_mode == "batch" ? online_state_.log_determinant() : stream_state.log_determinant();
     double local_max_grade = 0.0;
@@ -2068,9 +2141,13 @@ int ActiveSelector::select_streaming_current(MPI_Comm comm, bool distributed)
             }
         }
     }
-    for (const auto &error : final_errors)
-        if (error)
-            std::rethrow_exception(error);
+    local_phase(
+        [&]
+        {
+            for (const auto &error : final_errors)
+                if (error)
+                    std::rethrow_exception(error);
+        });
     ++stream_stats_.score_passes;
     stream_stats_.scan_seconds +=
         std::chrono::duration<double>(Clock::now() - final_scan_started).count();

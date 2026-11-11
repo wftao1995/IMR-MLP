@@ -93,7 +93,7 @@ GPU runtime execution was not tested.
 
 ## Batched CPU selection
 
-`selector:stream-mode batch` opts into cached, single-process CPU selection
+`selector:stream-mode batch` opts into cached CPU selection
 with a bounded candidate working set. `exact` and `fast` keep their existing
 selection policies. Batch mode scans the pool, keeps the highest-scoring
 unselected rows, and performs at most 64 exchanges before scanning again.
@@ -135,7 +135,7 @@ and a mandatory rebuild at least every 64 exchanges limit accumulated drift.
 Batch rebuilds use divide-and-conquer SVD. The final published state is rebuilt
 with the ordinary stable factorization and the complete pool is checked again;
 save/load still serializes the active matrix rather than derived update factors.
-Batch mode requires cached, single-process CPU stream selection.
+Batch mode requires cached CPU stream selection; multiple MPI ranks are supported.
 
 Verbose output reports pool scans, swaps, full factorizations, accepted ridge
 updates, and their timings. `score` in the existing stream summary still
@@ -228,3 +228,125 @@ working-update tolerance; the intermediate target remains 1e-4 as stated
 above. Local inputs, states, timing logs and validation tables are kept under
 `build/analysis/maxvol-opt-20261111/` in atoms-agent and excluded from git.
 No cluster files were modified.
+
+## MPI batch selection
+
+With an MPI build, `stream-mode=batch` distributes cached pool rows and full
+pool scans across ranks. Rank 0 alone updates the candidate working set and
+performs factor rebuilds. It broadcasts C, its inverse/ridge operators,
+regularization, row references and exchange history before the next scan.
+Workers receive the derived operators directly; they do not repeat an SVD at
+every batch boundary. The final ordinary factorization is also performed once
+on rank 0 and broadcast before every rank checks its entire local pool. An
+MPI maximum reduction establishes the final global threshold result.
+
+The scoring definition and 1e-4 intermediate tolerance are unchanged. A mode
+or numerical-control disagreement is rejected before ranks can enter different
+collective sequences. Canonical update and synchronization failures propagate
+to all participating ranks. Caller-provided communicators are supported.
+Factor statistics count canonical rebuilds/updates, not their sum over ranks.
+
+Each rank retains the compact active matrix and operators; only the row cache
+is partitioned. A square deficient 2653-column state broadcasts approximately
+215 MiB of dense matrices per batch. Thus more ranks do not imply a speedup:
+rank-0 updates remain serial across MPI ranks, and communication can dominate
+on a slow interconnect. Use one OpenMP team per rank and avoid oversubscribing
+allocated CPUs. The cache/memory limit is per rank.
+
+For example, after building the current MPI executable, run two ranks with
+ten OpenMP threads each and the same batch settings as above:
+
+```sh
+export OMP_NUM_THREADS=10 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+# On Slurm, request matching resources first: --ntasks=2 --cpus-per-task=10.
+srun --ntasks=2 --cpus-per-task=10 --cpu-bind=cores "$MLP" maxvol_select \
+  --settings maxvol_select.ini --pool "$TRAIN" --index index.map \
+  --input-format extxyz --output-format extxyz --num_threads 10 \
+  --output active.extxyz --state-output final.gpm
+```
+
+MPI builds retain sequential MKL by default. To also parallelize the canonical
+rank's dense batch updates, build with `MPI_MKL_THREADING=gnu` (atoms-agent:
+`make BUILD_MODE=mpi MPI_MKL_THREADING=gnu gpmain`; imrmlp-pub: replace the
+target with `imrmlp`). Keep `MKL_NUM_THREADS=1` externally; batch selection
+locally enables at most min(8, OpenMP threads per rank) for dense updates and
+restores the previous setting. Pool workers continue to use one BLAS thread.
+The optional build switch changes MPI linking only; serial builds and the
+existing default MPI threading policy are unchanged.
+
+The MPI regression program is `unitest/ut_maxvol_batch_mpi.cpp`. Run it with
+both two and four ranks; four ranks exercise empty partitions in the two-row
+fixture. It also reverses communicator rank order, checks 130 consecutive
+exchanges and rank restoration, compares serial/MPI final results, verifies a
+purely virtual active set, and checks collective error propagation and control
+agreement. Catch test ordering and seed are fixed across ranks.
+
+```sh
+make BUILD_MODE=mpi MPI_MKL_THREADING=gnu build/mpi/unitest/ut_maxvol_batch_mpi.test
+# Run from a temporary working directory; use absolute checkout paths.
+LD_LIBRARY_PATH="$REPO/build/mpi:$LD_LIBRARY_PATH" OMP_NUM_THREADS=2 MKL_NUM_THREADS=1 \
+  mpirun --bind-to none -np 4 "$REPO/build/mpi/unitest/ut_maxvol_batch_mpi.test"
+```
+
+### Local MPI validation on the supplied pool (2026-11-11)
+
+The atoms-agent MPI executable completed the same 2080-structure, 619592-row
+case with two ranks and ten OpenMP threads per rank, using GNU-threaded MKL,
+external MKL_NUM_THREADS=1, the memory cache and threshold 1.001. The final
+full-pool check converged at **1.0007199559431041**. It selected 754 structures
+and 2653 active rows, using 1536 exchanges, 30 complete-pool scans, 27 complete
+factorizations and 1513 ridge updates. Factor counts describe the canonical
+state, not per-rank duplicate work.
+
+The selected structure indices, selected row references and saved active
+matrix are identical to the earlier single-process run. The active-matrix raw
+SHA256 is `712ac4ede258024b708fec6aaad5d73ea063daccaf769445a3445e7ea56a0530`
+in both runs. The final maximum differs by only 6.6613e-16 due to scoring
+roundoff. Every printed batch's exchange count, maximum and factor counts
+also match the serial trajectory.
+
+| Local layout | Historical 1 rank x 20 threads | 2 ranks x 10 threads |
+| --- | ---: | ---: |
+| Selection time | 2463.758 s | 2404.470 s |
+| Whole command wall time | 2481.294 s | 2423.405 s |
+| Full-factor time | 59.485 s | 53.679 s |
+| Ridge-update time | 941.410 s | 932.489 s |
+| Pool-scan time | 896.255 s | 831.908 s |
+
+These are observed timings, not a controlled scaling result: the historical
+serial run shared the machine with other validation/build work. At the same
+20-core budget, this comparison establishes no substantial MPI speedup.
+MPI partitions row storage and scans; rank-0 exchanges still dominate much
+of the run. Multi-node performance has not been measured.
+
+Peak process RSS was 7819.5 MiB on rank 0 and 7132.5 MiB on rank 1. The maximum
+combined RSS observed at five-second intervals was 14606.3 MiB (a sampled
+value, not an exact simultaneous peak). Replicating the compact state adds
+memory overhead, so total node memory is not halved. The printed stream row
+cache, builder-call and row counts are rank-local: rank 0 built 1040 structures
+and 311032 rows; the global input remains 2080 structures and 619592 rows.
+
+After saving and reloading the MPI result, both repositories checked every
+structure with bulk and repeated single-structure grading. Independent SciPy
+SVD recomputed all 619592 neighborhood scores with the same ridge definition.
+The final matrix has numerical rank 2596/2653 and
+lambda = 3.1692524600048273e-10.
+
+- Maximum bulk/single structure-grade difference: 2.3759e-13.
+- Maximum bulk/SVD structure-grade difference: 1.7402e-12.
+- Structure index 9, all 416 rows: batch/single difference 5.1209e-13 and
+  batch/SVD difference 1.5273e-12.
+- Both repositories' grade tables are identical. The tenth structure's grade
+  remains 0.9297361442642903.
+
+The validation artifacts are local to atoms-agent under
+`build/analysis/maxvol-mpi-batch-20261111/` and excluded from git. No files on
+the cluster were changed.
+
+Both complete release suites passed after the MPI changes: atoms-agent
+471/471 test programs and imrmlp-pub 310/310. In both repositories, the MPI
+regressions passed with two and four ranks using GNU-threaded MKL and with
+two ranks using the default sequential MKL link. The current MPI command
+binaries were then rebuilt with `MPI_MKL_THREADING=gnu`. The full-suite command
+was `LD_LIBRARY_PATH="$PWD/build/release:$LD_LIBRARY_PATH" OMP_NUM_THREADS=4
+MKL_NUM_THREADS=1 make -j2 test`, with the appropriate local MKLROOT.
