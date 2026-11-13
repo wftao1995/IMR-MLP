@@ -2935,6 +2935,27 @@ void PotMTP::CalcSiteDescriptorsOMP(Neighborhood &nbh, ompbuffers &buffer)
     CalcSiteDescriptorsImpl<true>(nbh, buffer);
 }
 
+void PotMTP::contract_site_forces(const Eigen::Tensor<double, 3, Eigen::RowMajor> &jacobian,
+                                  const std::vector<double> &adjoint, int neighbors,
+                                  SiteCoordinateMatrix &gradient)
+{
+    gradient.setZero(neighbors, 3);
+    const Eigen::Index stride = gradient.size();
+    if (stride == 0)
+        return;
+    double *derivatives = gradient.data();
+    for (Eigen::Index i = 0; i < jacobian.dimension(0); ++i)
+    {
+        const double weight = adjoint[i];
+        const double *row = jacobian.data() + i * stride;
+#ifdef USE_OMP
+#pragma omp simd
+#endif
+        for (Eigen::Index j = 0; j < stride; ++j)
+            derivatives[j] += weight * row[j];
+    }
+}
+
 void PotMTP::CalcSiteEFS(Neighborhood &nbh, double &site_energy,
                          Eigen::Matrix<double, -1, 3, Eigen::RowMajor> &site_energy_ders)
 {
@@ -2958,16 +2979,8 @@ void PotMTP::CalcSiteEFS(Neighborhood &nbh, double &site_energy,
     // Backpropagation step 2: reverse traversal through product rules
     backpropagate_moments();
 
-    // Backpropagation step 3: contract with Jacobian → site_energy_ders
-    site_energy_ders.resize(nbh.nbhcount_, 3);
-    site_energy_ders.setZero();
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        for (int j = 0; j < nbh.nbhcount_; ++j)
-            for (int a = 0; a < 3; a++)
-            {
-                site_energy_ders(j, a) +=
-                    site_energy_ders_wrt_moments_[i] * moment_jacobian(i, j, a);
-            }
+    contract_site_forces(moment_jacobian, site_energy_ders_wrt_moments_, nbh.nbhcount_,
+                         site_energy_ders);
 }
 
 void PotMTP::CalcSiteEFSOMP(Neighborhood &nbh, ompbuffers &buffer)
@@ -3002,16 +3015,8 @@ void PotMTP::CalcSiteEFSOMP(Neighborhood &nbh, ompbuffers &buffer)
             buffer.site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val1;
     }
 
-    // Backpropagation step 3: contract with Jacobian → site_energy_ders
-    buffer.buff_site_energy_ders.resize(nbh.nbhcount_, 3);
-    buffer.buff_site_energy_ders.setZero();
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        for (int j = 0; j < nbh.nbhcount_; ++j)
-            for (int a = 0; a < 3; a++)
-            {
-                buffer.buff_site_energy_ders(j, a) +=
-                    buffer.site_energy_ders_wrt_moments_[i] * buffer.moment_jacobian(i, j, a);
-            }
+    contract_site_forces(buffer.moment_jacobian, buffer.site_energy_ders_wrt_moments_,
+                         nbh.nbhcount_, buffer.buff_site_energy_ders);
 }
 
 // ── Unified energy-only descriptor (serial / OMP) ───────────────────────
@@ -3241,30 +3246,36 @@ void PotMTP::CalcSiteBasisDers(Neighborhood &nbh)
         }
     }
 
-    // non-elementary b_i
+    // Propagate each rule over the contiguous neighbor-coordinate row.
+    const Eigen::Index stride = 3 * Eigen::Index(nbh.nbhcount_);
     for (int i = 0; i < alpha_index_times_count; ++i)
     {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        int val2 = alpha_index_times(i, 2);
-        moment_vals[alpha_index_times(i, 3)] += val2 * val0 * val1;
-        for (int j = 0; j < nbh.nbhcount_; ++j)
+        const int *rule = alpha_index_times.data() + 4 * i;
+        const double left = moment_vals[rule[0]];
+        const double right = moment_vals[rule[1]];
+        const int factor = rule[2];
+        moment_vals[rule[3]] += factor * left * right;
+        if (stride != 0)
         {
-            for (int a = 0; a < 3; ++a)
-                moment_jacobian(alpha_index_times(i, 3), j, a) +=
-                    val2 * ((moment_jacobian(alpha_index_times(i, 0), j, a)) * val1 +
-                            val0 * (moment_jacobian(alpha_index_times(i, 1), j, a)));
+            const double *left_row = moment_jacobian.data() + rule[0] * stride;
+            const double *right_row = moment_jacobian.data() + rule[1] * stride;
+            double *out_row = moment_jacobian.data() + rule[3] * stride;
+#ifdef USE_OMP
+#pragma omp simd
+#endif
+            for (Eigen::Index j = 0; j < stride; ++j)
+                out_row[j] += factor * (left_row[j] * right + left * right_row[j]);
         }
     }
 
-    // convolving with coefficients
-    // setting constant term as zero
     basis_vals[0] = 1.0;
     for (int i = 0; i < alpha_scalar_moments; ++i)
     {
-        basis_vals[i + 1] = moment_vals[alpha_moment_mapping[i]];
-        memcpy(&basis_ders(i + 1, 0, 0), &moment_jacobian(alpha_moment_mapping[i], 0, 0),
-               3 * nbh.nbhcount_ * sizeof(double));
+        const int moment = alpha_moment_mapping[i];
+        basis_vals[i + 1] = moment_vals[moment];
+        if (stride != 0)
+            std::copy_n(moment_jacobian.data() + moment * stride, stride,
+                        basis_ders.data() + (i + 1) * stride);
     }
 }
 
@@ -3298,21 +3309,60 @@ void PotMTP::backpropagate_moments()
 // Second deal with model parameters, fill scalar part of d2U/dBdt, when do BP to get all d2U/dbdt
 //
 // Additional input: dU/dB (vector), d2U/dBdt (matrix) (t is model parameter), dU/dt (vector)
-void PotMTP::AccumulateFPGard(Neighborhood &nbh, double *out_gard_accumulator, double se_weight,
-                              Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight)
+void PotMTP::AccumulateFPGard(Neighborhood &nbh, double *gradient, double energy_weight,
+                              SiteCoordinateMatrix *force_weight)
 {
-    moment_jacobian.resize(alpha_index_basic_count, nbh.nbhcount_, 3);
-    moment_jacobian.setZero();
-    moment_jacobian_coeff_coord.setZero();
+    accumulate_site_parameter_gradient(nbh, energy_weight, force_weight, gradient,
+                                       gradient + radial_coeff_size + species_count);
+    gradient[radial_coeff_size + nbh.centertype] += energy_weight;
+}
+
+void PotMTP::AccumulateFPGard(Neighborhood &nbh, double *gradient, double energy_weight,
+                              SiteCoordinateMatrix *force_weight, int radial_offset,
+                              int moment_offset)
+{
+    accumulate_site_parameter_gradient(nbh, energy_weight, force_weight, gradient + radial_offset,
+                                       gradient + moment_offset);
+}
+
+void PotMTP::AccumulateFPGardRonly(Neighborhood &nbh, double *gradient, double energy_weight,
+                                   SiteCoordinateMatrix *force_weight)
+{
+    AccumulateFPGardRonly(nbh, gradient, energy_weight, force_weight, 0);
+}
+
+void PotMTP::AccumulateFPGardRonly(Neighborhood &nbh, double *gradient, double energy_weight,
+                                   SiteCoordinateMatrix *force_weight, int radial_offset)
+{
+    accumulate_site_parameter_gradient(nbh, energy_weight, force_weight, gradient + radial_offset,
+                                       nullptr);
+}
+
+void PotMTP::AccumulateFPGardLonly(Neighborhood &nbh, double *gradient, double energy_weight,
+                                   SiteCoordinateMatrix *force_weight)
+{
+    AccumulateFPGardLonly(nbh, gradient, energy_weight, force_weight, species_count);
+    gradient[nbh.centertype] += energy_weight;
+}
+
+void PotMTP::accumulate_site_parameter_gradient(Neighborhood &nbh, double se_weight,
+                                                const SiteCoordinateMatrix *f_weight,
+                                                double *radial_gradient, double *moment_gradient)
+{
+    const bool need_derivs = f_weight != nullptr;
     moment_jacobian_coeffs.setZero();
+    std::ranges::fill(rb_ders, 0);
+    if (need_derivs)
+    {
+        moment_jacobian_coeff_coord.setZero();
+        std::ranges::fill(der_mu, 0);
+        std::ranges::fill(dloss_dsenders, 0);
+    }
 
     std::ranges::fill(moment_vals, 0);
     std::ranges::fill(rb_vals, 0);
-    std::ranges::fill(rb_ders, 0);
     std::ranges::fill(val_mu, 0);
-    std::ranges::fill(der_mu, 0);
     std::fill(dloss_dmom.begin(), dloss_dmom.end(), 0);
-    std::fill(dloss_dsenders.begin(), dloss_dsenders.end(), 0);
     std::fill(site_energy_ders_wrt_moments_.begin(), site_energy_ders_wrt_moments_.end(), 0);
     const int &itype = nbh.centertype;
     for (int jj = 0; jj < nbh.nbhcount_; ++jj)
@@ -3338,45 +3388,39 @@ void PotMTP::AccumulateFPGard(Neighborhood &nbh, double *out_gard_accumulator, d
         for (int mu = 0; mu < max_mu; ++mu)
         {
             val_mu[mu] = 0;
-            der_mu[mu] = 0;
+            if (need_derivs)
+                der_mu[mu] = 0;
             int idxoffset =
                 (nbh.centertype * species_count + nbh.chemmap_[jj]) * radial_func_count * rb_size +
                 mu * rb_size;
             for (int xi = 0; xi < rb_size; ++xi)
             {
                 val_mu[mu] += radial_coeffs[idxoffset + xi] * rb_vals[xi];
-                der_mu[mu] += radial_coeffs[idxoffset + xi] * rb_ders[xi];
+                if (need_derivs)
+                    der_mu[mu] += radial_coeffs[idxoffset + xi] * rb_ders[xi];
             }
         }
 
         for (int i = 0; i < alpha_index_basic_count; ++i)
         {
-            // @OPTIMIZE: init mu-array while loading potentials, do not need offset search
-            int mu = alpha_index_basic(i, 0);
-            double val = val_mu[mu];
-            double der = der_mu[mu];
-            int k = nu_arr_list[i];
-            double &powk = dist_powers[k];
-            // TODO: test weather move this out can accelearte computation by defining val_mu_nv[:] and der_mu_nv[:]
-            // since some (mu, nv) pair may not exist.
-            val *=
-                powk; // normalize, all tenser element is devided by rij^\nv to avoid extremely large values
-            der = der * powk - k * val / rij;
-            // offset by 1
-            double pow0 = coords_powers(alpha_index_basic(i, 1) + 1, 0); // x
-            double pow1 = coords_powers(alpha_index_basic(i, 2) + 1, 1); // y
-            double pow2 = coords_powers(alpha_index_basic(i, 3) + 1, 2); // z
+            const int *index = alpha_index_basic.data() + 4 * i;
+            const int mu = index[0], x = index[1], y = index[2], z = index[3];
+            const int k = nu_arr_list[i];
+            const double powk = dist_powers[k];
+            const double val = val_mu[mu] * powk;
+            const double pow0 = coords_powers(x + 1, 0);
+            const double pow1 = coords_powers(y + 1, 1);
+            const double pow2 = coords_powers(z + 1, 2);
 
-            double mult0 = pow0 * pow1 * pow2; // element of tensor r ^ ("x" nv)
+            const double mult0 = pow0 * pow1 * pow2;
 
             moment_vals[i] += val * mult0;
             for (int xi = 0; xi < rb_size; xi++)
             {
                 // dbm / dc
-                moment_jacobian_coeffs(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                    rb_vals[xi] * powk * mult0;
+                moment_jacobian_coeffs(i, jtype, mu * rb_size + xi) += rb_vals[xi] * powk * mult0;
                 // force related
-                if (f_weight != nullptr)
+                if (need_derivs)
                 {
                     // here, derx = d2bm / dxdc
                     double tail = (rb_ders[xi] * powk * mult0 -
@@ -3384,30 +3428,30 @@ void PotMTP::AccumulateFPGard(Neighborhood &nbh, double *out_gard_accumulator, d
                     double derx = (nbh.pos_[jj][0] / nbh.distances_[jj]) * tail;
                     double dery = (nbh.pos_[jj][1] / nbh.distances_[jj]) * tail;
                     double derz = (nbh.pos_[jj][2] / nbh.distances_[jj]) * tail;
-                    derx += rb_vals[xi] * powk * alpha_index_basic(i, 1) *
-                            coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-                    dery += rb_vals[xi] * powk * alpha_index_basic(i, 2) *
-                            coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-                    derz += rb_vals[xi] * powk * alpha_index_basic(i, 3) *
-                            coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
+                    derx += rb_vals[xi] * powk * x * coords_powers(x, 0) * pow1 * pow2;
+                    dery += rb_vals[xi] * powk * y * coords_powers(y, 1) * pow0 * pow2;
+                    derz += rb_vals[xi] * powk * z * coords_powers(z, 2) * pow0 * pow1;
                     // this is w_i \cdot d2bm/drdc
-                    moment_jacobian_coeff_coord(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
+                    moment_jacobian_coeff_coord(i, jtype, mu * rb_size + xi) +=
                         (*f_weight)(jj, 0) * derx + (*f_weight)(jj, 1) * dery +
                         (*f_weight)(jj, 2) * derz;
                 }
             }
-            mult0 *= der / rij;
-            moment_jacobian(i, jj, 0) += mult0 * nbh.pos_[jj][0];
-            moment_jacobian(i, jj, 1) += mult0 * nbh.pos_[jj][1];
-            moment_jacobian(i, jj, 2) += mult0 * nbh.pos_[jj][2];
-            // coords_powers is shifted by 3 to avoid if statement
-            // note that 0 * Inf = NaN
-            moment_jacobian(i, jj, 0) += alpha_index_basic(i, 1) * val *
-                                         coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-            moment_jacobian(i, jj, 1) += alpha_index_basic(i, 2) * val *
-                                         coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-            moment_jacobian(i, jj, 2) += alpha_index_basic(i, 3) * val *
-                                         coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
+            if (need_derivs)
+            {
+                const double der = der_mu[mu] * powk - k * val / rij;
+                const double radial = mult0 * (der / rij);
+                const double dx =
+                    radial * nbh.pos_[jj][0] + x * val * coords_powers(x, 0) * pow1 * pow2;
+                const double dy =
+                    radial * nbh.pos_[jj][1] + y * val * coords_powers(y, 1) * pow0 * pow2;
+                const double dz =
+                    radial * nbh.pos_[jj][2] + z * val * coords_powers(z, 2) * pow0 * pow1;
+                // The force and virial weights are already known for this edge.
+                dloss_dsenders[i] += (*f_weight)(jj, 0) * dx;
+                dloss_dsenders[i] += (*f_weight)(jj, 1) * dy;
+                dloss_dsenders[i] += (*f_weight)(jj, 2) * dz;
+            }
         }
     }
 
@@ -3425,38 +3469,10 @@ void PotMTP::AccumulateFPGard(Neighborhood &nbh, double *out_gard_accumulator, d
         site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] +=
             moment_coeffs[i]; // this is dE/dbi
 
-    // Backpropagation step 2: expressing through basic moments:
-    for (int i = alpha_index_times_count - 1; i >= 0; --i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 1)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val0;
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 0)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val1;
-    }
-
-    // Backpropagation step 3: multiply by the Jacobian:
+    backpropagate_moments();
     for (int i = 0; i < alpha_index_basic_count; ++i)
-        for (int j = 0; j < nbh.nbhcount_; ++j)
-            for (int a = 0; a < 3; a++)
-            {
-
-                if (f_weight != nullptr)
-                {
-                    dloss_dsenders[i] +=
-                        (*f_weight)(j, a) *
-                        moment_jacobian(i, j, a); // this is wgt_fceij \cdot dbm/drij
-                }
-            }
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        dloss_dmom[i] =
-            se_weight *
-            site_energy_ders_wrt_moments_
-                [i]; // currently this is weight_eng * dUi/dbm, these basic term won't be inkoved during BP process later if force is requesed
-    if (f_weight != nullptr)
+        dloss_dmom[i] = se_weight * site_energy_ders_wrt_moments_[i];
+    if (need_derivs)
     {
         // f_weight * db_j/dr
         for (int i = 0; i < alpha_index_times_count; ++i)
@@ -3504,700 +3520,41 @@ void PotMTP::AccumulateFPGard(Neighborhood &nbh, double *out_gard_accumulator, d
     // radial coeffs
     for (int i = 0; i < alpha_index_basic_count; ++i)
     {
+        // Each basic moment uses one radial channel.
+        const int channel = alpha_index_basic(i, 0) * rb_size;
         for (int j = 0; j < species_count; ++j)
         {
-            for (int k = 0; k < radial_func_count * rb_size; ++k)
+            const int pair = itype * species_count + j;
+            for (int k = channel; k < channel + rb_size; ++k)
             {
-                int idx = (nbh.centertype * species_count + j) * rb_size * radial_func_count + k;
-                out_gard_accumulator[idx] += dloss_dmom[i] * moment_jacobian_coeffs(i, j, k);
-                if (f_weight != nullptr)
+                const int idx = pair * rb_size * radial_func_count + k;
+                radial_gradient[idx] += dloss_dmom[i] * moment_jacobian_coeffs(i, j, k);
+                if (need_derivs)
                 {
                     // dE/db_i*d^2b/(dxdc) term, the d^2E/(db_mdrij)*db_m/dc term is included in the dloss_dmom array
-                    out_gard_accumulator[idx] +=
+                    radial_gradient[idx] +=
                         site_energy_ders_wrt_moments_[i] * moment_jacobian_coeff_coord(i, j, k);
                 }
             }
         }
     }
-    // species coeffs
-    out_gard_accumulator[radial_coeff_size + nbh.centertype] += se_weight;
-    // linear coeffs, when swiching to model coeffs, this part need rewrite. Energy part is simple, just replace B to dU/dt, force part need BP
-    for (int i = 0; i < alpha_scalar_moments; ++i)
+    if (moment_gradient)
     {
-        out_gard_accumulator[i + radial_coeff_size + species_count] +=
-            se_weight * moment_vals[alpha_moment_mapping[i]];
-        if (f_weight != nullptr)
-            out_gard_accumulator[i + radial_coeff_size + species_count] +=
-                dloss_dsenders[alpha_moment_mapping[i]];
-    }
-}
-
-void Potentials::PotMTP::AccumulateFPGard(Neighborhood &nbh, double *out_gard_accumulator,
-                                          double se_weight,
-                                          Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight,
-                                          int roffset, int loffset)
-{
-    moment_jacobian.resize(alpha_index_basic_count, nbh.nbhcount_, 3);
-    moment_jacobian.setZero();
-    moment_jacobian_coeff_coord.setZero();
-    moment_jacobian_coeffs.setZero();
-
-    std::ranges::fill(moment_vals, 0);
-    std::ranges::fill(rb_vals, 0);
-    std::ranges::fill(rb_ders, 0);
-    std::ranges::fill(val_mu, 0);
-    std::ranges::fill(der_mu, 0);
-    std::fill(dloss_dmom.begin(), dloss_dmom.end(), 0);
-    std::fill(dloss_dsenders.begin(), dloss_dsenders.end(), 0);
-    std::fill(site_energy_ders_wrt_moments_.begin(), site_energy_ders_wrt_moments_.end(), 0);
-    const int &itype = nbh.centertype;
-    for (int jj = 0; jj < nbh.nbhcount_; ++jj)
-    {
-        const double &rij = nbh.distances_[jj];
-        const int &jtype = nbh.chemmap_[jj];
-        if (rij > cutoffs(itype, jtype))
-            continue;
-        const double rijinv = 1.0 / rij;
-        rb_calcder(itype, jtype, rij);
-
-        dist_powers[0] = 1;
-        for (int k = 1; k < max_alpha_index_basic; ++k)
+        for (int i = 0; i < alpha_scalar_moments; ++i)
         {
-            dist_powers[k] = dist_powers[k - 1] * rijinv;
-            for (int a = 0; a < 3; a++)
-            {
-                coords_powers(k + 1, a) =
-                    coords_powers(k, a) * nbh.pos_[jj][a]; // off set by 1 to aviod if later
-            }
-        }
-
-        for (int mu = 0; mu < max_mu; ++mu)
-        {
-            val_mu[mu] = 0;
-            der_mu[mu] = 0;
-            int idxoffset =
-                (nbh.centertype * species_count + nbh.chemmap_[jj]) * radial_func_count * rb_size +
-                mu * rb_size;
-            for (int xi = 0; xi < rb_size; ++xi)
-            {
-                val_mu[mu] += radial_coeffs[idxoffset + xi] * rb_vals[xi];
-                der_mu[mu] += radial_coeffs[idxoffset + xi] * rb_ders[xi];
-            }
-        }
-
-        for (int i = 0; i < alpha_index_basic_count; ++i)
-        {
-            // @OPTIMIZE: init mu-array while loading potentials, do not need offset search
-            int mu = alpha_index_basic(i, 0);
-            double val = val_mu[mu];
-            double der = der_mu[mu];
-            int k = nu_arr_list[i];
-            double &powk = dist_powers[k];
-            // TODO: test weather move this out can accelearte computation by defining val_mu_nv[:] and der_mu_nv[:]
-            // since some (mu, nv) pair may not exist.
-            val *=
-                powk; // normalize, all tenser element is devided by rij^\nv to avoid extremely large values
-            der = der * powk - k * val / rij;
-            // offset by 1
-            double pow0 = coords_powers(alpha_index_basic(i, 1) + 1, 0); // x
-            double pow1 = coords_powers(alpha_index_basic(i, 2) + 1, 1); // y
-            double pow2 = coords_powers(alpha_index_basic(i, 3) + 1, 2); // z
-
-            double mult0 = pow0 * pow1 * pow2; // element of tensor r ^ ("x" nv)
-
-            moment_vals[i] += val * mult0;
-            for (int xi = 0; xi < rb_size; xi++)
-            {
-                moment_jacobian_coeffs(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                    rb_vals[xi] * powk * mult0;
-                // force related
-                if (f_weight != nullptr)
-                {
-                    double tail = (rb_ders[xi] * powk * mult0 -
-                                   rb_vals[xi] * k * powk * mult0 / nbh.distances_[jj]);
-                    double derx = (nbh.pos_[jj][0] / nbh.distances_[jj]) * tail;
-                    double dery = (nbh.pos_[jj][1] / nbh.distances_[jj]) * tail;
-                    double derz = (nbh.pos_[jj][2] / nbh.distances_[jj]) * tail;
-                    derx += rb_vals[xi] * powk * alpha_index_basic(i, 1) *
-                            coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-                    dery += rb_vals[xi] * powk * alpha_index_basic(i, 2) *
-                            coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-                    derz += rb_vals[xi] * powk * alpha_index_basic(i, 3) *
-                            coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
-
-                    moment_jacobian_coeff_coord(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                        (*f_weight)(jj, 0) * derx + (*f_weight)(jj, 1) * dery +
-                        (*f_weight)(jj, 2) * derz;
-                }
-            }
-            mult0 *= der / rij;
-            moment_jacobian(i, jj, 0) += mult0 * nbh.pos_[jj][0];
-            moment_jacobian(i, jj, 1) += mult0 * nbh.pos_[jj][1];
-            moment_jacobian(i, jj, 2) += mult0 * nbh.pos_[jj][2];
-            // coords_powers is shifted by 3 to avoid if statement
-            // note that 0 * Inf = NaN
-            moment_jacobian(i, jj, 0) += alpha_index_basic(i, 1) * val *
-                                         coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-            moment_jacobian(i, jj, 1) += alpha_index_basic(i, 2) * val *
-                                         coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-            moment_jacobian(i, jj, 2) += alpha_index_basic(i, 3) * val *
-                                         coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
-        }
-    }
-
-    // non-elementary b_i
-    for (int i = 0; i < alpha_index_times_count; ++i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-        moment_vals[alpha_index_times(i, 3)] += val2 * val0 * val1;
-    }
-
-    // Backpropagation step 1: site energy derivative is the corresponding linear combination
-    for (int i = 0; i < alpha_scalar_moments; ++i)
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
-
-    // Backpropagation step 2: expressing through basic moments:
-    for (int i = alpha_index_times_count - 1; i >= 0; --i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 1)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val0;
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 0)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val1;
-    }
-
-    // Backpropagation step 3: multiply by the Jacobian:
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        for (int j = 0; j < nbh.nbhcount_; ++j)
-            for (int a = 0; a < 3; a++)
-            {
-
-                if (f_weight != nullptr)
-                {
-                    dloss_dsenders[i] += (*f_weight)(j, a) * moment_jacobian(i, j, a);
-                }
-            }
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        dloss_dmom[i] = se_weight * site_energy_ders_wrt_moments_[i];
-    if (f_weight != nullptr)
-    {
-        // db_j/dx
-        for (int i = 0; i < alpha_index_times_count; ++i)
-        {
-            double val2 = alpha_index_times(i, 2);
-            double val0 = moment_vals[alpha_index_times(i, 0)];
-            double val1 = moment_vals[alpha_index_times(i, 1)];
-            dloss_dsenders[alpha_index_times(i, 3)] +=
-                dloss_dsenders[alpha_index_times(i, 0)] * val2 * val1 +
-                dloss_dsenders[alpha_index_times(i, 1)] * val2 * val0;
-        }
-
-        // d^2E/db_jdx,
-        /**
-         * Note1. Backpropagation only ADD things to basic moments index terms, thus dloss_dmom still valid for energy der components.
-         * Note2. This loop
-         */
-        for (int i = 0; i < alpha_index_times_count; ++i)
-        {
-            double val2 = alpha_index_times(i, 2);
-
-            dloss_dmom[alpha_index_times(i, 1)] +=
-                dloss_dsenders[alpha_index_times(i, 0)] *
-                site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2;
-            dloss_dmom[alpha_index_times(i, 0)] +=
-                dloss_dsenders[alpha_index_times(i, 1)] *
-                site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2;
-        }
-
-        // Backpropagation to get all basic terms, d/db_j (dE/dx)
-        for (int i = alpha_index_times_count - 1; i >= 0; --i)
-        {
-            double val0 = moment_vals[alpha_index_times(i, 0)];
-            double val1 = moment_vals[alpha_index_times(i, 1)];
-            double val2 = alpha_index_times(i, 2);
-
-            dloss_dmom[alpha_index_times(i, 0)] +=
-                dloss_dmom[alpha_index_times(i, 3)] * val2 * val1;
-            dloss_dmom[alpha_index_times(i, 1)] +=
-                dloss_dmom[alpha_index_times(i, 3)] * val2 * val0;
-        }
-    }
-    // radial coeffs
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-    {
-        for (int j = 0; j < species_count; ++j)
-        {
-            for (int k = 0; k < radial_func_count * rb_size; ++k)
-            {
-                int idx = (nbh.centertype * species_count + j) * rb_size * radial_func_count + k;
-                out_gard_accumulator[idx + roffset] +=
-                    dloss_dmom[i] * moment_jacobian_coeffs(i, j, k);
-                if (f_weight != nullptr)
-                {
-                    // dE/db_i*d^2b/(dxdc) term, the d^2E/(db_idc)*db_i/dc term is included in the dloss_dmom array
-                    out_gard_accumulator[idx + roffset] +=
-                        site_energy_ders_wrt_moments_[i] * moment_jacobian_coeff_coord(i, j, k);
-                }
-            }
-        }
-    }
-    for (int i = 0; i < alpha_scalar_moments; ++i)
-    {
-        out_gard_accumulator[i + loffset] += se_weight * moment_vals[alpha_moment_mapping[i]];
-        if (f_weight != nullptr)
-            out_gard_accumulator[i + loffset] += dloss_dsenders[alpha_moment_mapping[i]];
-    }
-}
-
-void PotMTP::AccumulateFPGardRonly(Neighborhood &nbh, double *out_gard_accumulator,
-                                   double se_weight,
-                                   Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight)
-{
-    moment_jacobian.resize(alpha_index_basic_count, nbh.nbhcount_, 3);
-    moment_jacobian.setZero();
-    moment_jacobian_coeff_coord.setZero();
-    moment_jacobian_coeffs.setZero();
-
-    std::ranges::fill(moment_vals, 0);
-    std::ranges::fill(rb_vals, 0);
-    std::ranges::fill(rb_ders, 0);
-    std::ranges::fill(val_mu, 0);
-    std::ranges::fill(der_mu, 0);
-    std::fill(dloss_dmom.begin(), dloss_dmom.end(), 0);
-    std::fill(dloss_dsenders.begin(), dloss_dsenders.end(), 0);
-    std::fill(site_energy_ders_wrt_moments_.begin(), site_energy_ders_wrt_moments_.end(), 0);
-    const int &itype = nbh.centertype;
-    for (int jj = 0; jj < nbh.nbhcount_; ++jj)
-    {
-        const double &rij = nbh.distances_[jj];
-        const int &jtype = nbh.chemmap_[jj];
-        const double rijinv = 1.0 / rij;
-        if (rij > cutoffs(itype, jtype))
-            continue;
-        rb_calcder(itype, jtype, rij);
-
-        dist_powers[0] = 1;
-        for (int k = 1; k < max_alpha_index_basic; ++k)
-        {
-            dist_powers[k] = dist_powers[k - 1] * rijinv;
-            for (int a = 0; a < 3; a++)
-            {
-                coords_powers(k + 1, a) =
-                    coords_powers(k, a) * nbh.pos_[jj][a]; // off set by 1 to aviod if later
-            }
-        }
-
-        for (int mu = 0; mu < max_mu; ++mu)
-        {
-            val_mu[mu] = 0;
-            der_mu[mu] = 0;
-            int idxoffset =
-                (nbh.centertype * species_count + nbh.chemmap_[jj]) * radial_func_count * rb_size +
-                mu * rb_size;
-            for (int xi = 0; xi < rb_size; ++xi)
-            {
-                val_mu[mu] += radial_coeffs[idxoffset + xi] * rb_vals[xi];
-                der_mu[mu] += radial_coeffs[idxoffset + xi] * rb_ders[xi];
-            }
-        }
-
-        for (int i = 0; i < alpha_index_basic_count; ++i)
-        {
-            // @OPTIMIZE: init mu-array while loading potentials, do not need offset search
-            int mu = alpha_index_basic(i, 0);
-            double val = val_mu[mu];
-            double der = der_mu[mu];
-            int k = nu_arr_list[i];
-            double &powk = dist_powers[k];
-            // TODO: test weather move this out can accelearte computation by defining val_mu_nv[:] and der_mu_nv[:]
-            // since some (mu, nv) pair may not exist.
-            val *=
-                powk; // normalize, all tenser element is devided by rij^\nv to avoid extremely large values
-            der = der * powk - k * val / rij;
-            // offset by 1
-            double pow0 = coords_powers(alpha_index_basic(i, 1) + 1, 0); // x
-            double pow1 = coords_powers(alpha_index_basic(i, 2) + 1, 1); // y
-            double pow2 = coords_powers(alpha_index_basic(i, 3) + 1, 2); // z
-
-            double mult0 = pow0 * pow1 * pow2; // element of tensor r ^ ("x" nv)
-
-            moment_vals[i] += val * mult0;
-            for (int xi = 0; xi < rb_size; xi++)
-            {
-                moment_jacobian_coeffs(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                    rb_vals[xi] * powk * mult0;
-                // force related
-                if (f_weight != nullptr)
-                {
-                    double tail = (rb_ders[xi] * powk * mult0 -
-                                   rb_vals[xi] * k * powk * mult0 / nbh.distances_[jj]);
-                    double derx = (nbh.pos_[jj][0] / nbh.distances_[jj]) * tail;
-                    double dery = (nbh.pos_[jj][1] / nbh.distances_[jj]) * tail;
-                    double derz = (nbh.pos_[jj][2] / nbh.distances_[jj]) * tail;
-                    derx += rb_vals[xi] * powk * alpha_index_basic(i, 1) *
-                            coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-                    dery += rb_vals[xi] * powk * alpha_index_basic(i, 2) *
-                            coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-                    derz += rb_vals[xi] * powk * alpha_index_basic(i, 3) *
-                            coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
-
-                    moment_jacobian_coeff_coord(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                        (*f_weight)(jj, 0) * derx + (*f_weight)(jj, 1) * dery +
-                        (*f_weight)(jj, 2) * derz;
-                }
-            }
-            mult0 *= der / rij;
-            moment_jacobian(i, jj, 0) += mult0 * nbh.pos_[jj][0];
-            moment_jacobian(i, jj, 1) += mult0 * nbh.pos_[jj][1];
-            moment_jacobian(i, jj, 2) += mult0 * nbh.pos_[jj][2];
-            // coords_powers is shifted by 3 to avoid if statement
-            // note that 0 * Inf = NaN
-            moment_jacobian(i, jj, 0) += alpha_index_basic(i, 1) * val *
-                                         coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-            moment_jacobian(i, jj, 1) += alpha_index_basic(i, 2) * val *
-                                         coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-            moment_jacobian(i, jj, 2) += alpha_index_basic(i, 3) * val *
-                                         coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
-        }
-    }
-
-    // non-elementary b_i
-    for (int i = 0; i < alpha_index_times_count; ++i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-        moment_vals[alpha_index_times(i, 3)] += val2 * val0 * val1;
-    }
-
-    // Backpropagation step 1: site energy derivative is the corresponding linear combination
-    for (int i = 0; i < alpha_scalar_moments; ++i)
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
-
-    // Backpropagation step 2: expressing through basic moments:
-    for (int i = alpha_index_times_count - 1; i >= 0; --i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 1)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val0;
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 0)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val1;
-    }
-
-    // Backpropagation step 3: multiply by the Jacobian:
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        for (int j = 0; j < nbh.nbhcount_; ++j)
-            for (int a = 0; a < 3; a++)
-            {
-
-                if (f_weight != nullptr)
-                {
-                    dloss_dsenders[i] += (*f_weight)(j, a) * moment_jacobian(i, j, a);
-                }
-            }
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        dloss_dmom[i] = se_weight * site_energy_ders_wrt_moments_[i];
-    if (f_weight != nullptr)
-    {
-        // db_j/dx
-        for (int i = 0; i < alpha_index_times_count; ++i)
-        {
-            double val2 = alpha_index_times(i, 2);
-            double val0 = moment_vals[alpha_index_times(i, 0)];
-            double val1 = moment_vals[alpha_index_times(i, 1)];
-            dloss_dsenders[alpha_index_times(i, 3)] +=
-                dloss_dsenders[alpha_index_times(i, 0)] * val2 * val1 +
-                dloss_dsenders[alpha_index_times(i, 1)] * val2 * val0;
-        }
-
-        // d^2E/db_jdx,
-        /**
-         * Note1. Backpropagation only ADD things to basic moments index terms, thus dloss_dmom still valid for energy der components.
-         * Note2. This loop
-         * TODO: what's this?
-         */
-        for (int i = 0; i < alpha_index_times_count; ++i)
-        {
-            double val2 = alpha_index_times(i, 2);
-
-            dloss_dmom[alpha_index_times(i, 1)] +=
-                dloss_dsenders[alpha_index_times(i, 0)] *
-                site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2;
-            dloss_dmom[alpha_index_times(i, 0)] +=
-                dloss_dsenders[alpha_index_times(i, 1)] *
-                site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2;
-        }
-
-        // Backpropagation to get all basic terms, d/db_j (dE/dx)
-        // TODO: what's this?
-        for (int i = alpha_index_times_count - 1; i >= 0; --i)
-        {
-            double val0 = moment_vals[alpha_index_times(i, 0)];
-            double val1 = moment_vals[alpha_index_times(i, 1)];
-            double val2 = alpha_index_times(i, 2);
-
-            dloss_dmom[alpha_index_times(i, 0)] +=
-                dloss_dmom[alpha_index_times(i, 3)] * val2 * val1;
-            dloss_dmom[alpha_index_times(i, 1)] +=
-                dloss_dmom[alpha_index_times(i, 3)] * val2 * val0;
-        }
-    }
-    // radial coeffs
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-    {
-        for (int j = 0; j < species_count; ++j)
-        {
-            for (int k = 0; k < radial_func_count * rb_size; ++k)
-            {
-                int idx = (nbh.centertype * species_count + j) * rb_size * radial_func_count + k;
-                out_gard_accumulator[idx] += dloss_dmom[i] * moment_jacobian_coeffs(i, j, k);
-                if (f_weight != nullptr)
-                {
-                    // dE/db_i*d^2b/(dxdc) term, the d^2E/(db_idc)*db_i/dc term is included in the dloss_dmom array
-                    out_gard_accumulator[idx] +=
-                        site_energy_ders_wrt_moments_[i] * moment_jacobian_coeff_coord(i, j, k);
-                }
-            }
-        }
-    }
-}
-
-void Potentials::PotMTP::AccumulateFPGardRonly(
-    Neighborhood &nbh, double *out_gard_accumulator, double se_weight,
-    Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight, int coffset)
-{
-    moment_jacobian.resize(alpha_index_basic_count, nbh.nbhcount_, 3);
-    moment_jacobian.setZero();
-    moment_jacobian_coeff_coord.setZero();
-    moment_jacobian_coeffs.setZero();
-
-    std::ranges::fill(moment_vals, 0);
-    std::ranges::fill(rb_vals, 0);
-    std::ranges::fill(rb_ders, 0);
-    std::ranges::fill(val_mu, 0);
-    std::ranges::fill(der_mu, 0);
-    std::ranges::fill(dloss_dmom, 0);
-    std::fill(dloss_dsenders.begin(), dloss_dsenders.end(), 0);
-    std::fill(site_energy_ders_wrt_moments_.begin(), site_energy_ders_wrt_moments_.end(), 0);
-    const int &itype = nbh.centertype;
-    for (int jj = 0; jj < nbh.nbhcount_; ++jj)
-    {
-        const double &rij = nbh.distances_[jj];
-        const int &jtype = nbh.chemmap_[jj];
-        if (rij > cutoffs(itype, jtype))
-            continue;
-        const double rijinv = 1.0 / rij;
-        rb_calcder(itype, jtype, rij);
-
-        dist_powers[0] = 1;
-        for (int k = 1; k < max_alpha_index_basic; ++k)
-        {
-            dist_powers[k] = dist_powers[k - 1] * rijinv;
-            for (int a = 0; a < 3; a++)
-            {
-                coords_powers(k + 1, a) =
-                    coords_powers(k, a) * nbh.pos_[jj][a]; // off set by 1 to aviod if later
-            }
-        }
-
-        for (int mu = 0; mu < max_mu; ++mu)
-        {
-            val_mu[mu] = 0;
-            der_mu[mu] = 0;
-            int idxoffset =
-                (nbh.centertype * species_count + nbh.chemmap_[jj]) * radial_func_count * rb_size +
-                mu * rb_size;
-            for (int xi = 0; xi < rb_size; ++xi)
-            {
-                val_mu[mu] += radial_coeffs[idxoffset + xi] * rb_vals[xi];
-                der_mu[mu] += radial_coeffs[idxoffset + xi] * rb_ders[xi];
-            }
-        }
-
-        for (int i = 0; i < alpha_index_basic_count; ++i)
-        {
-            // @OPTIMIZE: init mu-array while loading potentials, do not need offset search
-            int mu = alpha_index_basic(i, 0);
-            double val = val_mu[mu];
-            double der = der_mu[mu];
-            int k = nu_arr_list[i];
-            double &powk = dist_powers[k];
-            // TODO: test weather move this out can accelearte computation by defining val_mu_nv[:] and der_mu_nv[:]
-            // since some (mu, nv) pair may not exist.
-            val *=
-                powk; // normalize, all tenser element is devided by rij^\nv to avoid extremely large values
-            der = der * powk - k * val / rij;
-            // offset by 1
-            double pow0 = coords_powers(alpha_index_basic(i, 1) + 1, 0); // x
-            double pow1 = coords_powers(alpha_index_basic(i, 2) + 1, 1); // y
-            double pow2 = coords_powers(alpha_index_basic(i, 3) + 1, 2); // z
-
-            double mult0 = pow0 * pow1 * pow2; // element of tensor r ^ ("x" nv)
-
-            moment_vals[i] += val * mult0;
-            for (int xi = 0; xi < rb_size; xi++)
-            {
-                moment_jacobian_coeffs(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                    rb_vals[xi] * powk * mult0;
-                // force related
-                if (f_weight != nullptr)
-                {
-                    double tail = (rb_ders[xi] * powk * mult0 -
-                                   rb_vals[xi] * k * powk * mult0 / nbh.distances_[jj]);
-                    double derx = (nbh.pos_[jj][0] / nbh.distances_[jj]) * tail;
-                    double dery = (nbh.pos_[jj][1] / nbh.distances_[jj]) * tail;
-                    double derz = (nbh.pos_[jj][2] / nbh.distances_[jj]) * tail;
-                    derx += rb_vals[xi] * powk * alpha_index_basic(i, 1) *
-                            coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-                    dery += rb_vals[xi] * powk * alpha_index_basic(i, 2) *
-                            coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-                    derz += rb_vals[xi] * powk * alpha_index_basic(i, 3) *
-                            coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
-
-                    moment_jacobian_coeff_coord(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                        (*f_weight)(jj, 0) * derx + (*f_weight)(jj, 1) * dery +
-                        (*f_weight)(jj, 2) * derz;
-                }
-            }
-            mult0 *= der / rij;
-            moment_jacobian(i, jj, 0) += mult0 * nbh.pos_[jj][0];
-            moment_jacobian(i, jj, 1) += mult0 * nbh.pos_[jj][1];
-            moment_jacobian(i, jj, 2) += mult0 * nbh.pos_[jj][2];
-            // coords_powers is shifted by 3 to avoid if statement
-            // note that 0 * Inf = NaN
-            moment_jacobian(i, jj, 0) += alpha_index_basic(i, 1) * val *
-                                         coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-            moment_jacobian(i, jj, 1) += alpha_index_basic(i, 2) * val *
-                                         coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-            moment_jacobian(i, jj, 2) += alpha_index_basic(i, 3) * val *
-                                         coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
-        }
-    }
-
-    // non-elementary b_i
-    for (int i = 0; i < alpha_index_times_count; ++i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-        moment_vals[alpha_index_times(i, 3)] += val2 * val0 * val1;
-    }
-
-    // Backpropagation step 1: site energy derivative is the corresponding linear combination
-    for (int i = 0; i < alpha_scalar_moments; ++i)
-        site_energy_ders_wrt_moments_[alpha_moment_mapping[i]] += moment_coeffs[i];
-
-    // Backpropagation step 2: expressing through basic moments:
-    for (int i = alpha_index_times_count - 1; i >= 0; --i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 1)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val0;
-        site_energy_ders_wrt_moments_[alpha_index_times(i, 0)] +=
-            site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2 * val1;
-    }
-
-    // Backpropagation step 3: multiply by the Jacobian:
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        for (int j = 0; j < nbh.nbhcount_; ++j)
-            for (int a = 0; a < 3; a++)
-            {
-
-                if (f_weight != nullptr)
-                {
-                    dloss_dsenders[i] += (*f_weight)(j, a) * moment_jacobian(i, j, a);
-                }
-            }
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-        dloss_dmom[i] = se_weight * site_energy_ders_wrt_moments_[i];
-    if (f_weight != nullptr)
-    {
-        // db_j/dx
-        for (int i = 0; i < alpha_index_times_count; ++i)
-        {
-            double val2 = alpha_index_times(i, 2);
-            double val0 = moment_vals[alpha_index_times(i, 0)];
-            double val1 = moment_vals[alpha_index_times(i, 1)];
-            dloss_dsenders[alpha_index_times(i, 3)] +=
-                dloss_dsenders[alpha_index_times(i, 0)] * val2 * val1 +
-                dloss_dsenders[alpha_index_times(i, 1)] * val2 * val0;
-        }
-
-        // d^2E/db_jdx,
-        /**
-         * Note1. Backpropagation only ADD things to basic moments index terms, thus dloss_dmom still valid for energy der components.
-         * Note2. This loop
-         * TODO: what's this?
-         */
-        for (int i = 0; i < alpha_index_times_count; ++i)
-        {
-            double val2 = alpha_index_times(i, 2);
-
-            dloss_dmom[alpha_index_times(i, 1)] +=
-                dloss_dsenders[alpha_index_times(i, 0)] *
-                site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2;
-            dloss_dmom[alpha_index_times(i, 0)] +=
-                dloss_dsenders[alpha_index_times(i, 1)] *
-                site_energy_ders_wrt_moments_[alpha_index_times(i, 3)] * val2;
-        }
-
-        // Backpropagation to get all basic terms, d/db_j (dE/dx)
-        // TODO: what's this?
-        for (int i = alpha_index_times_count - 1; i >= 0; --i)
-        {
-            double val0 = moment_vals[alpha_index_times(i, 0)];
-            double val1 = moment_vals[alpha_index_times(i, 1)];
-            double val2 = alpha_index_times(i, 2);
-
-            dloss_dmom[alpha_index_times(i, 0)] +=
-                dloss_dmom[alpha_index_times(i, 3)] * val2 * val1;
-            dloss_dmom[alpha_index_times(i, 1)] +=
-                dloss_dmom[alpha_index_times(i, 3)] * val2 * val0;
-        }
-    }
-    // radial coeffs
-    for (int i = 0; i < alpha_index_basic_count; ++i)
-    {
-        for (int j = 0; j < species_count; ++j)
-        {
-            for (int k = 0; k < radial_func_count * rb_size; ++k)
-            {
-                int idx = (nbh.centertype * species_count + j) * rb_size * radial_func_count + k;
-                out_gard_accumulator[idx + coffset] +=
-                    dloss_dmom[i] * moment_jacobian_coeffs(i, j, k);
-                if (f_weight != nullptr)
-                {
-                    // dE/db_i*d^2b/(dxdc) term, the d^2E/(db_idc)*db_i/dc term is included in the dloss_dmom array
-                    out_gard_accumulator[idx + coffset] +=
-                        site_energy_ders_wrt_moments_[i] * moment_jacobian_coeff_coord(i, j, k);
-                }
-            }
+            moment_gradient[i] += se_weight * moment_vals[alpha_moment_mapping[i]];
+            if (need_derivs)
+                moment_gradient[i] += dloss_dsenders[alpha_moment_mapping[i]];
         }
     }
 }
 
 void PotMTP::AccumulateFPGardLonly(Neighborhood &nbh, double *out_gard_accumulator,
                                    double se_weight,
-                                   Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight)
+                                   Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight,
+                                   int coffset)
 {
     const bool need_derivs = (f_weight != nullptr);
-
-    if (need_derivs)
-    {
-        moment_jacobian.resize(alpha_index_basic_count, nbh.nbhcount_, 3);
-        moment_jacobian.setZero();
-    }
 
     std::ranges::fill(moment_vals, 0);
     std::ranges::fill(rb_vals, 0);
@@ -4206,157 +3563,7 @@ void PotMTP::AccumulateFPGardLonly(Neighborhood &nbh, double *out_gard_accumulat
     {
         std::ranges::fill(rb_ders, 0);
         std::ranges::fill(der_mu, 0);
-        std::fill(dloss_dmom.begin(), dloss_dmom.end(), 0);
-        std::fill(dloss_dsenders.begin(), dloss_dsenders.end(), 0);
-        std::fill(site_energy_ders_wrt_moments_.begin(), site_energy_ders_wrt_moments_.end(), 0);
-    }
-    const int &itype = nbh.centertype;
-    for (int jj = 0; jj < nbh.nbhcount_; ++jj)
-    {
-        const double &rij = nbh.distances_[jj];
-        const int &jtype = nbh.chemmap_[jj];
-        if (rij > cutoffs(itype, jtype))
-            continue;
-        const double rijinv = 1.0 / rij;
-        if (need_derivs)
-            rb_calcder(itype, jtype, rij);
-        else
-            rb_calcval(itype, jtype, rij);
-
-        dist_powers[0] = 1;
-        for (int k = 1; k < max_alpha_index_basic; ++k)
-        {
-            dist_powers[k] = dist_powers[k - 1] * rijinv;
-            for (int a = 0; a < 3; a++)
-            {
-                coords_powers(k + 1, a) =
-                    coords_powers(k, a) * nbh.pos_[jj][a]; // off set by 1 to aviod if later
-            }
-        }
-
-        for (int mu = 0; mu < max_mu; ++mu)
-        {
-            val_mu[mu] = 0;
-            int idxoffset =
-                (nbh.centertype * species_count + nbh.chemmap_[jj]) * radial_func_count * rb_size +
-                mu * rb_size;
-            for (int xi = 0; xi < rb_size; ++xi)
-            {
-                val_mu[mu] += radial_coeffs[idxoffset + xi] * rb_vals[xi];
-            }
-            if (need_derivs)
-            {
-                der_mu[mu] = 0;
-                for (int xi = 0; xi < rb_size; ++xi)
-                {
-                    der_mu[mu] += radial_coeffs[idxoffset + xi] * rb_ders[xi];
-                }
-            }
-        }
-
-        for (int i = 0; i < alpha_index_basic_count; ++i)
-        {
-            // @OPTIMIZE: init mu-array while loading potentials, do not need offset search
-            int mu = alpha_index_basic(i, 0);
-            double val = val_mu[mu];
-            int k = nu_arr_list[i];
-            double &powk = dist_powers[k];
-            val *=
-                powk; // normalize, all tenser element is devided by rij^\nv to avoid extremely large values
-            // offset by 1
-            double pow0 = coords_powers(alpha_index_basic(i, 1) + 1, 0); // x
-            double pow1 = coords_powers(alpha_index_basic(i, 2) + 1, 1); // y
-            double pow2 = coords_powers(alpha_index_basic(i, 3) + 1, 2); // z
-
-            double mult0 = pow0 * pow1 * pow2; // element of tensor r ^ ("x" nv)
-
-            moment_vals[i] += val * mult0;
-
-            if (need_derivs)
-            {
-                double der = der_mu[mu];
-                der = der * powk - k * val / rij;
-                mult0 *= der / rij;
-                moment_jacobian(i, jj, 0) += mult0 * nbh.pos_[jj][0];
-                moment_jacobian(i, jj, 1) += mult0 * nbh.pos_[jj][1];
-                moment_jacobian(i, jj, 2) += mult0 * nbh.pos_[jj][2];
-                // coords_powers is shifted by 3 to avoid if statement
-                // note that 0 * Inf = NaN
-                moment_jacobian(i, jj, 0) += alpha_index_basic(i, 1) * val *
-                                             coords_powers(alpha_index_basic(i, 1), 0) * pow1 *
-                                             pow2;
-                moment_jacobian(i, jj, 1) += alpha_index_basic(i, 2) * val *
-                                             coords_powers(alpha_index_basic(i, 2), 1) * pow0 *
-                                             pow2;
-                moment_jacobian(i, jj, 2) += alpha_index_basic(i, 3) * val *
-                                             coords_powers(alpha_index_basic(i, 3), 2) * pow0 *
-                                             pow1;
-            }
-        }
-    }
-
-    // non-elementary b_i
-    for (int i = 0; i < alpha_index_times_count; ++i)
-    {
-        double val0 = moment_vals[alpha_index_times(i, 0)];
-        double val1 = moment_vals[alpha_index_times(i, 1)];
-        double val2 = alpha_index_times(i, 2);
-        moment_vals[alpha_index_times(i, 3)] += val2 * val0 * val1;
-    }
-
-    if (need_derivs)
-    {
-        // Backpropagation step 3: multiply by the Jacobian:
-        for (int i = 0; i < alpha_index_basic_count; ++i)
-            for (int j = 0; j < nbh.nbhcount_; ++j)
-                for (int a = 0; a < 3; a++)
-                {
-                    dloss_dsenders[i] += (*f_weight)(j, a) * moment_jacobian(i, j, a);
-                }
-        // db_j/dx
-        for (int i = 0; i < alpha_index_times_count; ++i)
-        {
-            double val2 = alpha_index_times(i, 2);
-            double val0 = moment_vals[alpha_index_times(i, 0)];
-            double val1 = moment_vals[alpha_index_times(i, 1)];
-            dloss_dsenders[alpha_index_times(i, 3)] +=
-                dloss_dsenders[alpha_index_times(i, 0)] * val2 * val1 +
-                dloss_dsenders[alpha_index_times(i, 1)] * val2 * val0;
-        }
-    }
-    // species coeffs
-    out_gard_accumulator[nbh.centertype] += se_weight;
-    // linear coeffs
-    for (int i = 0; i < alpha_scalar_moments; ++i)
-    {
-        out_gard_accumulator[i + species_count] += se_weight * moment_vals[alpha_moment_mapping[i]];
-        if (need_derivs)
-            out_gard_accumulator[i + species_count] += dloss_dsenders[alpha_moment_mapping[i]];
-    }
-}
-
-void Potentials::PotMTP::AccumulateFPGardLonly(
-    Neighborhood &nbh, double *out_gard_accumulator, double se_weight,
-    Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight, int coffset)
-{
-    const bool need_derivs = (f_weight != nullptr);
-
-    if (need_derivs)
-    {
-        moment_jacobian.resize(alpha_index_basic_count, nbh.nbhcount_, 3);
-        moment_jacobian.setZero();
-    }
-
-    std::ranges::fill(moment_vals, 0);
-    std::ranges::fill(rb_vals, 0);
-    std::ranges::fill(val_mu, 0);
-    if (need_derivs)
-    {
-        std::ranges::fill(rb_ders, 0);
-        std::ranges::fill(der_mu, 0);
-        std::ranges::fill(dloss_dmom, 0);
         std::ranges::fill(dloss_dsenders, 0);
-        std::ranges::fill(site_energy_ders_wrt_moments_, 0);
     }
     const int &itype = nbh.centertype;
     for (int jj = 0; jj < nbh.nbhcount_; ++jj)
@@ -4404,41 +3611,33 @@ void Potentials::PotMTP::AccumulateFPGardLonly(
 
         for (int i = 0; i < alpha_index_basic_count; ++i)
         {
-            // @OPTIMIZE: init mu-array while loading potentials, do not need offset search
-            int mu = alpha_index_basic(i, 0);
-            double val = val_mu[mu];
-            int k = nu_arr_list[i];
-            double &powk = dist_powers[k];
-            val *=
-                powk; // normalize, all tenser element is devided by rij^\nv to avoid extremely large values
-            // offset by 1
-            double pow0 = coords_powers(alpha_index_basic(i, 1) + 1, 0); // x
-            double pow1 = coords_powers(alpha_index_basic(i, 2) + 1, 1); // y
-            double pow2 = coords_powers(alpha_index_basic(i, 3) + 1, 2); // z
+            const int *index = alpha_index_basic.data() + 4 * i;
+            const int mu = index[0], x = index[1], y = index[2], z = index[3];
+            const int k = nu_arr_list[i];
+            const double powk = dist_powers[k];
+            const double val = val_mu[mu] * powk;
+            const double pow0 = coords_powers(x + 1, 0);
+            const double pow1 = coords_powers(y + 1, 1);
+            const double pow2 = coords_powers(z + 1, 2);
 
-            double mult0 = pow0 * pow1 * pow2; // element of tensor r ^ ("x" nv)
+            const double mult0 = pow0 * pow1 * pow2;
 
             moment_vals[i] += val * mult0;
 
             if (need_derivs)
             {
-                double der = der_mu[mu];
-                der = der * powk - k * val / rij;
-                mult0 *= der / rij;
-                moment_jacobian(i, jj, 0) += mult0 * nbh.pos_[jj][0];
-                moment_jacobian(i, jj, 1) += mult0 * nbh.pos_[jj][1];
-                moment_jacobian(i, jj, 2) += mult0 * nbh.pos_[jj][2];
-                // coords_powers is shifted by 3 to avoid if statement
-                // note that 0 * Inf = NaN
-                moment_jacobian(i, jj, 0) += alpha_index_basic(i, 1) * val *
-                                             coords_powers(alpha_index_basic(i, 1), 0) * pow1 *
-                                             pow2;
-                moment_jacobian(i, jj, 1) += alpha_index_basic(i, 2) * val *
-                                             coords_powers(alpha_index_basic(i, 2), 1) * pow0 *
-                                             pow2;
-                moment_jacobian(i, jj, 2) += alpha_index_basic(i, 3) * val *
-                                             coords_powers(alpha_index_basic(i, 3), 2) * pow0 *
-                                             pow1;
+                const double der = der_mu[mu] * powk - k * val / rij;
+                const double radial = mult0 * (der / rij);
+                const double dx =
+                    radial * nbh.pos_[jj][0] + x * val * coords_powers(x, 0) * pow1 * pow2;
+                const double dy =
+                    radial * nbh.pos_[jj][1] + y * val * coords_powers(y, 1) * pow0 * pow2;
+                const double dz =
+                    radial * nbh.pos_[jj][2] + z * val * coords_powers(z, 2) * pow0 * pow1;
+                // The force and virial weights are already known for this edge.
+                dloss_dsenders[i] += (*f_weight)(jj, 0) * dx;
+                dloss_dsenders[i] += (*f_weight)(jj, 1) * dy;
+                dloss_dsenders[i] += (*f_weight)(jj, 2) * dz;
             }
         }
     }
@@ -4454,13 +3653,6 @@ void Potentials::PotMTP::AccumulateFPGardLonly(
 
     if (need_derivs)
     {
-        // Backpropagation step 3: multiply by the Jacobian:
-        for (int i = 0; i < alpha_index_basic_count; ++i)
-            for (int j = 0; j < nbh.nbhcount_; ++j)
-                for (int a = 0; a < 3; a++)
-                {
-                    dloss_dsenders[i] += (*f_weight)(j, a) * moment_jacobian(i, j, a);
-                }
         // db_j/dx
         for (int i = 0; i < alpha_index_times_count; ++i)
         {
@@ -4472,6 +3664,7 @@ void Potentials::PotMTP::AccumulateFPGardLonly(
                 dloss_dsenders[alpha_index_times(i, 1)] * val2 * val0;
         }
     }
+    // linear coeffs
     for (int i = 0; i < alpha_scalar_moments; ++i)
     {
         out_gard_accumulator[i + coffset] += se_weight * moment_vals[alpha_moment_mapping[i]];
@@ -4480,7 +3673,6 @@ void Potentials::PotMTP::AccumulateFPGardLonly(
     }
 }
 
-// Copies own independent radial bases and coefficient storage.
 PotMTP::PotMTP(PotMTP &opt)
 {
     cutoff = opt.cutoff;

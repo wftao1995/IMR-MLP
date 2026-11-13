@@ -3395,15 +3395,9 @@ template <class T> class PotMTP_M : public PotMTP
 
         // Delegate descriptor computation to shared implementation
         if constexpr (REQ_F)
-        {
             CalcSiteDescriptorsOMP(nbh, workspace.moments);
-            site_energy_ders.resize(nbh.nbhcount_, 3);
-            site_energy_ders.setZero();
-        }
         else
-        {
             CalcSiteBasisOMP(nbh, workspace.moments);
-        }
 
         // Build Q-vector: Q_j = species_bias + Σ moment_coeffs[j,a] * B_a
         ext_dUdQ.setZero();
@@ -3452,14 +3446,8 @@ template <class T> class PotMTP_M : public PotMTP
                 site_energy_ders_wrt_moments_[left] += weight * moment_vals[right];
             }
 
-            // Backpropagation step 3: contract with Jacobian → site_energy_ders
-            for (int i = 0; i < alpha_index_basic_count; ++i)
-                for (int j = 0; j < nbh.nbhcount_; ++j)
-                    for (int a = 0; a < 3; a++)
-                    {
-                        site_energy_ders(j, a) +=
-                            site_energy_ders_wrt_moments_[i] * moment_jacobian(i, j, a);
-                    }
+            contract_site_forces(moment_jacobian, site_energy_ders_wrt_moments_, nbh.nbhcount_,
+                                 site_energy_ders);
         }
         else
         {
@@ -4093,10 +4081,18 @@ template <class T> class PotMTP_M : public PotMTP
                                Eigen::Matrix<double, -1, 3, Eigen::RowMajor> *f_weight,
                                SiteWorkspace &workspace, int ithread = 0)
     {
+        if constexpr (REQ_F)
+        {
+            if (!f_weight)
+            {
+                AccumulateFPGard_impl<0>(nbh, out_gard_accumulator, se_weight, nullptr, workspace,
+                                         ithread);
+                return;
+            }
+        }
         prepare_site_workspace(workspace);
         auto &coords_powers = workspace.moments.coords_powers;
         auto &moment_vals = workspace.moments.moment_vals;
-        auto &moment_jacobian = workspace.moments.moment_jacobian;
         auto &dist_powers = workspace.moments.dist_powers;
         auto &rb_vals = workspace.moments.rb_vals;
         auto &rb_ders = workspace.moments.rb_ders;
@@ -4114,10 +4110,18 @@ template <class T> class PotMTP_M : public PotMTP
         auto &ext_d2UdQdQ = workspace.ext_d2UdQdQ;
         auto &ext_d2UdQdt = workspace.ext_d2UdQdt;
         WorkspaceModel model{this, workspace};
-        workspace.moments.moment_jacobian_coeffs.resize(alpha_index_basic_count, species_count,
-                                                        radial_func_count * rb_size);
-        workspace.moments.moment_jacobian_coeff_coord.resize(alpha_index_basic_count, species_count,
-                                                             radial_func_count * rb_size);
+        if (req_radical)
+        {
+            moment_jacobian_coeffs.resize(alpha_index_basic_count, species_count,
+                                          radial_func_count * rb_size);
+            moment_jacobian_coeffs.setZero();
+            if constexpr (REQ_F)
+            {
+                moment_jacobian_coeff_coord.resize(alpha_index_basic_count, species_count,
+                                                   radial_func_count * rb_size);
+                moment_jacobian_coeff_coord.setZero();
+            }
+        }
         workspace.moments.dloss_dmom.resize(alpha_moments_count);
         workspace.moments.dloss_dsenders.resize(alpha_moments_count);
         ext_dUdt.resize(model_coeff_size);
@@ -4127,15 +4131,9 @@ template <class T> class PotMTP_M : public PotMTP
 
         if constexpr (REQ_F)
         {
-            moment_jacobian.resize(alpha_index_basic_count, nbh.nbhcount_, 3);
-            moment_jacobian.setZero();
-            moment_jacobian_coeff_coord.setZero();
             std::fill(rb_ders.begin(), rb_ders.end(), 0);
             std::fill(der_mu.begin(), der_mu.end(), 0);
         }
-        moment_jacobian_coeffs.setZero();
-        // buff_site_energy = 0;
-        // basis_vals.resize(alpha_scalar_moments + 1, 0);
 
         std::fill(moment_vals.begin(), moment_vals.end(), 0);
         std::fill(rb_vals.begin(), rb_vals.end(), 0);
@@ -4191,37 +4189,27 @@ template <class T> class PotMTP_M : public PotMTP
 
             for (int i = 0; i < alpha_index_basic_count; ++i)
             {
-                // @OPTIMIZE: init mu-array while loading potentials, do not need offset search
-                int mu = alpha_index_basic(i, 0);
-                double val = val_mu[mu];
-                double der;
-                if constexpr (REQ_F)
-                    der = der_mu[mu];
-                // int k = alpha_index_basic(i, 1) + alpha_index_basic(i, 2) + alpha_index_basic(i, 3); // nv
-                int k = nu_arr_list[i];
-                double &powk = dist_powers[k];
-                // TODO: test weather move this out can accelearte computation by defining val_mu_nv[:] and der_mu_nv[:]
-                // since some (mu, nv) pair may not exist.
-                val *=
-                    powk; // normalize, all tenser element is devided by rij^\nv to avoid extremely large values
-                if constexpr (REQ_F)
-                    der = der * powk - k * val / rij;
-                // offset by 1
-                double pow0 = coords_powers(alpha_index_basic(i, 1) + 1, 0); // x
-                double pow1 = coords_powers(alpha_index_basic(i, 2) + 1, 1); // y
-                double pow2 = coords_powers(alpha_index_basic(i, 3) + 1, 2); // z
+                const int *index = alpha_index_basic.data() + 4 * i;
+                const int mu = index[0], x = index[1], y = index[2], z = index[3];
+                const int k = nu_arr_list[i];
+                const double powk = dist_powers[k];
+                const double val = val_mu[mu] * powk;
+                const double pow0 = coords_powers(x + 1, 0);
+                const double pow1 = coords_powers(y + 1, 1);
+                const double pow2 = coords_powers(z + 1, 2);
 
-                double mult0 = pow0 * pow1 * pow2; // element of tensor r ^ ("x" nv)
+                const double mult0 = pow0 * pow1 * pow2;
 
                 moment_vals[i] += val * mult0;
-                for (int xi = 0; xi < rb_size; xi++)
+                if (req_radical)
                 {
-                    // dbm / dc
-                    moment_jacobian_coeffs(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
-                        rb_vals[xi] * powk * mult0;
-                    // force related
-                    if constexpr (REQ_F)
-                        if (f_weight != nullptr)
+                    for (int xi = 0; xi < rb_size; xi++)
+                    {
+                        // dbm / dc
+                        moment_jacobian_coeffs(i, jtype, mu * rb_size + xi) +=
+                            rb_vals[xi] * powk * mult0;
+                        // force related
+                        if constexpr (REQ_F)
                         {
                             // here, derx = d2bm / dxdc
                             double tail = (rb_ders[xi] * powk * mult0 -
@@ -4229,35 +4217,30 @@ template <class T> class PotMTP_M : public PotMTP
                             double derx = (nbh.pos_[jj][0] / nbh.distances_[jj]) * tail;
                             double dery = (nbh.pos_[jj][1] / nbh.distances_[jj]) * tail;
                             double derz = (nbh.pos_[jj][2] / nbh.distances_[jj]) * tail;
-                            derx += rb_vals[xi] * powk * alpha_index_basic(i, 1) *
-                                    coords_powers(alpha_index_basic(i, 1), 0) * pow1 * pow2;
-                            dery += rb_vals[xi] * powk * alpha_index_basic(i, 2) *
-                                    coords_powers(alpha_index_basic(i, 2), 1) * pow0 * pow2;
-                            derz += rb_vals[xi] * powk * alpha_index_basic(i, 3) *
-                                    coords_powers(alpha_index_basic(i, 3), 2) * pow0 * pow1;
+                            derx += rb_vals[xi] * powk * x * coords_powers(x, 0) * pow1 * pow2;
+                            dery += rb_vals[xi] * powk * y * coords_powers(y, 1) * pow0 * pow2;
+                            derz += rb_vals[xi] * powk * z * coords_powers(z, 2) * pow0 * pow1;
                             // this is w_i \cdot d2bm/drdc
-                            moment_jacobian_coeff_coord(i, nbh.chemmap_[jj], mu * rb_size + xi) +=
+                            moment_jacobian_coeff_coord(i, jtype, mu * rb_size + xi) +=
                                 (*f_weight)(jj, 0) * derx + (*f_weight)(jj, 1) * dery +
                                 (*f_weight)(jj, 2) * derz;
                         }
+                    }
                 }
                 if constexpr (REQ_F)
                 {
-                    mult0 *= der / rij;
-                    moment_jacobian(i, jj, 0) += mult0 * nbh.pos_[jj][0];
-                    moment_jacobian(i, jj, 1) += mult0 * nbh.pos_[jj][1];
-                    moment_jacobian(i, jj, 2) += mult0 * nbh.pos_[jj][2];
-                    // coords_powers is shifted by 3 to avoid if statement
-                    // note that 0 * Inf = NaN
-                    moment_jacobian(i, jj, 0) += alpha_index_basic(i, 1) * val *
-                                                 coords_powers(alpha_index_basic(i, 1), 0) * pow1 *
-                                                 pow2;
-                    moment_jacobian(i, jj, 1) += alpha_index_basic(i, 2) * val *
-                                                 coords_powers(alpha_index_basic(i, 2), 1) * pow0 *
-                                                 pow2;
-                    moment_jacobian(i, jj, 2) += alpha_index_basic(i, 3) * val *
-                                                 coords_powers(alpha_index_basic(i, 3), 2) * pow0 *
-                                                 pow1;
+                    const double der = der_mu[mu] * powk - k * val / rij;
+                    const double radial = mult0 * (der / rij);
+                    const double dx =
+                        radial * nbh.pos_[jj][0] + x * val * coords_powers(x, 0) * pow1 * pow2;
+                    const double dy =
+                        radial * nbh.pos_[jj][1] + y * val * coords_powers(y, 1) * pow0 * pow2;
+                    const double dz =
+                        radial * nbh.pos_[jj][2] + z * val * coords_powers(z, 2) * pow0 * pow1;
+                    // The force and virial weights are already known for this edge.
+                    dloss_dsenders[i] += (*f_weight)(jj, 0) * dx;
+                    dloss_dsenders[i] += (*f_weight)(jj, 1) * dy;
+                    dloss_dsenders[i] += (*f_weight)(jj, 2) * dz;
                 }
             }
         }
@@ -4373,13 +4356,6 @@ template <class T> class PotMTP_M : public PotMTP
         {
             if (f_weight != nullptr)
             {
-                // Backpropagation step 3: multiply by the Jacobian:
-                for (int i = 0; i < alpha_index_basic_count; ++i)
-                    for (int j = 0; j < nbh.nbhcount_; ++j)
-                        for (int a = 0; a < 3; a++)
-                            dloss_dsenders[i] +=
-                                (*f_weight)(j, a) *
-                                moment_jacobian(i, j, a); // this is wgt_fceij \cdot dbm/drij
                 // f_weight * db_j/dr
                 for (int i = 0; i < alpha_index_times_count; ++i)
                 {
@@ -4458,9 +4434,10 @@ template <class T> class PotMTP_M : public PotMTP
             // radial coeffs
             for (int i = 0; i < alpha_index_basic_count; ++i)
             {
+                const int channel = alpha_index_basic(i, 0) * rb_size;
                 for (int j = 0; j < species_count; ++j)
                 {
-                    for (int k = 0; k < radial_func_count * rb_size; ++k)
+                    for (int k = channel; k < channel + rb_size; ++k)
                     {
                         int idx =
                             (nbh.centertype * species_count + j) * rb_size * radial_func_count + k;

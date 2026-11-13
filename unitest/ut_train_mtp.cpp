@@ -282,6 +282,92 @@ TEST_CASE("MTP loss and gradient paths apply the same atomic force weights",
     REQUIRE(loss == Catch::Approx(weight).margin(1e-14));
 }
 
+TEST_CASE("MTP energy-only training agrees with full EFS gradients", "[training][mtp][energy]")
+{
+    const int mode = GENERATE(0, 1, 2, 3);
+    const bool missing_labels = GENERATE(false, true);
+    CAPTURE(mode, missing_labels);
+    TrainingData data;
+    data.atoms.resize(1);
+    data.neighborhoods.resize(1);
+    auto &reference = data.atoms[0];
+    reference.energy_ += .7;
+    if (missing_labels)
+    {
+        reference.forces_.clear();
+        reference.have_stress = false;
+    }
+    auto config = settings(1, false);
+    config.Modify("energy_weight", "1");
+    config.Modify("energy_pow", "0");
+    config.Modify("force_weight", missing_labels ? "1" : "0");
+    config.Modify("stress_weight", missing_labels ? "1" : "0");
+    config.Modify("penalty_weight", "0");
+    config.Modify("weight_L2", "0");
+    config.Modify("fix_radial_coeffs", mode == 1 ? "true" : "false");
+    config.Modify("fix_linear_coeffs", mode == 2 ? "true" : "false");
+    config.Modify("fix_species_coeffs", mode == 3 ? "true" : "false");
+    Trainer_MTP trainer(config);
+    trainer.init(data.atoms, data.neighborhoods, &data.potential);
+    alglib::real_1d_array gradient;
+    gradient.setlength(trainer.get_relaxed_coeffs_count());
+    double loss = 0., loss_only = 0.;
+    trainer.AccumulateGard(loss, gradient);
+    trainer.AccumulateLoss(loss_only);
+
+    Atoms prediction = reference;
+    data.potential.getEFS(prediction, data.neighborhoods[0]);
+    const double error = prediction.energy_ - reference.energy_;
+    const double weight = 2. * reference.fitness * error;
+    Eigen::Matrix<double, -1, 3> force = Eigen::MatrixXd::Zero(reference.size(), 3);
+    Eigen::Matrix3d stress = Eigen::Matrix3d::Zero();
+    std::vector<double> expected(gradient.length(), 0.);
+    if (mode == 1)
+        data.potential.AccumulateEFSCombinationGardLonly(prediction, data.neighborhoods[0], weight,
+                                                          force, stress, expected.data());
+    else if (mode == 2)
+        data.potential.AccumulateEFSCombinationGardRonly(prediction, data.neighborhoods[0], weight,
+                                                          force, stress, expected.data());
+    else
+        data.potential.AccumulateEFSCombinationGard(prediction, data.neighborhoods[0], weight,
+                                                     force, stress, expected.data());
+    if (mode == 3)
+        for (int i = 0; i < data.potential.species_count; ++i)
+            expected[data.potential.radial_coeff_size + i] = 0.;
+    REQUIRE(loss == Catch::Approx(reference.fitness * error * error).margin(1e-12));
+    REQUIRE(loss_only == Catch::Approx(loss).margin(1e-12));
+    for (int i = 0; i < gradient.length(); ++i)
+    {
+        CAPTURE(i);
+        REQUIRE(gradient[i] == Catch::Approx(expected[i]).margin(2e-11));
+    }
+    alglib::real_1d_array coefficients;
+    coefficients.setlength(gradient.length());
+    data.potential.ae_get_coeffs(coefficients, trainer.fix_radial_coeffs, trainer.fix_linear_coeffs);
+    for (int i : {0, int(gradient.length()) / 2, int(gradient.length()) - 1})
+    {
+        if (mode == 3 && i >= data.potential.radial_coeff_size &&
+            i < data.potential.radial_coeff_size + data.potential.species_count)
+            continue;
+        const double original = coefficients[i], step = 1e-6;
+        auto objective = [&](double value)
+        {
+            coefficients[i] = value;
+            data.potential.ae_set_coeffs(coefficients, trainer.fix_radial_coeffs,
+                                         trainer.fix_linear_coeffs);
+            Atoms sample = reference;
+            data.potential.getEFS(sample, data.neighborhoods[0]);
+            const double delta = sample.energy_ - reference.energy_;
+            return reference.fitness * delta * delta;
+        };
+        const double plus = objective(original + step);
+        const double minus = objective(original - step);
+        objective(original);
+        CAPTURE(i);
+        REQUIRE(gradient[i] == Catch::Approx((plus - minus) / (2 * step)).margin(2e-7));
+    }
+}
+
 TEST_CASE("MTP SGD updates every trainable coordinate with the averaged penalized gradient",
           "[training][mtp][sgd]")
 {

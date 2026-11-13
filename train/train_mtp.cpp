@@ -3855,7 +3855,13 @@ void Trainer_MTP::AddLossGard(int id, double &_loss)
         return;
 
     Atoms &atomn = efs_set_[id];
-    p_mtp->getEFS(atomn, nbhs);
+    const bool energy_only = typeid(*p_mtp) == typeid(Potentials::PotMTP) &&
+                             !(weight_force > 0 && atom.has_forces()) &&
+                             !(weight_stress > 0 && atom.has_stresses());
+    if (energy_only)
+        p_mtp->getE(atomn, nbhs);
+    else
+        p_mtp->getEFS(atomn, nbhs);
 
     double dLdE = 0;
     dLdF.resize(atom.size(), 3);
@@ -3932,8 +3938,11 @@ void Trainer_MTP::AddLossGard(int id, double &_loss)
 
     if (fix_radial_coeffs)
     {
-        p_mtp->AccumulateEFSCombinationGardLonly(atomn, nbhs, dLdE, dLdF, dLdS,
-                                                 loss_gard.getcontent());
+        if (energy_only)
+            p_mtp->AccumulateEFSCombinationGardLonly(atomn, nbhs, dLdE, loss_gard.getcontent());
+        else
+            p_mtp->AccumulateEFSCombinationGardLonly(atomn, nbhs, dLdE, dLdF, dLdS,
+                                                     loss_gard.getcontent());
         if (fix_species_coeffs)
         {
             for (int i = 0; i < p_mtp->species_count; ++i)
@@ -3944,12 +3953,21 @@ void Trainer_MTP::AddLossGard(int id, double &_loss)
     }
     else if (fix_linear_coeffs)
     {
-        p_mtp->AccumulateEFSCombinationGardRonly(atomn, nbhs, dLdE, dLdF, dLdS,
-                                                 loss_gard.getcontent());
+        if (energy_only)
+            for (int i = 0; i < nbhs.size(); ++i)
+                p_mtp->AccumulateFPGardRonly(nbhs[i], loss_gard.getcontent(), dLdE, nullptr);
+        else
+            p_mtp->AccumulateEFSCombinationGardRonly(atomn, nbhs, dLdE, dLdF, dLdS,
+                                                     loss_gard.getcontent());
     }
     else
     {
-        p_mtp->AccumulateEFSCombinationGard(atomn, nbhs, dLdE, dLdF, dLdS, loss_gard.getcontent());
+        if (energy_only)
+            for (int i = 0; i < nbhs.size(); ++i)
+                p_mtp->AccumulateFPGard(nbhs[i], loss_gard.getcontent(), dLdE, nullptr);
+        else
+            p_mtp->AccumulateEFSCombinationGard(atomn, nbhs, dLdE, dLdF, dLdS,
+                                                loss_gard.getcontent());
         if (fix_species_coeffs)
         {
             for (int i = 0; i < p_mtp->species_count; ++i)
@@ -3996,7 +4014,12 @@ void Trainer_MTP::AddLoss(int id, double &_loss)
         return;
 
     Atoms &atomn = efs_set_[id];
-    p_mtp->getEFS(atomn, nbhs);
+    if (typeid(*p_mtp) == typeid(Potentials::PotMTP) &&
+        !(weight_force > 0 && atom.has_forces()) &&
+        !(weight_stress > 0 && atom.has_stresses()))
+        p_mtp->getE(atomn, nbhs);
+    else
+        p_mtp->getEFS(atomn, nbhs);
 
     double cc;
     double avef = 0;

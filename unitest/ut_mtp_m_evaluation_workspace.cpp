@@ -1,11 +1,52 @@
 #include <catch2/catch_all.hpp>
 #include "unitest/les_curvature_fixture.h"
+#include "train/train_nonlinear_potential.h"
 #include <array>
 #include <thread>
 
 using namespace Potentials;
 using namespace LESCurvature;
 using Catch::Approx;
+
+TEST_CASE("MTP-M LES energy-only training retains the full EFS gradient",
+          "[mtp_m][les][training][energy]")
+{
+    const bool sog = GENERATE(false, true);
+    PotMTP_M<m_model_mtpq2> model;
+    initialize(model, sog);
+    Atoms reference = geometry();
+    model.getEFS(reference);
+    reference.energy_ += .3;
+    std::vector<Atoms> data{reference};
+    std::vector<Neighborhoods> nbhs;
+    nbhs.emplace_back(data[0], model.cutoff);
+    GPSettings settings;
+    settings.Modify("energy_weight", "1");
+    settings.Modify("energy_pow", "0");
+    settings.Modify("force_weight", "0");
+    settings.Modify("stress_weight", "0");
+    settings.Modify("weight_L2", "0");
+    settings.Modify("penalty_weight", "0");
+    TrainNonlinear trainer(settings);
+    trainer.init(data, nbhs, &model);
+    Eigen::VectorXd gradient(model.get_NL_coeffs_count());
+    double loss = 0., loss_only = 0.;
+    trainer.AccumulateGard(loss, gradient);
+    trainer.AccumulateLoss(loss_only);
+
+    Atoms prediction = reference;
+    model.getEFS(prediction, nbhs[0]);
+    const double error = prediction.energy_ - reference.energy_;
+    Eigen::Matrix<double, -1, 3> force = Eigen::MatrixXd::Zero(reference.size(), 3);
+    Eigen::Matrix3d stress = Eigen::Matrix3d::Zero();
+    SiteCoordinateMatrix workspace;
+    Eigen::VectorXd expected = Eigen::VectorXd::Zero(gradient.size());
+    model.AccumulateEFSCombinationGard(prediction, nbhs[0], 2. * reference.fitness * error,
+                                        force, stress, workspace, expected.data());
+    REQUIRE(loss == Approx(reference.fitness * error * error).margin(1e-11));
+    REQUIRE(loss_only == Approx(loss).margin(1e-11));
+    REQUIRE((gradient - expected).cwiseAbs().maxCoeff() < 2e-10);
+}
 
 namespace
 {

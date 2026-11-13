@@ -469,6 +469,14 @@ class PotMTP : public AnyPotential
         clear_loaded_model();
     }
 
+    static void contract_site_forces(const Eigen::Tensor<double, 3, Eigen::RowMajor> &jacobian,
+                                     const std::vector<double> &adjoint, int neighbors,
+                                     SiteCoordinateMatrix &gradient);
+
+    void accumulate_site_parameter_gradient(Neighborhood &nbh, double energy_weight,
+                                            const SiteCoordinateMatrix *force_weight,
+                                            double *radial_gradient, double *moment_gradient);
+
     void allocate_loaded_coefficients();
 
     void require_loaded_model() const

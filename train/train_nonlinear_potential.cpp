@@ -8,6 +8,7 @@
 #include "collective_error.h"
 #include "gn_diagonal.h"
 #include "potentials/potential_mtp_LES.h"
+#include "potentials/potential_mtp_m.h"
 #include "tools/tools.h"
 #include "utils/comm.h"
 #include "libalglib/solvers.h"
@@ -40,6 +41,15 @@
 
 namespace
 {
+
+bool supports_mtp_energy_only(const Potentials::AnyPotential &potential)
+{
+    using namespace Potentials;
+    const auto &type = typeid(potential);
+    return type == typeid(PotMTP) || type == typeid(PotMTP_M<m_model_mtpli>) ||
+           type == typeid(PotMTP_M<m_model_mtpq2>) || type == typeid(PotMTP_M<m_model_mtpfs>) ||
+           type == typeid(PotMTP_M<m_model_nn1>) || type == typeid(PotMTP_M<m_model_nn2>);
+}
 
 struct ValidationDeferral
 {
@@ -2438,7 +2448,13 @@ void TrainNonlinear::AddLossGard(int id, double &_loss)
         return;
 
     Atoms &atomn = efs_set_[id];
-    p_pot->getEFS(atomn, nbhs);
+    const bool energy_only = supports_mtp_energy_only(*p_pot) &&
+                             !(weight_force > 0 && atom.has_forces()) &&
+                             !(weight_stress > 0 && atom.has_stresses());
+    if (energy_only)
+        p_pot->getE(atomn, nbhs);
+    else
+        p_pot->getEFS(atomn, nbhs);
     if (cg_active_)
         ValidateCGPrediction(atomn, atom, false);
 
@@ -2499,7 +2515,7 @@ void TrainNonlinear::AddLossGard(int id, double &_loss)
         dLdE = 2 * weight_eng_i * (atomn.energy_ - atom.energy_);
     }
 
-    if (weight_force > 0 || weight_stress > 0)
+    if (!energy_only && (weight_force > 0 || weight_stress > 0))
     {
         p_pot->AccumulateEFSCombinationGard(atomn, nbhs, dLdE, dLdF, dLdS, fweights,
                                             loss_gard.data());
@@ -2521,7 +2537,11 @@ void TrainNonlinear::AddLoss(int id, double &_loss)
         return;
 
     Atoms &atomn = efs_set_[id];
-    p_pot->getEFS(atomn, nbhs);
+    if (supports_mtp_energy_only(*p_pot) && !(weight_force > 0 && atom.has_forces()) &&
+        !(weight_stress > 0 && atom.has_stresses()))
+        p_pot->getE(atomn, nbhs);
+    else
+        p_pot->getEFS(atomn, nbhs);
 
     AddChargeLoss(atomn, atom, nbhs, _loss, nullptr, qmonitor);
 
