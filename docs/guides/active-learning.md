@@ -156,6 +156,10 @@ retain every historical candidate and depends on arrival order; use `stream/exac
 the selection has to be equivalent to a whole-pool scan. See the
 [command reference](../reference/commands.md) for memory and MPI controls.
 
+Rank-deficient CPU stream/online states use a regularized interpolation score.
+See [Rank-deficient MaxVol scores](maxvol-rank-deficient.md) for the definition,
+numerical stability, and the difference from truncated SVD.
+
 ## Common errors
 
 | Symptom | Cause | Action |

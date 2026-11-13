@@ -905,10 +905,10 @@ imrmlp maxvol_extend --potfile=potential.mtp \
 | `--init-mode` |  | `auto` | 主动集初始化：`auto`、`mlip` 或 `data` |
 | `--init-value` |  | `1e-6` | MLIP 虚拟单位行尺度 |
 | `--select-mode` |  | `stream` | 选择后端：`stream`、`full` 或 `online` |
-| `--stream-mode` |  | `exact` | 流式后端：`exact` 或 `fast` |
+| `--stream-mode` |  | `exact` | `exact`：全池重扫；`fast`：限定轮数的候选清单；`batch`：有界工作集更新并做最终全池复查（CPU，支持 MPI） |
 | `--stream-chunk-size` |  | `32` | 流式构型分块大小 |
 | `--stream-fast-passes` |  | `2` | fast 模式最大扫描轮数 |
-| `--stream-fast-shortlist` |  | `0` | fast 模式全局 shortlist 大小（0 = 自动） |
+| `--stream-fast-shortlist` |  | `0` | `fast`/`batch` 的候选清单/工作集大小；0 表示自动选择（batch 默认 256） |
 | `--stream-cache-mode` |  | `auto` | 流式缓存：`auto`、`memory`、`mmap` 或 `off` |
 | `--stream-memory-limit-mb` |  | `3072` | 每进程常驻流式缓存上限（MiB） |
 | `--stream-cache-dir` |  | — | 流式 mmap 临时文件目录 |

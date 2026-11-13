@@ -40,7 +40,9 @@ The most important practical conclusions are:
    replacing an active row", not an energy error, probability, or confidence
    interval;
 5. old grades are not comparable once the B-matrix definition, weights,
-   atom-count scaling, or the potential parameterization change.
+   atom-count scaling, or the potential parameterization change;
+6. `stream-mode=batch` is a guarded CPU policy for large cached pools and still
+   ends with a complete-pool check.
 
 ## 2. Notation and Problem Definition
 
@@ -474,6 +476,12 @@ virtual-identity initialization swaps in batches from a global shortlist
 formed by one full-pool scan, then proceeds to the next full-pool scan. It and
 `full` may produce different, but both threshold-satisfying, local solutions
 because the initialization and swap paths can differ.
+
+`stream-mode=batch` is a third stream policy. It keeps a bounded working set,
+applies guarded ridge updates, and performs a final complete-pool check. It
+requires cached CPU selection and supports MPI. See
+[Rank-deficient MaxVol scores](../guides/maxvol-rank-deficient.md) for the
+scoring definition and batch/MPI details.
 
 `stream-cache-mode` behavior:
 
@@ -968,10 +976,10 @@ preparation.
 | `init-value` | `1e-6` | virtual-identity scale @f$\delta@f$ |
 | `max-swaps` | `0` | extra swap cap; 0 means no such cap |
 | `select-mode` | `stream` | `stream`, `full`, or approximate `online` |
-| `stream-mode` | `exact` | `exact` or `fast` |
+| `stream-mode` | `exact` | `exact`, `fast`, or `batch` (CPU cached; MPI supported) |
 | `stream-chunk-size` | `32` | number of configurations per build/cache chunk |
 | `stream-fast-passes` | `2` | maximum global scan rounds in fast mode |
-| `stream-fast-shortlist` | `0` | 0 = automatic; otherwise the global shortlist size |
+| `stream-fast-shortlist` | `0` | 0 = automatic; for `batch`, the default working-set size is 256 |
 | `stream-cache-mode` | `auto` | `auto`, `memory`, `mmap`, `off` |
 | `stream-memory-limit-mb` | `3072` | per-process resident row-cache limit |
 | `stream-cache-dir` | empty | mmap temporary directory; empty uses `TMPDIR` or `/tmp` |

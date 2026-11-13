@@ -29,7 +29,8 @@ MaxVol（Maximum Volume）从候选矩阵中选择一组行，使它们张成的
 3. `online` 内存最低，但不回看已经拒绝的历史候选，因此与输入顺序有关；
 4. grade 是“更换主动行后体积能放大多少”的代数指标，不是能量误差、概率或
    置信区间；
-5. B 矩阵定义、权重、原子数缩放和势参数化一旦改变，旧 grade 就不可直接比较。
+5. B 矩阵定义、权重、原子数缩放和势参数化一旦改变，旧 grade 就不可直接比较；
+6. `stream-mode=batch` 是面向大型缓存池的受保护 CPU 策略，结束时仍执行全池复查。
 
 
 ## 2. 符号与问题定义
@@ -420,6 +421,10 @@ post-check，而不是指找到了组合优化的全局最大体积。data 初�
 一个确定性的全局最佳交换；MLIP 虚拟单位阵初始化会从一次全池扫描形成的全局
 shortlist 中批量交换，再进入下一轮全池扫描。它和 `full` 都可能得到不同但都
 满足单交换阈值的局部解，因为初始化及交换路径可以不同。
+
+`stream-mode=batch` 是第三种流式策略：维护有界工作集，使用受保护的 ridge
+更新，并在结束时对完整候选池做复查。它要求使用缓存式 CPU 选择，支持 MPI。
+评分定义及 batch/MPI 细节见[秩亏 MaxVol 评分（英文）](../guides/maxvol-rank-deficient.md)。
 
 `stream-cache-mode` 的行为如下：
 
@@ -841,10 +846,10 @@ Eigen::VectorXd candidate_scores = mv.score_rows(B_candidate, selected);
 | `init-value` | `1e-6` | 虚拟单位阵尺度 @f$\delta@f$ |
 | `max-swaps` | `0` | 额外交换上限；0 表示不设置此上限 |
 | `select-mode` | `stream` | `stream`、`full` 或近似 `online` |
-| `stream-mode` | `exact` | `exact` 或 `fast` |
+| `stream-mode` | `exact` | `exact`、`fast` 或 `batch`（缓存式 CPU，支持 MPI） |
 | `stream-chunk-size` | `32` | 每个构建/缓存分块的构型数 |
 | `stream-fast-passes` | `2` | fast 模式最多全局扫描轮数 |
-| `stream-fast-shortlist` | `0` | 0 为自动；否则是全局 shortlist 大小 |
+| `stream-fast-shortlist` | `0` | 0 为自动；`batch` 的默认工作集大小为 256 |
 | `stream-cache-mode` | `auto` | `auto`、`memory`、`mmap`、`off` |
 | `stream-memory-limit-mb` | `3072` | 每进程常驻行缓存上限 |
 | `stream-cache-dir` | 空 | mmap 临时目录；空时用 `TMPDIR` 或 `/tmp` |

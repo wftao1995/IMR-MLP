@@ -998,10 +998,10 @@ the combined pool.  Suitable for one-shot training set construction.
 | `--init-mode` | | `auto` | Active initialization: `auto`, `mlip`, or `data` |
 | `--init-value` |  | `1e-6` | MLIP virtual identity scale |
 | `--select-mode` | | `stream` | Selection backend: `stream`, `full`, or `online` |
-| `--stream-mode` | | `exact` | Stream backend: `exact` or `fast` |
+| `--stream-mode` | | `exact` | `exact`: full rescans; `fast`: capped shortlist passes; `batch`: guarded working-set updates with final full-pool checking (CPU, including MPI) |
 | `--stream-chunk-size` |  | `32` | Streaming configuration chunk size |
 | `--stream-fast-passes` |  | `2` | Maximum passes in stream fast mode |
-| `--stream-fast-shortlist` | | `0` | Fast-mode global shortlist size (0 = auto) |
+| `--stream-fast-shortlist` | | `0` | Global shortlist/working-set size in `fast`/`batch`; 0 selects an automatic size (256 for batch) |
 | `--stream-cache-mode` | | `auto` | Stream cache: `auto`, `memory`, `mmap`, or `off` |
 | `--stream-memory-limit-mb` | | `3072` | Per-process resident stream-cache limit (MiB) |
 | `--stream-cache-dir` |  | — | Directory for temporary stream mmap files |
